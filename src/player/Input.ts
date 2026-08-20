@@ -36,7 +36,7 @@ const BINDINGS: Record<string, Action> = {
 /** Degrees per second when looking with the keyboard. */
 export const KEYBOARD_LOOK_SPEED = 110;
 
-/** Actions that fire once per press rather than being held. */
+/** Actions that fire once per physical key press rather than being held. */
 const EDGE_ACTIONS = new Set<Action>([
   'jump', 'interact', 'map', 'journal', 'settings', 'diagnostics', 'accessibility',
 ]);
@@ -47,7 +47,13 @@ function clamp(v: number, lo: number, hi: number): number {
 
 export class InputManager {
   private readonly held = new Set<Action>();
-  private readonly pressedThisFrame = new Set<Action>();
+  /**
+   * Edge actions can have more than one physical binding (for example F and
+   * Enter both interact). Track the physical key code, not just the action, so
+   * one binding never suppresses another and keyboard auto-repeat still fires
+   * only once until that specific key is released.
+   */
+  private readonly edgeHeldCodes = new Set<string>();
   private readonly listeners = new Map<Action, Set<() => void>>();
 
   mouseDeltaX = 0;
@@ -110,7 +116,6 @@ export class InputManager {
 
   /** Called once per frame by the loop, after systems have read input. */
   endFrame(): void {
-    this.pressedThisFrame.clear();
     this.mouseDeltaX = 0;
     this.mouseDeltaY = 0;
     this.touchDeltaX = 0;
@@ -148,9 +153,8 @@ export class InputManager {
     if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
 
     if (EDGE_ACTIONS.has(action)) {
-      if (this.pressedThisFrame.has(action) || this.held.has(action)) return;
-      this.pressedThisFrame.add(action);
-      this.held.add(action);
+      if (this.edgeHeldCodes.has(e.code)) return;
+      this.edgeHeldCodes.add(e.code);
       for (const fn of this.listeners.get(action) ?? []) fn();
       e.preventDefault();
       return;
@@ -161,16 +165,22 @@ export class InputManager {
 
   private readonly onKeyUp = (e: KeyboardEvent): void => {
     const action = BINDINGS[e.code];
-    if (action) this.held.delete(action);
+    if (!action) return;
+    if (EDGE_ACTIONS.has(action)) this.edgeHeldCodes.delete(e.code);
+    else this.held.delete(action);
   };
 
   private readonly onBlur = (): void => {
     this.held.clear();
+    this.edgeHeldCodes.clear();
   };
 
   private readonly onPointerLockChange = (): void => {
     this.pointerLocked = document.pointerLockElement === this.canvas;
-    if (!this.pointerLocked) this.held.clear();
+    if (!this.pointerLocked) {
+      this.held.clear();
+      this.edgeHeldCodes.clear();
+    }
   };
 
   private readonly onMouseMove = (e: MouseEvent): void => {
