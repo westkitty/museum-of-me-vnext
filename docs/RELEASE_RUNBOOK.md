@@ -20,10 +20,11 @@ A release candidate is eligible for an owner publication decision only when all 
 2. The browser job succeeds on the exact release head, including the production-only dependency audit and Playwright visitor-path suite.
 3. `npm run verify:dist` succeeds after the production build.
 4. The 35-exhibit / 64-project / 35-bespoke QA report remains green.
-5. A real-device human pass completes `validation/reports/HUMAN_QA_CHECKLIST.md`, including pointer lock, audible audio and representative-device FPS.
-6. The release PR remains reviewable and mergeable.
+5. A real-device human pass completes `validation/reports/HUMAN_QA_CHECKLIST.md`, including pointer lock, audible audio and representative-device FPS, and preserves a completed Markdown evidence record based on `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md` or the in-museum `?qa=1` recorder output.
+6. The human evidence record has no accidental **Pending** acceptance items; every **Needs work** item names a concrete observed blocker and keeps release blocked until repaired/rechecked.
+7. The release PR remains reviewable and mergeable.
 
-Automated browser evidence reduces uncertainty; it does not substitute for the explicitly human checks above.
+Automated browser evidence reduces uncertainty; it does not substitute for the explicitly human checks above. The `?qa=1` recorder structures human evidence and captures telemetry snapshots, but the human tester still makes every perceptual/device judgment.
 
 ## Cloudflare Pages configuration
 
@@ -74,9 +75,10 @@ Do not merge PR #1, create `v1.0.0`, or publish a production URL merely because 
 When those conditions are met and publication is explicitly authorized, the intended order is:
 
 1. confirm exact release-head checks
-2. merge the reviewed release PR into `main`
-3. deploy the resulting `main` commit
-4. run hosted verification and verify the live browser/device path
-5. tag the verified deployed commit as `v1.0.0`
+2. confirm the durable human QA evidence record is complete and contains no unresolved **Needs work** blockers
+3. merge the reviewed release PR into `main`
+4. deploy the resulting `main` commit
+5. run hosted verification and verify the live browser/device path
+6. tag the verified deployed commit as `v1.0.0`
 
 If live verification fails, repair the release before tagging rather than tagging a known-bad deployment.
