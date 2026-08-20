@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 28,
+  "state_revision": 29,
   "last_updated": "2026-08-20",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -33,7 +33,8 @@
 - Software-WebGL timeout correction: exact-head run #174 PASS for both canonical gate and Chromium browser job.
 - Release-verifier/QA-telemetry readiness through `740919bc70019318c7d6783a245c8b68712943a9`: run #202 PASS in both jobs.
 - r27 state-only head `20466855999f7c33d520a3a947c73ab07157a940`: run #204 PASS in both jobs.
-- Structured human-evidence and semantic-input-isolation batch through `347e7f1b2eb18ada820d0d7af891597c81d0368e`: run #224 PASS in both canonical and Chromium jobs. This is the current verified release-branch baseline before this r28 control-plane reconciliation.
+- Structured human-evidence and semantic-input-isolation batch through `347e7f1b2eb18ada820d0d7af891597c81d0368e`: run #224 PASS in both jobs.
+- Human-evidence completeness verification plus automated-QA checklist immutability through `034ef1e48400acca8632b4c8e2478d0663b30549`: run #238 PASS in both canonical and Chromium jobs. This is the current verified release-branch baseline before this r29 state-only reconciliation.
 
 ## 3. Active invariants
 
@@ -63,6 +64,8 @@
 - `?qa=1` is a human-evidence aid only. It may expose read-only diagnostics and the QA evidence recorder but may not change movement, content, collision, streaming, exhibit behavior, audio behavior, journal state, preferences, or ordinary visitor state.
 - The QA evidence recorder is session-only and human-authored: it may hold manual Pending/Pass/Needs-work choices, notes, telemetry snapshots, and generated report text in memory, but it may not persist judgments or infer acceptance automatically.
 - A release human-QA record is not complete while an acceptance item is accidentally Pending. Any Needs-work item is a release blocker until the concrete observed issue is repaired and rechecked.
+- `npm run verify:human-evidence -- <record>` validates completeness of an already human-authored record only. It may reject incomplete evidence but may not create, infer, or upgrade human visual/audio/pointer-lock/performance judgments.
+- `npm run qa` may regenerate `validation/reports/QA_REPORT.md` but must preserve the hand-maintained `validation/reports/HUMAN_QA_CHECKLIST.md` byte-for-byte.
 - Diagnostic-only exhibit lookup must remain conditional on diagnostics being visible; hidden diagnostics should not add a per-frame active-host lookup.
 - `npm run verify:hosted -- <https-url>` is post-deploy transport/header/cache proof only. It may not be used to promote visual composition, audible output, pointer-lock feel/recovery, or representative-device FPS to verified.
 - A fallback static host is release-eligible only if its live responses satisfy the same hosted verification contract; workflow existence alone is not evidence of header/cache parity.
@@ -79,17 +82,18 @@
 - Phase 13 automated QA contract: 35/35 exhibits, 64/64 projects and 35/35 bespoke implementations are reported and guarded.
 - Production Chromium gate boots the real WebGL application at the exterior Arrival Plaza, proves keyboard input reaches the real `InputManager`/`PlayerController` path, operates visual-map wayfinding by keyboard, verifies Escape recovery after map re-render, toggles explicit reduced motion, and reaches the complete accessible collection without pointer lock.
 - Headless-browser method is intentionally bounded: after proving the real WebGL application boots, the CI suite stops the render loop so software rendering does not masquerade as representative performance evidence.
-- The CI software-WebGL boot timeout remains a bounded 30 seconds with short semantic assertion waits. Run #174 verified that correction; later runs through #224 revalidated the browser contract.
-- `?qa=1` exposes the existing read-only diagnostics overlay and the session-only `QACapture` evidence recorder. A human can mark the nine remaining perceptual/device acceptance areas, capture timestamped runtime telemetry, record notes, and generate a Markdown evidence record. Browser run #224 verifies the production-path recorder surface and report generation without auto-promoting any human judgment.
-- Semantic-control input isolation is fixed: native controls and custom `role="button"` targets no longer leak their activation keys into global museum interaction/jump bindings. `tests/input-ui-guard.test.ts` covers native controls, custom buttons, and preservation of the ordinary canvas/global path; run #224 passes the canonical suite and Chromium visitor path.
-- `validation/reports/HUMAN_QA_CHECKLIST.md` now defines the decisive recording route, required telemetry checkpoints, semantic-control isolation check, and evidence-closure rules.
+- The CI software-WebGL boot timeout remains a bounded 30 seconds with short semantic assertion waits. Run #174 verified that correction; later runs through #238 revalidated the browser contract.
+- `?qa=1` exposes the existing read-only diagnostics overlay and the session-only `QACapture` evidence recorder. A human can mark the nine remaining perceptual/device acceptance areas, capture timestamped runtime telemetry, record notes, and generate a Markdown evidence record. Browser runs through #238 verify the production-path recorder surface without auto-promoting any human judgment.
+- Semantic-control input isolation is fixed: native controls and custom `role="button"` targets no longer leak their activation keys into global museum interaction/jump bindings. `tests/input-ui-guard.test.ts` covers native controls, custom buttons, and preservation of the ordinary canvas/global path.
+- `validation/reports/HUMAN_QA_CHECKLIST.md` defines the decisive recording route, required telemetry checkpoints, semantic-control isolation check, and evidence-closure rules.
 - `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md` provides a durable record for device/browser identity, nine acceptance judgments, required telemetry snapshots, concrete observations, and final disposition.
-- `docs/RELEASE_RUNBOOK.md` and `docs/RELEASE_CHECKLIST.md` require a preserved human evidence record with no accidental Pending items and no unresolved Needs-work blocker before publication consideration.
+- `scripts/human-evidence-verifier-lib.mjs`, `scripts/verify-human-evidence.mjs`, and deterministic tests now provide an evidence-completeness gate. It requires exactly nine PASS acceptance entries, at least six telemetry snapshots, and non-empty human notes while explicitly refusing to substitute for human observation. Run #238 canonical gate passes these release-tool tests.
+- `scripts/qa-report-runner.mjs` now protects the hand-maintained human checklist from the older generated scaffold embedded in `qa-report.mjs`, restoring the exact original bytes after automated QA generation. Run #238 canonical gate proves the wrapper executes successfully inside the real gate.
+- `docs/RELEASE_RUNBOOK.md` requires `verify:human-evidence` PASS before merge/publication consideration and documents the QA checklist immutability boundary.
 - `verify:dist` remains part of canonical `npm run gate` and checks hashed JS/CSS references, required `_headers`, CSP/frame protection, multiple production chunks, and a secret-like-file denylist.
-- The independent browser job performs the production-only dependency audit; run #224 passes that job.
-- Deterministic hosted-verifier logic remains implemented as `scripts/hosted-verifier-lib.mjs`, `scripts/verify-hosted.mjs`, and `scripts/hosted-verifier.test.mjs`. `npm run test:release-tools` remains part of the canonical gate.
+- The independent browser job performs the production-only dependency audit; run #238 passes that job.
+- Deterministic hosted-verifier logic remains implemented as `scripts/hosted-verifier-lib.mjs`, `scripts/verify-hosted.mjs`, and `scripts/hosted-verifier.test.mjs`. `npm run test:release-tools` now covers both hosted verification and human-evidence completeness verification.
 - `verify:hosted` requires an HTTPS public target, successful shell response, the three museum mount points, HTML revalidation, `nosniff`, frame denial, required CSP boundary, same-origin content-hashed JS/CSS, successful asset responses, and immutable one-year asset caching.
-- `docs/RELEASE_CHECKLIST.md`, `docs/DEPLOYMENT.md`, `docs/RELEASE_RUNBOOK.md`, PR #1, the human QA checklist, and the human evidence template now describe the same release boundary.
 
 ### Implemented but unverified
 
@@ -102,7 +106,8 @@
 - Initial browser run #162 overloaded the CI software renderer while leaving the live frame loop running; this was a test-harness limitation, not accepted browser evidence. The browser harness now proves boot and then stops the loop before semantic checks.
 - Browser run #168 exposed a real map keyboard-focus regression; `MapPanel` restores dialog focus after target/floor re-render and subsequent browser runs verify the repair.
 - A pre-r27 browser run timed out at the entry-prompt assertion under the old 15-second total test timeout even though the application was constructing on software WebGL. The bounded test timeout was raised to 30 seconds rather than weakening semantic assertions; exact-head run #174 and subsequent runs pass.
-- Browser run #214 on the first QA-recorder test failed its later movement assertion because report generation intentionally focused/selected a TEXTAREA; the newly hardened `InputManager` correctly ignored W while a text control owned focus. The browser harness now explicitly blurs the report before proving the global movement path. Run #218 and later run #224 pass; this was a harness sequencing error, not an accepted museum regression.
+- Browser run #214 on the first QA-recorder test failed its later movement assertion because report generation intentionally focused/selected a TEXTAREA; the hardened `InputManager` correctly ignored W while a text control owned focus. The browser harness now explicitly blurs the report before proving the global movement path. Later runs pass; this was a harness sequencing error, not an accepted museum regression.
+- Before r29, `qa-report.mjs` rewrote the tracked human QA checklist from a stale embedded scaffold whenever `npm run qa` ran. `qa-report-runner.mjs` now preserves and restores the hand-maintained checklist exactly; run #238 passes the canonical gate with that guard active.
 - GitHub Actions artifact storage quota prevented optional Playwright artifact upload during an earlier attempt. Artifact upload is not a required release gate; job logs remain CI evidence.
 - Full `npm ci` may report findings in the development-tool dependency tree; the deployed dependency audit is the separate `--omit=dev --audit-level=high` check. Do not conflate the two claims.
 - Older release-checklist/deployment language that predated the current Playwright, human-evidence, or semantic-input contracts is superseded by the current documents.
@@ -126,9 +131,10 @@
 
 1. Execute `validation/reports/HUMAN_QA_CHECKLIST.md` with a representative real browser/device and screen recording using `?qa=1`.
 2. Preserve the generated Markdown evidence output or complete `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md`; include device/browser details and required snapshots, with every acceptance item explicitly resolved to Pass or Needs work.
-3. Tune clipping/exposure/density or interaction feel only from concrete Needs-work observations; do not create speculative polishing work.
-4. If the human/device evidence passes and the owner explicitly authorizes release, follow `docs/RELEASE_RUNBOOK.md`: exact-head checks → merge reviewed PR → deploy `main` → run `verify:hosted` and live browser/device verification → tag the verified deployed commit.
-5. Do not add further environment furniture merely to continue polishing; require an observed empty/problem area.
+3. Run `npm run verify:human-evidence -- <completed-human-qa.md>` against the preserved human record. A verifier PASS proves completeness only; the human observations remain the decisive evidence.
+4. Tune clipping/exposure/density or interaction feel only from concrete Needs-work observations; do not create speculative polishing work.
+5. If the human/device evidence passes and the owner explicitly authorizes release, follow `docs/RELEASE_RUNBOOK.md`: exact-head checks → merge reviewed PR → deploy `main` → run `verify:hosted` and live browser/device verification → tag the verified deployed commit.
+6. Do not add further environment furniture merely to continue polishing; require an observed empty/problem area.
 
 ## 8. Active decisions / prohibitions
 
@@ -140,7 +146,7 @@
 - Do not add dynamic lights merely for colour identity.
 - Exterior visual overlays must not alter the doorway or collision geometry.
 - Persistent environmental colour may frame exhibits but may not replace, recolour, or lifecycle-couple bespoke exhibit hero objects.
-- Automated/headless browser evidence, diagnostics, QA snapshots, and generated evidence structure do not satisfy outstanding human visual/audio/pointer-lock/FPS judgments.
+- Automated/headless browser evidence, diagnostics, QA snapshots, generated evidence structure, and evidence-completeness verification do not satisfy outstanding human visual/audio/pointer-lock/FPS judgments.
 - Do not claim a production URL, hosted headers, or cache behaviour until those are observed after an authorized deployment.
 - Do not dispatch the manual GitHub Pages workflow as a shortcut around the explicit publication boundary.
 
@@ -148,38 +154,41 @@
 
 | Claim | State | Evidence |
 |---|---|---|
-| Requested controls | verified-automated | run #36 PASS; revalidated through #224 |
-| Outside spawn + continuous entry | verified-automated | run #50 PASS; production browser path revalidated through #224 |
-| Garden + daylight | verified-automated | run #60 PASS; environment regression through #224 |
-| Bright baseline + wing palettes | verified-automated | run #84 PASS; revalidated through #224 |
-| Furnishing / welcome / exhibit accents / wing identity | verified-automated | run #84 PASS; revalidated through #224 |
-| Wing emissive atmosphere | verified-automated | run #92 PASS; revalidated through #224 |
-| Stronger garden-facing facade identity | verified-automated | run #104 PASS; revalidated through #224 |
-| Distinct authored furnishings in all six wings | verified-automated | run #114 PASS; revalidated through #224 |
-| Palette-derived Rotunda route threads to all six wings | verified-automated | run #114 PASS; revalidated through #224 |
-| Wing-derived colour fields in all 35 exhibit bays | verified-automated | run #114 PASS; revalidated through #224 |
-| Phase 11 keyboard/touch/comfort regression suite | verified-automated | run #142 PASS; browser semantics revalidated through #224 |
-| Semantic UI control isolation from global museum bindings | verified-automated | `tests/input-ui-guard.test.ts`; canonical + browser run #224 PASS |
-| Phase 12 repeated traversal + persistent-environment budgets | verified-automated | run #142 PASS; canonical gate #224 PASS |
-| Phase 13 automated 35/64/bespoke QA reporting | verified-automated | run #142 PASS; canonical gate #224 PASS |
-| Real production-build browser boot and keyboard semantic path | verified-automated-browser | run #224 browser job PASS |
-| QA diagnostics + structured human-evidence recorder (`?qa=1`) | verified-automated-browser tool contract | run #224 browser job PASS; recorder/report behavior verified without human acceptance claims |
-| Production dependency surface at high audit threshold | verified-automated | run #224 browser job PASS with `--omit=dev --audit-level=high` |
-| Static release artifact integrity | verified-automated | `verify:dist` inside canonical run #224 PASS |
-| Hosted verifier logic | verified-automated | `test:release-tools` inside canonical run #224 PASS |
-| Static release headers/runbook/checklist prepared | verified-source + gate | `public/_headers`, release docs, canonical run #224 PASS |
+| Requested controls | verified-automated | run #36 PASS; revalidated through #238 |
+| Outside spawn + continuous entry | verified-automated | run #50 PASS; production browser path revalidated through #238 |
+| Garden + daylight | verified-automated | run #60 PASS; environment regression through #238 |
+| Bright baseline + wing palettes | verified-automated | run #84 PASS; revalidated through #238 |
+| Furnishing / welcome / exhibit accents / wing identity | verified-automated | run #84 PASS; revalidated through #238 |
+| Wing emissive atmosphere | verified-automated | run #92 PASS; revalidated through #238 |
+| Stronger garden-facing facade identity | verified-automated | run #104 PASS; revalidated through #238 |
+| Distinct authored furnishings in all six wings | verified-automated | run #114 PASS; revalidated through #238 |
+| Palette-derived Rotunda route threads to all six wings | verified-automated | run #114 PASS; revalidated through #238 |
+| Wing-derived colour fields in all 35 exhibit bays | verified-automated | run #114 PASS; revalidated through #238 |
+| Phase 11 keyboard/touch/comfort regression suite | verified-automated | run #142 PASS; browser semantics revalidated through #238 |
+| Semantic UI control isolation from global museum bindings | verified-automated | `tests/input-ui-guard.test.ts`; canonical + browser run #238 PASS |
+| Phase 12 repeated traversal + persistent-environment budgets | verified-automated | run #142 PASS; canonical gate #238 PASS |
+| Phase 13 automated 35/64/bespoke QA reporting | verified-automated | run #142 PASS; canonical gate #238 PASS |
+| Human checklist protected from automated QA regeneration | verified-automated | `scripts/qa-report-runner.mjs`; canonical gate #238 PASS |
+| Real production-build browser boot and keyboard semantic path | verified-automated-browser | run #238 browser job PASS |
+| QA diagnostics + structured human-evidence recorder (`?qa=1`) | verified-automated-browser tool contract | run #238 browser job PASS; recorder/report behavior verified without human acceptance claims |
+| Human evidence completeness verifier | verified-automated tool contract | deterministic release-tool tests in canonical run #238 PASS; no completed human record exists yet |
+| Production dependency surface at high audit threshold | verified-automated | run #238 browser job PASS with `--omit=dev --audit-level=high` |
+| Static release artifact integrity | verified-automated | `verify:dist` inside canonical run #238 PASS |
+| Hosted verifier logic | verified-automated | release-tool tests inside canonical run #238 PASS |
+| Static release headers/runbook/checklist prepared | verified-source + gate | `public/_headers`, release docs, canonical run #238 PASS |
 | Durable human QA evidence structure | verified-source | checklist + `HUMAN_QA_EVIDENCE_TEMPLATE.md` + recorder output contract |
 | Human visual/device QA | pending-human | no completed representative-device evidence record yet |
 | Hosted production verification | pending-owner-action | no deployment authorized/performed; `verify:hosted` cannot run against a nonexistent production URL |
-| Current release-readiness code/docs/tool batch | verified-automated | exact-head commit `347e7f1b2eb18ada820d0d7af891597c81d0368e`, run #224 gate + browser PASS |
+| Current release-readiness code/docs/tool batch | verified-automated | exact-head commit `034ef1e48400acca8632b4c8e2478d0663b30549`, run #238 gate + browser PASS |
 
 ## 10. Current change scope
 
-Phase-14 release-readiness only: close semantic-control keyboard bleed-through, turn the remaining human/device checks into a structured but still human-authored evidence workflow, and reconcile release documentation around that durable evidence boundary. Layout, collision, exhibit contracts/content, frozen mapping, streaming semantics, Sanctuary semantics and deployment state remain protected.
+Phase-14 release-readiness only: protect the hand-maintained human QA contract from automated regeneration and add a deterministic completeness check for the eventual human evidence record without automating or inferring the human judgments themselves. Layout, collision, exhibit contracts/content, frozen mapping, streaming semantics, Sanctuary semantics and deployment state remain protected.
 
 ## 11. Compact revision log
 
-- **r28 — 2026-08-20:** Continued Phase-14 readiness without publishing. Added session-only structured human QA evidence recording under `?qa=1`, a durable Markdown evidence template and closure rules; fixed semantic-control keyboard events leaking into global museum interact/jump actions and added dedicated regressions; reconciled the release checklist/runbook/PR around that evidence boundary. Browser run #214 exposed a harness focus-sequencing issue after report generation; the harness was corrected and current exact-head `347e7f1b2eb18ada820d0d7af891597c81d0368e` passed run #224 in both canonical and Chromium jobs. Human/device evidence and actual deployment remain pending.
+- **r29 — 2026-08-20:** Continued Phase-14 readiness without publishing. Found and fixed an automated-QA authority bug where `npm run qa` rewrote the current human checklist from a stale embedded scaffold; the new runner preserves the hand-maintained checklist byte-for-byte. Added `verify:human-evidence` plus deterministic tests so an eventual human evidence record can be rejected for Pending/Needs-work checks, insufficient telemetry, or missing notes without pretending automation made the observations. Updated the runbook to require that completeness check before merge/publication consideration. Exact implementation head `034ef1e48400acca8632b4c8e2478d0663b30549` passed run #238 in both canonical and Chromium jobs. Human/device evidence and actual deployment remain pending.
+- **r28 — 2026-08-20:** Continued Phase-14 readiness without publishing. Added session-only structured human QA evidence recording under `?qa=1`, a durable Markdown evidence template and closure rules; fixed semantic-control keyboard events leaking into global museum interact/jump actions and added dedicated regressions; reconciled the release checklist/runbook/PR around that evidence boundary. Browser run #214 exposed a harness focus-sequencing issue after report generation; the harness was corrected and exact-head `347e7f1b2eb18ada820d0d7af891597c81d0368e` passed run #224 in both canonical and Chromium jobs. Human/device evidence and actual deployment remain pending.
 - **r27 — 2026-08-20:** Completed the previous bounded Phase-14 readiness passes without publishing: reconciled stale release/deployment evidence, added the opt-in diagnostics capture aid, and added deterministic hosted transport/header verification. Exact release-readiness head `740919bc70019318c7d6783a245c8b68712943a9` passed run #202 in both jobs.
 - **r26 — 2026-08-20:** Prepared the initial Phase-14 release-readiness subphases: committed production-browser CI proof, `verify:dist` plus production-only dependency auditing, static release headers and the release runbook. Run #170 passed.
 - **r25 — 2026-08-20:** Completed Phase 11 accessibility/input hardening, Phase 12 persistent-environment lifecycle/performance governance, and Phase 13 automated QA contract/reporting. Canonical run #142 PASS.
