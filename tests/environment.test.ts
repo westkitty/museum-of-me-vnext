@@ -3,9 +3,10 @@ import * as THREE from 'three';
 import { ResourceScope } from '../src/assets/ResourceScope';
 import { EnvironmentDressing } from '../src/world/EnvironmentDressing';
 import { ExhibitThresholds } from '../src/world/ExhibitThresholds';
-import { PLACEMENTS } from '../src/world/layout';
+import { PLACEMENTS, WINGS } from '../src/world/layout';
 import { PaletteSet } from '../src/world/palette';
 import { Sky } from '../src/world/Sky';
+import { WingIdentity } from '../src/world/WingIdentity';
 
 describe('museum environment coherence', () => {
   it('keeps the Rotunda substantially brighter than the themed wings', () => {
@@ -47,6 +48,19 @@ describe('museum environment coherence', () => {
     scope.dispose();
   });
 
+  it('adds recognisable colour and shape identity to every wing', () => {
+    const scope = new ResourceScope('environment-test');
+    const identity = new WingIdentity(scope).build();
+    const bands = identity.children.filter((node) => node.name.startsWith('wing-threshold-band:'));
+    const motifs = identity.children.filter((node) => node.name.startsWith('wing-motif:'));
+    const strips = identity.children.filter((node) => node.name.startsWith('wing-transition-strip:'));
+
+    expect(bands).toHaveLength(WINGS.length);
+    expect(motifs).toHaveLength(WINGS.length * 2);
+    expect(strips).toHaveLength(WINGS.length * 2);
+    scope.dispose();
+  });
+
   it('adds a derived colour frame to every exhibit threshold', () => {
     const scope = new ResourceScope('environment-test');
     const thresholds = new ExhibitThresholds(scope).build();
@@ -55,7 +69,7 @@ describe('museum environment coherence', () => {
 
     expect(blades).toHaveLength(PLACEMENTS.length * 2);
     expect(headers).toHaveLength(PLACEMENTS.length);
-    expect(new Set(headers.map((node) => node.name))).toHaveSize(PLACEMENTS.length);
+    expect(new Set(headers.map((node) => node.name)).size).toBe(PLACEMENTS.length);
     scope.dispose();
   });
 
