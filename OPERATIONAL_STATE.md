@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 17,
+  "state_revision": 18,
   "last_updated": "2026-08-20",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -37,7 +37,7 @@
 | Remote / PR | private `git@github.com:westkitty/museum-of-me-vnext.git`; PR #1 remains open from `release/v1.0.0` to `main` |
 | Runtime | complete traversable museum with exhibit lifecycle, streaming, interaction, DOM interface and procedural audio |
 | Toolchain | Node/npm/Vite/TypeScript; Three.js 0.185.0 pinned |
-| Current refinement | Phase 1 control overhaul passed canonical GitHub Actions run #36. Phase 2 exterior-start change is committed through `19c960d92078c4988d3998b0cdeac860da96be51`; fresh gate pending. |
+| Current refinement | Phase 1 controls are automated-verified. Phase 2 exterior start is automated-verified by canonical gate #50. Arrival garden + daylight passed canonical gate #60. Current head adds coherent zone palettes, facade/vestibule/Rotunda/hall furnishing, and explicit environment regressions; fresh gate pending. |
 
 ## 4. Active invariants
 
@@ -62,45 +62,57 @@
 | INV-017 | Canonical keyboard movement is W/Up forward, S/Down backward, A/Left left, D/Right right; Q/E rotate left/right; Shift sprints; Space performs a grounded single-press jump; F or Enter interacts. | explicit user correction + accessibility tests |
 | INV-018 | Keyboard-only accessibility remains complete; Page Up/Page Down provide vertical look now that arrows are movement. | accessibility tests |
 | INV-019 | The experience begins outside on the authored Arrival Plaza, facing the museum; entering the building requires continuous player movement across the exterior threshold. | explicit user correction + start/traversal tests |
+| INV-020 | The Rotunda/balcony form the bright neutral baseline; each major wing has a distinct coherent colour family. | explicit user direction + environment tests |
+| INV-021 | Environmental furnishing must not invalidate proven circulation geometry. | dressing is non-colliding + traversal gate |
 
 ## 5. Verified working behaviour
 
-- Phase 1 control grammar and associated core automated invariants passed canonical GitHub Actions run #36.
-- The earlier complete museum baseline remains verified outside the Phase 2 spawn/arrival impact radius.
+- Phase 1 control grammar and associated automated invariants passed canonical GitHub Actions run #36.
+- Phase 2 exterior-start foundation passed canonical GitHub Actions run #50.
+- Arrival garden + bright daylight package through commit `958973988b4e1ca585a72dba097e889f48a40a10` passed canonical GitHub Actions run #60.
+- Earlier complete museum behavior remains verified outside the current visual/furnishing impact radius.
 
 ## 6. Known not working
 
 | Item | State |
 |---|---|
-| Previous interior spawn | superseded by Phase 2; runtime should no longer begin inside the south vestibule |
+| Previous interior spawn | superseded; runtime now begins outside |
+| Previous dark exterior sky | superseded; runtime now uses bright daylight |
+| Previous beige Rotunda baseline | superseded in source by bright neutral palette; fresh gate/browser evidence pending |
 
 ## 7. Implemented but Unverified
 
 | Item | Evidence missing |
 |---|---|
-| Runtime starts at the Arrival Plaza centre and faces north toward the entrance | source committed; fresh canonical gate and browser observation pending |
-| Canonical traversal now begins at the same exterior start used by runtime | traversal regression committed; fresh canonical gate pending |
-| Wayfinding test origin follows the real exterior start | regression committed; fresh canonical gate pending |
+| Rotunda and balcony use luminous white/ivory baseline palette | source + environment regression committed; fresh canonical gate/browser observation pending |
+| Major wings use distinct coherent palette families | source + uniqueness regression committed; fresh canonical gate/browser observation pending |
+| Exterior facade has stronger canopy/columns/sign identity | source committed; fresh canonical gate/browser observation pending |
+| Vestibule receives neutral white baseline overlays and a welcome sign | source committed; fresh canonical gate/browser observation pending |
+| Rotunda receives information desk, plants and seating islands | source committed; fresh canonical gate/browser observation pending |
+| Wing halls receive recurring plants and sculptural furniture rhythm | source committed; fresh canonical gate/browser observation pending |
 
 ## 8. Unknown or Evidence-Stale State
 
 | Item | Decisive check |
 |---|---|
-| Exterior start visually presents the museum entrance clearly | direct browser walkthrough |
-| Walk from start across plaza/threshold into museum feels deliberate and unobstructed | direct browser walkthrough |
+| Garden composition frames the museum cleanly at the real spawn camera | direct browser walkthrough |
+| Daylight exposure/color balance is attractive rather than washed out | direct browser walkthrough |
+| White Rotunda reads as intentional baseline zero rather than sterile | direct browser walkthrough |
+| Furnishing density fills circulation spaces without visual clutter | direct browser walkthrough |
+| Facade additions align cleanly with existing entrance geometry | direct browser walkthrough |
 | Real pointer-lock capture/look/release | human browser/device test |
 | Audible audio | human browser/device test |
-| Representative-device FPS | human measurement |
-| Human feel of movement/jump/sprint | direct browser walkthrough |
+| Representative-device FPS after added procedural dressing | human measurement |
 
 ## 9. Pending Work
 
 | Task | Priority | Blocks completion |
 |---|---|---|
-| Reconcile canonical gate for Phase 2 head | high | yes for automated Phase 2 verification |
-| Direct browser walkthrough from exterior start through entrance | high | yes for perceptual Phase 2 verification |
-| Garden/park exterior dressing and stronger building exterior identity | next | no for spawn-only subphase |
-| Distinct visual/color identity for each museum area | next | no for spawn-only subphase |
+| Reconcile fresh canonical gate for environment-furnishing head | high | yes for automated verification |
+| Direct browser walkthrough: garden → vestibule → Rotunda → each wing | high | yes for perceptual verification |
+| Derive exhibit-level accent splashes from containing wing palettes | next | no for current environment subphase |
+| Additional wing-specific furnishing/detail variations | next | no for current environment subphase |
+| Tune any visual collisions, clipping, exposure or density found in runtime | next | yes if observed |
 
 ## 10. Active Decisions, Defaults, and Prohibitions
 
@@ -111,6 +123,8 @@
 - E is rotate-right, not the primary interaction key.
 - Jump is edge-triggered and grounded; holding Space must not auto-bunny-hop.
 - Exterior spawn is derived from the authored plaza zone rather than duplicated coordinates.
+- Reference images are inspiration for colour/design language, not floor-plan authority.
+- New dressing may add visual density but must not move validated walls or narrow mandatory routes.
 
 ## 11. Validation and Evidence Matrix
 
@@ -121,18 +135,24 @@
 | CTRL-003 | Shift is materially faster than walk | verified-automated | canonical gate run #36 PASS | movement tuning change |
 | CTRL-004 | Space jumps once from ground and does not repeat while held | verified-automated | canonical gate run #36 PASS | vertical physics/input change |
 | CTRL-005 | F/Enter interact and E does not | verified-automated | canonical gate run #36 PASS | input binding change |
-| START-001 | Runtime start is in the plaza zone outside the museum | implemented-unverified | `src/world/start.ts` + App wiring + traversal regression | start/layout change |
-| START-002 | Canonical route is continuous from exterior start through entrance | implemented-unverified | route + traversal regression | exterior/collision/layout change |
-| CORE-001 | Mapping/content/privacy/lifecycle/traversal invariants remain intact after Phase 2 | evidence-stale until fresh gate | Phase 1 gate PASS | Phase 2 runtime/test change |
+| START-001 | Runtime start is in the plaza zone outside the museum | verified-automated | canonical gate run #50 PASS | start/layout change |
+| START-002 | Canonical route is continuous from exterior start through entrance | verified-automated | canonical gate run #50 PASS | exterior/collision/layout change |
+| ENV-001 | Arrival garden and daylight package preserve canonical automated invariants | verified-automated | canonical gate run #60 PASS | exterior/lighting/garden change |
+| ENV-002 | Rotunda is materially brighter than themed wings | implemented-unverified | palette source + `tests/environment.test.ts` | palette/material change |
+| ENV-003 | Major wing accents are distinct | implemented-unverified | palette source + `tests/environment.test.ts` | palette/material change |
+| ENV-004 | Welcome/facade/plants/seating/hall dressing exists in runtime layer | implemented-unverified | `EnvironmentDressing.ts` + main wiring + regression | furnishing change |
+| CORE-001 | Mapping/content/privacy/lifecycle/traversal invariants remain intact after current visual batch | evidence-stale until fresh gate | run #60 PASS before current batch | current environment batch |
 
 ## 12. Current Change Scope and Impact Radius
 
-- **Classification:** localized arrival/spawn correction.
-- **Changed:** `src/world/start.ts`, `src/app/App.ts`, `src/world/route.ts`, `tests/traversal.test.ts`, `tests/experience.test.ts`.
-- **Protected:** exhibit contract/content, 64→35 mapping, wing dimensions, collision architecture, streaming/resource ownership, Sanctuary semantics, deployment state, Phase 1 controls.
-- **Mandatory validation:** fresh canonical `npm run gate`, then direct browser walkthrough from exterior start into museum.
+- **Classification:** broad visual/environment refinement without layout reconstruction.
+- **Changed in current batch:** `src/world/palette.ts`, `src/world/EnvironmentDressing.ts`, `src/main.ts`, `tests/environment.test.ts`.
+- **Previously verified visual foundation:** `src/world/ArrivalGarden.ts`, `src/world/Sky.ts`, `src/render/Lighting.ts` through run #60.
+- **Protected:** exhibit contract/content, 64→35 mapping, building dimensions, mandatory circulation, player controls, streaming/resource ownership, Sanctuary semantics, deployment state.
+- **Mandatory validation:** fresh canonical `npm run gate`, then direct browser walkthrough across arrival and representative wings.
 
 ## 13. Compact Revision Log
 
-- **r17 — 2026-08-20:** Promoted Phase 1 controls to automated-verified from canonical run #36. Implemented Phase 2 exterior start derived from the Arrival Plaza zone, rewired runtime/canonical traversal/wayfinding tests, and added explicit exterior-start regressions. Fresh gate and human walkthrough remain pending.
+- **r18 — 2026-08-20:** Promoted exterior start to automated-verified via run #50 and garden/daylight package to automated-verified via run #60. Added bright neutral Rotunda/balcony palette, strengthened facade and neutral vestibule, added information desk/plants/seating/corridor furnishing, and added environment regressions. Current visual batch remains implemented-unverified pending fresh gate and browser walkthrough.
+- **r17 — 2026-08-20:** Promoted Phase 1 controls to automated-verified from canonical run #36. Implemented Phase 2 exterior start derived from the Arrival Plaza zone, rewired runtime/canonical traversal/wayfinding tests, and added explicit exterior-start regressions.
 - **r16 — 2026-08-20:** Recorded explicit control grammar and Phase-1 implementation at commit `545ff801...`; verification was pending at that revision.
