@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { ResourceScope } from '../src/assets/ResourceScope';
 import { EnvironmentDressing } from '../src/world/EnvironmentDressing';
+import { ExhibitThresholds } from '../src/world/ExhibitThresholds';
+import { PLACEMENTS } from '../src/world/layout';
 import { PaletteSet } from '../src/world/palette';
 import { Sky } from '../src/world/Sky';
 
@@ -42,6 +44,18 @@ describe('museum environment coherence', () => {
     expect(names.has('indoor-plant')).toBe(true);
     expect(names.has('interior-bench')).toBe(true);
     expect(names.has('hall-pedestal')).toBe(true);
+    scope.dispose();
+  });
+
+  it('adds a derived colour frame to every exhibit threshold', () => {
+    const scope = new ResourceScope('environment-test');
+    const thresholds = new ExhibitThresholds(scope).build();
+    const blades = thresholds.children.filter((node) => node.name.startsWith('exhibit-accent:'));
+    const headers = thresholds.children.filter((node) => node.name.startsWith('exhibit-header:'));
+
+    expect(blades).toHaveLength(PLACEMENTS.length * 2);
+    expect(headers).toHaveLength(PLACEMENTS.length);
+    expect(new Set(headers.map((node) => node.name))).toHaveSize(PLACEMENTS.length);
     scope.dispose();
   });
 
