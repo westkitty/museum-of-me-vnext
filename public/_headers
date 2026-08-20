@@ -1,8 +1,8 @@
 # Cloudflare Pages / Netlify header rules.
 #
-# The museum ships no runtime binary assets — every model, texture and sound is
-# generated in the browser — so the only things to cache are the hashed build
-# outputs and the HTML shell.
+# The museum currently ships no runtime binary assets — its present models,
+# textures and ambience are procedural — so long-lived caching applies to the
+# hashed build output while the HTML shell always revalidates.
 
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
@@ -17,7 +17,10 @@
   Cache-Control: public, max-age=0, must-revalidate
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  # The museum makes no outbound requests of any kind. This policy says so.
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  X-Frame-Options: DENY
+  # The museum makes no outbound runtime requests. Keep this synchronized if a
+  # future governed asset host is introduced.
   Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'
 
 /index.html
