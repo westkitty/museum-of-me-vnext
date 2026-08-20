@@ -10,7 +10,8 @@ import { Museum } from '../world/Museum';
 import { Lighting } from '../render/Lighting';
 import { InputManager } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
-import { SPAWN_POSITION, SPAWN_YAW, zoneAt, ZONE_BY_ID, type ZoneId } from '../world/layout';
+import { zoneAt, ZONE_BY_ID, type ZoneId } from '../world/layout';
+import { START_POSITION, START_YAW } from '../world/start';
 import { installExhibits } from '../exhibits';
 import { StreamingManager } from '../exhibits/StreamingManager';
 import { InteractionManager } from '../interaction/InteractionManager';
@@ -103,7 +104,7 @@ export class App implements LoopCallbacks {
 
     this.input = new InputManager(opts.canvas);
     this.player = new PlayerController(built.collision, this.input);
-    this.player.teleport(SPAWN_POSITION, SPAWN_YAW);
+    this.player.teleport(START_POSITION, START_YAW);
 
     // File-backed loaders are wired even though the museum ships procedural
     // assets, so an authentic project artifact can be carried in at any point.
