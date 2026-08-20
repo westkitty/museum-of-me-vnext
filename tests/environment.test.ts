@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { ResourceScope } from '../src/assets/ResourceScope';
 import { EnvironmentDressing } from '../src/world/EnvironmentDressing';
+import { ExhibitColorFields } from '../src/world/ExhibitColorFields';
 import { ExhibitThresholds } from '../src/world/ExhibitThresholds';
 import { ExteriorIdentity } from '../src/world/ExteriorIdentity';
 import { PLACEMENTS, WINGS } from '../src/world/layout';
 import { PaletteSet } from '../src/world/palette';
+import { RotundaWayfinding } from '../src/world/RotundaWayfinding';
 import { Sky } from '../src/world/Sky';
 import { WingAtmosphere } from '../src/world/WingAtmosphere';
+import { WingFurnishings } from '../src/world/WingFurnishings';
 import { WingIdentity } from '../src/world/WingIdentity';
 
 describe('museum environment coherence', () => {
@@ -87,6 +90,34 @@ describe('museum environment coherence', () => {
     scope.dispose();
   });
 
+  it('gives every wing its own authored furnishing vocabulary', () => {
+    const scope = new ResourceScope('environment-test');
+    const furnishings = new WingFurnishings(scope).build();
+    const groups = furnishings.children.filter((node) => node.name.startsWith('wing-furnishing:'));
+
+    expect(groups).toHaveLength(WINGS.length * 2);
+    for (const wing of WINGS) {
+      expect(groups.filter((node) => node.name === `wing-furnishing:${wing.id}`)).toHaveLength(2);
+    }
+    let lights = 0;
+    furnishings.traverse((node) => { if ((node as THREE.Light).isLight) lights++; });
+    expect(lights).toBe(0);
+    scope.dispose();
+  });
+
+  it('keeps the neutral Rotunda readable while threading colour to all six wings', () => {
+    const scope = new ResourceScope('environment-test');
+    const wayfinding = new RotundaWayfinding(scope).build();
+    const threads = wayfinding.children.filter((node) => node.name.startsWith('rotunda-route-thread:'));
+    const medallions = wayfinding.children.filter((node) => node.name.startsWith('rotunda-zone-medallion:'));
+    const ticks = wayfinding.children.filter((node) => node.name.startsWith('rotunda-route-tick:'));
+
+    expect(threads).toHaveLength(WINGS.length);
+    expect(medallions).toHaveLength(WINGS.length);
+    expect(ticks).toHaveLength(WINGS.length * 2);
+    scope.dispose();
+  });
+
   it('adds a derived colour frame to every exhibit threshold', () => {
     const scope = new ResourceScope('environment-test');
     const thresholds = new ExhibitThresholds(scope).build();
@@ -96,6 +127,25 @@ describe('museum environment coherence', () => {
     expect(blades).toHaveLength(PLACEMENTS.length * 2);
     expect(headers).toHaveLength(PLACEMENTS.length);
     expect(new Set(headers.map((node) => node.name)).size).toBe(PLACEMENTS.length);
+    scope.dispose();
+  });
+
+  it('carries each wing palette into the interior of all 35 exhibit bays', () => {
+    const scope = new ResourceScope('environment-test');
+    const fields = new ExhibitColorFields(scope).build();
+    let floors = 0;
+    let backdrops = 0;
+    let rails = 0;
+    fields.traverse((node) => {
+      if (node.name.startsWith('exhibit-floor-field:')) floors++;
+      if (node.name.startsWith('exhibit-backdrop-field:')) backdrops++;
+      if (node.name.startsWith('exhibit-backdrop-rail:')) rails++;
+    });
+
+    expect(fields.children).toHaveLength(PLACEMENTS.length);
+    expect(floors).toBe(PLACEMENTS.length);
+    expect(backdrops).toBe(PLACEMENTS.length);
+    expect(rails).toBe(PLACEMENTS.length);
     scope.dispose();
   });
 
