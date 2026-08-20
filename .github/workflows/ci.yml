@@ -36,13 +36,3 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: real browser visitor-path gate
         run: npm run test:e2e
-      - name: preserve browser evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: museum-browser-evidence
-          path: |
-            playwright-report
-            test-results
-          if-no-files-found: ignore
-          retention-days: 14
