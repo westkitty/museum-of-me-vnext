@@ -4,6 +4,7 @@ import { PlayerController } from '../src/player/PlayerController';
 import { CollisionWorld } from '../src/world/CollisionWorld';
 import { DEFAULT_PREFERENCES } from '../src/state/Preferences';
 import { QUALITY } from '../src/render/QualityTiers';
+import { isActivationKey } from '../src/ui/dom';
 
 /**
  * THE PHASE 11 GATE.
@@ -144,7 +145,7 @@ describe('keyboard-only operation', () => {
   it('jumps from the ground on Space and does not auto-repeat while held', () => {
     const player = new PlayerController(flatWorld(), input);
     player.teleport([0, 0, 0]);
-    player.fixedUpdate(1 / 60); // establish ground support
+    player.fixedUpdate(1 / 60);
     expect(player.grounded).toBe(true);
 
     key('Space');
@@ -152,7 +153,6 @@ describe('keyboard-only operation', () => {
     expect(player.position.y).toBeGreaterThan(0);
     expect(player.velocity.y).toBeGreaterThan(0);
 
-    // Hold Space through landing. It must not immediately launch again.
     for (let i = 0; i < 180; i++) player.fixedUpdate(1 / 60);
     expect(player.grounded).toBe(true);
     expect(player.position.y).toBeCloseTo(0, 5);
@@ -171,6 +171,12 @@ describe('keyboard-only operation', () => {
     expect(interact).toHaveBeenCalledTimes(2);
   });
 
+  it('uses Enter and Space as activation keys for custom UI controls', () => {
+    expect(isActivationKey({ key: 'Enter' })).toBe(true);
+    expect(isActivationKey({ key: ' ' })).toBe(true);
+    expect(isActivationKey({ key: 'ArrowRight' })).toBe(false);
+  });
+
   it('never steals keys from a text field', () => {
     (window as unknown as { __fire(t: string, e: unknown): void }).__fire('keydown', {
       code: 'KeyW', target: { tagName: 'TEXTAREA' }, preventDefault: () => {},
@@ -183,6 +189,16 @@ describe('keyboard-only operation', () => {
     expect(input.isDown('forward')).toBe(true);
     input.uiCaptured = true;
     expect(input.isDown('forward'), 'movement leaked into an open panel').toBe(false);
+  });
+
+  it('clears held movement when the browser loses focus', () => {
+    key('KeyW');
+    key('ShiftLeft');
+    expect(input.isDown('forward')).toBe(true);
+    expect(input.isDown('run')).toBe(true);
+    (window as unknown as { __fire(t: string, e: unknown): void }).__fire('blur', {});
+    expect(input.isDown('forward')).toBe(false);
+    expect(input.isDown('run')).toBe(false);
   });
 });
 
