@@ -2,73 +2,82 @@
 
 ## What has to be hosted
 
-Static files only. There is no server, no database, no API and no build step at
-request time.
+Static files only. There is no application server, database, API, or request-time build step.
 
-The plan's Phase 14 recommends Cloudflare Pages for the shell plus Cloudflare R2
-for large hashed museum assets. **The R2 half is not needed.** Every model,
-texture and sound in this museum is generated in the browser from code that
-ships in the bundle (see `docs/ASSET_POLICY.md`), so there are no runtime binary
-assets to host separately. That removes an entire piece of infrastructure, an
-asset host to configure, and a class of cache-invalidation bug.
+The build plan's Phase 14 recommends Cloudflare Pages for the shell plus Cloudflare R2 for large hashed museum assets. **The R2 half is not needed for the current release candidate.** Current museum models, textures and sounds are generated procedurally from code shipped in the bundle (see `docs/ASSET_POLICY.md`), so there are no runtime museum binary assets that need a second host.
 
-## Build
+## Release-candidate build
+
+Before publication is even considered, the release head must pass the repository gates:
 
 ```bash
 npm ci
-npm run gate     # everything below must be green before a release
-npm run build    # writes dist/
+npm run gate
 ```
 
-`dist/` is the complete deployable artifact.
+The independent GitHub Actions browser job additionally performs the production-only dependency audit and committed Chromium visitor-path suite. A green source/build gate is not a substitute for the remaining human/device checklist.
+
+`dist/` is the complete static deployable artifact. `npm run gate` already builds it and runs `npm run verify:dist`.
 
 | Property | Value |
 |---|---|
 | Output | `dist/` |
 | Entry | `dist/index.html` |
-| Base path | relative (`./`), so the museum works at a domain root **or** any sub-path without rebuilding |
-| Transfer, first visit | ~0.7 MB of JS + CSS + HTML, against the plan's 20 MB budget |
-| Runtime network requests | none, after the initial load of its own files |
+| Base path | relative (`./`), so the museum can work at a domain root or sub-path without rebuilding |
+| Runtime model | static same-origin files; no live backend required |
+| Current separate asset host | none |
 
 ## Hosting
 
-Any static host works. Two prepared paths:
+Any static host that preserves the required response policy can work. Two prepared paths exist.
 
-### Cloudflare Pages (the plan's recommendation)
+### Cloudflare Pages — recommended release path
 
+When publication is explicitly authorized:
+
+```text
+Production branch:    main
+Build command:        npm ci && npm run build && npm run verify:dist
+Build output:         dist
+Node version:         22
+Root directory:       repository root
 ```
-Build command:      npm run build
-Build output:       dist
-Node version:       22
-```
 
-`public/_headers` ships with the build and sets immutable caching on the hashed
-assets, no-cache on the HTML shell, and a Content-Security-Policy that forbids
-every outbound connection — which the museum can afford because it makes none.
+`public/_headers` ships with the build and declares immutable caching for hashed assets, revalidation for the HTML shell, `nosniff`, framing protection, permissions/referrer policies, and the current same-origin Content-Security-Policy.
 
-### GitHub Pages
+### GitHub Pages — manual alternative
 
-`.github/workflows/deploy-pages.yml` is included but **disabled by default**
-(`workflow_dispatch` only). Enabling it needs a repository owner's decision:
-Pages on a private repository requires a paid plan, and turning it on makes the
-museum public. Neither is a decision this project should make on its own.
+`.github/workflows/deploy-pages.yml` is `workflow_dispatch` only. It is deliberately not triggered by pushes. Using it is a separate owner publication decision and must not be enabled or dispatched merely because CI is green.
 
 ## Direct refresh
 
-The museum is a single page with no client-side router, so a refresh at any URL
-serves `index.html` and starts at the entrance. No SPA rewrite rule is required.
-If a host is configured to 404 on unknown paths, nothing breaks — there are no
-unknown paths.
+The museum is a single page with no client-side router. A refresh of the museum entry URL serves `index.html` and starts at the exterior arrival. No SPA rewrite rule is required for the current route structure.
 
-## What remains before the museum is live
+## Evidence still required before publication
 
-Exactly one thing, and it is an account decision rather than an engineering one:
+The repository is engineered to release, but publication is **not** the only thing remaining. Before an owner release decision:
 
-> **Choose a hosting destination and authorise publication.**
+1. complete `validation/reports/HUMAN_QA_CHECKLIST.md` on a representative real browser/device;
+2. verify pointer lock and recovery/recapture behavior;
+3. verify audible ambience/exhibit audio against subtitles;
+4. record representative-device FPS and complete the visual walkthrough;
+5. keep the exact release head green after any repairs.
 
-Everything else is done: the build is reproducible, the artifact is validated,
-the headers and CSP are written, and the workflow exists. Point a host at this
-repository with the build command above, or upload `dist/` to any static host.
+## Post-deploy verification
 
-This project has deliberately not published anything. Publishing makes sixty-four
-projects' documentation public, which is the owner's call to make.
+After an explicitly authorized deployment, verify the real hosted URL rather than inferring success from the build artifact:
+
+- direct load and hard refresh return the museum shell;
+- hashed JavaScript/CSS assets return 200;
+- the hosted responses actually carry the intended CSP/cache/security headers;
+- the exterior start, map, journal, settings and accessible contents work;
+- pointer lock captures, releases and recaptures on a real browser/device;
+- audible output and subtitles agree;
+- representative exhibit interaction works in every wing;
+- representative-device FPS remains acceptable.
+
+The exact merge/deploy/verify/tag ordering is governed by `docs/RELEASE_RUNBOOK.md`.
+
+## Publication boundary
+
+No production URL, merge, auto-merge, deployment or `v1.0.0` tag is authorized by repository readiness alone. Publishing documentation for the represented projects is an owner-controlled action.
