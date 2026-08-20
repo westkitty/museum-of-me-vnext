@@ -1,6 +1,7 @@
 import { App } from './app/App';
 import { EnvironmentDressing } from './world/EnvironmentDressing';
 import { ExhibitThresholds } from './world/ExhibitThresholds';
+import { ExteriorIdentity } from './world/ExteriorIdentity';
 import { WingAtmosphere } from './world/WingAtmosphere';
 import { WingIdentity } from './world/WingIdentity';
 
@@ -30,6 +31,11 @@ try {
   // geometry and materials are disposed with the rest of the museum.
   const environment = new EnvironmentDressing(app.scope).build();
   app.scene.add(environment);
+
+  // The garden now resolves into a stronger public-building facade without
+  // changing the real entrance wall, doorway, collision or canonical route.
+  const exteriorIdentity = new ExteriorIdentity(app.scope).build();
+  app.scene.add(exteriorIdentity);
 
   // Wing identity carries colour and shape language from the neutral Rotunda
   // through each threshold, making every area recognisable before text is read.
