@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 6,
+  "state_revision": 7,
   "last_updated": "2026-08-19",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -39,7 +39,7 @@
 | Remote | `git@github.com:westkitty/museum-of-me-vnext.git` (private), pushing `feat/foundation` |
 | Runtime | traversable graybox + exhibit lifecycle, streaming, interaction, full DOM interface, procedural audio |
 | Toolchain | Node 26.7.0, npm 11.19.0, Vite 6, TypeScript 5.7, Three.js **0.185.0** (pinned) |
-| Current phase | **Phase 5 complete.** Next: Phase 6 — production architecture. |
+| Current phase | **Phase 6 complete.** Next: Phases 7–8 — exhibit waves. |
 
 ## 4. Active invariants
 
@@ -90,6 +90,8 @@
 | **Phase 5 vertical-slice gate passes**: five deliberately different exhibits built bespoke — E01 Starsilk Universe (spatial sculpture), E10 WorldsVault Lineage (sequence/history), E19 DexTilt (device interaction), E25 DnDex (miniature game), E13 Suno Studio (audio) | `tests/vertical-slice.test.ts` — real 3D volume in all three axes, >12 meshes each, controls that change observable state, usable under reduced motion, three clean streaming cycles, deterministic reset | ✅ 2026-08-19 |
 | The Dexter Sanctuary exists, is outside the 35, and is not mascotised | `tests/sanctuary.test.ts` — Dexter modelled with the hanging Phalène ears, below and behind the Rotunda axis, holds still under reduced motion, and the implementation contains no score, badge, collectible, paw-print, achievement, unlock or reward | ✅ 2026-08-19 |
 | The interaction architecture did not need repairing to carry five different exhibits | all five compose the same shared parts (Filament, Dial, Lever, Pulse, console) and the frozen contract; no exhibit-specific engine work was required | ✅ 2026-08-19 |
+| **Phase 6 gate passes**: production architecture applied and all traversal tests remain valid | `Detailing` dresses geometry that already exists — cornices, pilasters, signage, jambs, benches, floor inlays — without moving a wall. `tests/traversal.test.ts` still green, 0 failures | ✅ 2026-08-19 |
+| Every wing threshold and every bay opening carries its own signage | browser: Rotunda shows wing names over each arch; the north hall shows bay titles, jambs, pilaster rhythm, cornices and a floor runner | ✅ 2026-08-19 |
 | Single frame loop is structurally enforced | `validate:frameloop` PASS — `src/app/Loop.ts` is the only `requestAnimationFrame` owner across 13 source files | ✅ 2026-08-19 |
 | Asset governance gate operational | `validate:assets` PASS — no hotlinked runtime asset in any source file | ✅ 2026-08-19 |
 
@@ -123,8 +125,8 @@
 | 3 — core museum systems | ✅ complete |
 | 4 — governed asset pipeline | ✅ complete |
 | 5 — vertical slice | ✅ complete |
-| 6 — production architecture | ▶ next |
-| 7 — exhibit wave one | pending |
+| 6 — production architecture | ✅ complete |
+| 7 — exhibit wave one | ▶ next |
 | 8 — exhibit wave two | pending |
 | 9 — content completion | pending |
 | 10 — experience pass | pending |

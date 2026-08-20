@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GeometryKit } from './GeometryKit';
 import { PaletteSet } from './palette';
 import { CollisionWorld } from './CollisionWorld';
+import { Detailing } from './Detailing';
 import type { ResourceScope } from '../assets/ResourceScope';
 import {
   ROTUNDA_APOTHEM, ROTUNDA_WALL, LEVEL_1_Y, BALCONY_INNER_APOTHEM,
@@ -71,6 +72,11 @@ export class Museum {
     for (const w of WINGS) this.buildWing(w);
     this.buildEntrance();
     this.buildSanctuary();
+
+    // Production dressing on geometry that is already proven traversable.
+    // Nothing here moves a wall, so every traversal test stays valid.
+    new Detailing(this.scope, this.pal, this.kit).applyAll(this.zoneGroups);
+
     return {
       root: this.root,
       collision: this.collision,
