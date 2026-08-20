@@ -10,8 +10,12 @@ export class DiagnosticsOverlay {
     this.root = el('pre', { class: 'diag', hidden: true, 'aria-hidden': 'true' });
   }
 
+  setVisible(visible: boolean): void {
+    this.root.hidden = !visible;
+  }
+
   toggle(): void {
-    this.root.hidden = !this.root.hidden;
+    this.setVisible(this.root.hidden);
   }
 
   update(dt: number, extra: Record<string, string | number>): void {
