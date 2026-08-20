@@ -54,8 +54,6 @@ html, body {
 .ui-root > * { pointer-events: auto; }
 
 /* ── accessible mirror ──────────────────────────────────────────────────── */
-/* Visually hidden but fully reachable by keyboard and assistive technology.
-   Focusing anything inside reveals it, so keyboard visitors can read the museum. */
 .a11y-root {
   position: fixed;
   left: 0;
@@ -67,9 +65,6 @@ html, body {
   z-index: 40;
 }
 .a11y-root:focus-within {
-  /* clamp rather than min: a degenerate viewport (a hidden or zero-width pane)
-     makes `min(720px, 100vw)` collapse to nothing, which would hide the
-     accessible contents exactly when someone is trying to read them. */
   width: clamp(320px, 100vw, 720px);
   height: 100vh;
   clip-path: none;
@@ -101,6 +96,15 @@ html, body {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* The visitor-facing preference is independent of the operating-system flag. */
+html[data-motion='reduced'] *,
+html[data-motion='reduced'] *::before,
+html[data-motion='reduced'] *::after {
+  animation-duration: 0.001ms !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
 }
 
 /* ── HUD ────────────────────────────────────────────────────────────────── */
@@ -353,6 +357,7 @@ html, body {
 .map__plan .you { fill: var(--gold-bright); }
 .map__plan .bay { cursor: pointer; }
 .map__plan .bay:hover { stroke: var(--gold-bright); stroke-width: 1.2; }
+.map__plan .bay:focus-visible rect { stroke: var(--focus); stroke-width: 1.6; }
 .map__plan .bay--target { stroke: var(--focus); stroke-width: 1.6; }
 .map__level {
   display: inline-flex;
