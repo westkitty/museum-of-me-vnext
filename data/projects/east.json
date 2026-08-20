@@ -1,0 +1,289 @@
+[
+{
+  "id": "P021", "name": "DexDictate macOS", "family": "Dex / productivity tools",
+  "kind": "macOS application", "status": "Active",
+  "period": "2026",
+  "summary": "System-wide dictation for macOS that runs entirely on the machine, with no speech leaving it.",
+  "brief": "DexDictate is a menu-bar application that transcribes speech into whatever text field currently has focus, anywhere in the operating system. Recognition runs locally through a bundled Whisper implementation, so dictation works offline and no audio is transmitted.",
+  "deep": [
+    "System-wide text insertion requires Accessibility permission and event taps — the same machinery assistive technology uses — which makes the permission model part of the product design rather than an installation detail.",
+    "Audio capture and transcription run on a dedicated serial queue with strict main-actor isolation for interface state. This structure was the resolution of a data race that made early builds unreliable in a way that only appeared under real use.",
+    "Running the model locally sets a hard ceiling on latency and a hard floor on privacy, and both were treated as requirements rather than tradeoffs.",
+    "The application ships through a scripted build that cleans, compiles, signs and installs in one step, because manual release steps were a reliable source of broken builds."
+  ],
+  "capabilities": ["System-wide dictation", "Local Whisper transcription", "Accessibility event taps", "Offline operation", "Scripted signed builds"],
+  "lesson": "Concurrency bugs in audio code do not show up in testing; they show up in the third minute of real dictation.",
+  "repos": ["westkitty/DexDictate_MacOS"]
+},
+{
+  "id": "P022", "name": "DexDictate Android", "family": "Dex / productivity tools",
+  "kind": "Android input method", "status": "Active foundation",
+  "period": "2026",
+  "summary": "The same idea on Android, rebuilt as an input method rather than ported.",
+  "brief": "On Android, system-wide text entry is an input method — a keyboard the operating system installs — not an accessibility overlay. DexDictate Android is therefore a separate implementation of the same intent, informed by the macOS product's behaviour but sharing none of its mechanism.",
+  "deep": [
+    "The macOS approach and the Android approach have almost nothing in common at the system level. Only the product behaviour transfers.",
+    "Implementing as an input method means the application must also be a competent keyboard, which is a larger surface than dictation alone.",
+    "Local recognition remains the requirement, which constrains model size more tightly on a phone than on a laptop."
+  ],
+  "capabilities": ["Android input method", "Local dictation", "System-wide text entry"],
+  "lesson": "Cross-platform products share intent, not implementation; treating the second platform as a port hides the real work.",
+  "repos": ["westkitty/DexDictate_Android"]
+},
+{
+  "id": "P033", "name": "DexSpeak", "family": "Dex / voice tools",
+  "kind": "macOS application", "status": "Paused; legacy reference",
+  "period": "2026",
+  "summary": "A macOS text-to-speech application with multiple synthesis backends behind one interface.",
+  "brief": "DexSpeak reads text aloud using whichever synthesis engine suits the request — system voices for speed, neural backends for quality, custom voices where they exist. The provider architecture that hides this choice from the interface is its most durable contribution.",
+  "deep": [
+    "Synthesis engines differ wildly in latency, quality and installation cost. A provider abstraction lets the application choose per request instead of committing to one.",
+    "It began as a monorepo containing several engines, which made the provider boundary explicit and the repository large.",
+    "It is paused and held as the authoritative reference implementation — a later experiment forked its interface specifically so that DexSpeak itself would remain unmodified."
+  ],
+  "capabilities": ["Multi-provider synthesis", "System and neural voices", "Custom voice support", "Provider abstraction"],
+  "lesson": "When several engines do the same job badly in different ways, the abstraction over them is the actual product.",
+  "repos": ["westkitty/DexSpeak"]
+},
+{
+  "id": "P034", "name": "DexTalk", "family": "Dex / voice tools",
+  "kind": "Voice-cloning lab", "status": "Paused; runtime uncertain",
+  "period": "2026",
+  "summary": "A voice-cloning workbench forked from DexSpeak's interface so the original could stay untouched.",
+  "brief": "DexTalk is a local Python and Gradio laboratory for voice cloning. It deliberately reimplements the DexSpeak interface rather than extending it, so that experimental work could proceed without putting a working application at risk.",
+  "deep": [
+    "Forking to protect the original is an unfashionable choice that was correct here: the experimental branch went through several unusable states.",
+    "Gradio was chosen because the value was in the experiments, not in the interface, and building a native surface would have delayed both.",
+    "Its runtime state is uncertain, which is honest for a research fork that served its purpose."
+  ],
+  "capabilities": ["Voice cloning", "Local inference", "Gradio workbench", "Independent of DexSpeak"],
+  "lesson": "Forking a working tool to run experiments costs a little duplication and saves the working tool.",
+  "repos": ["westkitty/dextalk", "westkitty/DexTalker"]
+},
+{
+  "id": "P036", "name": "BigMac Voice Tools", "family": "Dex / local AI infrastructure",
+  "kind": "Remote inference client", "status": "Active / experimental",
+  "period": "2026",
+  "summary": "A laptop control surface for voice models that run on a much larger machine elsewhere on the network.",
+  "brief": "Voice synthesis and cloning are expensive. BigMac Voice Tools keeps the models on a dedicated machine and gives the laptop a control interface and a transfer path, so the light device drives the work without attempting to do it.",
+  "deep": [
+    "The split is deliberate: interface and file handling on the portable machine, inference on the machine with the hardware for it.",
+    "Transfer over the local network rather than the internet keeps audio material private and latency predictable.",
+    "This client is one instance of a pattern that recurs across the infrastructure work in this museum — the laptop is a terminal, not a workstation."
+  ],
+  "capabilities": ["Remote inference control", "Local-network transfer", "Voice cloning workflow", "Thin client design"],
+  "lesson": "Deciding which machine does the work is an architecture decision, not a deployment detail.",
+  "repos": ["westkitty/BigMac_Voice_Tools"]
+},
+{
+  "id": "P016", "name": "DexGPT / DnDex Operating Project", "family": "Dex / AI workflow systems",
+  "kind": "Context and continuity system", "status": "Active",
+  "period": "2026",
+  "summary": "A working context that governs how an assistant behaves across sessions: voice, memory, exactness.",
+  "brief": "DexGPT is a persona and continuity system — a set of rules about voice, memory handling, project continuity and how precisely an instruction must be followed. It is named after Dexter and shaped by him, but it is software, and this museum keeps that distinction strictly.",
+  "deep": [
+    "The rules that mattered most were about exactness: when to ask rather than assume, and when a stated constraint must not be quietly relaxed.",
+    "Continuity is handled by pointing at durable records rather than by attempting to remember, which is why it works across tools.",
+    "The naming is affectionate. It is not an attempt to make Dexter into a product, and the Sanctuary elsewhere in this building exists partly to make that boundary physical."
+  ],
+  "capabilities": ["Voice and behaviour rules", "Memory and continuity handling", "Exactness constraints", "Cross-session identity"],
+  "lesson": "A useful assistant configuration is mostly a list of things it must not silently decide for you.",
+  "repos": []
+},
+{
+  "id": "P020", "name": "DexClawdBot / Clawdbot", "family": "Dex / local AI",
+  "kind": "Local assistant", "status": "Abandoned",
+  "period": "2026",
+  "summary": "A local assistant with append-only memory the user could inspect, correct, pin or forget.",
+  "brief": "Clawdbot reached the user through a messaging transport and kept its memory as an append-only stream with provenance attached to every entry. The controls it exposed — inspect, correct, pin, forget — are the part worth preserving, and the project is defunct.",
+  "deep": [
+    "Provenance on every memory entry means a user can ask why the assistant believes something and get an answer with a source.",
+    "Forget was implemented as an explicit operation rather than as deletion, so the record shows that something was forgotten and when.",
+    "The project was abandoned. Its memory-control model outlived it and reappears in later work."
+  ],
+  "capabilities": ["Messaging transport", "Append-only memory", "Per-entry provenance", "Inspect / correct / pin / forget controls", "Local inference"],
+  "lesson": "An assistant's memory needs a forget button that leaves a mark, not one that pretends nothing was there.",
+  "repos": ["westkitty/Dex_Claw_Hub", "westkitty/chatterbot_dex"]
+},
+{
+  "id": "P035", "name": "DexKeeper Bot", "family": "Dex / community tools",
+  "kind": "Moderation bot", "status": "Active",
+  "period": "2026",
+  "summary": "A single-community moderation bot that installs like a normal application and stores everything locally.",
+  "brief": "DexKeeper moderates one community. It polls rather than requiring an inbound webhook, keeps its state in a local database, and installs natively on Windows, macOS and Linux without a container runtime — decisions that make it deployable by someone who runs a community rather than a server.",
+  "deep": [
+    "Polling instead of webhooks removes the requirement for a public address, which is the single biggest obstacle to self-hosting for non-technical operators.",
+    "Scoping to one community removed multi-tenancy, permissions hierarchies and configuration surface that would have dominated the codebase.",
+    "Choosing native installation over containers was a deliberate accessibility decision, not a technical preference."
+  ],
+  "capabilities": ["Polling transport", "Local database", "Native cross-platform install", "Optional tray controls", "Single-community scope"],
+  "lesson": "Self-hosted software fails at installation far more often than at runtime.",
+  "repos": ["westkitty/DexKeeper_Bot"]
+},
+{
+  "id": "P023", "name": "DexTilt", "family": "Dex / device-bridge tools",
+  "kind": "Device bridge", "status": "Experimental",
+  "period": "2026",
+  "summary": "Turning a phone's motion into authenticated commands on a desktop machine.",
+  "brief": "DexTilt pairs an Android phone with a Mac receiver and converts physical gestures — tilt, rotation, motion — into commands from a fixed allowlist. Pairing happens by QR code, gestures are trained rather than hardcoded, and manual controls exist for everything the motion path can do.",
+  "deep": [
+    "The allowlist is the security model. A motion event cannot invoke an arbitrary command; it can only select from commands the user has explicitly enabled.",
+    "Gesture training exists because motion signatures vary enormously between people and between grips. A fixed threshold works for whoever tuned it and nobody else.",
+    "Every gesture has a manual equivalent, so the novel input never becomes the only input."
+  ],
+  "capabilities": ["Phone-to-desktop bridge", "Motion gesture recognition", "QR pairing", "Command allowlist", "Gesture training", "Manual fallback"],
+  "lesson": "A novel input method needs a boring fallback, or it becomes a novelty that gets uninstalled.",
+  "repos": ["westkitty/DexTilt"]
+},
+{
+  "id": "P024", "name": "DexCleaner", "family": "Dex / macOS utilities",
+  "kind": "macOS utility", "status": "Active",
+  "period": "2026",
+  "summary": "A disk cleanup tool built around reversibility and approval rather than automatic deletion.",
+  "brief": "DexCleaner audits disk usage and proposes cleanups. Nothing is removed without explicit approval and the design favours reversible operations, because the category of tool it belongs to has a long history of deleting things people wanted.",
+  "deep": [
+    "Automatic cleanup is the default in this product category and it is the reason the category is distrusted.",
+    "Auditing is separated from acting: the tool is useful purely as an explanation of where space went, without removing anything.",
+    "Reversibility constrains what the tool is willing to offer. Some cleanups are simply not proposed because they cannot be undone."
+  ],
+  "capabilities": ["Disk usage audit", "Approval-gated cleanup", "Reversible operations", "SwiftUI interface"],
+  "lesson": "In destructive tooling, the features you decline to build are as much a part of the design as the ones you ship.",
+  "repos": ["westkitty/DexCleaner_MacOS"]
+},
+{
+  "id": "P032", "name": "DexSort", "family": "Dex / Android tools",
+  "kind": "Android application", "status": "Active build",
+  "period": "2026",
+  "summary": "Image sorting where the device stays the archive and nothing is uploaded or destroyed.",
+  "brief": "DexSort organises a large image collection on an Android tablet under two hard rules: the tablet remains the authoritative archive, and no operation may destroy an original or send it to a cloud service. Sorting is therefore organisational, never lossy.",
+  "deep": [
+    "Treating the device as the archive rather than as a cache inverts the usual assumption and removes any dependency on an account.",
+    "Prohibiting destructive operations means duplicates are marked rather than removed, and the user decides what happens next.",
+    "The constraints came first and the feature set was derived from them, which is why the application is small."
+  ],
+  "capabilities": ["On-device image sorting", "Non-destructive operations", "No cloud dependency", "Device-as-archive model"],
+  "lesson": "Stating the prohibitions before the features produces a smaller and more trustworthy application.",
+  "repos": ["westkitty/DexSort", "westkitty/DexSort_App"]
+},
+{
+  "id": "P061", "name": "SpaceWise", "family": "Android / privacy tools",
+  "kind": "Android application", "status": "Active hardening",
+  "period": "2026",
+  "summary": "An Android storage explainer that refuses to overclaim what deleting something will do.",
+  "brief": "SpaceWise makes device storage understandable — what is using space, why, and what would change if it were removed. It is deliberately built against the norms of its category: it does not promise recovered gigabytes, does not claim to make a device faster, and does not silently involve cloud storage.",
+  "deep": [
+    "Storage-cleaner applications routinely overstate results because the numbers are hard for users to verify. Refusing to do that is the product's entire position.",
+    "Explaining is treated as more valuable than acting. A user who understands what a cache directory is will make better decisions than one who taps a button.",
+    "Privacy-first here means the application does not need an account, a network connection, or access to file contents to do its job."
+  ],
+  "capabilities": ["Storage breakdown", "Plain-language explanation", "No overclaiming", "No cloud dependency", "Privacy-first design"],
+  "lesson": "In a category built on exaggeration, accuracy is a feature users can feel.",
+  "repos": ["westkitty/SpaceWise", "westkitty/SpaceWise_Android"]
+},
+{
+  "id": "P025", "name": "DexAid", "family": "Dex / civic-support tools",
+  "kind": "Casefile application", "status": "Active",
+  "period": "2026",
+  "summary": "A local casefile tool for navigating institutions during an emergency, built around chronology and evidence.",
+  "brief": "DexAid helps a person in a stabilisation crisis — housing, benefits, utilities, medical administration, banking, insurance — assemble what institutions actually require: an accurate chronology, the evidence supporting it, and a defensible next action. Everything stays on the user's machine.",
+  "deep": [
+    "Institutional processes fail people who cannot produce a timeline. The chronology is not a convenience feature; it is the thing being requested.",
+    "Evidence is attached to events rather than filed separately, so a claim and its proof stay together.",
+    "Next actions are derived from the state of the casefile instead of a generic checklist, because the correct next step depends on what has already been established.",
+    "Local-only storage is a requirement of the subject matter. This material cannot be handled any other way."
+  ],
+  "capabilities": ["Chronology construction", "Evidence attachment", "Next-action derivation", "Multi-domain casefiles", "Local-only storage"],
+  "lesson": "Software for a crisis has to produce the artifact the institution asks for, not a better internal representation of the problem.",
+  "repos": ["westkitty/DexAid"]
+},
+{
+  "id": "P029", "name": "DexEnhance", "family": "Dex / browser tools",
+  "kind": "Browser extension", "status": "Paused",
+  "period": "2026",
+  "summary": "A browser extension that improves AI chat interfaces without touching the pages it sits on.",
+  "brief": "DexEnhance adds workflow improvements to ChatGPT and Gemini from inside the browser. Its interface renders in Shadow DOM so it cannot collide with the host page's styles, and its storage is local-first so nothing it records leaves the browser.",
+  "deep": [
+    "Shadow DOM isolation is what makes an extension survive the host site redesigning itself, which these sites do frequently.",
+    "Manifest V3 constrains what an extension may do at runtime, and the architecture is shaped by those limits rather than fighting them.",
+    "Local-first storage means the extension has no server and therefore no account, no outage and no data-handling policy to trust."
+  ],
+  "capabilities": ["Manifest V3 extension", "Shadow DOM isolation", "Local-first storage", "Multi-site support"],
+  "lesson": "An extension that styles itself inside the host page is a maintenance contract with someone else's redesign schedule.",
+  "repos": ["westkitty/DexEnhance"]
+},
+{
+  "id": "P026", "name": "DexCraft", "family": "Dex / prompt systems",
+  "kind": "macOS menu-bar application", "status": "Paused",
+  "period": "2026",
+  "summary": "A menu-bar tool that rewrites rough text into a structured prompt shaped for a specific target.",
+  "brief": "DexCraft takes an unstructured idea and produces a prompt formatted for a particular destination — a chat assistant, a research tool, an agentic development environment — because these targets reward genuinely different structures. It runs offline and lives in the menu bar so it is available mid-task.",
+  "deep": [
+    "The transformation is target-specific by design. A prompt that works well in a research tool is usually badly shaped for an agentic coding environment.",
+    "Running offline was a requirement: the input is often half-formed thinking that should not be sent anywhere.",
+    "Menu-bar placement matters because the tool is only useful at the moment the rough text exists."
+  ],
+  "capabilities": ["Target-specific prompt shaping", "Offline operation", "Menu-bar availability", "Multiple output profiles"],
+  "lesson": "Prompt structure is target-dependent; a universal prompt formatter is a formatter for nothing in particular.",
+  "repos": ["westkitty/DexCraft"]
+},
+{
+  "id": "P028", "name": "DexGen", "family": "Dex / image systems",
+  "kind": "Hosted inference service", "status": "Experimental",
+  "period": "2026",
+  "summary": "Image generation on borrowed hardware, with results persisted somewhere they will survive the session.",
+  "brief": "DexGen runs image generation on hosted notebook infrastructure, exposes it through a key-protected inference API, persists generated files to durable storage, and reaches the outside through a temporary tunnel. It is the pragmatic answer to needing a GPU that the local machines do not have.",
+  "deep": [
+    "Ephemeral compute loses everything when the session ends, so persistence to durable storage is the feature that makes the service usable rather than a demo.",
+    "The API key exists because a temporary public tunnel is genuinely public for as long as it is open.",
+    "It is explicitly a stopgap. Most of the local AI work in this museum exists to avoid needing an arrangement like this."
+  ],
+  "capabilities": ["Hosted GPU inference", "Key-protected API", "Durable output persistence", "Temporary public tunnel"],
+  "lesson": "Ephemeral compute is only useful once you have solved where the output goes.",
+  "repos": ["westkitty/DexGen"]
+},
+{
+  "id": "P030", "name": "DexDraw", "family": "Dex / creative tools",
+  "kind": "Collaborative whiteboard", "status": "Active; multi-generation lineage",
+  "period": "2026",
+  "summary": "A collaborative drawing surface rebuilt several times, each generation keeping less of the last.",
+  "brief": "DexDraw is a shared whiteboard and drawing application with an unusually visible lineage: an original, a redux, and a vNext redesign, each a substantial rewrite rather than an iteration. The lineage itself is instructive about how collaborative-editing requirements reshape an architecture.",
+  "deep": [
+    "Collaborative editing is not a feature that can be added late. Each generation discovered this at a different depth.",
+    "The rewrites were not failures of execution; they were the cost of learning what the synchronisation model had to be.",
+    "Multiple repository generations remain, which makes the evolution inspectable rather than merely remembered."
+  ],
+  "capabilities": ["Collaborative drawing", "Shared canvas", "Multiple architectural generations"],
+  "lesson": "Some requirements cannot be retrofitted; you find out by trying, and the attempt is the education.",
+  "repos": ["westkitty/dexDraw", "westkitty/DexDraw_Redux", "westkitty/DexDraw_vNext"]
+},
+{
+  "id": "P027", "name": "DexEarth", "family": "Dex / geospatial systems",
+  "kind": "Geospatial application", "status": "Active; mature prototype",
+  "period": "2026",
+  "summary": "A tactical globe that layers flights, satellites, earthquakes, fires, cables and tectonics into one view.",
+  "brief": "DexEarth is a CesiumJS and React globe that composes many independent geospatial feeds into a single navigable surface, then looks for correlations between them. It supports simulations, alerts, derived threat indices and several render styles.",
+  "deep": [
+    "The value is in composition. Any one of these layers exists elsewhere; seeing undersea cables, tectonic boundaries and current events on the same globe is what produces questions.",
+    "Correlation is offered as a prompt for investigation, not as a conclusion — proximity on a map is not causation.",
+    "Multiple render styles exist because the same data reads completely differently as a realistic globe versus an abstract tactical display."
+  ],
+  "capabilities": ["Multi-layer geospatial composition", "Flights, satellites, seismic, fire, cable and tectonic layers", "Correlation surfacing", "Alerts and indices", "Multiple render styles"],
+  "lesson": "Combining ordinary data layers produces genuinely new questions; the composition is the contribution.",
+  "repos": ["westkitty/DexEarth"]
+},
+{
+  "id": "P031", "name": "Dexterpreter", "family": "Dex / language tools",
+  "kind": "Translation application", "status": "Active; release exists",
+  "period": "2026",
+  "summary": "Spanish speech transcription and English translation running entirely in the browser, offline.",
+  "brief": "Dexterpreter listens to Spanish speech, transcribes it and translates it into English with models that run in the browser through Transformers.js. Nothing is sent to a service, which makes it usable in exactly the situations — medical, legal, institutional — where a cloud translator is inappropriate.",
+  "deep": [
+    "In-browser model execution keeps a conversation private without requiring the user to install anything or trust an operator.",
+    "Wrapping the web application with Capacitor produces a mobile build from the same code, which matters because the situations that need it are mobile ones.",
+    "Model size is the binding constraint, and the accuracy tradeoff was accepted deliberately in exchange for the privacy guarantee."
+  ],
+  "capabilities": ["Offline speech transcription", "In-browser translation", "Transformers.js inference", "Capacitor mobile build"],
+  "lesson": "For sensitive conversations, an offline translator that is somewhat less accurate is the more useful tool.",
+  "repos": ["westkitty/spanish_translator"]
+}
+]

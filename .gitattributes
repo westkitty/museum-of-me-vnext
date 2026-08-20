@@ -1,0 +1,5 @@
+# The controlling build plan is preserved byte-identical to the handoff bundle
+# (sha256:03ca23f5ff8afd53ac7d4d9c4bc2657e81513d12d5daf352b02297c1b333226a).
+# Its trailing double-spaces are Markdown hard line breaks and must not be stripped,
+# so it is exempt from the whitespace gate rather than edited.
+docs/MUSEUM_VNEXT_BUILD_PLAN.md -whitespace

@@ -1,0 +1,282 @@
+{
+"E01": {
+  "subtitle": "The Celestial Loom",
+  "plaque": "A universe whose physics are programmable. Pull one thread and the consequences propagate.",
+  "problem": "What does a world look like if its fundamental material behaves like software?",
+  "made": "A continuity-heavy science-fantasy universe with programmable Starsilk at its centre, held together by written rules about what canon forbids as much as what it permits.",
+  "interaction": "Pull the fundamental threads of the loom. Each change propagates visibly through the cosmological model above you.",
+  "explore": "Walk beneath the loom. The relationships between star nodes read differently from underneath than from the gallery floor."
+},
+"E02": {
+  "subtitle": "Thirty-seven Entries",
+  "plaque": "One Egg, thirty-five strains, one Mother. A terraforming taxonomy presented as a service manual.",
+  "problem": "How do you document a species that exists to perform an industrial process?",
+  "made": "A thirty-seven entry field compendium organised by five archetypes, with fixed formatting doctrine and a canon-correction record.",
+  "interaction": "Select an archetype station. The central Egg opens a projection of its representative morphology and the terraforming function it performs.",
+  "explore": "Five representative forms stand around the Egg. Mother is visible at architectural scale beyond the chamber."
+},
+"E03": {
+  "subtitle": "Six Months Over Virgil",
+  "plaque": "Not an explosion — a dismantling, carried out with intent across six months.",
+  "problem": "How do you tell one event as a song, a story, a visual production and an interactive tour without any of them becoming an adaptation?",
+  "made": "A Starsilk production in four simultaneous media, all developed against a single six-month dismantling timeline.",
+  "interaction": "Turn the dismantling dial. The station segment reconfigures from Month Zero through Month Six.",
+  "explore": "Enter the station fragment. The interior changes with the dial."
+},
+"E04": {
+  "subtitle": "Mapping Negative Space",
+  "plaque": "A canon is not only what it has said. It is also what it has forbidden, contradicted, and left open.",
+  "problem": "How do you know what a fictional universe still permits you to invent?",
+  "made": "A deterministic local engine that assigns evidence states to canon claims and maps the possibility space that remains legal.",
+  "interaction": "Select a canon fact. Legal possibilities illuminate, contradictions close, and unresolved regions stay dark — because absence of a rule is not permission.",
+  "explore": "The possibility graph is volumetric. Walk into it and inspect relationships from inside the structure."
+},
+"E05": {
+  "subtitle": "Weaving the Material",
+  "plaque": "The moment the setting's central material stopped being a description and became something you could hold.",
+  "problem": "Does the invented material actually have coherent rules, or only convincing ones?",
+  "made": "A generative instrument that turns drawn paths into woven Starsilk compositions obeying the canon rules for tension and interference.",
+  "interaction": "Draw a path through the air above the loom. The mechanism weaves it into a thread composition.",
+  "explore": "Completed fibres extend outward from the loom as a small sculpture that persists while you are in the room."
+},
+"E06": {
+  "subtitle": "Four Layers Down",
+  "plaque": "Drakken organs are stages of a process. The anatomy is a pipeline diagram.",
+  "problem": "How do you teach the structure of a creature without teaching things canon never established?",
+  "made": "A forensic anatomy reference with four view layers and a hard separation between canon specimens and deliberately non-canon teaching surrogates.",
+  "interaction": "Cycle each table through external, skeletal, energy-process and section views.",
+  "explore": "Three tables stand side by side. The surrogate specimen is marked and separated — the marking is part of the exhibit."
+},
+"E07": {
+  "subtitle": "The Process Lock",
+  "plaque": "Gorevault gathers and refines. Ringthroat makes sky. Collapse the two and the world stops changing.",
+  "problem": "Is the terraforming process described in the Compendium actually coherent, or only plausible?",
+  "made": "A deterministic simulation of the full Drakken pipeline: collection, gathering, rendering and refinement into feedstock, then feedstock into SKY.",
+  "interaction": "Deploy strains against the world above the engineering floor. The pipeline executes in order and the planet visibly changes.",
+  "explore": "Walk the full circle of the engineering floor. The world transforms differently depending on which side you watch from."
+},
+"E08": {
+  "subtitle": "The Siege Wall Is an Absence",
+  "plaque": "From an inhabited world the Siege Wall is not a structure. It is the shape of what has been removed.",
+  "problem": "How do you render the extinguishing of a sky without turning an absence into an object?",
+  "made": "An observatory that plays back stellar extinction in canon order, under a hard visual rule forbidding any masonry, lattice or grid reading.",
+  "interaction": "Begin the reconstruction. Stars leave the sky in the order canon requires.",
+  "explore": "Three telescope stations give genuinely different views of the same event. The difference is the point."
+},
+"E09": {
+  "subtitle": "The Building Before This One",
+  "plaque": "Earlier attempts at this museum, preserved rather than hidden — including the one that proved a single file could not hold it.",
+  "problem": "Is this museum a restoration of the previous artifact, or a new lineage?",
+  "made": "A record of the Museum of Me and Reliquary concepts, the large single-file Three.js artifact they produced, and the decision to build this version as a separate product.",
+  "interaction": "Turn the timeline control. Earlier museum concepts rise from the maquette table as layered models.",
+  "explore": "The final layer is the building you are standing in."
+},
+"E10": {
+  "subtitle": "Three Generations, Each Smaller",
+  "plaque": "A platform became a command-line tool became a folder of Markdown. The folder is the one still running.",
+  "problem": "What is the smallest system that can hold a body of canon for years?",
+  "made": "Three successive canon-management systems: a platform architecture study, a local-first tool with schemas and transfer packets, and finally a versioned vault of plain files.",
+  "interaction": "Feed the same lore record into each machine in turn and watch how its representation — and the machinery required — changes.",
+  "explore": "The three machines are connected in sequence. Each is visibly simpler than the one before it."
+},
+"E11": {
+  "subtitle": "Context That Survives the Conversation",
+  "plaque": "Project context that lives only in a conversation is project context you are going to lose.",
+  "problem": "How does a project remember itself across tools, sessions and years?",
+  "made": "A handoff builder with an approval gate, an append-only project record in version control, and a long-horizon progress tracker.",
+  "interaction": "Assemble a handoff from evidence blocks. Claims without supporting evidence are rejected by the mechanism.",
+  "explore": "The documentation chain runs the length of the alcove; each stage physically refuses input the previous stage did not justify."
+},
+"E12": {
+  "subtitle": "Which Kind of Claim Is This?",
+  "plaque": "The useful question about a statement is rarely whether it is true. It is what kind of move it is making.",
+  "problem": "Readers fail to notice when a text shifts from reporting evidence to framing it.",
+  "made": "An offline single-file analysis tool that classifies spans of writing as evidence, interpretation, framing, inference or unsupported claim.",
+  "interaction": "Sort sample statements into the five categories on the evidence table. The table shows the classification the tool would assign, and why.",
+  "explore": "All examples here are invented. No real dispute, publication or person is analysed in this room."
+},
+"E13": {
+  "subtitle": "What Actually Reproduced",
+  "plaque": "A prompt manual worth keeping records the techniques that failed alongside the ones that worked.",
+  "problem": "Which instructions to a generative music model actually change the output, and which are ignored?",
+  "made": "A durable songwriting codex covering lyric structure, narration, style-prompt grammar and parameter behaviour, assembled from repeated testing.",
+  "interaction": "Switch between original project excerpts at the desk and raise or lower the simplified arrangement layers.",
+  "explore": "Instrument and waveform objects in the room respond spatially to whatever is currently playing."
+},
+"E14": {
+  "subtitle": "Prompts as Components",
+  "plaque": "The reusable part of a prompt is usually the constraint list, not the description.",
+  "problem": "Generative prompts are rewritten from scratch every time, and their hard-won negative constraints are lost first.",
+  "made": "A registry of visual-prompt templates with batch syntax and stored negative constraints, and a beginner-safe environment for learning to build software conversationally.",
+  "interaction": "Combine deterministic prompt blocks in the assembly machine. The rendered scene beyond the glass changes to match — no external service involved.",
+  "explore": "Constraint blocks are physically different from description blocks, and the machine will not run without them."
+},
+"E15": {
+  "subtitle": "Routing the Work",
+  "plaque": "An orchestration system should not own the memory it orchestrates, or it becomes impossible to replace.",
+  "problem": "How do several different AI development tools share one project's context and hand work to each other?",
+  "made": "Two orchestration harnesses: one assembling workflows, context and specialist agents around durable external persistence, one attempting interoperability between separate coding agents.",
+  "interaction": "Route a task through the rack: request, context assembly, specialist selection, validation, handoff.",
+  "explore": "Persistence sits outside the rack, physically separate, connected by a single cable."
+},
+"E16": {
+  "subtitle": "Four Generations of the Same Idea",
+  "plaque": "One feature shipped to three platforms triples the maintenance before it doubles the audience.",
+  "problem": "A media workflow was rebuilt repeatedly as the delivery strategy changed underneath it.",
+  "made": "A cross-platform casting application, its native Android successor, a recovered creative application, and a native media utility with bundled tooling.",
+  "interaction": "Run a media workflow across the bench: input, trim, convert, transcribe, output. Each device generation handles the same job differently.",
+  "explore": "The devices are arranged chronologically. Each is smaller in scope than the one before it."
+},
+"E17": {
+  "subtitle": "Speech That Never Leaves the Machine",
+  "plaque": "Five voice projects, one requirement: recognition and synthesis run locally, and audio is not transmitted.",
+  "problem": "Dictation and voice synthesis are useful everywhere and trustworthy almost nowhere.",
+  "made": "System-wide macOS dictation with local recognition, a separate Android input method, a multi-provider synthesis application, a voice-cloning fork, and a thin client for models running on a larger machine.",
+  "interaction": "Select a prerecorded sample and compare raw transcription, refined transcription, synthesised voice and command interpretation at the four stations.",
+  "explore": "No microphone permission is requested. Every sample in this room is prerecorded."
+},
+"E18": {
+  "subtitle": "Software Shaped by a Dog",
+  "plaque": "These are systems named after Dexter. Dexter himself is elsewhere in this building, and the distinction is deliberate.",
+  "problem": "An assistant that forgets its own rules between sessions cannot be relied on for anything exacting.",
+  "made": "A persona and continuity system governing voice and exactness, a local assistant with inspectable append-only memory, and a self-hosted community moderation bot.",
+  "interaction": "Route a request among the agent roles and watch which memory each one is permitted to read and write.",
+  "explore": "The memory column is append-only: entries can be pinned or marked forgotten, but the mark itself remains visible."
+},
+"E19": {
+  "subtitle": "Motion as Command",
+  "plaque": "A novel input method needs a boring fallback, or it becomes a novelty that gets uninstalled.",
+  "problem": "Can physical gestures with a phone safely drive a desktop machine?",
+  "made": "A paired phone-and-desktop bridge converting trained motion gestures into commands from an explicit allowlist, with manual equivalents for everything.",
+  "interaction": "Take hold of the phone model and tilt it. The desktop station responds to the gesture events in real time.",
+  "explore": "Your gesture trajectories remain in the air as visible spatial ribbons until they fade."
+},
+"E20": {
+  "subtitle": "What the Tool Declines to Do",
+  "plaque": "In destructive tooling, the features you refuse to build are as much of the design as the ones you ship.",
+  "problem": "Storage and cleanup utilities have a long history of deleting things people wanted and overstating what they recovered.",
+  "made": "A reversible approval-gated macOS disk auditor, a non-destructive on-device image sorter, and an Android storage explainer that refuses to overclaim.",
+  "interaction": "Sort synthetic files across the bench. Destructive operations are physically unavailable — the mechanism has no such lever.",
+  "explore": "Every file on this bench is synthetic. The exhibit has no access to any real filesystem."
+},
+"E21": {
+  "subtitle": "The Artifact the Institution Asks For",
+  "plaque": "Software for a crisis has to produce what the institution requires, not a better internal model of the problem.",
+  "problem": "Institutional processes fail people who cannot produce an accurate chronology with evidence attached.",
+  "made": "A local-first emergency casefile application for housing, benefits, utilities and medical administration, and a browser extension improving AI workflow surfaces.",
+  "interaction": "Using an entirely fictional situation, assemble a chronology, attach evidence to each event, and produce a next-action packet.",
+  "explore": "The situation on this table is invented. No real case record, correspondence or personal document appears in this museum."
+},
+"E22": {
+  "subtitle": "Making Things That Make Things",
+  "plaque": "Three creative tools whose lineages show the same lesson: some requirements cannot be retrofitted.",
+  "problem": "Creative tools accumulate requirements — collaboration, offline operation, target-specific output — that reshape their architecture rather than extending it.",
+  "made": "An offline prompt-shaping menu-bar application, a hosted image-generation service with durable persistence, and a collaborative whiteboard rebuilt across three generations.",
+  "interaction": "Draw directly on the design table. Your marks appear on its surface and connect into the shared composition.",
+  "explore": "The table surface is a live drawing texture. What visitors draw persists for the length of your visit."
+},
+"E23": {
+  "subtitle": "Composition and Boundary",
+  "plaque": "Combining ordinary data layers produces genuinely new questions. The composition is the contribution.",
+  "problem": "Geospatial and language tools are individually common and rarely combined or made private.",
+  "made": "A tactical globe layering flights, satellites, seismic events, fires, undersea cables and tectonics into one correlatable view, and an offline in-browser speech translator.",
+  "interaction": "Choose a location on the globe and raise the layers. At the language wall, run a controlled translation example — entirely offline.",
+  "explore": "No live map service is contacted. Every layer and translation here is bundled sample data."
+},
+"E24": {
+  "subtitle": "A Campaign as a Database",
+  "plaque": "Content-heavy game projects are database problems wearing a narrative costume.",
+  "problem": "A campaign of this size collapses when the same unit is referenced three different ways in three different files.",
+  "made": "A complete campaign and sourcebook for a strategy game, authored data-first with a purpose-built workflow keeping identifiers, dialogue and mechanics consistent.",
+  "interaction": "Select regions and artifacts on the campaign table. Terrain rises and campaign paths respond.",
+  "explore": "Miniature environments lift out of the map surface as you select their regions."
+},
+"E25": {
+  "subtitle": "Tools Used Under Pressure",
+  "plaque": "A tool used at a table is judged on interaction cost, not on feature count.",
+  "problem": "A game master is tracking initiative, hit points, positions and rules simultaneously while people wait.",
+  "made": "A local encounter-management application with initiative order, hit-point control, a tactical map, bestiary, rules reference, persistence and history.",
+  "interaction": "Run a single deterministic encounter round: roll, adjust initiative, move a miniature, resolve one action.",
+  "explore": "The table is small and complete. It is not a D&D engine and does not pretend to be."
+},
+"E26": {
+  "subtitle": "Built to a Live Deadline",
+  "plaque": "Tools built under live production deadlines fragment into variants, because there is never a moment to consolidate them.",
+  "problem": "Broadcast overlays must sit on top of everything, be readable, and never obstruct the thing they annotate.",
+  "made": "A long-running family of translucent always-on-top desktop overlays with click-through modes and producer-safe controls, and a 16-bit-styled platformer set in real geography.",
+  "interaction": "Toggle overlay layers and routes on the operations map. Each layer can be made click-through, exactly as in production.",
+  "explore": "The fragmented repository lineage is shown honestly: the variants are the artifact."
+},
+"E27": {
+  "subtitle": "Finished",
+  "plaque": "Among sixty-four projects, this one is complete and playable. A hard deadline did what deadlines do.",
+  "problem": "Scope grows until something external stops it.",
+  "made": "A mobile-first rhythm game made as a birthday gift, in which Dexter catches treats, avoids sharks and fills a party meter toward a celebratory finale.",
+  "interaction": "Three linked mechanisms in the cabinet, each escalating the result of the last.",
+  "explore": "Small footprint, strong personality. The cabinet takes up less space than most cases in this wing."
+},
+"E28": {
+  "subtitle": "The Interface Is the Game",
+  "plaque": "In management games the interface is not the presentation layer. It is the entire mechanism.",
+  "problem": "A player must read threat, resources and options at a glance without the screen becoming noise.",
+  "made": "A station survival, management and defence game with extensive interface engineering, packaging and repeated systematic bug sweeps.",
+  "interaction": "Place fleet pieces on the tactical star table and resolve one deterministic combat turn.",
+  "explore": "The table reads from any side; information density was the design problem."
+},
+"E29": {
+  "subtitle": "The Descent Decision",
+  "plaque": "A prototype that cannot fail is not a prototype. It is a demo.",
+  "problem": "Is a civilization-scale generation-ship game actually interesting, or only impressive to describe?",
+  "made": "A modular arkship simulation scoped entirely around one falsifiable hundred-minute prototype built to answer that question before anything larger was committed.",
+  "interaction": "Explode the ship into its modules — command, habitation, logistics, energy, propulsion — then choose a destination and watch one module deploy.",
+  "explore": "The ship hangs at full length above the gallery. Walk its axis to read the module sequence."
+},
+"E30": {
+  "subtitle": "Zero Feedback Delay",
+  "plaque": "Any authoring tool for something judged by eye must close the feedback loop to nothing.",
+  "problem": "Visual effects are tuned by watching them, and every second between change and result degrades the result.",
+  "made": "A browser workbench for procedural ability effects with live control over emitters, forces, lifetime, turbulence and colour behaviour.",
+  "interaction": "Adjust any control. The effect in the chamber reshapes immediately — there is no apply step.",
+  "explore": "The chamber is transparent on all sides. The same effect reads differently from each."
+},
+"E31": {
+  "subtitle": "Two Verbs",
+  "plaque": "One deeply implemented verb produces more play than six shallow ones.",
+  "problem": "Two games, opposite in temperament: one about intervention, one about patience.",
+  "made": "A gesture-first browser god-game built around a single well-developed miracle, and an orbital farming game where power, water and nutrients are one coupled system.",
+  "interaction": "One side of the portal offers a branching decision. The other lets you plant something and wait for it.",
+  "explore": "The installation is one object with two faces. Neither side can see the other."
+},
+"E32": {
+  "subtitle": "A Real Town, Compressed",
+  "plaque": "Real geography is a good starting point and a bad final layout. The editing is the design work.",
+  "problem": "Actual distances are boring at play speed, but a town that loses its shape stops being recognisable.",
+  "made": "A rolling collection game set in a compressed model of a real Vancouver Island town, laid out against real map data and running fully offline.",
+  "interaction": "Take control of the ball. Roll, collect, and grow — one short self-contained level.",
+  "explore": "The diorama is a miniature neighbourhood. Everything in it is collectible at sufficient size."
+},
+"E33": {
+  "subtitle": "A 4X in a Browser Tab",
+  "plaque": "Deterministic world generation is a testing feature first and a player feature second.",
+  "problem": "Strategy games plateau in the mid-game, and their AI opponents become unreadable.",
+  "made": "A complete browser 4X with deterministic galaxy generation, factions, AI empires, economy, research, diplomacy, combat, crises and saves.",
+  "interaction": "Claim nodes on the galactic board, choose one technology, and watch the expansion consequences resolve.",
+  "explore": "The same seed always produces the same galaxy. Reset the board and it returns identical."
+},
+"E34": {
+  "subtitle": "The Machinery Behind the Work",
+  "plaque": "Six infrastructure projects that decide which machine does the work — and where nothing is permitted to go.",
+  "problem": "Local AI work needs real compute, large private storage and a trustworthy path between machines.",
+  "made": "A governed access route, a private storage architecture with no public path, a tunnelled local inference integration, an agent control surface, a launcher for the resulting tool sprawl, and a persistent daemon with real permadeath.",
+  "interaction": "Select a workflow. A pulse travels the sculpture through the exact nodes that workflow touches.",
+  "explore": "Every address, hostname and identifier in this room is a synthetic example. No credential, key or operational configuration appears anywhere in this museum."
+},
+"E35": {
+  "subtitle": "The Trust Boundary",
+  "plaque": "Some data categories decide the architecture before any engineering discussion begins.",
+  "problem": "Face processing and open-source research both generate exactly the material you least want logged elsewhere.",
+  "made": "A local-only face-processing stack with no outbound network path, and a fully local research platform where the investigation is never disclosed to a service provider.",
+  "interaction": "Run the face bay on synthetic generated faces; run the research bay on a fictional investigation. The wall between the bays shows what does not cross it.",
+  "explore": "The trust-boundary wall is a physical object here because it is the architectural decision both projects are built on."
+}
+}

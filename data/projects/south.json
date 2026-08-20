@@ -1,0 +1,185 @@
+[
+{
+  "id": "P012", "name": "Era of Invincible Magic: Lands Unknown", "family": "Games / creative systems",
+  "kind": "Campaign and sourcebook", "status": "Paused; production package complete",
+  "period": "2026",
+  "summary": "A full campaign for Battle for Wesnoth, authored data-first with its own architect workflow.",
+  "brief": "Lands Unknown is a campaign and sourcebook for Battle for Wesnoth 1.18. Its distinguishing decision is that the campaign was authored as structured data — units, identifiers, dialogue, mechanics, scenario definitions — before it was authored as content, using a purpose-built workflow to keep the two consistent.",
+  "deep": [
+    "Wesnoth campaigns are defined by a large body of interlocking configuration. Treating that body as a dataset rather than as files made cross-references checkable.",
+    "Identifier discipline is what keeps a campaign of this size from collapsing: a unit referenced in dialogue, in a scenario and in a balance table must be the same unit everywhere.",
+    "The architect workflow that produced it is reusable for any similarly data-heavy game project.",
+    "The production package is complete; the campaign's published state is unconfirmed."
+  ],
+  "capabilities": ["Campaign systems", "Unit and identifier data", "Dialogue", "Mechanics design", "Sourcebook", "Data-first authoring workflow"],
+  "lesson": "Content-heavy game projects are database problems wearing a narrative costume.",
+  "repos": []
+},
+{
+  "id": "P015", "name": "DnDex / DM_Hub", "family": "Dex / games",
+  "kind": "Web application", "status": "Active / evolving",
+  "period": "2026",
+  "summary": "An encounter runner for a game master: initiative, hit points, a tactical map, and nothing that slows the table.",
+  "brief": "DnDex is a local D&D 5e encounter-management application built around the reality that a game master is doing several things at once under time pressure. Initiative order, hit-point tracking, a tactical map, a bestiary and rules reference sit in one workspace with persistence, history and import/export.",
+  "deep": [
+    "The design constraint is table speed. Any interaction that takes longer than the mental arithmetic it replaces will be abandoned mid-session.",
+    "History and undo exist because encounters are corrected constantly — a misread modifier, a forgotten reaction — and a tool without undo makes that worse than paper.",
+    "Running locally means no session depends on a network at a table that may not have one.",
+    "Import and export keep prepared material portable rather than trapped in the application."
+  ],
+  "capabilities": ["Initiative tracking", "Hit-point management", "Tactical map", "Bestiary", "Rules reference", "Persistence and history", "Import / export"],
+  "lesson": "Tools used under time pressure are judged on interaction cost, not on feature count.",
+  "repos": ["westkitty/DnDex", "westkitty/DnDex_Redux"]
+},
+{
+  "id": "P037", "name": "WESTCAT Overlay", "family": "WestCat",
+  "kind": "Desktop overlay family", "status": "Active lineage; fragmented",
+  "period": "2025–2026",
+  "summary": "A long-running family of translucent always-on-top desktop overlays for live production.",
+  "brief": "The WESTCAT overlays are broadcast-facing desktop windows: translucent, always on top, click-through when needed, with persistent settings, polling, player controls and a cat-and-speech-bubble presentation. The family spans many repositories because each production need produced another variant.",
+  "deep": [
+    "Click-through mode is the feature that makes an always-on-top overlay usable — without it the overlay becomes an obstacle the moment it is not being read.",
+    "Producer-safe controls exist because these run during live output, where an accidental interaction is visible to an audience.",
+    "The fragmentation across repositories is genuine and is recorded rather than tidied away; it is what a tool looks like when it is shaped by recurring live deadlines."
+  ],
+  "capabilities": ["Translucent always-on-top windows", "Click-through mode", "Persistent settings", "Polling display", "Player controls", "Producer-safe controls"],
+  "lesson": "Tools built under live production deadlines fragment into variants, because there is never a moment to consolidate them.",
+  "repos": ["westkitty/WESTCAT-OVERLAY-RELOADED", "westkitty/westcat_overlay", "westkitty/westcat-polling-overlay"]
+},
+{
+  "id": "P038", "name": "WestCat Goes East", "family": "WestCat / games",
+  "kind": "Browser platformer", "status": "Active concept",
+  "period": "2026",
+  "summary": "A 16-bit-styled platformer set in a real place, with a generated asset pipeline behind it.",
+  "brief": "WestCat Goes East is an HTML5 Canvas platformer in the visual idiom of the 16-bit era, set around a recognisable stretch of Vancouver Island and starring the WestCat characters. A substantial generated asset-pack workflow supplies its sprites and tiles.",
+  "deep": [
+    "Setting a platformer in a real place changes level design: the layout is constrained by geography that already exists.",
+    "The asset pipeline was the larger engineering effort. Generating a coherent sprite set that reads as one artist's work is harder than generating any single sprite.",
+    "The playable code and the asset pipeline are integrated in concept and not yet fully joined in implementation."
+  ],
+  "capabilities": ["HTML5 Canvas platformer", "16-bit visual idiom", "Real-geography levels", "Generated asset pipeline"],
+  "lesson": "In a generated-art project the consistency pipeline is the project; individual assets are the easy part.",
+  "repos": []
+},
+{
+  "id": "P039", "name": "The Full Weasel", "family": "Dexter / games",
+  "kind": "Browser game", "status": "Completed; playable",
+  "period": "2026",
+  "summary": "A finished birthday rhythm game in which Dexter catches treats and dodges sharks.",
+  "brief": "The Full Weasel is a mobile-first rhythm game made as a birthday gift. Dexter catches falling treats in time with the music, avoids sharks, fills a party meter and reaches an escalating celebratory finale. It is small, complete and playable — which makes it rare in this collection.",
+  "deep": [
+    "It is finished. Among sixty-four projects, a completed and shipped artifact is worth marking.",
+    "The scope was fixed by the occasion, and the deadline did what deadlines do: it prevented the project from growing.",
+    "Dexter appears here as a character in a game he was made for. The Sanctuary elsewhere in this building is a different kind of space, and the distinction is deliberate."
+  ],
+  "capabilities": ["Rhythm gameplay", "Mobile-first PWA", "Party meter progression", "Escalating finale"],
+  "lesson": "A hard external deadline is the most reliable scope-control mechanism there is.",
+  "repos": ["westkitty/The_Full_Weasel"]
+},
+{
+  "id": "P051", "name": "Against the Void", "family": "Games",
+  "kind": "Godot game", "status": "Active; packaged",
+  "period": "2026",
+  "summary": "A station survival and defence game built in Godot, with unusually heavy interface work.",
+  "brief": "Against the Void combines survival, management and defence aboard a station under threat. Most of its engineering went into interface and interaction — a management game is almost entirely interface — alongside packaging and repeated systematic bug sweeps.",
+  "deep": [
+    "Management games live or die on information density: the player must see threat, resource state and options simultaneously without the screen becoming noise.",
+    "The repeated bug-sweep passes are recorded as part of the project's history because they were a substantial share of the actual work.",
+    "It is packaged; its runtime behaviour was not verified in the environment where this record was assembled, and that distinction is preserved rather than smoothed over."
+  ],
+  "capabilities": ["Station survival systems", "Resource management", "Defence gameplay", "Extensive interface work", "Packaging"],
+  "lesson": "In management games the interface is not the presentation layer; it is the game.",
+  "repos": []
+},
+{
+  "id": "P052", "name": "Arkship Civilization", "family": "Games / simulations",
+  "kind": "Simulation game", "status": "Active foundation; preproduction",
+  "period": "2026",
+  "summary": "A civilization-scale generation-ship project, scoped down to one falsifiable prototype.",
+  "brief": "Arkship Civilization is a generation-ship simulation whose entire preproduction is organised around a single prototype called The Descent Decision — ninety to a hundred and twenty minutes long, built to answer whether the core idea is actually interesting before anything larger is committed.",
+  "deep": [
+    "The prototype is designed to be falsifiable. It can return a negative answer, and it is scoped so that a negative answer is affordable.",
+    "The ship's structure — command, habitation, logistics, energy, propulsion — is the simulation's skeleton, and each module carries distinct failure behaviour.",
+    "Choosing one decision as the prototype's subject, rather than a vertical slice of everything, is what keeps the test honest."
+  ],
+  "capabilities": ["Generation-ship simulation", "Modular ship systems", "Falsification prototype", "Long-form single-decision scenario"],
+  "lesson": "A prototype that cannot fail is not a prototype; it is a demo.",
+  "repos": ["westkitty/Arkship"]
+},
+{
+  "id": "P053", "name": "AetherVFX", "family": "Three.js / creative tools",
+  "kind": "Browser workbench", "status": "Active foundation",
+  "period": "2026",
+  "summary": "A browser workbench for building procedural visual effects with live parameter control.",
+  "brief": "AetherVFX is a Three.js environment for authoring ability and procedural effects: emitters, forces, lifetimes, turbulence and colour behaviour are exposed as live controls so an effect is shaped by watching it rather than by editing and reloading.",
+  "deep": [
+    "Immediate feedback is the whole point. Visual effects are tuned by eye, and any delay between change and result degrades the result.",
+    "Source validation and project-health tooling were built alongside the effects work, because a workbench that breaks silently is worse than no workbench.",
+    "It shares its rendering foundation with this museum — the same library, the same disposal discipline, the same performance concerns."
+  ],
+  "capabilities": ["Procedural particle systems", "Live parameter control", "Multiple authoring modes", "Source validation", "Performance tooling"],
+  "lesson": "Any authoring tool for something judged by eye must close the feedback loop to zero.",
+  "repos": ["westkitty/3js-VFX-platform"]
+},
+{
+  "id": "P054", "name": "Parable", "family": "Games",
+  "kind": "Browser god-game", "status": "Active",
+  "period": "2026",
+  "summary": "A gesture-first god-game where miracles are drawn rather than selected from a menu.",
+  "brief": "Parable is a browser god-game in which the player's input is gesture: miracles are performed by drawing them, and the simulation responds. The core loop centres on a single well-developed miracle rather than a broad ability list, and ritual interactions build on top of it.",
+  "deep": [
+    "Gesture input makes the act of performing a miracle feel like an act rather than a selection, which is the entire reason the genre exists.",
+    "Developing one miracle deeply instead of many shallowly gave the simulation something to actually respond to.",
+    "Ritual interactions — sequences that must be performed correctly — extend the gesture vocabulary without adding menus."
+  ],
+  "capabilities": ["Gesture recognition", "Miracle system", "Simulation response", "Ritual interactions"],
+  "lesson": "One deeply implemented verb produces more play than six shallow ones.",
+  "repos": ["westkitty/Parable"]
+},
+{
+  "id": "P055", "name": "Starlight Acre", "family": "Games",
+  "kind": "Godot game", "status": "Active; Phase 2 in progress",
+  "period": "2026",
+  "summary": "Farming in orbit, where the greenhouse is failing and every resource is a shared constraint.",
+  "brief": "Starlight Acre is a Godot farming game set on an orbital station whose greenhouse is failing. Power, water and nutrients are shared, finite and interdependent, so growing mythic crops is a scheduling problem as much as a cultivation one, assisted by a gardener drone.",
+  "deep": [
+    "Coupling the resources is what distinguishes it from terrestrial farming games: watering costs power, and power is also keeping the station alive.",
+    "Restoration rather than expansion gives the game a natural arc — the station starts broken and the player's progress is measured in systems brought back.",
+    "The gardener drone is automation the player configures, which converts routine tending into a design decision."
+  ],
+  "capabilities": ["Orbital farming", "Coupled resource systems", "Station restoration arc", "Gardener drone automation", "Mythic crops"],
+  "lesson": "Coupling resources that players expect to be independent is a cheap way to create real decisions.",
+  "repos": ["westkitty/starlight-acre"]
+},
+{
+  "id": "P056", "name": "S'mores Katamari", "family": "Games / Smudge",
+  "kind": "Browser game", "status": "Active",
+  "period": "2026",
+  "summary": "A rolling collection game set in a compressed model of a real town, starring Smudge.",
+  "brief": "S'mores Katamari is a Three.js game in the Katamari idiom: roll, collect, grow. Its playspace is a compressed version of a real Vancouver Island town, laid out with reference to actual map data, and it runs entirely offline once loaded.",
+  "deep": [
+    "Compressing a real town into a playable space is a design problem, not a data problem — real distances are boring at play speed and must be edited without losing recognisability.",
+    "Map-derived layout guides kept the geography honest while the scale was compressed.",
+    "The asset pipeline is large, and running fully offline at runtime was a hard requirement that shaped how assets were packaged."
+  ],
+  "capabilities": ["Rolling collection mechanic", "Progressive scale growth", "Real-geography playspace", "Offline runtime", "Developer camera tools"],
+  "lesson": "Real geography makes a good starting point and a bad final layout; the editing is the design work.",
+  "repos": ["westkitty/S-mores-Katamari"]
+},
+{
+  "id": "P057", "name": "Endless Grok / Void Ascendancy", "family": "Games",
+  "kind": "Browser 4X strategy", "status": "Active; playable",
+  "period": "2026",
+  "summary": "A complete browser 4X: deterministic galaxies, AI empires, research, diplomacy, crises and saves.",
+  "brief": "Endless Grok is a playable 4X space strategy game running in the browser, with deterministic galaxy generation, multiple factions, AI empires, economy, research, diplomacy, combat, crisis events, save support and a long tail of enhancement work.",
+  "deep": [
+    "Deterministic generation means a galaxy can be reproduced from a seed, which makes balance testing possible and makes a specific game shareable.",
+    "The AI empires needed to be legible rather than optimal — a player must be able to infer why an empire acted, or diplomacy becomes noise.",
+    "Crises exist to interrupt the mid-game plateau that this genre reliably produces.",
+    "It is among the most feature-complete games in this collection and it runs in a browser tab."
+  ],
+  "capabilities": ["Deterministic galaxy generation", "Faction and AI empires", "Economy and research", "Diplomacy", "Combat", "Crisis events", "Save system"],
+  "lesson": "Deterministic world generation is a testing feature first and a player feature second.",
+  "repos": ["westkitty/EndlessGrok"]
+}
+]

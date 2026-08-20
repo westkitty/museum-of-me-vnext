@@ -1,0 +1,125 @@
+[
+{
+  "id": "P009", "name": "Museum of Me / The Reliquary of Iterative Becoming", "family": "Museum / archive systems",
+  "kind": "Interactive archive", "status": "Superseded by this building",
+  "period": "2026",
+  "summary": "The earlier attempts to build this museum, preserved as evidence rather than hidden.",
+  "brief": "Before this building existed there were several Museum of Me concepts, including a large single-file Three.js artifact titled The Reliquary of Iterative Becoming. Those artifacts remain intact as historical evidence. This building is a separate lineage — a new collection structure, asset pipeline and production contract — rather than another restoration pass over the old one.",
+  "deep": [
+    "The earliest concepts were closer to interactive documents than to buildings: content organised by page rather than by space.",
+    "The Reliquary restoration reached a large single-file Three.js artifact. It proved the idea was possible and demonstrated exactly why a single file could not carry thirty-five distinct interactive exhibits.",
+    "The decision to treat this version as a new product rather than a restoration is the most consequential one in the museum's history. Restoration would have inherited the constraint that made the previous version stall.",
+    "The prior artifacts are preserved unmodified outside this project. Nothing in this building overwrites them."
+  ],
+  "capabilities": ["Interactive archive concept", "Single-file Three.js artifact", "Exhibit and subproject relationships", "Preserved legacy lineage"],
+  "lesson": "There is a point where restoring an artifact costs more than rebuilding the thing it was trying to be.",
+  "repos": []
+},
+{
+  "id": "P047", "name": "WorldsVault Uplink", "family": "Museum / archive / canon systems",
+  "kind": "Research architecture", "status": "Superseded; retained as research archive",
+  "period": "2026",
+  "summary": "The first and most ambitious attempt at a worldbuilding and canon-management platform.",
+  "brief": "Uplink was the research phase: a broad architecture study for a platform that would hold canon, relationships, technology reports and product structure in one system. It produced substantial architecture and technology analysis and very little running software, and it was superseded rather than abandoned.",
+  "deep": [
+    "The scope was platform-shaped from the start — services, syncing, multi-user structure — which is why it produced reports faster than it produced a usable tool.",
+    "Its research is genuinely reusable. The successor projects inherited its data model thinking while discarding its delivery assumptions.",
+    "It is preserved as a research archive because the reasoning is the artifact."
+  ],
+  "capabilities": ["Platform architecture research", "Technology and product reports", "Canon data-model exploration"],
+  "lesson": "Architecture research is not wasted when the architecture is rejected — but it is wasted if nothing is ever narrowed.",
+  "repos": []
+},
+{
+  "id": "P048", "name": "CanonForge", "family": "Museum / archive / canon systems",
+  "kind": "Local-first canon OS", "status": "Superseded; absorbed into WorldsVault",
+  "period": "2026",
+  "summary": "The narrowing: a Markdown vault, a Python CLI, schemas, validation and transfer packets.",
+  "brief": "CanonForge cut the platform ambition down to something that could run on one machine. Canon lives as Markdown, structure lives in schemas, correctness is enforced by validation, and knowledge moves between contexts as explicit transfer packets. A later interface layer was considered but the command line remained the honest surface.",
+  "deep": [
+    "Choosing Markdown as the storage format was the decision that made the project survivable. Files remain readable and diffable without the tool.",
+    "Validation and indexes did the work a database would have done, without requiring one to exist.",
+    "Transfer packets are the concept that outlived the project: a bounded, self-describing bundle of canon meant to be handed to another context."
+  ],
+  "capabilities": ["Markdown canon vault", "Python CLI", "Schemas and validation", "Indexes", "Transfer packets", "Export"],
+  "lesson": "Narrowing an ambitious system to one machine and plain files is usually the step that makes it real.",
+  "repos": []
+},
+{
+  "id": "P049", "name": "WorldsVault", "family": "Museum / archive / canon systems",
+  "kind": "Local-first knowledge system", "status": "Active; local repository",
+  "period": "2026",
+  "summary": "The surviving form: an Obsidian and Git vault for canon, workflows and technical knowledge, with local retrieval.",
+  "brief": "WorldsVault is what the lineage settled into. Canon, workflow notes and technical knowledge live in an Obsidian vault under Git, retrieval runs locally against local models, and handoffs to other tools are explicit artifacts. It kept CanonForge's file-first discipline and dropped the requirement to build a bespoke application around it.",
+  "deep": [
+    "Using an existing editor instead of building one removed the entire interface-maintenance burden that had stalled its predecessors.",
+    "Git supplies versioning, history and branching without a custom revision model.",
+    "Local retrieval means the vault can be queried without sending its contents anywhere, which is a requirement rather than a preference for private canon.",
+    "The lineage — Uplink, CanonForge, WorldsVault — is the clearest example in this collection of a project improving by losing features."
+  ],
+  "capabilities": ["Obsidian vault", "Git versioning", "Local retrieval", "AI handoff artifacts", "Workflow and technical knowledge capture"],
+  "lesson": "Three generations of the same idea, each smaller than the last, and the smallest one is the one still running.",
+  "repos": []
+},
+{
+  "id": "P014", "name": "KinDex Handoff", "family": "Continuity infrastructure",
+  "kind": "Local GUI tool", "status": "Experimental / planned",
+  "period": "2026",
+  "summary": "A handoff builder that stages evidence-linked claims for human approval before they become project record.",
+  "brief": "KinDex scans project material and proposes claims about it — what exists, what state it is in, what remains. Every claim carries a link back to the evidence that produced it, and nothing enters the record until a person approves it. Its outputs are handoff documents, task lists, open questions, a source index and an append-only project record.",
+  "deep": [
+    "The approval gate is the design. An automated summary that is 90% right is worse than useless for project continuity, because the 10% is indistinguishable from the rest.",
+    "Evidence links make a claim checkable in seconds instead of minutes, which is what makes reviewing a hundred of them practical.",
+    "The append-only record means corrections are added rather than overwriting history."
+  ],
+  "capabilities": ["Project material scanning", "Evidence-linked claims", "Human approval gate", "Handoff, task and question export", "Append-only record"],
+  "lesson": "Automated project summaries need a human approval step, because a plausible wrong claim is more expensive than no claim.",
+  "repos": []
+},
+{
+  "id": "P018", "name": "ChatGPT Bible Repo", "family": "Continuity infrastructure",
+  "kind": "Persistence layer", "status": "Active",
+  "period": "2026",
+  "summary": "A Git repository that holds project identity and history so it survives outside any single conversation.",
+  "brief": "The Bible Repo is where project continuity actually lives. Each project has an append-only record of its identity, decisions, handoffs and recognition metadata, stored in Git so that a new conversation in any tool can be brought up to speed from evidence rather than from memory.",
+  "deep": [
+    "Append-only is the core constraint. Records accumulate; they are not edited into a tidier present.",
+    "Recognition metadata lets a project be identified from partial context — a path, a repository name, a fragment of terminology.",
+    "The repository is the reason several projects in this museum could be reconstructed accurately years after the conversations that produced them.",
+    "It also holds records for systems that have no repository of their own, which is why some infrastructure projects here can be documented at all."
+  ],
+  "capabilities": ["Append-only project Bibles", "Identity records", "Handoff artifacts", "Recognition metadata", "Cross-tool continuity"],
+  "lesson": "Context that lives only in a conversation is context you are going to lose.",
+  "repos": ["westkitty/ChatGPT_Bible_Repo"]
+},
+{
+  "id": "P046", "name": "Project Forge", "family": "Continuity infrastructure",
+  "kind": "Progress application", "status": "Experimental; canonical implementation uncertain",
+  "period": "2026",
+  "summary": "A progress tracker for long-horizon work, built around lifecycle stages rather than task lists.",
+  "brief": "Project Forge tracks creative, business, software and experimental work over years rather than sprints. It models lifecycle stages, recurring rituals, releases and capture, with progression mechanics layered on top. An artifact was built; which build is canonical was never firmly established.",
+  "deep": [
+    "Long-horizon projects fail differently from short ones — they stall silently — so the tool tracks stage transitions rather than task completion.",
+    "Rituals are recurring commitments rather than tasks: the things that keep a project from going quiet.",
+    "The project's own uncertain canonical state is an honest illustration of the problem it was built to solve."
+  ],
+  "capabilities": ["Lifecycle tracking", "Rituals", "Releases", "Capture and export", "Progression mechanics"],
+  "lesson": "A tool for tracking long projects has to survive the same neglect it is designed to detect.",
+  "repos": ["westkitty/Project_Forge"]
+},
+{
+  "id": "P062", "name": "Rhetorical InDEX", "family": "Research / media-literacy systems",
+  "kind": "Analysis prototype", "status": "Completed prototype; next phase planned",
+  "period": "2026",
+  "summary": "An offline tool that separates a statement's evidence from its interpretation, framing and inference.",
+  "brief": "Rhetorical InDEX takes a piece of writing apart into the moves it is making. A sentence can assert evidence, interpret evidence, frame a topic, draw an inference, or claim something with no support at all — and readers routinely fail to notice which is which. The prototype shipped as a single offline file with no network dependency.",
+  "deep": [
+    "Classification is applied to spans, not to documents. A single paragraph typically contains several categories, and that mixture is where persuasion happens.",
+    "Running entirely offline as one file was a deliberate constraint: an analysis tool that phones home is a poor fit for analysing text you care about.",
+    "The next planned phase, Instrument Alpha, was scoped but the shipped prototype stands as a complete artifact."
+  ],
+  "capabilities": ["Span classification", "Evidence / interpretation / framing / inference categories", "Unsupported-claim detection", "Single-file offline distribution"],
+  "lesson": "The useful question about a claim is rarely whether it is true; it is which kind of claim it is.",
+  "repos": ["westkitty/Rhetorical_InDEX"]
+}
+]

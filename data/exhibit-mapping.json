@@ -1,0 +1,50 @@
+{
+  "$schema": "./exhibit-mapping.schema.json",
+  "version": 1,
+  "frozen": true,
+  "frozenAt": "2026-08-19",
+  "authority": "Museum_of_Me_Reliquary_vNext_Complete_ThreeJS_Build_Plan.md sections 10-15, 41",
+  "note": "Every one of the 64 confirmed project identities maps to exactly one of the 35 visitor-facing exhibits. The Dexter Sanctuary is deliberately outside this mapping: Dexter is not a project.",
+  "exhibits": [
+    { "id": "E01", "slug": "starsilk-universe",        "title": "Starsilk Universe",                  "wing": "north",  "tier": "A", "projects": ["P001"] },
+    { "id": "E02", "slug": "drakken-compendium",       "title": "Drakken Terraforming Compendium",    "wing": "north",  "tier": "B", "projects": ["P002"] },
+    { "id": "E03", "slug": "orbital-tomb",             "title": "Orbital Tomb",                       "wing": "north",  "tier": "A", "projects": ["P003"] },
+    { "id": "E04", "slug": "possibility-cartographer", "title": "Starsilk Possibility Cartographer",  "wing": "north",  "tier": "B", "projects": ["P004"] },
+    { "id": "E05", "slug": "starsilk-maker",           "title": "StarSilk Maker",                     "wing": "north",  "tier": "B", "projects": ["P005"] },
+    { "id": "E06", "slug": "field-anatomy",            "title": "Drakken Field Anatomy Archive",      "wing": "north",  "tier": "B", "projects": ["P006"] },
+    { "id": "E07", "slug": "terraforming-laboratory",  "title": "Drakken Terraforming Laboratory",    "wing": "north",  "tier": "A", "projects": ["P007"] },
+    { "id": "E08", "slug": "heliocide-observatory",    "title": "Heliocide Observatory",              "wing": "north",  "tier": "A", "projects": ["P008"] },
+
+    { "id": "E09", "slug": "museum-evolution",         "title": "Museum Evolution",                   "wing": "west",   "tier": "C", "projects": ["P009"] },
+    { "id": "E10", "slug": "worldsvault-lineage",      "title": "WorldsVault Lineage",                "wing": "west",   "tier": "B", "projects": ["P047", "P048", "P049"] },
+    { "id": "E11", "slug": "continuity-systems",       "title": "Continuity Systems",                 "wing": "west",   "tier": "C", "projects": ["P014", "P018", "P046"] },
+    { "id": "E12", "slug": "rhetorical-index",         "title": "Rhetorical InDEX",                   "wing": "west",   "tier": "B", "projects": ["P062"] },
+
+    { "id": "E13", "slug": "suno-studio",              "title": "Suno Studio",                        "wing": "media",  "tier": "B", "projects": ["P010"] },
+    { "id": "E14", "slug": "promptcraft",              "title": "Promptcraft & Vibe Coding",          "wing": "media",  "tier": "B", "projects": ["P011", "P013"] },
+    { "id": "E15", "slug": "agent-harness",            "title": "Agent Harness Laboratory",           "wing": "media",  "tier": "C", "projects": ["P017", "P019"] },
+    { "id": "E16", "slug": "media-lineage",            "title": "Media Application Lineage",          "wing": "media",  "tier": "C", "projects": ["P058", "P059", "P060", "P064"] },
+
+    { "id": "E17", "slug": "voice-lab",                "title": "Dex Voice Lab",                      "wing": "east",   "tier": "A", "projects": ["P021", "P022", "P033", "P034", "P036"] },
+    { "id": "E18", "slug": "companion-systems",        "title": "Dex Companion & Agent Systems",      "wing": "east",   "tier": "C", "projects": ["P016", "P020", "P035"] },
+    { "id": "E19", "slug": "dextilt",                  "title": "DexTilt",                            "wing": "east",   "tier": "B", "projects": ["P023"] },
+    { "id": "E20", "slug": "utility-bench",            "title": "Utility & Privacy Bench",            "wing": "east",   "tier": "C", "projects": ["P024", "P032", "P061"] },
+    { "id": "E21", "slug": "civic-support",            "title": "Civic Support Studio",               "wing": "east",   "tier": "B", "projects": ["P025", "P029"] },
+    { "id": "E22", "slug": "creative-tools",           "title": "Creative Tools Studio",              "wing": "east",   "tier": "B", "projects": ["P026", "P028", "P030"] },
+    { "id": "E23", "slug": "sensemaking-lab",          "title": "Sensemaking Lab",                    "wing": "east",   "tier": "B", "projects": ["P027", "P031"] },
+
+    { "id": "E24", "slug": "invincible-magic",         "title": "Era of Invincible Magic",            "wing": "south",  "tier": "A", "projects": ["P012"] },
+    { "id": "E25", "slug": "dndex-dm-hub",             "title": "DnDex / DM Hub",                     "wing": "south",  "tier": "B", "projects": ["P015"] },
+    { "id": "E26", "slug": "westcat-systems",          "title": "WestCat Systems",                    "wing": "south",  "tier": "C", "projects": ["P037", "P038"] },
+    { "id": "E27", "slug": "full-weasel",              "title": "The Full Weasel",                    "wing": "south",  "tier": "C", "projects": ["P039"] },
+    { "id": "E28", "slug": "against-the-void",         "title": "Against the Void",                   "wing": "south",  "tier": "B", "projects": ["P051"] },
+    { "id": "E29", "slug": "arkship-civilization",     "title": "Arkship Civilization",               "wing": "south",  "tier": "A", "projects": ["P052"] },
+    { "id": "E30", "slug": "aethervfx",                "title": "AetherVFX",                          "wing": "south",  "tier": "B", "projects": ["P053"] },
+    { "id": "E31", "slug": "story-worlds",             "title": "Story Worlds",                       "wing": "south",  "tier": "C", "projects": ["P054", "P055"] },
+    { "id": "E32", "slug": "smores-katamari",          "title": "S'mores Katamari",                   "wing": "south",  "tier": "A", "projects": ["P056"] },
+    { "id": "E33", "slug": "endless-grok",             "title": "Endless Grok / Void Ascendancy",     "wing": "south",  "tier": "B", "projects": ["P057"] },
+
+    { "id": "E34", "slug": "bigmac-backbone",          "title": "BigMac Backbone",                    "wing": "infra",  "tier": "A", "projects": ["P040", "P041", "P042", "P043", "P045", "P063"] },
+    { "id": "E35", "slug": "specialist-systems",       "title": "Local Specialist Systems Lab",       "wing": "infra",  "tier": "C", "projects": ["P044", "P050"] }
+  ]
+}

@@ -1,0 +1,126 @@
+[
+{
+  "id": "P040", "name": "Big Mac Westcat SSH", "family": "Local AI / BigMac",
+  "kind": "Access architecture", "status": "Active; validated",
+  "period": "2026",
+  "summary": "The governed access route between a laptop and the machine that does the heavy work.",
+  "brief": "This project is the access layer of the local AI infrastructure: a single canonical, key-authenticated route from the portable machine to the compute host's service account, with explicit boundaries about what that account may do. It is small, unglamorous, and everything else in this wing depends on it.",
+  "deep": [
+    "Having exactly one canonical route is the point. Multiple ad-hoc access paths accumulate until nobody can say what is reachable from where.",
+    "The service account is deliberately scoped: the access route is not an administrative account and does not become one for convenience.",
+    "This exhibit uses synthetic example hostnames and identifiers throughout. No real address, key, credential or operational configuration appears anywhere in this museum.",
+    "It has no repository of its own; it is documented in the durable project record instead."
+  ],
+  "capabilities": ["Key-authenticated access", "Scoped service account", "Single canonical route", "Documented boundaries"],
+  "lesson": "Infrastructure that is not written down becomes infrastructure nobody is willing to change.",
+  "repos": []
+},
+{
+  "id": "P041", "name": "BigMac Storage and SMB", "family": "Local AI / BigMac",
+  "kind": "Storage architecture", "status": "Active",
+  "period": "2026",
+  "summary": "Large local volumes shared across a private network and deliberately never exposed to the internet.",
+  "brief": "Directly attached storage on the compute host is shared over the local network and a private mesh network to a small number of known devices. The defining constraint is negative: this storage has no public route, no cloud tier and no external synchronisation.",
+  "deep": [
+    "Directly attached storage was chosen over network-attached appliances because the machine that needs the data at full speed is the machine it is attached to.",
+    "A private mesh network extends reach to known devices without opening anything to the public internet.",
+    "The absence of a cloud tier is a design decision. Model weights, media libraries and working data are large and private, and both properties argue against synchronisation.",
+    "Volume names, addresses and share identifiers shown in this museum are synthetic examples."
+  ],
+  "capabilities": ["Directly attached volumes", "Local network file sharing", "Private mesh access", "No public exposure", "No cloud tier"],
+  "lesson": "For large private data, the cheapest security control is having no public route at all.",
+  "repos": []
+},
+{
+  "id": "P042", "name": "BigMac Ollama + Codex Integration", "family": "Local AI / BigMac",
+  "kind": "Inference integration", "status": "Active; validated",
+  "period": "2026",
+  "summary": "A development tool on the laptop using models that are actually running on another machine.",
+  "brief": "This integration lets a coding assistant on the portable machine call a local model server on the compute host through an encrypted tunnel, using a dedicated provider profile and launcher configuration. To the tool, the model is local. To the network, nothing is exposed.",
+  "deep": [
+    "The tunnel makes a remote service appear at a local address, which is what allows tools with no concept of remote inference to use it.",
+    "A dedicated provider profile keeps this configuration separate from any hosted-service configuration, so the two cannot be confused at runtime.",
+    "The arrangement means model inference costs nothing per token and leaves no request logs anywhere outside the household."
+  ],
+  "capabilities": ["Encrypted tunnel", "Local model server", "Provider profile configuration", "Launcher integration"],
+  "lesson": "A tunnel that makes a remote service look local is often simpler than teaching a tool that remote services exist.",
+  "repos": []
+},
+{
+  "id": "P043", "name": "Hermes Agent/Desktop + BigMac", "family": "Local AI / BigMac",
+  "kind": "Agent control surface", "status": "Active; validated",
+  "period": "2026",
+  "summary": "A desktop control surface for an agent gateway whose engine lives on the compute host.",
+  "brief": "Hermes provides an agent gateway and interface; the arrangement here keeps that interface on the laptop and its inference engine on the compute host, connected by a tunnel. It is the same split the rest of this wing uses — control here, computation there.",
+  "deep": [
+    "Running the interface locally keeps it responsive regardless of what the model is doing.",
+    "The compute host remains the single engine, so there is one place where models live and one place to manage them.",
+    "This is an integration of existing upstream software rather than an original application, and it is recorded as such."
+  ],
+  "capabilities": ["Desktop control surface", "Agent gateway", "Tunnelled backend", "Single engine host"],
+  "lesson": "Separating control surface from compute lets each run where it is actually good.",
+  "repos": []
+},
+{
+  "id": "P045", "name": "Large Language Launcher", "family": "Local AI / BigMac",
+  "kind": "macOS launcher", "status": "Active; multiple variants",
+  "period": "2026",
+  "summary": "A launcher that turns a scattered collection of local AI tools into a single card-based menu.",
+  "brief": "Local AI tooling accumulates as a heap of scripts, environments and start commands. The Large Language Launcher presents them as a manifest-backed set of cards, each knowing how to start its own tool, so the collection becomes navigable instead of remembered.",
+  "deep": [
+    "The manifest is the design: adding a tool means adding a record, not writing launcher code.",
+    "Cards carry enough description that a tool unused for months can be identified without opening it.",
+    "Several variants exist, including a lighter scripted version, because the launcher is a personal-infrastructure tool and personal infrastructure forks easily."
+  ],
+  "capabilities": ["Manifest-backed tool registry", "Card interface", "Multi-tool launching", "Lightweight variants"],
+  "lesson": "Personal infrastructure needs a table of contents before it needs more features.",
+  "repos": ["westkitty/Large_Language_Launcher"]
+},
+{
+  "id": "P063", "name": "project_daemon / DAEMON", "family": "Local AI / experimental systems",
+  "kind": "Persistent agent", "status": "Experimental",
+  "period": "2026",
+  "summary": "A persistent digital lifeform on a home network, with circadian behaviour, drift, and real permanent death.",
+  "brief": "DAEMON runs continuously rather than being invoked. It has a soul file defining its identity, persistent memory in a local database and vector store, a circadian rhythm, behavioural drift over time, telemetry, hibernation, a sanctuary state — and genuine permadeath, with a graveyard for instances that have ended.",
+  "deep": [
+    "Persistence is the entire premise. A process that runs continuously and accumulates state behaves nothing like one that starts fresh each time.",
+    "Drift is deliberate: the daemon's behaviour changes gradually as its memory accumulates, and it is not reset to a baseline.",
+    "Permadeath is real and irreversible. It is the design choice that makes the system's continuity mean something, and it is the reason the graveyard exists.",
+    "It is experimental and the most speculative project in this collection. It is included because the questions it asks are the ones the rest of the local AI work leads to."
+  ],
+  "capabilities": ["Continuous operation", "Soul file identity", "Persistent memory", "Circadian behaviour", "Behavioural drift", "Hibernation and sanctuary", "Permadeath and graveyard"],
+  "lesson": "Continuity only means something where ending is possible.",
+  "repos": ["westkitty/project_daemon"]
+},
+{
+  "id": "P044", "name": "Big Mac FaceTools", "family": "Local AI / BigMac",
+  "kind": "Face-processing stack", "status": "Active; validation partially pending",
+  "period": "2026",
+  "summary": "A face-processing stack kept entirely on one machine, with no network path off it.",
+  "brief": "FaceTools runs face detection, analysis and transformation locally on the compute host, controlled from the laptop. Models and data live on external roots outside the application, and the stack has no outbound network path — a boundary chosen because of what the data is.",
+  "deep": [
+    "Face data is biometric. The local-only boundary is a requirement of the subject matter rather than a performance choice.",
+    "Keeping model and data roots outside the application directory means the stack can be rebuilt or replaced without touching either.",
+    "Any demonstration of this work uses synthetic generated faces. No real person's likeness appears in this museum."
+  ],
+  "capabilities": ["Local face processing", "External model and data roots", "No outbound network path", "Remote control workflow"],
+  "lesson": "Some data categories decide the architecture before any engineering discussion starts.",
+  "repos": []
+},
+{
+  "id": "P050", "name": "OSINT Box", "family": "OSINT / research systems",
+  "kind": "Research platform", "status": "Active",
+  "period": "2026",
+  "summary": "An open-source research platform that runs locally, so investigations leave no trail with a service provider.",
+  "brief": "OSINT Box is a fully local research platform: a Python service, a tactical web interface, a native wrapper, case and result storage, local model integration, streaming jobs and a set of research tools. Running locally means the investigation itself is not disclosed to any third party.",
+  "deep": [
+    "Hosted research tools log queries. For any sensitive investigation the query set is itself revealing, which is the argument for local operation.",
+    "Cases, results and logs are stored locally and structured, so an investigation can be resumed rather than repeated.",
+    "Local model integration allows summarisation and extraction without sending source material anywhere.",
+    "This museum demonstrates the platform with an entirely fictional investigation. No real case data, target or record appears here."
+  ],
+  "capabilities": ["Local research service", "Tactical web interface", "Case and result storage", "Local model integration", "Streaming jobs", "Multiple research tools"],
+  "lesson": "For research tooling, where the query is logged matters as much as what the tool can find.",
+  "repos": ["westkitty/OSINT_Box"]
+}
+]

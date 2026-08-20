@@ -1,0 +1,138 @@
+[
+{
+  "id": "P010", "name": "Suno AI Lyrics and Manual", "family": "Music / prompt systems",
+  "kind": "Doctrine and reference", "status": "Active",
+  "period": "2026",
+  "summary": "A working manual for songwriting with a generative music model, built from what actually reproduced.",
+  "brief": "This project is a codex rather than an application: a durable body of doctrine covering lyric structure, narration, style prompts and parameter behaviour for Suno V5. It was assembled by writing songs, observing which instructions changed the output and which were ignored, and recording only the parts that held up across attempts.",
+  "deep": [
+    "Generative music models respond to structure far more reliably than to adjectives. Section markers, line counts and syllable discipline move the output; mood words often do not.",
+    "The manual distinguishes instructions that are reliable, instructions that are situational, and instructions that were believed to work but did not survive testing — the last category is the most useful part.",
+    "Style prompts are treated as a small formal language with its own grammar rather than as free description.",
+    "The songs produced for other projects in this museum, including Orbital Tomb, were written against this doctrine."
+  ],
+  "capabilities": ["Lyric and section structure", "Narration technique", "Style-prompt grammar", "Parameter doctrine", "Reproducibility notes"],
+  "lesson": "A prompt manual is only worth keeping if it records the techniques that failed alongside the ones that worked.",
+  "repos": []
+},
+{
+  "id": "P011", "name": "Visual Prompt Systems Registry", "family": "Prompt / AI workflow systems",
+  "kind": "Template registry", "status": "Active",
+  "period": "2026",
+  "summary": "A registry of image-prompt templates with batch syntax, categories and explicit negative constraints.",
+  "brief": "The Registry treats visual prompts as reusable components instead of one-off text. Templates carry slots, categories organise them, dynamic batch syntax expands one template into a controlled set of variations, and negative constraints are stored with the template rather than remembered separately.",
+  "deep": [
+    "Storing negative constraints with the template is the detail that makes the registry work. The list of things a prompt must exclude is harder to reconstruct from memory than the prompt itself.",
+    "Batch syntax turns exploration into a grid rather than a sequence of guesses, which makes comparing variations meaningful.",
+    "Formatting rules are part of the registry because model output is sensitive to punctuation and ordering in ways that are easy to lose when copying prompts by hand."
+  ],
+  "capabilities": ["Reusable templates", "Dynamic batch expansion", "Category system", "Negative constraints", "Formatting rules"],
+  "lesson": "The reusable part of a prompt is usually the constraint list, not the description.",
+  "repos": ["westkitty/local_sdxl_prompt_vault", "westkitty/sdxl-prompt-forge"]
+},
+{
+  "id": "P013", "name": "Vibe Coding Nexus / DexGate Academy", "family": "Learning / interactive",
+  "kind": "Learning environment", "status": "Active / evolving",
+  "period": "2026",
+  "summary": "A game-like learning environment for people building software with AI tools for the first time.",
+  "brief": "DexGate Academy teaches the practice of building software conversationally — choosing tools, structuring a project, recognising when progress has stalled — to an audience that does not already have programming habits. It is delivered as an interactive, beginner-safe experience rather than as documentation.",
+  "deep": [
+    "The audience is the constraint. Someone whose first programming environment is a chat window has different failure modes than a self-taught programmer, and generic tutorials address neither.",
+    "Guided practice is preferred over explanation. The environment gives a task, lets it go wrong safely, and then explains what happened.",
+    "Tool choice is taught as a decision with tradeoffs rather than as a recommendation, because the tool landscape changes faster than any curriculum."
+  ],
+  "capabilities": ["Interactive lessons", "Guided practice", "Tool-choice decision framing", "Progress tracking", "Beginner-safe environment"],
+  "lesson": "Teaching people to build software with AI is mostly teaching them to recognise when the conversation has stopped making progress.",
+  "repos": ["westkitty/welcome_to_vibe_coding", "westkitty/DexGate"]
+},
+{
+  "id": "P017", "name": "Code Harness", "family": "Prompt / AI workflow systems",
+  "kind": "Orchestration harness", "status": "Active",
+  "period": "2026",
+  "summary": "An orchestration layer that routes work between reusable workflows, local inference and specialist agents.",
+  "brief": "Code Harness assembles the working parts of an AI development setup into one addressable system: reusable workflows, project context, local model inference, specialist agent definitions, and the handoff artifacts that move work between them. Its persistence lives in the Bible Repo rather than in the harness itself.",
+  "deep": [
+    "A harness is not a model wrapper. Its job is to decide what context a task needs, which specialist should handle it, and what has to be preserved when the task ends.",
+    "Generated specialist artifacts let a capability be defined once and reused, instead of being re-described at the start of every session.",
+    "Keeping persistence external means the harness can be replaced without losing the accumulated project record — which turned out to matter."
+  ],
+  "capabilities": ["Reusable workflows", "Context assembly", "Local inference routing", "Specialist agent artifacts", "Handoff generation"],
+  "lesson": "Orchestration systems should not own the memory they orchestrate, or they become impossible to replace.",
+  "repos": ["westkitty/ChatGPT_Bible_Repo"]
+},
+{
+  "id": "P019", "name": "Opencode Harness", "family": "Prompt / AI workflow systems",
+  "kind": "Integration harness", "status": "Experimental / paused",
+  "period": "2026",
+  "summary": "An attempt to make several different coding agents share one context and hand work to each other.",
+  "brief": "Opencode Harness explored interoperability between separate agent tools — OpenCode, Claude Code and a local coding agent — with shared context, common orchestration and a handoff format that survived the boundary between them. It is local-first and currently paused.",
+  "deep": [
+    "The hard part is not invoking several tools; it is that each one has a different idea of what a project is and what context it needs.",
+    "The handoff format was the productive output: a bounded description of state that any of the tools could consume.",
+    "It is paused rather than abandoned because the underlying tools were changing faster than an integration layer could track."
+  ],
+  "capabilities": ["Multi-agent interoperability", "Shared context", "Handoff format", "Local-first operation"],
+  "lesson": "Integrating fast-moving tools costs more than the integration saves until the tools slow down.",
+  "repos": ["westkitty/Opencode_Harness"]
+},
+{
+  "id": "P058", "name": "Guy_Cast", "family": "Applications / media",
+  "kind": "Desktop and extension app", "status": "Superseded direction",
+  "period": "2026",
+  "summary": "The first generation: a desktop application plus browser extension for casting media.",
+  "brief": "Guy_Cast spanned a Tauri desktop application, a web surface and a Chrome extension, all covering the same media-casting workflow. Supporting three delivery targets for one feature set proved to be the project's defining cost, and its successor chose a single native platform instead.",
+  "deep": [
+    "Three delivery surfaces meant three permission models, three update paths and three sets of platform bugs for one product.",
+    "The extension surface was the most capable in practice and the most fragile to maintain.",
+    "The project was superseded rather than fixed, and the decision to go native on one platform came directly from this experience."
+  ],
+  "capabilities": ["Tauri desktop client", "Web surface", "Chrome extension", "Media casting workflow"],
+  "lesson": "Shipping one feature to three platforms at once triples the maintenance before it doubles the audience.",
+  "repos": ["westkitty/Guy_Cast"]
+},
+{
+  "id": "P059", "name": "Gay_Cast", "family": "Applications / media",
+  "kind": "Android application", "status": "Active repair",
+  "period": "2026",
+  "summary": "The successor: one native Android application instead of three cross-platform surfaces.",
+  "brief": "Gay_Cast rebuilt the casting workflow as a native Android application in Kotlin and Jetpack Compose. Dropping to a single platform removed the multi-surface maintenance cost that stalled its predecessor and let the feature set develop instead of merely being ported.",
+  "deep": [
+    "Native Android gave direct access to the platform's media and networking behaviour without an abstraction layer translating it.",
+    "Jetpack Compose kept the interface work small enough that it was not the bottleneck.",
+    "The project is under active repair rather than finished, which is normal for the generation that has to carry the real feature set."
+  ],
+  "capabilities": ["Native Android client", "Jetpack Compose interface", "Media casting", "Single-platform focus"],
+  "lesson": "The second generation is usually smaller in scope and larger in capability than the first.",
+  "repos": ["westkitty/Gay_Cast"]
+},
+{
+  "id": "P060", "name": "He-Maker", "family": "Creative applications",
+  "kind": "Recovered application", "status": "Active recovery",
+  "period": "2026",
+  "summary": "A creative application recovered from cloud storage and rebuilt into a durable repository.",
+  "brief": "He-Maker existed as a folder in cloud storage before it existed as a project. Its recovery — reconstructing the source into a repository with a written project record — is the work that made it a project again rather than an archive of files.",
+  "deep": [
+    "Source that lives only in a sync folder has no history, no branches and no record of intent. Recovering it means reconstructing all three.",
+    "The reconstruction produced a project record alongside the code, because the code alone did not explain what the application was for.",
+    "It is included here as a working example of the archaeology this museum is built on."
+  ],
+  "capabilities": ["Source reconstruction", "Repository establishment", "Project record authoring"],
+  "lesson": "Files in a sync folder are a backup, not a project; the difference is history and stated intent.",
+  "repos": ["westkitty/He-Maker"]
+},
+{
+  "id": "P064", "name": "Media Getter", "family": "macOS utilities / media tools",
+  "kind": "Desktop utility", "status": "Active; lineage split",
+  "period": "2026",
+  "summary": "A macOS utility that downloads, converts, trims and transcribes media using bundled command-line tools.",
+  "brief": "Media Getter puts a native interface over a set of command-line media tools and bundles them so the application works without the user installing anything. Its lineage split when a separate reimplementation was attempted alongside the original.",
+  "deep": [
+    "Bundling the command-line tools rather than depending on the user's system removed the most common class of support problem this kind of utility has.",
+    "Download, convert, trim and transcribe are a natural pipeline, and exposing them as one workflow rather than four features is what made the tool pleasant to use.",
+    "The lineage split is documented rather than resolved: two implementations exist and neither was declared canonical."
+  ],
+  "capabilities": ["Media download", "Format conversion", "Trimming", "Transcription", "Bundled toolchain"],
+  "lesson": "A utility that wraps command-line tools should ship them; otherwise the wrapper inherits every installation problem it was meant to hide.",
+  "repos": ["westkitty/media-getter", "westkitty/MediaGetter_Redux"]
+}
+]

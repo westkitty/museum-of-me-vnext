@@ -1,0 +1,126 @@
+[
+{
+  "id": "P001", "name": "Starsilk Universe", "family": "Starsilk / Drakken",
+  "kind": "Creative universe", "status": "Active",
+  "period": "2025–2026",
+  "summary": "A science-fantasy universe whose physics rest on Starsilk: a material that can be programmed like software.",
+  "brief": "Starsilk began as a question about what a world looks like if its fundamental material is programmable. The answer became a continuity-heavy universe with its own physics, factions, chronology and hard rules — Starsilk Macros, the Codec, the Shard-God Tiger, Syrin, the Drakken, the Administration, and the long consequence of the Starbinding. Its defining discipline is the separation of canon from invention: every addition is checked against what the setting has already committed to.",
+  "deep": [
+    "Starsilk is a material and a programming surface at the same time. Macros written into it behave like executable instructions, which means the setting's magic system and its software model are the same object seen from two directions.",
+    "The universe accumulated a set of hard locks that later work is not permitted to contradict — the nature of Syrin, the appearance of the Siege Wall, and the rules governing how Starsilk can be manipulated. These locks are the reason the setting held together across dozens of separate productions.",
+    "Downstream productions inherit rather than reinvent: the Compendium, the Orbital Tomb, the Terraforming Laboratory and the Observatory all read from the same canon and write back corrections when they discover a contradiction.",
+    "Software projects that carry Starsilk branding are counted separately from the universe itself, because they have independent implementation histories."
+  ],
+  "capabilities": ["Cosmology and physics rules", "Faction and character canon", "Chronology and canon deltas", "Visual law and prompt-safe references", "Continuity auditing"],
+  "lesson": "A setting survives scale only when the rule that forbids something is written down as carefully as the thing it permits.",
+  "repos": ["westkitty/Starsilk_Cartographer", "westkitty/StarSilk_Maker", "westkitty/Heliocide_Viewer"]
+},
+{
+  "id": "P002", "name": "Drakken Terraforming Compendium", "family": "Starsilk / Drakken",
+  "kind": "Field compendium", "status": "Active reference; production incomplete",
+  "period": "2026",
+  "summary": "A thirty-seven entry field guide to the Drakken: one Egg, thirty-five strains across five archetypes, and one Mother.",
+  "brief": "The Compendium presents the Drakken the way a technical service manual presents machinery — as an in-universe forensic reference rather than a bestiary. Its structure is fixed at thirty-seven entries and its taxonomy at five archetypes, and its formatting doctrine (terminal-styled, stat-block driven) is treated as part of the canon rather than as decoration.",
+  "deep": [
+    "The Drakken are terraforming instruments. Each strain performs a specific function in converting a hostile world into a habitable one, and the compendium documents morphology only as far as it explains function.",
+    "The five-archetype taxonomy is a hard constraint. Later work repeatedly tried to add a sixth category and was repeatedly refused, because the archetypes describe stages of a process rather than a convenient grouping.",
+    "A significant canon correction separated Gorevault gathering and refinement from Ringthroat SKY production. Collapsing these two functions was the single most common error in derivative work.",
+    "The complete taxonomy remains available in interpretation even though the museum builds only five representative forms — building thirty-five production models was cut before quality was."
+  ],
+  "capabilities": ["Thirty-seven entry taxonomy", "Archetype classification", "Stat-block specification", "Terminal-style format doctrine", "Canon correction record"],
+  "lesson": "A taxonomy is only useful if it describes a process; categories invented for tidiness fall apart the first time something has to be classified.",
+  "repos": ["westkitty/Drakken_Field_Guide_to_Anatomy", "westkitty/The-Drakken-Terraforming-Laboratory"]
+},
+{
+  "id": "P003", "name": "Orbital Tomb", "family": "Starsilk / Drakken",
+  "kind": "Multimedia production", "status": "Active; paused between productions",
+  "period": "2026",
+  "summary": "A song, a narrative and an interactive tour about a station being taken apart in orbit over six months.",
+  "brief": "Orbital Tomb follows the Shard-God Tiger surgically dismantling Meridian Station in high orbit above Virgil. It exists simultaneously as music, as story, as visual production and as a browser-based Three.js tour, and each form was developed against the same six-month timeline rather than adapted from one another after the fact.",
+  "deep": [
+    "The central image is deliberate: not an explosion, but a dismantling. The station is taken apart with intent and precision over months, and the visual language was explicitly held away from generic post-Starbinding black-hole imagery.",
+    "The six-month structure — the Dismantling Clock — is the spine that the song, the storyboards and the interactive tour all share. Any point in the production can be located on it.",
+    "Corpse-geography drives the imagery: the station's remains are read as landscape and anatomy rather than as debris.",
+    "The interactive tour is an implementation subproject. It carries part of the work, not the whole of it."
+  ],
+  "capabilities": ["Song and lyric work", "Narrative canon", "Storyboard and visual language", "Six-month dismantling timeline", "Interactive Three.js tour"],
+  "lesson": "When several media share one timeline instead of one script, they stop being adaptations of each other and start being views of the same event.",
+  "repos": ["westkitty/orbital_tomb_tour"]
+},
+{
+  "id": "P004", "name": "Starsilk Possibility Cartographer", "family": "Starsilk / Drakken",
+  "kind": "Software", "status": "Active prototype",
+  "period": "2026",
+  "summary": "A deterministic engine that maps what canon has used, forbidden, contradicted, left unresolved, and still permits.",
+  "brief": "The Cartographer treats a fictional canon as a body of evidence rather than a pile of text. It indexes sources, assigns epistemic states to claims, runs ontology checks, and produces a map of negative space: the regions a setting has not yet spent. It runs entirely locally and produces the same answer for the same snapshot every time.",
+  "deep": [
+    "Its central rule is that absence of a rule is not permission. A region of possibility space that canon has never addressed is marked unresolved, not marked legal.",
+    "Claims carry evidence states — used, forbidden, contradictory, unresolved, insufficiently supported, still legal — and the tool refuses to promote a claim between states without a source.",
+    "Determinism is a design requirement, not an optimisation. A snapshot plus a query always yields the same map, which is what makes the output usable as an argument.",
+    "The tool proposes; it does not canonise. Acceptance into canon remains a separate human process, and the software is explicitly built so it cannot short-circuit that."
+  ],
+  "capabilities": ["Source indexing", "Evidence-state model", "Ontology checks", "Deterministic snapshots", "Read-only query tools", "Creation-packet export"],
+  "lesson": "A tool that maps what is still possible is more useful than one that generates possibilities, because the first one can be argued with.",
+  "repos": ["westkitty/Starsilk_Cartographer"]
+},
+{
+  "id": "P005", "name": "StarSilk Maker", "family": "Starsilk / Drakken",
+  "kind": "Software / generative", "status": "Active",
+  "period": "2026",
+  "summary": "A generative instrument that turns drawn paths into woven Starsilk compositions.",
+  "brief": "StarSilk Maker is the setting's central material made operable. A path becomes a thread; threads accumulate into a composition governed by the same weaving rules the universe describes. It is the project where Starsilk stopped being a description and became something a person could actually manipulate.",
+  "deep": [
+    "The generator follows the canon rules for how Starsilk behaves under tension and interference, so its outputs are not arbitrary decoration — they are legal configurations of the material.",
+    "A separate drifting variant explores what happens when threads are given motion and allowed to settle over time rather than being fixed at creation.",
+    "Because the output is procedural, a composition can be described by its parameters instead of stored as an image, which is what makes the museum installation possible without shipping a texture library."
+  ],
+  "capabilities": ["Path-to-thread generation", "Procedural weave composition", "Drifting variant", "Parameterised output"],
+  "lesson": "The fastest way to find out whether an invented material has coherent rules is to build something that has to obey them.",
+  "repos": ["westkitty/StarSilk_Maker", "westkitty/StarSilk_Maker_Drifting"]
+},
+{
+  "id": "P006", "name": "Drakken Field Anatomy Archive", "family": "Starsilk / Drakken",
+  "kind": "Reference archive", "status": "Experimental; not implemented in the inspected baseline",
+  "period": "2026",
+  "summary": "A forensic anatomy reference separating canon Drakken specimens from deliberately non-canon surrogates.",
+  "brief": "The Anatomy Archive documents Drakken internal structure at four levels — external form, skeletal frame, energy and process systems, and cross-section. Its most important structural decision is a hard separation between canon specimens and intentionally non-canon surrogate specimens used for teaching, so that illustrative material can never be mistaken for canon.",
+  "deep": [
+    "Drakken anatomy is process anatomy. Organs are read as stages of a terraforming pipeline rather than as biology borrowed from Earth animals.",
+    "Surrogate specimens exist because teaching a structure sometimes requires an example that canon does not contain. Marking them clearly is what keeps them safe to use.",
+    "The archive is greenfield: the reference doctrine is settled but the full specimen set was never implemented, and the museum represents the method rather than claiming a finished archive."
+  ],
+  "capabilities": ["Four-layer anatomical views", "Canon / surrogate separation", "Process-organ documentation"],
+  "lesson": "Teaching material and canon material must be labelled differently at the point of creation, not at the point of publication.",
+  "repos": ["westkitty/Drakken_Field_Guide_to_Anatomy"]
+},
+{
+  "id": "P007", "name": "The Drakken Terraforming Laboratory", "family": "Starsilk / Drakken",
+  "kind": "Software / simulation", "status": "Active prototype",
+  "period": "2026",
+  "summary": "A simulation of the Drakken terraforming pipeline, from raw collection through to breathable sky.",
+  "brief": "The Laboratory runs the process the Compendium describes. Drakken strains are deployed against a hostile world and their functions chain together: Gorevault collection, gathering, rendering and refinement produce feedstock; Ringthroat converts feedstock into SKY. The world visibly changes as the chain runs.",
+  "deep": [
+    "The process lock is the point of the project. Gorevault handles collection, gathering, and rendering into refined feedstock. Ringthroat converts feedstock into SKY. These are separate functions and the simulation refuses to collapse them.",
+    "The simulation is deterministic and scripted rather than physically general. A world's transformation is a function of which strains were deployed and in what order, which makes the outcome explainable.",
+    "Running the pipeline surfaced canon errors that reading the Compendium had not — the ordering constraint only became obvious once something had to execute it."
+  ],
+  "capabilities": ["Strain deployment", "Four-stage Gorevault chain", "Ringthroat SKY conversion", "Deterministic world transformation"],
+  "lesson": "Writing a process down proves it is describable; running it proves it is coherent. They are not the same test.",
+  "repos": ["westkitty/The-Drakken-Terraforming-Laboratory"]
+},
+{
+  "id": "P008", "name": "Heliocide Observatory", "family": "Starsilk / Drakken",
+  "kind": "Software / visualization", "status": "Active; prototype validated in repository evidence",
+  "period": "2026",
+  "summary": "An observatory for watching the Heliocide: stars going out, one after another, in the correct order.",
+  "brief": "The Observatory reconstructs the extinguishing of stars across the setting's sky. Its hardest requirement is a visual rule: from an inhabited world, the Siege Wall must read as an absence — a swath of sky where stars are simply no longer there — and never as masonry, lattice or grid.",
+  "deep": [
+    "The canon visual rule exists because the Siege Wall is not a structure seen from below. It is the shape of what has been removed. Every draft that rendered it as an object was rejected.",
+    "The reconstruction is sequential and controlled: stars vanish in canon order, so the installation is a historical playback rather than an effect.",
+    "Multiple viewing stations exist because the same event has genuinely different appearances from different vantage points, and the setting depends on that difference."
+  ],
+  "capabilities": ["Sequential stellar extinction", "Siege Wall absence rendering", "Multi-station viewpoints", "Canon-ordered playback"],
+  "lesson": "Some canon rules are about what a thing must not look like; those are the ones that get violated most often and matter most.",
+  "repos": ["westkitty/Heliocide_Viewer", "westkitty/Heliocide_Viewer_dexgpt"]
+}
+]

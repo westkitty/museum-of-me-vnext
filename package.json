@@ -1,0 +1,37 @@
+{
+  "name": "museum-of-me-vnext",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Museum of Me — The Reliquary of Iterative Becoming vNext. A persistent first-person Three.js museum.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "validate:assets": "node scripts/validate-assets.mjs",
+    "validate:mapping": "node scripts/validate-mapping.mjs",
+    "validate:content": "node scripts/validate-content.mjs",
+    "validate:privacy": "node scripts/validate-privacy.mjs",
+    "check:budgets": "node scripts/check-budgets.mjs",
+    "gate": "npm run typecheck && npm run lint && npm test && npm run validate:mapping && npm run validate:content && npm run validate:privacy && npm run validate:frameloop && npm run build",
+    "validate:frameloop": "node scripts/validate-frameloop.mjs"
+  },
+  "dependencies": {
+    "three": "0.185.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^22.10.0",
+    "@types/three": "0.185.0",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0",
+    "vite": "^6.0.5",
+    "vitest": "^2.1.8"
+  }
+}
