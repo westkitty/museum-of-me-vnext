@@ -14,6 +14,8 @@ import { SPAWN_POSITION, SPAWN_YAW, zoneAt, ZONE_BY_ID, type ZoneId } from '../w
 import { installExhibits } from '../exhibits';
 import { StreamingManager } from '../exhibits/StreamingManager';
 import { InteractionManager } from '../interaction/InteractionManager';
+import { AudioManager } from '../audio/AudioManager';
+import { UILayer } from './UILayer';
 
 export interface AppOptions {
   canvas: HTMLCanvasElement;
@@ -37,6 +39,8 @@ export class App implements LoopCallbacks {
   readonly player: PlayerController;
   readonly interaction = new InteractionManager();
   readonly streaming: StreamingManager;
+  readonly audio = new AudioManager();
+  ui!: UILayer;
   /** Zone the visitor is currently standing in. Drives audio and streaming. */
   currentZone: ZoneId = 'plaza';
 
@@ -99,10 +103,34 @@ export class App implements LoopCallbacks {
       if (this.interaction.activate()) {
         const focus = this.interaction.currentFocus;
         if (focus) this.journal.markVisited(focus.exhibitId);
+        this.audio.tick();
       }
     });
 
     this.loop = new Loop(this);
+    this.ui = new UILayer(this);
+  }
+
+  /** Human-readable name of the space the visitor is in. */
+  get zoneLabel(): string {
+    return ZONE_BY_ID.get(this.currentZone)?.label ?? this.currentZone;
+  }
+
+  /** The exhibit the visitor is currently standing in, if any. */
+  get currentExhibitId(): string | null {
+    const focus = this.interaction.currentFocus;
+    if (focus) return focus.exhibitId;
+    const active = this.streaming.activeHosts();
+    if (active.length === 0) return null;
+    let nearest = active[0];
+    let best = Infinity;
+    const eye = this.player.eyePosition;
+    for (const host of active) {
+      const a = host.module.def.anchor;
+      const d = (eye[0] - a[0]) ** 2 + (eye[1] - a[1]) ** 2 + (eye[2] - a[2]) ** 2;
+      if (d < best) { best = d; nearest = host; }
+    }
+    return best <= 100 ? nearest.id : null;
   }
 
   get scene(): THREE.Scene {
@@ -159,7 +187,12 @@ export class App implements LoopCallbacks {
 
     const eye = this.player.eyePosition;
     const zone = zoneAt([eye[0], this.player.position.y + 0.1, eye[2]]);
-    if (zone !== this.currentZone) this.currentZone = zone;
+    if (zone !== this.currentZone) {
+      this.currentZone = zone;
+      this.audio.setZone(zone);
+      const label = ZONE_BY_ID.get(zone)?.label;
+      if (label) this.ui?.mirror.announce(`Entering ${label}.`);
+    }
 
     this.streaming.evaluate(eye, dt, zone);
     this.interaction.update(this.camera);
@@ -180,6 +213,7 @@ export class App implements LoopCallbacks {
     ];
     this.diagnostics.stats.wing = ZONE_BY_ID.get(this.currentZone as never)?.label ?? this.currentZone;
 
+    this.ui?.update(dt);
     this.input.endFrame();
   }
 
@@ -193,6 +227,8 @@ export class App implements LoopCallbacks {
     if (this.disposed) return;
     this.disposed = true;
     this.loop.stop();
+    this.ui?.dispose();
+    this.audio.dispose();
     this.streaming.dispose();
     this.interaction.dispose();
     this.input.dispose();

@@ -388,6 +388,16 @@ function wingShape(w: WingSpec): ZoneShape {
   };
 }
 
+/** Visitor-facing names for the wing zones. */
+const WING_LABELS: Record<WingId, string> = {
+  north: 'Starsilk & Drakken Wing',
+  east: 'Dex Systems Wing',
+  south: 'Games & Play Wing',
+  west: 'Archive & Canon Wing',
+  media: 'Music, Promptcraft & Media',
+  infra: 'Local Systems',
+};
+
 export const ZONES: readonly Zone[] = [
   {
     id: 'rotunda', label: 'Reliquary Rotunda', level: 0,
@@ -443,7 +453,7 @@ export const ZONES: readonly Zone[] = [
   ...WINGS.map(
     (w): Zone => ({
       id: w.id,
-      label: w.id,
+      label: WING_LABELS[w.id],
       level: w.level,
       shapes: [wingShape(w)],
       center: place(faceDirection(w.face), (w.hallFrom + w.hallTo) / 2, 0, w.floorY),

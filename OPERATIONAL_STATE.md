@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 3,
+  "state_revision": 4,
   "last_updated": "2026-08-19",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -37,9 +37,9 @@
 |---|---|
 | Repository | initialised, branch `main`, first phase branch `feat/foundation` |
 | Remote | `git@github.com:westkitty/museum-of-me-vnext.git` (private), pushing `feat/foundation` |
-| Runtime | complete traversable graybox: Rotunda, 6 wings, mezzanine, Sanctuary, 35 bays |
+| Runtime | traversable graybox + exhibit lifecycle, streaming, interaction, full DOM interface, procedural audio |
 | Toolchain | Node 26.7.0, npm 11.19.0, Vite 6, TypeScript 5.7, Three.js **0.185.0** (pinned) |
-| Current phase | **Phase 2 complete.** Next: Phase 3 — core museum systems. |
+| Current phase | **Phase 3 complete.** Next: Phase 4 — governed asset pipeline. |
 
 ## 4. Active invariants
 
@@ -73,6 +73,11 @@
 | Museum geometry builds 35 exhibit mount points and 1,000+ colliders | traversal test + browser probe (`mounts: 35`, `colliders: 1064`) | ✅ 2026-08-19 |
 | Zone resolution is correct for every zone, including diagonal mezzanines | `zoneAt` unit tests + live browser check (Sanctuary resolved correctly while standing in it) | ✅ 2026-08-19 |
 | The graybox renders as architecture, with long sightlines from the south hall through the Rotunda to the north wing | browser screenshots at entrance, south hall, Rotunda and Sanctuary | ✅ 2026-08-19 |
+| **Phase 3 lifecycle gate passes**: five deliberately different exhibits load, activate, deactivate, unload and reload independently | `tests/lifecycle.test.ts` — three cycles each, identical allocation per cycle, zero leaked resources on every unmount, idempotent deterministic reset | ✅ 2026-08-19 |
+| Streaming loads on approach and releases on departure without leaking | same test — E01 goes active on approach, returns to `loaded` with a zero resource count on departure, and comes back clean | ✅ 2026-08-19 |
+| Streaming respects a per-frame construction budget | same test — never exceeds `mountsPerFrame` | ✅ 2026-08-19 |
+| Every one of the 35 exhibits produces accessible content with real interpretation and at least one control | same test, all 35 instantiated | ✅ 2026-08-19 |
+| HUD, map, journal, deep panel and settings render and operate in a real browser | browser: entry prompt and location line correct at spawn; map draws the plan from `layout.ts` with all 35 bays and the Sanctuary; deep panel shows layered interpretation for E17 | ✅ 2026-08-19 |
 | Single frame loop is structurally enforced | `validate:frameloop` PASS — `src/app/Loop.ts` is the only `requestAnimationFrame` owner across 13 source files | ✅ 2026-08-19 |
 | Asset governance gate operational | `validate:assets` PASS — no hotlinked runtime asset in any source file | ✅ 2026-08-19 |
 
@@ -84,6 +89,8 @@
 | Context-loss recovery | Handlers are installed and typechecked; not exercised against a real context loss. Phase 12. |
 | Preference persistence in a browser | Unit-tested against an in-memory Storage; not yet observed against real `localStorage`. Phase 11. |
 | Frame rate | The browser-automation tab throttles `requestAnimationFrame`, so measured FPS there is not meaningful. Real measurement is Phase 12 work. |
+| Audio | The AudioManager is implemented and typechecked but browsers refuse audio before a real gesture, which automation cannot supply. Unverified until a human walk-through in Phase 13. |
+| Pointer-lock capture and release | Implemented and wired; not exercised by a real pointer lock yet. Phase 11. |
 | Interactive walking with keyboard and pointer lock | Input and controller are implemented and typechecked; traversal so far is proven by simulation against real collision, not by a human walking it. Phase 3 adds the interaction layer and Phase 13 captures the recorded walkthrough. |
 
 ## 7. Known blockers / unknowns
@@ -101,8 +108,8 @@
 | 0 — authority/source freeze | ✅ complete |
 | 1 — repository/runtime foundation | ✅ complete |
 | 2 — complete museum graybox | ✅ complete |
-| 3 — core museum systems | ▶ next |
-| 4 — governed asset pipeline | pending |
+| 3 — core museum systems | ✅ complete |
+| 4 — governed asset pipeline | ▶ next |
 | 5 — vertical slice | pending |
 | 6 — production architecture | pending |
 | 7 — exhibit wave one | pending |
