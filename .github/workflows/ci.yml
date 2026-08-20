@@ -15,23 +15,5 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: typecheck
-        run: npm run typecheck
-      - name: lint
-        run: npm run lint
-      - name: unit tests
-        run: npm test
-      - name: mapping gate (64 -> 35)
-        run: npm run validate:mapping
-      - name: content gate (no visitor-facing placeholders)
-        run: npm run validate:content
-      - name: privacy gate
-        run: npm run validate:privacy
-      - name: frame-loop ownership gate
-        run: npm run validate:frameloop
-      - name: asset governance gate
-        run: npm run validate:assets
-      - name: exhibit completeness gate
-        run: npm run validate:exhibits
-      - name: production build
-        run: npm run build
+      - name: canonical automated release gate
+        run: npm run gate
