@@ -89,6 +89,20 @@ Capsule player against a static broadphase of axis-aligned boxes and explicit ra
 alongside the architecture (`CollisionWorld`). Stairs get invisible ramp colliders. No physics engine.
 Resolution is iterative depenetration with a grounded check; no jump.
 
+## Runtime cost: the two numbers that matter
+
+Profiling the finished building in a browser found the two costs that actually
+decide whether it runs, and both are now bounded by construction rather than by
+discipline:
+
+| Cost | Before | After | How |
+|---|---|---|---|
+| Draw calls at the entrance | 986 | 253 | `mergeStatic` collapses the static architecture into one mesh per material after detailing. Exhibit mounts and anything flagged `NO_MERGE` are excluded. Collision is recorded during construction, so merging changes only how the building is drawn, never where its walls are. |
+| Simultaneous point lights | 31 | ≤ 8 | `Lighting.update(eye)` enables only the nearest few each frame, skipping any light the visitor is outside the falloff of. The sun, sky fill and ambient term are never touched, so the overall light level does not flicker as the budget moves. |
+
+Both are covered by `tests/performance.test.ts`, so a future change that
+reintroduces either cost fails the build.
+
 ## Quality tiers
 
 `low` / `medium` / `high`, auto-selected at boot from a short GPU probe, manually overridable in

@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 11,
+  "state_revision": 12,
   "last_updated": "2026-08-19",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -39,7 +39,7 @@
 | Remote | `git@github.com:westkitty/museum-of-me-vnext.git` (private), pushing `feat/foundation` |
 | Runtime | traversable graybox + exhibit lifecycle, streaming, interaction, full DOM interface, procedural audio |
 | Toolchain | Node 26.7.0, npm 11.19.0, Vite 6, TypeScript 5.7, Three.js **0.185.0** (pinned) |
-| Current phase | **Phase 11 complete.** Next: Phase 12 — performance and lifecycle. |
+| Current phase | **Phase 12 complete.** Next: Phase 13 — full museum QA. |
 
 ## 4. Active invariants
 
@@ -105,6 +105,12 @@
 | **Phase 11 accessibility gate passes**: the museum is fully usable with a keyboard alone, with touch alone, and with reduced motion on | `tests/accessibility.test.ts` — WASD moves and arrow keys look as separate bindings, keyboard turn rate is sensitivity-independent, the touch stick actually drives the player, pointer lock is never requested on touch, keys are never stolen from text fields, movement is suppressed while a panel has focus | ✅ 2026-08-19 |
 | Accessible mirror carries the whole collection by keyboard | browser: 35 exhibit buttons, 10 headings, 9,157 characters of interpretation reachable without walking | ✅ 2026-08-19 |
 | DPR is capped on every quality tier and the low tier drops shadows and crowds | `tests/accessibility.test.ts` | ✅ 2026-08-19 |
+| **Phase 12 mandatory traversal passes**: entrance → north → east → south → west → upper level → Sanctuary → entrance, four times over, and memory settles rather than climbing | `tests/lifecycle-memory.test.ts` walks the real canonical route through the real StreamingManager and measures the exhibits' own tracked resource counts. Peak allocation does not creep between laps and the resting level is stable | ✅ 2026-08-19 |
+| Streaming never holds the whole museum resident | same test — peak residency stays below 35 while never falling to zero | ✅ 2026-08-19 |
+| Mounts and unmounts balance over a round trip | same test | ✅ 2026-08-19 |
+| Draw calls reduced from 986 to 253 at the entrance | `mergeStatic` collapses static architecture per material; measured in-browser before and after; `tests/performance.test.ts` holds the ratio | ✅ 2026-08-19 |
+| Simultaneous point lights reduced from 31 to a hard cap of 8 anywhere in the building | light director; measured in-browser at eight positions; `tests/performance.test.ts` asserts the cap | ✅ 2026-08-19 |
+| Merging cannot move a wall | collision is recorded during construction, before any merge; traversal tests still green afterwards | ✅ 2026-08-19 |
 | Single frame loop is structurally enforced | `validate:frameloop` PASS — `src/app/Loop.ts` is the only `requestAnimationFrame` owner across 13 source files | ✅ 2026-08-19 |
 | Asset governance gate operational | `validate:assets` PASS — no hotlinked runtime asset in any source file | ✅ 2026-08-19 |
 
@@ -115,7 +121,7 @@
 | Quality-tier switching at runtime | `setQuality` is implemented and typechecked; no runtime tier-change observation yet. Phase 12. |
 | Context-loss recovery | Handlers are installed and typechecked; not exercised against a real context loss. Phase 12. |
 | Preference persistence in a browser | Unit-tested against an in-memory Storage; not yet observed against real `localStorage`. Phase 11. |
-| Frame rate | The browser-automation tab throttles `requestAnimationFrame`, so measured FPS there is not meaningful. Real measurement is Phase 12 work. |
+| Absolute frame rate in ms | The automation surface throttles `requestAnimationFrame` and does not synchronise GPU work, so wall-clock render timings taken there are noise (the same view measured 1 ms and 99 ms on consecutive runs). Draw calls, triangle counts, light counts and resident-exhibit counts **are** reliable there and are the numbers recorded above. A human FPS reading on real hardware is the one remaining unmeasured performance figure. |
 | Audio | The AudioManager is implemented and typechecked but browsers refuse audio before a real gesture, which automation cannot supply. Unverified until a human walk-through in Phase 13. |
 | Pointer-lock capture and release | Implemented and wired; a real pointer lock needs a user gesture the automation surface cannot supply. Keyboard and touch paths are tested and require no lock at all, so no visitor is dependent on it. Confirmed in the Phase 13 walkthrough. |
 | Gamepad support | Not implemented. The plan lists it as "retained gamepad support if implemented"; it was not, and no visitor path depends on it. |
@@ -145,6 +151,6 @@
 | 9 — content completion | ✅ complete |
 | 10 — experience pass | ✅ complete |
 | 11 — accessibility/input | ✅ complete |
-| 12 — performance/lifecycle | ▶ next |
-| 13 — full museum QA | pending |
+| 12 — performance/lifecycle | ✅ complete |
+| 13 — full museum QA | ▶ next |
 | 14 — deployment/release | pending |

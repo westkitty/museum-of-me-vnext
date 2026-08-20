@@ -234,11 +234,13 @@ export class App implements LoopCallbacks {
     this.streaming.evaluate(eye, dt, zone);
     this.interaction.update(this.camera);
 
-    // Bay key lights follow exhibit residency, so the museum only ever pays for
-    // the lights in the room the visitor is actually in.
+    // Bay key lights follow exhibit residency, and the light director then
+    // enables only the nearest few — so the shader cost of lighting does not
+    // grow with the size of the building.
     for (const [id, host] of this.streaming.hosts) {
       this.lighting.setBayLight(id, host.currentState === 'active' || host.currentState === 'mounted');
     }
+    this.lighting.update(eye);
 
     this.diagnostics.stats.activeExhibits = this.streaming.telemetry.active;
     this.diagnostics.stats.streamingResident = this.streaming.telemetry.resident;

@@ -3,6 +3,7 @@ import { GeometryKit } from './GeometryKit';
 import { PaletteSet } from './palette';
 import { CollisionWorld } from './CollisionWorld';
 import { Detailing } from './Detailing';
+import { mergeStatic, type MergeReport } from './MergeStatic';
 import type { ResourceScope } from '../assets/ResourceScope';
 import {
   ROTUNDA_APOTHEM, ROTUNDA_WALL, LEVEL_1_Y, BALCONY_INNER_APOTHEM,
@@ -34,6 +35,8 @@ function faceEnds(face: OctagonFace, apothem: number): [Vec3, Vec3] {
 
 export interface MuseumBuildResult {
   readonly root: THREE.Group;
+  /** What the static-geometry merge saved, for diagnostics. */
+  readonly merge: MergeReport;
   readonly collision: CollisionWorld;
   /** One group per exhibit bay: where exhibit modules mount their contents. */
   readonly exhibitMounts: ReadonlyMap<string, THREE.Group>;
@@ -77,11 +80,17 @@ export class Museum {
     // Nothing here moves a wall, so every traversal test stays valid.
     new Detailing(this.scope, this.pal, this.kit).applyAll(this.zoneGroups);
 
+    // Collapse the static architecture into one mesh per material. Collision
+    // was already recorded during construction, so this changes only how the
+    // building is drawn, never where its walls are.
+    const merge = mergeStatic(this.root, this.scope);
+
     return {
       root: this.root,
       collision: this.collision,
       exhibitMounts: this.exhibitMounts,
       zoneGroups: this.zoneGroups,
+      merge,
     };
   }
 

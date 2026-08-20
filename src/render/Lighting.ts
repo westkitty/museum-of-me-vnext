@@ -11,11 +11,24 @@ import {
  * placed from the layout so lighting cannot drift away from the architecture.
  * Plan §23: few shadow-casting lights, and none at all on the low tier.
  */
+/**
+ * How many point lights may be enabled at once. Standard materials loop over
+ * every visible light per fragment, so this is the single most expensive
+ * lighting number in the museum. Eight is enough to light a hall and its two
+ * neighbouring bays without the shader cost growing with the building.
+ */
+const MAX_ACTIVE_POINT_LIGHTS = 8;
+
 export class Lighting {
   readonly group = new THREE.Group();
   /** Bay key lights, addressable by exhibit so streaming can switch them off. */
   readonly bayLights = new Map<string, THREE.PointLight>();
   private readonly bayFills = new Map<string, THREE.PointLight>();
+  /** Every point light that competes for the active budget. */
+  private readonly managed: THREE.PointLight[] = [];
+  /** Lights the streaming system has switched off entirely. */
+  private readonly suppressed = new Set<THREE.PointLight>();
+  private readonly distances: { light: THREE.PointLight; d: number }[] = [];
 
   constructor(scope: ResourceScope, quality: QualitySettings) {
     this.group.name = 'lighting';
@@ -56,11 +69,13 @@ export class Lighting {
     const arrival = new THREE.PointLight(0xffe6bd, 260, 90, 2);
     arrival.position.set(0, 10, 132);
     this.group.add(arrival);
+    this.managed.push(arrival);
 
     // Rotunda: light falling from the oculus.
     const oculus = new THREE.PointLight(0xfff4de, 240, 90, 2);
     oculus.position.set(0, DOME_APEX_Y - 3, 0);
     this.group.add(oculus);
+    this.managed.push(oculus);
 
     // One warm source per wing hall, plus one at each mezzanine.
     for (const w of WINGS) {
@@ -74,6 +89,7 @@ export class Lighting {
         const lamp = new THREE.PointLight(0xffe6bd, strong ? 130 : 70, strong ? 46 : 34, 2);
         lamp.position.set(p[0], p[1], p[2]);
         this.group.add(lamp);
+        this.managed.push(lamp);
       }
     }
 
@@ -90,14 +106,18 @@ export class Lighting {
       // Off until the exhibit streams in. Thirty-five simultaneous point lights
       // would cost far more than the handful the visitor can actually see.
       key.visible = false;
+      this.suppressed.add(key);
       this.group.add(key);
+      this.managed.push(key);
 
       // A low fill so the hero object reads from below as well as above —
       // a single overhead key leaves the underside of a suspended piece black.
       const fill = new THREE.PointLight(0xbfc8e0, 45, 18, 2);
       fill.position.set(placement.anchor[0], wing.floorY + 1.6, placement.anchor[2]);
       fill.visible = false;
+      this.suppressed.add(fill);
       this.group.add(fill);
+      this.managed.push(fill);
 
       this.bayLights.set(placement.exhibitId, key);
       this.bayFills.set(placement.exhibitId, fill);
@@ -107,11 +127,13 @@ export class Lighting {
     const balcony = new THREE.PointLight(0xf2e8d6, 70, 55, 2);
     balcony.position.set(0, LEVEL_1_Y + 5, 0);
     this.group.add(balcony);
+    this.managed.push(balcony);
 
     // Sanctuary: a single soft shaft through the oculus. Nothing else.
     const sanctuary = new THREE.PointLight(0xf6ecd8, 60, 34, 2.2);
     sanctuary.position.set(SANCTUARY_CENTER[0], SANCTUARY_FLOOR_Y + SANCTUARY_HEIGHT - 1.2, SANCTUARY_CENTER[2]);
     this.group.add(sanctuary);
+    this.managed.push(sanctuary);
 
     // Nothing here allocates a disposable resource, but keep the scope in the
     // signature so lighting joins the same ownership discipline as everything else.
@@ -120,10 +142,48 @@ export class Lighting {
 
   /** Switch a bay's key light with its exhibit's residency. */
   setBayLight(exhibitId: string, on: boolean): void {
-    const light = this.bayLights.get(exhibitId);
-    if (light) light.visible = on;
-    const fill = this.bayFills.get(exhibitId);
-    if (fill) fill.visible = on;
+    for (const light of [this.bayLights.get(exhibitId), this.bayFills.get(exhibitId)]) {
+      if (!light) continue;
+      if (on) this.suppressed.delete(light);
+      else this.suppressed.add(light);
+    }
+  }
+
+  /**
+   * Enable only the nearest few point lights. Called once per frame from the
+   * single loop; the sun, the sky fill and the ambient term are never touched,
+   * so the building's overall light level does not flicker as the budget moves.
+   */
+  update(eye: readonly [number, number, number]): void {
+    this.distances.length = 0;
+    for (const light of this.managed) {
+      if (this.suppressed.has(light)) {
+        light.visible = false;
+        continue;
+      }
+      const dx = light.position.x - eye[0];
+      const dy = light.position.y - eye[1];
+      const dz = light.position.z - eye[2];
+      const d = dx * dx + dy * dy + dz * dz;
+      // Beyond its own falloff a light contributes nothing anyway.
+      if (d > light.distance * light.distance) {
+        light.visible = false;
+        continue;
+      }
+      this.distances.push({ light, d });
+    }
+
+    this.distances.sort((a, b) => a.d - b.d);
+    for (let i = 0; i < this.distances.length; i++) {
+      this.distances[i].light.visible = i < MAX_ACTIVE_POINT_LIGHTS;
+    }
+  }
+
+  /** How many point lights are currently drawn. Read by diagnostics. */
+  get activePointLights(): number {
+    let n = 0;
+    for (const light of this.managed) if (light.visible) n++;
+    return n;
   }
 
   dispose(): void {
@@ -131,5 +191,7 @@ export class Lighting {
     this.group.clear();
     this.bayLights.clear();
     this.bayFills.clear();
+    this.managed.length = 0;
+    this.suppressed.clear();
   }
 }
