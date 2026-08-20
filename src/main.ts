@@ -1,6 +1,7 @@
 import { App } from './app/App';
 import { EnvironmentDressing } from './world/EnvironmentDressing';
 import { ExhibitThresholds } from './world/ExhibitThresholds';
+import { WingAtmosphere } from './world/WingAtmosphere';
 import { WingIdentity } from './world/WingIdentity';
 
 function fail(message: string, detail?: unknown): never {
@@ -34,6 +35,11 @@ try {
   // through each threshold, making every area recognisable before text is read.
   const wingIdentity = new WingIdentity(app.scope).build();
   app.scene.add(wingIdentity);
+
+  // Emissive fixtures continue the same language down each hall without adding
+  // scene lights or consuming the point-light budget.
+  const wingAtmosphere = new WingAtmosphere(app.scope).build();
+  app.scene.add(wingAtmosphere);
 
   // Exhibit thresholds inherit their colour signatures from the containing
   // wing rather than becoming thirty-five unrelated palettes.
