@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 7,
+  "state_revision": 8,
   "last_updated": "2026-08-19",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -39,7 +39,7 @@
 | Remote | `git@github.com:westkitty/museum-of-me-vnext.git` (private), pushing `feat/foundation` |
 | Runtime | traversable graybox + exhibit lifecycle, streaming, interaction, full DOM interface, procedural audio |
 | Toolchain | Node 26.7.0, npm 11.19.0, Vite 6, TypeScript 5.7, Three.js **0.185.0** (pinned) |
-| Current phase | **Phase 6 complete.** Next: Phases 7–8 — exhibit waves. |
+| Current phase | **Phases 7–8 complete.** Next: Phase 9 — content completion. |
 
 ## 4. Active invariants
 
@@ -56,6 +56,7 @@
 | INV-009 | The museum requires no live AI, cloud API, or backend for the core experience. | architecture; no network code outside asset fetch of own files |
 | INV-010 | Every dimension of the building derives from `src/world/layout.ts`. Geometry, collision, zones, the map and exhibit anchors may not hard-code a position. | code review; traversal tests fail if they disagree |
 | INV-014 | An exhibit's build-time arrays are declared with `this.tracked()` so they empty before every mount. Streaming remounts modules many times per visit. | `tests/lifecycle.test.ts` allocation-parity check |
+| INV-016 | No exhibit may resolve to `ProvisionalExhibit`; all 35 are bespoke. | `npm run validate:exhibits` |
 | INV-015 | The Dexter Sanctuary contains no score, badge, collectible, paw-print, achievement, unlock or reward, and is never counted among the 35. | `tests/sanctuary.test.ts` |
 | INV-012 | Every asset reaches the scene through `AssetManager.load`, which refuses any id without a manifest record. | `validate:assets` + unit tests |
 | INV-013 | Procedural generators never call `Math.random`; they use the seeded `rng`. | code review + determinism test |
@@ -92,6 +93,9 @@
 | The interaction architecture did not need repairing to carry five different exhibits | all five compose the same shared parts (Filament, Dial, Lever, Pulse, console) and the frozen contract; no exhibit-specific engine work was required | ✅ 2026-08-19 |
 | **Phase 6 gate passes**: production architecture applied and all traversal tests remain valid | `Detailing` dresses geometry that already exists — cornices, pilasters, signage, jambs, benches, floor inlays — without moving a wall. `tests/traversal.test.ts` still green, 0 failures | ✅ 2026-08-19 |
 | Every wing threshold and every bay opening carries its own signage | browser: Rotunda shows wing names over each arch; the north hall shows bay titles, jambs, pilaster rhythm, cornices and a floor runner | ✅ 2026-08-19 |
+| **Phases 7–8 gate passes**: all 35 exhibits implemented bespoke, none still scaffolded | `npm run validate:exhibits` → 35 of 35; `tests/exhibit-quality.test.ts` runs the plan's per-exhibit gate over every one | ✅ 2026-08-19 |
+| All 64 project identities are represented by a finished exhibit | mapping gate + exhibit gate together | ✅ 2026-08-19 |
+| Every exhibit has real 3D volume, fits its bay, has described controls that change state, layered interpretation, reduced-motion usability, three clean streaming cycles, idempotent reset, and adds nothing outside its own group | `tests/exhibit-quality.test.ts`, 281 assertions across 35 exhibits | ✅ 2026-08-19 |
 | Single frame loop is structurally enforced | `validate:frameloop` PASS — `src/app/Loop.ts` is the only `requestAnimationFrame` owner across 13 source files | ✅ 2026-08-19 |
 | Asset governance gate operational | `validate:assets` PASS — no hotlinked runtime asset in any source file | ✅ 2026-08-19 |
 
@@ -126,9 +130,9 @@
 | 4 — governed asset pipeline | ✅ complete |
 | 5 — vertical slice | ✅ complete |
 | 6 — production architecture | ✅ complete |
-| 7 — exhibit wave one | ▶ next |
-| 8 — exhibit wave two | pending |
-| 9 — content completion | pending |
+| 7 — exhibit wave one | ✅ complete |
+| 8 — exhibit wave two | ✅ complete |
+| 9 — content completion | ▶ next |
 | 10 — experience pass | pending |
 | 11 — accessibility/input | pending |
 | 12 — performance/lifecycle | pending |

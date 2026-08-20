@@ -31,5 +31,7 @@ jobs:
         run: npm run validate:frameloop
       - name: asset governance gate
         run: npm run validate:assets
+      - name: exhibit completeness gate
+        run: npm run validate:exhibits
       - name: production build
         run: npm run build

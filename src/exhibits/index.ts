@@ -9,6 +9,9 @@ import { FieldAnatomy } from './starsilk/FieldAnatomy';
 import { TerraformingLaboratory } from './starsilk/TerraformingLaboratory';
 import { HeliocideObservatory } from './starsilk/HeliocideObservatory';
 import { WorldsVaultLineage } from './archive/WorldsVaultLineage';
+import { MuseumEvolution } from './archive/MuseumEvolution';
+import { ContinuitySystems } from './archive/ContinuitySystems';
+import { RhetoricalIndex } from './archive/RhetoricalIndex';
 import { DexTilt } from './dex/DexTilt';
 import { VoiceLab } from './dex/VoiceLab';
 import { CompanionSystems } from './dex/CompanionSystems';
@@ -27,6 +30,11 @@ import { StoryWorlds } from './games/StoryWorlds';
 import { SmoresKatamari } from './games/SmoresKatamari';
 import { EndlessGrok } from './games/EndlessGrok';
 import { SunoStudio } from './media/SunoStudio';
+import { Promptcraft } from './media/Promptcraft';
+import { AgentHarness } from './media/AgentHarness';
+import { MediaLineage } from './media/MediaLineage';
+import { BigMacBackbone } from './infrastructure/BigMacBackbone';
+import { SpecialistSystems } from './infrastructure/SpecialistSystems';
 import { COLLECTION } from '../content/collection.generated';
 import type { ExhibitDefinition } from './contract';
 import type { ExhibitModule } from './contract';
@@ -83,6 +91,20 @@ registerBespoke('E30', (def) => new AetherVFX(def));
 registerBespoke('E31', (def) => new StoryWorlds(def));
 registerBespoke('E32', (def) => new SmoresKatamari(def));
 registerBespoke('E33', (def) => new EndlessGrok(def));
+
+// ── West wing: Archive & Canon ──
+registerBespoke('E09', (def) => new MuseumEvolution(def));
+registerBespoke('E11', (def) => new ContinuitySystems(def));
+registerBespoke('E12', (def) => new RhetoricalIndex(def));
+
+// ── Northwest mezzanine: Music, Promptcraft & Media ──
+registerBespoke('E14', (def) => new Promptcraft(def));
+registerBespoke('E15', (def) => new AgentHarness(def));
+registerBespoke('E16', (def) => new MediaLineage(def));
+
+// ── Northeast mezzanine: Local Systems ──
+registerBespoke('E34', (def) => new BigMacBackbone(def));
+registerBespoke('E35', (def) => new SpecialistSystems(def));
 
 let installed = false;
 
