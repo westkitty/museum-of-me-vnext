@@ -4,6 +4,7 @@ import { JournalPanel } from '../ui/JournalPanel';
 import { DeepPanel } from '../ui/DeepPanel';
 import { SettingsPanel } from '../ui/SettingsPanel';
 import { DiagnosticsOverlay } from '../ui/DiagnosticsOverlay';
+import { QACapture } from '../ui/QACapture';
 import { DomMirror } from '../accessibility/DomMirror';
 import { savePreferences, type VisitorPreferences } from '../state/Preferences';
 import type { App } from './App';
@@ -20,12 +21,14 @@ export class UILayer {
   readonly deep: DeepPanel;
   readonly settings: SettingsPanel;
   readonly diagnostics: DiagnosticsOverlay;
+  readonly qaCapture: QACapture | null;
   readonly mirror: DomMirror;
 
   private readonly unbind: (() => void)[] = [];
 
   constructor(private readonly app: App) {
     const { uiRoot, a11yRoot, input, interaction } = app;
+    const qaEnabled = new URLSearchParams(window.location.search).get('qa') === '1';
 
     this.hud = new HUD(() => input.requestPointerLock());
     this.map = new MapPanel(
@@ -41,6 +44,7 @@ export class UILayer {
       update: (patch: Partial<VisitorPreferences>) => this.applyPreferences(patch),
     });
     this.diagnostics = new DiagnosticsOverlay(app.diagnostics);
+    this.qaCapture = qaEnabled ? new QACapture(app) : null;
     this.mirror = new DomMirror(a11yRoot, app.streaming, (id) => this.deep.openFor(id));
 
     uiRoot.append(
@@ -51,13 +55,12 @@ export class UILayer {
       this.settings.root,
       this.diagnostics.root,
     );
+    if (this.qaCapture) uiRoot.append(this.qaCapture.root);
 
-    // ?qa=1 is a recording aid, not a different museum mode: it only opens the
-    // existing read-only diagnostics overlay so a human walkthrough can capture
-    // zone/FPS/input/audio evidence without hunting for the backtick shortcut.
-    if (new URLSearchParams(window.location.search).get('qa') === '1') {
-      this.diagnostics.setVisible(true);
-    }
+    // ?qa=1 is a recording aid, not a different museum mode: it opens the
+    // read-only diagnostics and manual evidence recorder without changing the
+    // museum's world, movement, content, streaming, audio, or visitor state.
+    if (qaEnabled) this.diagnostics.setVisible(true);
 
     // A panel takes over input while it is open; movement stops and the mouse
     // is released so the visitor can actually use it.
@@ -190,6 +193,7 @@ export class UILayer {
     this.deep.dispose();
     this.settings.dispose();
     this.diagnostics.dispose();
+    this.qaCapture?.dispose();
     this.mirror.dispose();
   }
 }
