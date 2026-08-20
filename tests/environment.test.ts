@@ -6,6 +6,7 @@ import { ExhibitThresholds } from '../src/world/ExhibitThresholds';
 import { PLACEMENTS, WINGS } from '../src/world/layout';
 import { PaletteSet } from '../src/world/palette';
 import { Sky } from '../src/world/Sky';
+import { WingAtmosphere } from '../src/world/WingAtmosphere';
 import { WingIdentity } from '../src/world/WingIdentity';
 
 describe('museum environment coherence', () => {
@@ -58,6 +59,17 @@ describe('museum environment coherence', () => {
     expect(bands).toHaveLength(WINGS.length);
     expect(motifs).toHaveLength(WINGS.length * 2);
     expect(strips).toHaveLength(WINGS.length * 2);
+    scope.dispose();
+  });
+
+  it('continues each wing colour family through decorative hall atmosphere', () => {
+    const scope = new ResourceScope('environment-test');
+    const atmosphere = new WingAtmosphere(scope).build();
+    const fixtures = atmosphere.children.filter((node) => node.name.startsWith('wing-ceiling-fixture:'));
+    const inlays = atmosphere.children.filter((node) => node.name.startsWith('wing-wall-inlay:'));
+
+    expect(fixtures.length).toBeGreaterThanOrEqual(WINGS.length * 3);
+    expect(inlays).toHaveLength(WINGS.length * 2);
     scope.dispose();
   });
 
