@@ -61,7 +61,18 @@ export class MapPanel extends Panel {
   private setTarget(id: string | null): void {
     this.target = id;
     for (const fn of this.targetListeners) fn(id);
+    this.rerenderWithDialogFocus();
+  }
+
+  /**
+   * Map actions rebuild the plan and destination list. If the activated SVG bay
+   * or button is removed while focused, browsers otherwise drop focus to the
+   * document body, taking Escape and the focus trap with it. Return focus to the
+   * dialog itself after a rebuild so keyboard operation remains continuous.
+   */
+  private rerenderWithDialogFocus(): void {
     this.render();
+    if (this.isOpen) this.body.focus();
   }
 
   protected render(): void {
@@ -72,7 +83,6 @@ export class MapPanel extends Panel {
       'aria-label': `Museum plan, ${this.level === 0 ? 'ground floor' : 'upper floor'}`,
     });
 
-    // Rotunda.
     const rot = svg('circle', {
       class: 'room',
       cx: EXTENT, cy: EXTENT, r: ROTUNDA_APOTHEM,
@@ -188,12 +198,12 @@ export class MapPanel extends Panel {
       el('button', {
         type: 'button', text: 'Ground floor',
         'aria-pressed': String(this.level === 0),
-        onclick: () => { this.level = 0; this.render(); },
+        onclick: () => { this.level = 0; this.rerenderWithDialogFocus(); },
       }),
       el('button', {
         type: 'button', text: 'Upper floor',
         'aria-pressed': String(this.level === 1),
-        onclick: () => { this.level = 1; this.render(); },
+        onclick: () => { this.level = 1; this.rerenderWithDialogFocus(); },
       }),
     );
 
