@@ -52,6 +52,13 @@ export class UILayer {
       this.diagnostics.root,
     );
 
+    // ?qa=1 is a recording aid, not a different museum mode: it only opens the
+    // existing read-only diagnostics overlay so a human walkthrough can capture
+    // zone/FPS/input/audio evidence without hunting for the backtick shortcut.
+    if (new URLSearchParams(window.location.search).get('qa') === '1') {
+      this.diagnostics.setVisible(true);
+    }
+
     // A panel takes over input while it is open; movement stops and the mouse
     // is released so the visitor can actually use it.
     for (const panel of [this.map, this.journal, this.deep, this.settings]) {
@@ -153,12 +160,20 @@ export class UILayer {
     this.hud.setTouchMode(this.app.input.touchActive);
     this.hud.update(dt);
     this.hud.setLocation(this.app.currentZone);
-    this.diagnostics.update(dt, {
+
+    const extra: Record<string, string | number> = {
       quality: this.app.renderer.quality.tier,
       controls: this.app.interaction.controlCount,
       audio: this.app.audio.isRunning ? 'on' : 'off',
+      pointer: this.app.input.pointerLocked ? 'locked' : 'free',
       loads: this.app.streaming.telemetry.pendingLoads,
-    });
+    };
+    // currentExhibitId may ask the streaming manager for its active hosts, so do
+    // not pay that diagnostic-only cost while the overlay is hidden.
+    if (!this.diagnostics.root.hidden) {
+      extra.exhibit = this.app.currentExhibitId ?? '—';
+    }
+    this.diagnostics.update(dt, extra);
   }
 
   get anyPanelOpen(): boolean {
