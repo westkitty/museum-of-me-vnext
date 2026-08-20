@@ -40,19 +40,32 @@ When the owner explicitly authorizes publication:
 
 Do not add a second deployment implementation until the first hosted path has been manually proven.
 
+## Hosted transport/header verifier
+
+After an explicitly authorized deployment, run the deterministic hosted verifier against the real HTTPS entry URL:
+
+```bash
+npm run verify:hosted -- https://museum.example/
+```
+
+It checks the hosted shell for a successful response, the three required mount points, shell revalidation, `nosniff`, frame denial, the required CSP boundary, same-origin content-hashed JavaScript/CSS, successful asset responses, and immutable one-year asset caching. Its own logic is exercised by `npm run test:release-tools`, which is part of the canonical gate.
+
+This is transport/header evidence only. It deliberately does **not** promote visual composition, audible output, pointer-lock feel/recovery, or representative-device FPS to verified.
+
 ## Post-deploy verification
 
 After an explicitly authorized deployment, verify the actual hosted URL rather than inferring success from the build:
 
+- run `npm run verify:hosted -- <production-url>` and require PASS
 - direct load and hard refresh return the museum shell
 - the start view is the exterior Arrival Plaza
-- hashed JavaScript/CSS assets return 200
-- `_headers` policies are present on the hosted response
 - map, journal, settings and accessible contents open
 - pointer lock captures and recovers after Escape
 - ambience is audible after a user gesture and subtitles agree with audible output
 - a representative device records acceptable FPS
 - a representative exhibit in every wing loads, interacts and unloads without an uncaught error
+
+The hosted verifier should catch transport/header/cache regressions quickly; the real browser/device pass remains decisive for behavior and perception.
 
 ## Merge and tag boundary
 
@@ -63,7 +76,7 @@ When those conditions are met and publication is explicitly authorized, the inte
 1. confirm exact release-head checks
 2. merge the reviewed release PR into `main`
 3. deploy the resulting `main` commit
-4. verify the live URL
+4. run hosted verification and verify the live browser/device path
 5. tag the verified deployed commit as `v1.0.0`
 
 If live verification fails, repair the release before tagging rather than tagging a known-bad deployment.
