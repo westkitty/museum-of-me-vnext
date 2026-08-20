@@ -1,5 +1,6 @@
 import { App } from './app/App';
 import { EnvironmentDressing } from './world/EnvironmentDressing';
+import { ExhibitThresholds } from './world/ExhibitThresholds';
 
 function fail(message: string, detail?: unknown): never {
   console.error('[museum]', message, detail);
@@ -27,6 +28,11 @@ try {
   // geometry and materials are disposed with the rest of the museum.
   const environment = new EnvironmentDressing(app.scope).build();
   app.scene.add(environment);
+
+  // Exhibit thresholds inherit their colour signatures from the containing
+  // wing rather than becoming thirty-five unrelated palettes.
+  const thresholds = new ExhibitThresholds(app.scope).build();
+  app.scene.add(thresholds);
 } catch (err) {
   fail(
     'This museum needs WebGL 2, which this browser did not provide. The full text of every exhibit is still available in the accessible contents.',
