@@ -84,8 +84,10 @@ test('exposes the complete accessible collection without requiring pointer lock'
 
   await page.keyboard.press('h');
   const mirror = page.locator('#a11y-root');
-  await expect(mirror).toBeFocused();
-  await expect(mirror).toContainText('Museum of Me');
+  await expect(mirror.locator('.skip')).toBeFocused();
+  await expect(mirror).toContainText('W A S D or the arrow keys — walk');
+  await expect(mirror).toContainText('Q and E — turn');
+  await expect(mirror).toContainText('F or Enter — interact');
   await expect(mirror).toContainText('Starsilk Universe');
   await expect(mirror).toContainText('BigMac Backbone');
 
