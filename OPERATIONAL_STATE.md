@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 20,
+  "state_revision": 21,
   "last_updated": "2026-08-20",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -14,117 +14,111 @@
 
 ## 1. Identity and scope
 
-- **Implementation root (SELECTED):** `/Users/andrew/museum of me/museum-of-me-vnext`
-- **Governed scope:** this repository only; preserved legacy Reliquary artifacts remain read-only evidence.
+- **Implementation root:** `/Users/andrew/museum of me/museum-of-me-vnext`
+- **Active branch:** `release/v1.0.0`
+- **Governed scope:** this repository only; preserved legacy Reliquary artifacts remain read-only.
 
-## 2. Source authority (in force)
+## 2. Source authority
 
-1. Explicit user instructions for this run.
+1. Explicit user instructions.
 2. This file.
 3. `docs/MUSEUM_VNEXT_BUILD_PLAN.md`.
-4. vNext investigation/actualization handoff.
+4. vNext handoff evidence.
 5. Verified repository/runtime evidence.
 6. Historical Reliquary material.
 7. Inference.
 
 ## 3. Current baseline
 
-| Item | State |
+| Area | State |
 |---|---|
-| Active branch | `release/v1.0.0`; `main` remains stale for this work |
-| PR | #1 remains open to `main`; do not merge without explicit instruction |
-| Runtime | complete traversable museum with streaming, interaction, DOM UI and procedural audio |
-| Verified refinement | controls run #36; exterior start run #50; garden/daylight run #60; baseline-zero + furnishings + exhibit accents + wing identity run #84 |
-| Current unverified refinement | wing-specific emissive decorative atmosphere added after run #84; fresh gate pending |
+| Controls | verified by canonical run #36 |
+| Exterior start | verified by run #50 |
+| Garden + daylight | verified by run #60 |
+| Baseline-zero Rotunda, furnishing, exhibit accents, wing threshold/motif identity | verified by run #84 |
+| Wing-specific emissive atmosphere | verified by run #92 |
+| Perceptual/runtime visual quality | still requires direct browser walkthrough |
 
 ## 4. Active invariants
 
-| ID | Rule |
-|---|---|
-| INV-001 | Exactly one frame-loop owner: `src/app/Loop.ts`. |
-| INV-002 | 64 project identities map to 35 exhibits exactly once. |
-| INV-003 | No visitor-facing placeholder/private content. |
-| INV-004 | Legacy Reliquary artifacts remain untouched. |
-| INV-005 | Dexter Sanctuary stays outside the 35 and is never mascotised. |
-| INV-006 | Building dimensions derive from `src/world/layout.ts`; continuous traversal remains passable. |
-| INV-007 | ResourceScope/streaming/asset lifecycle guarantees remain intact. |
-| INV-008 | Controls: W/Up forward, S/Down back, A/Left left, D/Right right, Q/E rotate, Shift sprint, Space grounded one-shot jump, F/Enter interact. |
-| INV-009 | Experience starts outside on Arrival Plaza facing the museum. |
-| INV-010 | Rotunda/balcony are bright neutral baseline-zero spaces. |
-| INV-011 | Every major wing owns a coherent palette and non-text spatial identity. |
-| INV-012 | Exhibit accents derive from their containing wing family. |
-| INV-013 | Environmental dressing remains non-colliding and may not narrow mandatory routes. |
-| INV-014 | Decorative atmosphere may use emissive geometry but may not inflate the managed point-light budget. |
+- Exactly one frame-loop owner: `src/app/Loop.ts`.
+- Frozen 64-project → 35-exhibit mapping remains exact.
+- No visitor-facing private data/placeholders.
+- Dexter Sanctuary remains outside the 35 and non-mascotised.
+- Layout/collision dimensions remain governed by `src/world/layout.ts`.
+- Continuous traversal remains mandatory.
+- ResourceScope/streaming/asset lifecycle guarantees remain intact.
+- Controls remain: W/Up forward, S/Down back, A/Left left, D/Right right, Q/E rotate, Shift sprint, Space grounded one-shot jump, F/Enter interact.
+- Experience starts outside on Arrival Plaza facing the museum.
+- Rotunda/balcony are bright neutral baseline-zero spaces.
+- Every major wing owns a coherent palette plus non-text shape identity.
+- Exhibit accents derive from containing-wing palettes.
+- Added environment dressing remains non-colliding and may not narrow routes.
+- Decorative atmosphere uses emissive geometry rather than extra dynamic scene lights.
 
 ## 5. Verified working behaviour
 
-- Requested control grammar passed canonical run #36.
-- Exterior start and continuous outside-to-inside route passed run #50.
-- Garden + bright daylight passed run #60.
-- Bright Rotunda/balcony, distinct major-wing palettes, stronger facade/vestibule, welcome/info furnishing, hall plants/furniture, all 35 wing-derived exhibit frames, and six wing-specific threshold/motif identities passed canonical run #84.
+- Controls: run #36 PASS.
+- Exterior start and outside→inside route: run #50 PASS.
+- Arrival garden + daylight: run #60 PASS.
+- Bright neutral Rotunda, distinct wing palettes, facade/vestibule/welcome/furnishing, all 35 exhibit frames, six wing threshold/motif identities: run #84 PASS.
+- Repeated per-wing emissive ceiling fixtures and wall inlays: run #92 PASS.
 
 ## 6. Known not working / superseded
 
 - Interior spawn, dark exterior sky and beige Rotunda baseline are superseded.
-- Gate #78 failed only because the new test used unsupported matcher `toHaveSize`; corrected before run #84, which passed.
+- Gate #78 test matcher issue is resolved; later gates #84 and #92 passed.
 
 ## 7. Implemented but Unverified
 
-| Item | Evidence missing |
-|---|---|
-| Each wing now carries repeated emissive ceiling fixtures and wall inlays using its palette and shape language, without extra scene lights | fresh canonical gate + browser observation |
+None currently in source. Automated gates are green through run #92.
 
-## 8. Unknown or Evidence-Stale State
+## 8. Unknown / Evidence-Stale
 
 | Item | Decisive check |
 |---|---|
-| Garden composition frames the museum cleanly at real spawn camera | direct browser walkthrough |
+| Garden frames museum cleanly at the actual spawn camera | direct browser walkthrough |
 | Daylight exposure is attractive rather than washed out | direct browser walkthrough |
-| White Rotunda reads intentional rather than sterile | direct browser walkthrough |
-| Furnishing/motifs/accents/atmosphere are rich without visual clutter | direct browser walkthrough |
-| Facade additions align cleanly with entrance geometry | direct browser walkthrough |
-| Representative-device FPS after procedural dressing | human measurement |
+| Rotunda feels luminous/intentional rather than sterile | direct browser walkthrough |
+| Furnishing, motifs, exhibit accents and atmosphere are rich without clutter | direct browser walkthrough |
+| Facade overlays align visually with entrance geometry | direct browser walkthrough |
+| Representative-device FPS | human measurement |
 | Pointer-lock feel and audible audio | human browser/device test |
 
-## 9. Pending Work
+## 9. Pending work
 
-| Task | Priority |
-|---|---|
-| Reconcile fresh gate for `WingAtmosphere` head | high |
-| Direct browser walkthrough: garden → vestibule → Rotunda → all six wings | high |
-| Tune clipping/exposure/density from runtime evidence | next |
-| Add further furniture only where runtime still reads empty | later |
+- Direct browser walkthrough: garden → vestibule → Rotunda → all six wings.
+- Tune clipping/exposure/density from observed runtime evidence.
+- Continue exterior architectural refinement only where it improves the garden arrival composition without changing collision/layout.
 
-## 10. Active Decisions / Prohibitions
+## 10. Active decisions / prohibitions
 
-- Continue from `release/v1.0.0`; do not implement against stale `main`.
-- Do not publish, deploy, merge PR #1, or tag without explicit instruction.
-- Reference images guide colour/design language only, never floor-plan authority.
-- Prefer deterministic, palette-derived geometry to arbitrary per-room decoration.
-- Do not add dynamic lights merely for colour identity; emissive geometry is preferred.
+- Do not implement against stale `main`.
+- Do not deploy, publish, merge PR #1, or tag without explicit instruction.
+- Reference images guide colour/design language only.
+- Prefer deterministic palette-derived geometry to arbitrary decoration.
+- Do not add dynamic lights merely for colour identity.
 
-## 11. Validation Matrix
+## 11. Validation matrix
 
-| ID | Claim | State | Evidence |
-|---|---|---|---|
-| CTRL | Requested controls and sprint/jump/interact grammar | verified-automated | run #36 PASS |
-| START | Outside spawn + continuous museum entry | verified-automated | run #50 PASS |
-| GARDEN | Arrival garden + daylight preserve core gate | verified-automated | run #60 PASS |
-| ENV-BASE | Bright neutral Rotunda + distinct wing palettes | verified-automated | run #84 PASS |
-| ENV-FURN | Facade, vestibule, welcome, plants, benches and hall furnishing | verified-automated | run #84 PASS |
-| ENV-EXHIBIT | All exhibits receive wing-derived threshold accents | verified-automated | run #84 PASS |
-| ENV-WING | All six wings receive threshold bands, transition strips and distinct motifs | verified-automated | run #84 PASS |
-| ENV-ATM | Repeated per-wing emissive fixtures/inlays | implemented-unverified | source + regression; fresh gate pending |
-| CORE | Full mapping/content/privacy/lifecycle/traversal gate on newest head | evidence-stale | run #84 predates WingAtmosphere |
+| Claim | State | Evidence |
+|---|---|---|
+| Requested controls | verified-automated | run #36 PASS |
+| Outside spawn + continuous entry | verified-automated | run #50 PASS |
+| Garden + daylight | verified-automated | run #60 PASS |
+| Bright baseline + wing palettes | verified-automated | run #84 PASS |
+| Facade/vestibule/welcome/plants/benches/hall dressing | verified-automated | run #84 PASS |
+| Exhibit wing-derived threshold accents | verified-automated | run #84 PASS |
+| Wing threshold bands/transition strips/motifs | verified-automated | run #84 PASS |
+| Wing emissive fixtures/wall inlays | verified-automated | run #92 PASS |
+| Full newest-head core gate | verified-automated | run #92 PASS |
 
-## 12. Current Change Scope
+## 12. Current change scope
 
-- **Classification:** visual/environment refinement without layout reconstruction.
-- **Current additional files:** `src/world/WingAtmosphere.ts`, `src/main.ts`, `tests/environment.test.ts`.
-- **Protected:** exhibit content/contracts, 64→35 mapping, layout/collision, controls, streaming/resource ownership, Sanctuary semantics, deployment state.
+Visual/environment refinement only; layout, collision, controls, exhibit contracts/content, mapping, streaming/resource ownership, Sanctuary semantics and deployment state remain protected.
 
-## 13. Compact Revision Log
+## 13. Compact revision log
 
-- **r20 — 2026-08-20:** Promoted baseline-zero/furnishing/exhibit-accent/wing-identity batch to automated-verified via canonical run #84. Added wing-specific emissive decorative atmosphere without new scene lights; fresh gate pending.
-- **r19 — 2026-08-20:** Recorded #78 matcher failure, corrected regression, added wing-specific threshold colour bands/transition strips/motifs, queued #84.
-- **r18 — 2026-08-20:** Promoted exterior start via #50 and garden/daylight via #60; added baseline palette and furnishing batch.
+- **r21 — 2026-08-20:** Promoted wing-specific emissive atmosphere to automated-verified via canonical run #92. All current source changes are now automated-green; perceptual browser QA is the remaining evidence gap.
+- **r20 — 2026-08-20:** Promoted baseline/furnishing/exhibit/wing identity via run #84; added WingAtmosphere pending gate.
+- **r19 — 2026-08-20:** Corrected unsupported test matcher and added wing spatial identity.
