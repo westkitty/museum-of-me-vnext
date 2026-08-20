@@ -16,6 +16,7 @@ async function bootMuseum(page: Page, path = '/'): Promise<string[]> {
     await expect(diagnostics).toBeVisible();
     await expect(diagnostics).toContainText('pointer');
     await expect(diagnostics).toContainText('exhibit');
+    await expect(page.getByRole('complementary', { name: 'Human QA evidence recorder' })).toBeVisible();
   }
 
   // The CI runner has no real GPU. Prove that the real WebGL application boots,
@@ -31,6 +32,19 @@ test('boots at the exterior arrival and keyboard input reaches the real controll
   const zone = await page.evaluate(() => window.__museum?.currentZone);
   expect(zone).toBe('plaza');
   await expect(page.getByRole('button', { name: 'Enter the museum and capture mouse look' })).toBeVisible();
+
+  const qaToggle = page.getByRole('button', { name: 'QA evidence' });
+  await qaToggle.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('Manual evidence only. Mark what you actually observe; telemetry supports the record but does not decide visual, audio, pointer-lock, or performance acceptance.')).toBeVisible();
+  await page.locator('#qa-check-0').selectOption('pass');
+  await expect(page.getByText('1 passed · 0 needs work · 8 pending')).toBeVisible();
+  await page.getByRole('button', { name: 'Capture telemetry snapshot' }).click();
+  await expect(page.locator('.qa-capture pre')).toContainText('zone=Arrival Plaza');
+  await page.getByRole('button', { name: 'Generate Markdown report' }).click();
+  const report = page.getByRole('textbox', { name: 'Generated human QA Markdown report' });
+  await expect(report).toHaveValue(/Museum of Me vNext — Human QA Evidence/);
+  await expect(report).toHaveValue(/PASS.*Garden and facade composition/s);
 
   const before = await page.evaluate(() => {
     const p = window.__museum?.player.position;
