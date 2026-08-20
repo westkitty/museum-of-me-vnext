@@ -10,7 +10,10 @@ import { Museum } from '../world/Museum';
 import { Lighting } from '../render/Lighting';
 import { InputManager } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
-import { SPAWN_POSITION, SPAWN_YAW, zoneAt, ZONE_BY_ID } from '../world/layout';
+import { SPAWN_POSITION, SPAWN_YAW, zoneAt, ZONE_BY_ID, type ZoneId } from '../world/layout';
+import { installExhibits } from '../exhibits';
+import { StreamingManager } from '../exhibits/StreamingManager';
+import { InteractionManager } from '../interaction/InteractionManager';
 
 export interface AppOptions {
   canvas: HTMLCanvasElement;
@@ -32,8 +35,10 @@ export class App implements LoopCallbacks {
   readonly lighting: Lighting;
   readonly input: InputManager;
   readonly player: PlayerController;
+  readonly interaction = new InteractionManager();
+  readonly streaming: StreamingManager;
   /** Zone the visitor is currently standing in. Drives audio and streaming. */
-  currentZone = 'plaza';
+  currentZone: ZoneId = 'plaza';
 
   readonly uiRoot: HTMLElement;
   readonly a11yRoot: HTMLElement;
@@ -72,6 +77,31 @@ export class App implements LoopCallbacks {
     this.player = new PlayerController(built.collision, this.input);
     this.player.teleport(SPAWN_POSITION, SPAWN_YAW);
 
+    installExhibits();
+    this.streaming = new StreamingManager(
+      built.exhibitMounts,
+      {
+        addControl: (id, control) => this.interaction.register(id, control),
+        announce: (id, message) => this.announce(id, message),
+        reducedMotion: () => this.preferences.reducedMotion,
+        detailScale: () => this.renderer.quality.detailScale,
+      },
+      {
+        loadRadius: this.renderer.quality.exhibitStreamRadius + 14,
+        unloadRadius: this.renderer.quality.exhibitStreamRadius + 30,
+        activateRadius: this.renderer.quality.exhibitStreamRadius,
+        mountsPerFrame: 1,
+      },
+    );
+    this.streaming.initialise();
+
+    this.input.on('interact', () => {
+      if (this.interaction.activate()) {
+        const focus = this.interaction.currentFocus;
+        if (focus) this.journal.markVisited(focus.exhibitId);
+      }
+    });
+
     this.loop = new Loop(this);
   }
 
@@ -99,12 +129,27 @@ export class App implements LoopCallbacks {
 
   // ── LoopCallbacks ─────────────────────────────────────────────────────────
 
-  fixedUpdate(dt: number): void {
-    this.player.fixedUpdate(dt);
-    // Phase 3 adds active exhibit updates here.
+  /** Latest announcement, surfaced by the HUD subtitle line and the DOM mirror. */
+  lastAnnouncement = '';
+
+  private announce(exhibitId: string, message: string): void {
+    this.lastAnnouncement = message;
+    for (const fn of this.announceListeners) fn(exhibitId, message);
   }
 
-  variableUpdate(_dt: number): void {
+  private readonly announceListeners = new Set<(exhibitId: string, message: string) => void>();
+
+  onAnnounce(fn: (exhibitId: string, message: string) => void): () => void {
+    this.announceListeners.add(fn);
+    return () => this.announceListeners.delete(fn);
+  }
+
+  fixedUpdate(dt: number): void {
+    this.player.fixedUpdate(dt);
+    this.streaming.updateActive(dt, this.player.eyePosition);
+  }
+
+  variableUpdate(dt: number): void {
     this.player.applyLook(
       this.input.mouseDeltaX,
       this.input.mouseDeltaY,
@@ -115,6 +160,18 @@ export class App implements LoopCallbacks {
     const eye = this.player.eyePosition;
     const zone = zoneAt([eye[0], this.player.position.y + 0.1, eye[2]]);
     if (zone !== this.currentZone) this.currentZone = zone;
+
+    this.streaming.evaluate(eye, dt, zone);
+    this.interaction.update(this.camera);
+
+    // Bay key lights follow exhibit residency, so the museum only ever pays for
+    // the lights in the room the visitor is actually in.
+    for (const [id, host] of this.streaming.hosts) {
+      this.lighting.setBayLight(id, host.currentState === 'active' || host.currentState === 'mounted');
+    }
+
+    this.diagnostics.stats.activeExhibits = this.streaming.telemetry.active;
+    this.diagnostics.stats.streamingResident = this.streaming.telemetry.resident;
 
     this.diagnostics.stats.playerPosition = [
       Math.round(this.player.position.x * 10) / 10,
@@ -136,6 +193,8 @@ export class App implements LoopCallbacks {
     if (this.disposed) return;
     this.disposed = true;
     this.loop.stop();
+    this.streaming.dispose();
+    this.interaction.dispose();
     this.input.dispose();
     this.lighting.dispose();
     this.scope.dispose();

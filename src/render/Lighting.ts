@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import type { QualitySettings } from './QualityTiers';
-import { DOME_APEX_Y, LEVEL_1_Y, SANCTUARY_CENTER, SANCTUARY_FLOOR_Y, SANCTUARY_HEIGHT, WINGS, faceDirection, place } from '../world/layout';
+import {
+  DOME_APEX_Y, LEVEL_1_Y, SANCTUARY_CENTER, SANCTUARY_FLOOR_Y, SANCTUARY_HEIGHT,
+  WINGS, PLACEMENTS, WING_BY_ID, faceDirection, place,
+} from '../world/layout';
 
 /**
  * Museum lighting. One sun, one sky fill, and a small set of interior sources
@@ -10,6 +13,8 @@ import { DOME_APEX_Y, LEVEL_1_Y, SANCTUARY_CENTER, SANCTUARY_FLOOR_Y, SANCTUARY_
  */
 export class Lighting {
   readonly group = new THREE.Group();
+  /** Bay key lights, addressable by exhibit so streaming can switch them off. */
+  readonly bayLights = new Map<string, THREE.PointLight>();
 
   constructor(scope: ResourceScope, quality: QualitySettings) {
     this.group.name = 'lighting';
@@ -56,6 +61,23 @@ export class Lighting {
       }
     }
 
+    // One warm key light per exhibit bay. Bays are alcoves off the halls, so a
+    // hall lamp does not reach them and the exhibit would sit in shadow.
+    for (const placement of PLACEMENTS) {
+      const wing = WING_BY_ID.get(placement.wing)!;
+      const key = new THREE.PointLight(0xffe9c8, 70, 26, 2);
+      key.position.set(
+        placement.anchor[0],
+        wing.floorY + wing.bayHeight - 2.2,
+        placement.anchor[2],
+      );
+      // Off until the exhibit streams in. Thirty-five simultaneous point lights
+      // would cost far more than the handful the visitor can actually see.
+      key.visible = false;
+      this.group.add(key);
+      this.bayLights.set(placement.exhibitId, key);
+    }
+
     // Balcony ring wash.
     const balcony = new THREE.PointLight(0xf2e8d6, 70, 55, 2);
     balcony.position.set(0, LEVEL_1_Y + 5, 0);
@@ -71,8 +93,15 @@ export class Lighting {
     void scope;
   }
 
+  /** Switch a bay's key light with its exhibit's residency. */
+  setBayLight(exhibitId: string, on: boolean): void {
+    const light = this.bayLights.get(exhibitId);
+    if (light) light.visible = on;
+  }
+
   dispose(): void {
     this.group.removeFromParent();
     this.group.clear();
+    this.bayLights.clear();
   }
 }

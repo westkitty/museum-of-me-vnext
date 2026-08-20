@@ -340,7 +340,8 @@ export type ZoneShape =
 export interface Zone {
   readonly id: ZoneId;
   readonly label: string;
-  readonly shape: ZoneShape;
+  /** A zone may be several volumes — the Sanctuary is a narrow ramp plus a room. */
+  readonly shapes: readonly ZoneShape[];
   /** A representative standing point — used by the map and by wayfinding. */
   readonly center: Vec3;
   /** Zones whose Layer-2 detail should also be resident while inside this one. */
@@ -390,19 +391,19 @@ function wingShape(w: WingSpec): ZoneShape {
 export const ZONES: readonly Zone[] = [
   {
     id: 'rotunda', label: 'Reliquary Rotunda', level: 0,
-    shape: { kind: 'cylinder', c: [0, 0, 0], radius: ROTUNDA_APOTHEM + 1.5, yMin: -1.5, yMax: LEVEL_1_Y - 0.5 },
+    shapes: [{ kind: 'cylinder', c: [0, 0, 0], radius: ROTUNDA_APOTHEM + 1.5, yMin: -1.5, yMax: LEVEL_1_Y - 0.5 }],
     center: [0, GROUND_Y, 0],
     neighbours: ['north', 'east', 'south', 'west', 'balcony', 'sanctuary'],
   },
   {
     id: 'balcony', label: 'Rotunda Balcony', level: 1,
-    shape: { kind: 'cylinder', c: [0, 0, 0], radius: ROTUNDA_APOTHEM + 1.5, yMin: LEVEL_1_Y - 0.5, yMax: LEVEL_1_Y + 8 },
+    shapes: [{ kind: 'cylinder', c: [0, 0, 0], radius: ROTUNDA_APOTHEM + 1.5, yMin: LEVEL_1_Y - 0.5, yMax: LEVEL_1_Y + 8 }],
     center: [0, LEVEL_1_Y, ROTUNDA_APOTHEM - 3],
     neighbours: ['rotunda', 'media', 'infra'],
   },
   {
     id: 'plaza', label: 'Arrival Plaza', level: 0,
-    shape: {
+    shapes: [{
       kind: 'slab',
       dir: faceDirection('s'),
       alongMin: VESTIBULE_TO + 1,
@@ -410,21 +411,32 @@ export const ZONES: readonly Zone[] = [
       halfWidth: PLAZA_HALF_WIDTH + 6,
       yMin: -4,
       yMax: 14,
-    },
+    }],
     center: place(faceDirection('s'), VESTIBULE_TO + 10, 0, GROUND_Y),
     neighbours: ['south'],
   },
   {
     id: 'sanctuary', label: 'Dexter Sanctuary', level: 0,
-    shape: {
-      kind: 'slab',
-      dir: SANCTUARY_DIR,
-      alongMin: ROTUNDA_APOTHEM + 1,
-      alongMax: SANCTUARY_RAMP_TO + SANCTUARY_RADIUS * 2,
-      halfWidth: SANCTUARY_RADIUS + 2,
-      yMin: SANCTUARY_FLOOR_Y - 2,
-      yMax: SANCTUARY_FLOOR_Y + SANCTUARY_HEIGHT + 2,
-    },
+    // Two volumes: the narrow descending approach, and the chamber itself.
+    // A single wide slab would reach sideways into the north wing's bays.
+    shapes: [
+      {
+        kind: 'slab',
+        dir: SANCTUARY_DIR,
+        alongMin: ROTUNDA_APOTHEM + 0.5,
+        alongMax: SANCTUARY_RAMP_TO + 2,
+        halfWidth: SANCTUARY_RAMP_HALF_WIDTH + 1.5,
+        yMin: SANCTUARY_FLOOR_Y - 2,
+        yMax: GROUND_Y + 3,
+      },
+      {
+        kind: 'cylinder',
+        c: SANCTUARY_CENTER,
+        radius: SANCTUARY_RADIUS + 1.5,
+        yMin: SANCTUARY_FLOOR_Y - 2,
+        yMax: SANCTUARY_FLOOR_Y + SANCTUARY_HEIGHT + 2,
+      },
+    ],
     center: SANCTUARY_CENTER,
     neighbours: ['rotunda'],
   },
@@ -433,7 +445,7 @@ export const ZONES: readonly Zone[] = [
       id: w.id,
       label: w.id,
       level: w.level,
-      shape: wingShape(w),
+      shapes: [wingShape(w)],
       center: place(faceDirection(w.face), (w.hallFrom + w.hallTo) / 2, 0, w.floorY),
       neighbours: w.level === 0 ? ['rotunda'] : ['balcony'],
     }),
@@ -452,8 +464,13 @@ const ZONE_TEST_ORDER: readonly Zone[] = [
   ...ZONES.filter((z) => z.id === 'rotunda' || z.id === 'balcony'),
 ];
 
+export function zoneContains(z: Zone, p: Vec3): boolean {
+  for (const shape of z.shapes) if (shapeContains(shape, p)) return true;
+  return false;
+}
+
 export function zoneAt(p: Vec3): ZoneId {
-  for (const z of ZONE_TEST_ORDER) if (shapeContains(z.shape, p)) return z.id;
+  for (const z of ZONE_TEST_ORDER) if (zoneContains(z, p)) return z.id;
   let best: ZoneId = 'plaza';
   let bestDist = Infinity;
   for (const z of ZONES) {
