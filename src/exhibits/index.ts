@@ -17,6 +17,15 @@ import { CivicSupport } from './dex/CivicSupport';
 import { CreativeTools } from './dex/CreativeTools';
 import { SensemakingLab } from './dex/SensemakingLab';
 import { DnDexTable } from './games/DnDexTable';
+import { InvincibleMagic } from './games/InvincibleMagic';
+import { WestCatSystems } from './games/WestCatSystems';
+import { FullWeasel } from './games/FullWeasel';
+import { AgainstTheVoid } from './games/AgainstTheVoid';
+import { ArkshipCivilization } from './games/ArkshipCivilization';
+import { AetherVFX } from './games/AetherVFX';
+import { StoryWorlds } from './games/StoryWorlds';
+import { SmoresKatamari } from './games/SmoresKatamari';
+import { EndlessGrok } from './games/EndlessGrok';
 import { SunoStudio } from './media/SunoStudio';
 import { COLLECTION } from '../content/collection.generated';
 import type { ExhibitDefinition } from './contract';
@@ -63,6 +72,17 @@ registerBespoke('E20', (def) => new UtilityBench(def));
 registerBespoke('E21', (def) => new CivicSupport(def));
 registerBespoke('E22', (def) => new CreativeTools(def));
 registerBespoke('E23', (def) => new SensemakingLab(def));
+
+// ── South wing: Games & Play ──
+registerBespoke('E24', (def) => new InvincibleMagic(def));
+registerBespoke('E26', (def) => new WestCatSystems(def));
+registerBespoke('E27', (def) => new FullWeasel(def));
+registerBespoke('E28', (def) => new AgainstTheVoid(def));
+registerBespoke('E29', (def) => new ArkshipCivilization(def));
+registerBespoke('E30', (def) => new AetherVFX(def));
+registerBespoke('E31', (def) => new StoryWorlds(def));
+registerBespoke('E32', (def) => new SmoresKatamari(def));
+registerBespoke('E33', (def) => new EndlessGrok(def));
 
 let installed = false;
 
