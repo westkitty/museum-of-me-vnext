@@ -148,9 +148,22 @@ export class InputManager {
   private readonly onKeyDown = (e: KeyboardEvent): void => {
     const action = BINDINGS[e.code];
     if (!action) return;
-    // Never steal keys from a real text field.
-    const target = e.target as HTMLElement | null;
-    if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+
+    // Semantic controls own their keyboard events. Without this guard, Enter on
+    // a panel button also fired the museum's global `interact` action and Space
+    // on a checkbox also fired `jump` behind the UI. Custom SVG/button-like
+    // controls are covered by the role check as well.
+    const target = e.target as {
+      tagName?: string;
+      isContentEditable?: boolean;
+      getAttribute?: (name: string) => string | null;
+    } | null;
+    const tag = target?.tagName?.toUpperCase() ?? '';
+    if (
+      /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(tag)
+      || target?.isContentEditable
+      || target?.getAttribute?.('role') === 'button'
+    ) return;
 
     if (EDGE_ACTIONS.has(action)) {
       if (this.edgeHeldCodes.has(e.code)) return;
