@@ -4,53 +4,15 @@ import { buildPlaque, buildLectern, buildLabel } from '../Furniture';
 import { buildConsole } from '../parts';
 import { ringTransforms } from '../../assets/generators';
 import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
+import { DRAKKEN_REFERENCE_STATIONS, type DrakkenReferenceStation } from './drakkenSource';
 
 /**
  * E02 — Drakken Terraforming Compendium. Tier B.
  *
- * A central Egg with five archetype stations around it. Choosing an archetype
- * opens the Egg into a projection of that strain's morphology and the stage of
- * terraforming it performs. Five representative forms stand in for thirty-five;
- * the full taxonomy stays in the interpretation, because building thirty-five
- * production models was cut before quality was.
+ * A central Egg with five source-grounded reference stations around it. The
+ * station set preserves the spatial interaction without passing process
+ * functions or an abstract taxonomy frame off as biological archetypes.
  */
-
-interface Archetype {
-  readonly name: string;
-  readonly stage: string;
-  readonly colour: number;
-  /** Rough silhouette: [body radius, elongation, limb count, spine count]. */
-  readonly form: readonly [number, number, number, number];
-  readonly note: string;
-}
-
-const ARCHETYPES: readonly Archetype[] = [
-  {
-    name: 'Gorevault', stage: 'collection and gathering', colour: 0x8a3a3a,
-    form: [0.62, 1.5, 6, 3],
-    note: 'Takes a hostile world apart and holds what it takes. The first stage, and the one most often confused with the last.',
-  },
-  {
-    name: 'Rendering', stage: 'refinement into feedstock', colour: 0xb5643a,
-    form: [0.5, 2.2, 4, 8],
-    note: 'Reduces what the Gorevault gathered into feedstock. Refinement, not production.',
-  },
-  {
-    name: 'Ringthroat', stage: 'feedstock into SKY', colour: 0x5f9bd6,
-    form: [0.78, 1.1, 3, 12],
-    note: 'The only strain that makes sky. Collapsing this with the Gorevault is the most common error in derivative work.',
-  },
-  {
-    name: 'Seedwright', stage: 'establishment', colour: 0x6ba85f,
-    form: [0.42, 1.7, 8, 2],
-    note: 'Places what will grow once there is air to grow in.',
-  },
-  {
-    name: 'Keeper', stage: 'maintenance', colour: 0x8a7ab5,
-    form: [0.55, 1.3, 5, 5],
-    note: 'Stays after the work is done. A finished world is not a stable one.',
-  },
-];
 
 export class DrakkenCompendium extends ExhibitBase {
   private egg!: THREE.Mesh;
@@ -58,7 +20,7 @@ export class DrakkenCompendium extends ExhibitBase {
   private projection!: THREE.Group;
   private forms = this.tracked<THREE.Group>();
   private stations = this.tracked<THREE.Group>();
-  /** One projection form per archetype, built once and shown by index. */
+  /** One abstract reference glyph per station, built once and shown by index. */
   private projections = this.tracked<THREE.Group>();
   private selected = -1;
   private openAmount = 0;
@@ -91,7 +53,7 @@ export class DrakkenCompendium extends ExhibitBase {
     this.egg.scale.set(1, 1.42, 1);
     this.eggShell.add(this.egg);
 
-    // Shell plates that part when an archetype is chosen.
+    // Shell plates that part when a reference station is chosen.
     const plateGeo = scope.track(new THREE.SphereGeometry(1.1, 16, 12, 0, Math.PI / 2.4, 0, Math.PI));
     for (let i = 0; i < 4; i++) {
       const plate = new THREE.Mesh(plateGeo, eggMat);
@@ -114,11 +76,11 @@ export class DrakkenCompendium extends ExhibitBase {
     this.projection.visible = false;
     this.group.add(this.projection);
 
-    // All five projection forms are built here. Building one per selection
+    // All five reference glyphs are built here. Building one per selection
     // allocated geometry and materials into the exhibit's scope every time a
     // visitor pressed a station, and kept growing for as long as they stayed.
-    for (const archetype of ARCHETYPES) {
-      const form = this.buildForm(archetype);
+    for (const station of DRAKKEN_REFERENCE_STATIONS) {
+      const form = this.buildGlyph(station);
       form.scale.setScalar(0.85);
       form.position.y = -0.4;
       form.visible = false;
@@ -126,9 +88,9 @@ export class DrakkenCompendium extends ExhibitBase {
       this.projections.push(form);
     }
 
-    // ── five archetype stations, arranged so the visitor walks the ring ──
-    const transforms = ringTransforms(ARCHETYPES.length, 4.6);
-    ARCHETYPES.forEach((archetype, i) => {
+    // ── five reference stations, arranged so the visitor walks the ring ──
+    const transforms = ringTransforms(DRAKKEN_REFERENCE_STATIONS.length, 4.6);
+    DRAKKEN_REFERENCE_STATIONS.forEach((reference, i) => {
       const station = new THREE.Group();
       const m = transforms[i];
       station.position.setFromMatrixPosition(m).add(new THREE.Vector3(0, 0, -3.4));
@@ -139,13 +101,13 @@ export class DrakkenCompendium extends ExhibitBase {
       const consoleGroup = buildConsole(scope, 0.58, 0.44, 0.98, this.standard(0x322b4d, { roughness: 0.7 }));
       station.add(consoleGroup);
 
-      // A representative silhouette standing on each station.
-      const specimen = this.buildForm(archetype);
-      specimen.position.y = 1.06;
-      specimen.scale.setScalar(0.5);
-      station.add(specimen);
+      // This is an abstract process glyph, deliberately not a specimen model.
+      const glyph = this.buildGlyph(reference);
+      glyph.position.y = 1.06;
+      glyph.scale.setScalar(0.5);
+      station.add(glyph);
 
-      const label = buildLabel(scope, archetype.name, 0.62);
+      const label = buildLabel(scope, reference.name, 0.62);
       label.position.set(0, 1.0, 0.24);
       label.rotation.x = -Math.PI / 2.1;
       station.add(label);
@@ -153,14 +115,14 @@ export class DrakkenCompendium extends ExhibitBase {
 
       this.control({
         object: consoleGroup,
-        label: `Open the Egg: ${archetype.name}`,
-        description: `${archetype.name} performs ${archetype.stage}. ${archetype.note}`,
+        label: `Open the Egg: ${reference.name}`,
+        description: `${reference.name} — ${reference.semanticType}. ${reference.note}`,
         activate: () => this.select(i),
       });
     });
 
     // Mother, at architectural scale, visible beyond the chamber.
-    const mother = this.buildForm(ARCHETYPES[2]);
+    const mother = this.buildGlyph(DRAKKEN_REFERENCE_STATIONS[4]);
     mother.scale.setScalar(3.4);
     mother.position.set(0, 6.4, -7.0);
     (mother.children as THREE.Mesh[]).forEach((child) => {
@@ -175,12 +137,12 @@ export class DrakkenCompendium extends ExhibitBase {
     scope.track(motherLabel.geometry);
   }
 
-  /** A silhouette built from the archetype's own numbers, not a generic blob. */
-  private buildForm(archetype: Archetype): THREE.Group {
+  /** A display glyph, never a claim about a Drakken's canon morphology. */
+  private buildGlyph(station: DrakkenReferenceStation): THREE.Group {
     const scope = this.ctx.scope;
-    const [radius, elongation, limbs, spines] = archetype.form;
+    const [radius, elongation, limbs, spines] = station.glyph;
     const group = new THREE.Group();
-    const mat = this.standard(archetype.colour, { roughness: 0.55, metalness: 0.2 });
+    const mat = this.standard(station.colour, { roughness: 0.55, metalness: 0.2 });
 
     const body = new THREE.Mesh(scope.track(new THREE.CapsuleGeometry(radius, radius * elongation, 6, 14)), mat);
     body.rotation.z = Math.PI / 2;
@@ -214,7 +176,7 @@ export class DrakkenCompendium extends ExhibitBase {
   }
 
   private select(index: number): void {
-    const archetype = ARCHETYPES[index];
+    const station = DRAKKEN_REFERENCE_STATIONS[index];
     if (this.selected === index) {
       this.selected = -1;
       this.ctx.announce('The Egg closes.');
@@ -226,7 +188,7 @@ export class DrakkenCompendium extends ExhibitBase {
     });
     this.projection.visible = true;
 
-    this.ctx.announce(`${archetype.name} — ${archetype.stage}. ${archetype.note}`);
+    this.ctx.announce(`${station.name} — ${station.semanticType}. ${station.note}`);
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
@@ -263,9 +225,9 @@ export class DrakkenCompendium extends ExhibitBase {
 
   protected override describeState(): string {
     if (this.selected < 0) {
-      return 'The Egg is closed. Five archetype stations surround it, one for each stage of the terraforming process.';
+      return 'The Egg is closed. Four canonical process references and one clearly marked taxonomy abstraction surround it.';
     }
-    const a = ARCHETYPES[this.selected];
-    return `The Egg is open on ${a.name}, which performs ${a.stage}. ${a.note}`;
+    const station = DRAKKEN_REFERENCE_STATIONS[this.selected];
+    return `The Egg is open on ${station.name}, a ${station.semanticType}. ${station.note}`;
   }
 }
