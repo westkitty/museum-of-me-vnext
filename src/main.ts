@@ -1,4 +1,5 @@
 import { App } from './app/App';
+import { EnvironmentDressing } from './world/EnvironmentDressing';
 
 function fail(message: string, detail?: unknown): never {
   console.error('[museum]', message, detail);
@@ -20,6 +21,12 @@ if (!canvas || !uiRoot || !a11yRoot) {
 let app: App;
 try {
   app = new App({ canvas, uiRoot, a11yRoot });
+
+  // Furnishing is deliberately layered on top of the already validated
+  // architecture. It shares the application ResourceScope, so all generated
+  // geometry and materials are disposed with the rest of the museum.
+  const environment = new EnvironmentDressing(app.scope).build();
+  app.scene.add(environment);
 } catch (err) {
   fail(
     'This museum needs WebGL 2, which this browser did not provide. The full text of every exhibit is still available in the accessible contents.',
