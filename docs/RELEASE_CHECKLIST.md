@@ -1,102 +1,83 @@
 # Release Gate
 
-The plan's §39 gate, checked item by item. Every ✅ names the evidence.
+The plan's §39 gate, checked against the current `release/v1.0.0` release candidate. Automated evidence and human/device evidence are deliberately kept separate.
 
 ## Architecture
 
 | Item | State | Evidence |
 |---|---|---|
-| No inaccessible intended public space | ✅ | `tests/traversal.test.ts` walks entrance → every wing → upper floor → Sanctuary → entrance against real collision, plus into and out of all 35 bays. Zero failures. |
-| No collision holes | ✅ | Same harness fails on "walked over a hole in the floor". Zero. |
-| No unintended traps | ✅ | Same harness fails on "blocked by geometry" measured as real progress toward the target. Zero. |
-| No visible voids | ✅ | Gradient sky dome follows the camera; scene fog matches its horizon colour. |
+| No inaccessible intended public space | ✅ | `tests/traversal.test.ts` walks entrance → every wing → upper floor → Sanctuary → entrance against real collision, plus into and out of all 35 bays. |
+| No collision holes | ✅ | The same harness fails on floor holes and route discontinuities. |
+| No unintended traps | ✅ | The same harness requires measurable progress through the mandatory visitor route. |
+| Exterior-to-interior continuity | ✅ | Spawn is on the Arrival Plaza, the garden path remains non-colliding, and automated traversal reaches the complete building without teleporting. |
 
 ## Exhibits
 
 | Item | State | Evidence |
 |---|---|---|
-| 35 / 35 pass | ✅ | `tests/exhibit-quality.test.ts` runs the per-exhibit gate over every one: physical presence, bay fit, described controls that change state, layered interpretation, reduced-motion usability, three clean streaming cycles, idempotent reset, no object outside its own group. |
-| 64 / 64 project mappings pass | ✅ | `npm run validate:mapping` — 35 exhibits, 64 project identities, each represented exactly once, no gaps and no duplicates. |
-| No exhibit still scaffolded | ✅ | `npm run validate:exhibits` — 35 / 35 bespoke. |
+| 35 / 35 visitor-facing exhibits pass | ✅ | `tests/exhibit-quality.test.ts` exercises physical presence, bay fit, controls, interpretation, reduced-motion behavior, reset, streaming cycles, and ownership boundaries. |
+| 64 / 64 project mappings pass | ✅ | `npm run validate:mapping` requires every project identity to be represented exactly once through the frozen 35-exhibit mapping. |
+| 35 / 35 bespoke implementations | ✅ | `npm run validate:exhibits`. |
+| Whole-museum QA report is complete | ✅ | `npm run qa` reports 35 exhibits, 64 project identities, 35 bespoke implementations, and requires the whole-museum guard suites. |
 
-## Assets
-
-| Item | State | Evidence |
-|---|---|---|
-| No missing assets | ✅ | Every asset is generated in the browser; `AssetManager.load` refuses any id without a manifest record. |
-| No unlicensed external assets | ✅ | There are no external assets. `npm run validate:assets` fails on any that appear. |
-| No runtime hotlinks | ✅ | Verified at runtime in the production build: **4 requests, all same-origin, zero external.** |
-
-## Privacy
+## Assets and privacy
 
 | Item | State | Evidence |
 |---|---|---|
-| No secrets | ✅ | `npm run validate:privacy` scans data, content and all exhibit source for credential signatures, tokens and key blobs. |
-| No private case data | ✅ | E21's situation and E35's investigation are invented for the museum and say so in the room. |
-| No credentials | ✅ | Privacy gate. |
-| No operational BigMac data | ✅ | E34 uses synthetic example hostnames throughout. The gate caught and rejected even a loopback IPv4 literal during development. |
+| No missing governed runtime assets | ✅ | Procedural assets are manifest-governed; `AssetManager.load` refuses unknown IDs and `npm run validate:assets` validates provenance/budgets. |
+| No runtime hotlinks | ✅ | Current release content is same-origin/procedural and the CSP forbids outbound connections. |
+| No secrets/private operational data | ✅ | `npm run validate:privacy` scans public content and exhibit source for credential/private-data signatures. |
+| Production artifact secret-file denylist | ✅ | `npm run verify:dist` rejects secret-like files in `dist/`. |
 
-## Accessibility
-
-| Item | State | Evidence |
-|---|---|---|
-| Keyboard path works | ✅ | `tests/accessibility.test.ts` — WASD moves, arrow keys look, turn rate independent of mouse sensitivity, whole collection reachable through the DOM mirror without walking. |
-| Readable accessible exhibit copies exist | ✅ | Browser: 35 exhibit buttons, 9,157 characters of interpretation in the mirror, plus a live description of the exhibit the visitor is standing in. |
-| Reduced-motion path works | ✅ | Per-exhibit gate exercises every control with motion off and requires the exhibit to stay describable. |
-| Touch path works | ✅ | `tests/accessibility.test.ts` — the stick drives the player, and pointer lock is never requested on touch. |
-
-## Runtime
+## Accessibility and input
 
 | Item | State | Evidence |
 |---|---|---|
-| No uncaught core-path exceptions | ✅ | Full 35-exhibit browser walkthrough: zero uncaught errors, zero unhandled rejections, zero console errors. |
-| Load/unload lifecycle stable | ✅ | `tests/lifecycle-memory.test.ts` — four full traversals, peak allocation does not creep, resting level stable, mounts balance unmounts. |
-| Quality tiers work | ✅ | Auto-detected at boot, overridable in settings, DPR capped on all three, low tier drops shadows and crowds. |
-| Audio graph and preferences | 🟨 | Implemented and static/unit paths are covered, but the local browser did not unlock AudioContext from its canvas gesture. Audible output requires a human browser/device check. |
-| Pointer-lock capture, look, and release | 🟨 | Implemented; the local browser did not grant lock, so keyboard/touch fallback is the only directly verified input path. A human browser check remains required. |
-| Absolute frame rate | 🟨 | Draw-call, light, residency, lifecycle, and bundle budgets are automated. Do not infer device FPS from throttled automation; measure on representative hardware. |
-| Browser E2E suite | ⬜ | `@playwright/test` is installed, but there is no committed Playwright configuration or browser test. `npm run test:e2e` is outside the release gate and currently discovers no E2E suite, so it provides no release evidence. |
+| Requested keyboard movement grammar | ✅ | W/Up forward, S/Down back, A/Left left, D/Right right; Q/E turn; Page Up/Page Down vertical look; Shift sprint; Space grounded one-shot jump; F/Enter interact. Unit/regression tests plus Chromium visitor-path gate. |
+| Complete keyboard-accessible collection | ✅ | The DOM mirror exposes all exhibit interpretation without requiring pointer lock; Chromium gate verifies representative access including Starsilk Universe and BigMac Backbone. |
+| Map and modal keyboard semantics | ✅ | SVG bays are keyboard activatable; rebuilt map content restores dialog focus so Escape/focus trapping continue to work. Browser regression covered. |
+| Reduced motion / high contrast / interface scaling | ✅ | Preference contracts are covered by regression tests; the Chromium gate exercises explicit reduced motion in the production build. |
+| Touch path | ✅ automated contract | Touch movement/look/interact fallbacks remain under the accessibility suite. A physical touch-device feel check is still optional human evidence. |
 
-## Deployment
+## Runtime and lifecycle
 
 | Item | State | Evidence |
 |---|---|---|
-| Production build succeeds | ✅ | `npm run build` — 2.9 MB shipped, against a 20 MB budget. |
-| Production build runs | ✅ | Served from `dist/` and walked: 35 exhibit hosts, streaming, interaction, lighting cap and zones all behave identically to dev. |
-| Asset host resolves | ✅ | No separate asset host is needed — see `docs/DEPLOYMENT.md`. All four requests resolve from the origin. |
-| Cache headers written | ✅ | `public/_headers`: immutable on hashed assets, must-revalidate on the shell, plus a CSP that forbids every outbound connection. |
-| Direct refresh works | ✅ | Verified against the production server. Preferences, journal visits, bookmarks, high contrast, interface scale and reduced motion all survive a refresh. |
-| **Production URL works** | ⬜ | **Blocked on one decision, not on engineering.** No hosting destination has been chosen and nothing has been published. See below. |
+| No uncaught core-path exceptions | ✅ | Canonical tests plus production Chromium visitor-path checks fail on page/console errors. |
+| Load/unload lifecycle stable | ✅ | Repeated traversal/lifecycle tests require bounded residency and balanced disposal. |
+| Persistent environment bounded | ✅ | Always-resident refinement systems are measured by explicit mesh/triangle/material/light/resource budgets and dispose to zero tracked resources. |
+| Quality tiers work | ✅ | Auto-detection, settings override, DPR limits, shadow/crowd reductions, and budget contracts are covered. |
+| Real production-browser boot + semantic visitor path | ✅ | Exact release head `8c1fa44185421be58ebbe197f6c5cadeaa6e7c26`: museum-gate run #174 passed both jobs; Chromium visitor-path suite 3/3 PASS. |
+| Production dependency surface | ✅ | Browser job runs `npm audit --omit=dev --audit-level=high`; current exact-head run passes. Development-tool audit findings are not represented as deployed dependency findings. |
+| Audio graph and preferences | 🟨 human check required | Static/unit behavior is covered, but audible output and subtitle agreement require a real browser/device. |
+| Pointer-lock capture/look/release/recapture feel | 🟨 human check required | Runtime implementation is present; actual device capture, Escape/loss recovery and recapture remain a human acceptance check. |
+| Representative-device FPS | 🟨 human check required | Draw-call/light/residency/lifecycle/bundle budgets are automated. CI software rendering is not representative hardware performance. |
 
-## The one remaining action
+## Production artifact
 
-> **Choose a hosting destination and authorise publication.**
-
-Everything else is done. `dist/` is a complete, validated, self-contained
-artifact; the headers, CSP and a manual-only Pages workflow are in place; and
-`docs/DEPLOYMENT.md` has the exact steps for Cloudflare Pages or GitHub Pages.
-
-This project has deliberately not published anything. Publishing makes the
-documentation of sixty-four projects public, and that is the owner's call.
+| Item | State | Evidence |
+|---|---|---|
+| Production build succeeds | ✅ | `npm run build` inside the canonical gate. |
+| Hashed JS/CSS and multiple production chunks | ✅ | `npm run verify:dist`. |
+| Static security/cache policy emitted | ✅ source + build | `public/_headers` is copied into `dist/_headers`; `verify:dist` requires the CSP, frame denial, `nosniff`, and immutable hashed-asset caching. |
+| Release runbook prepared | ✅ | `docs/RELEASE_RUNBOOK.md`. |
+| Human visual/device QA | ⬜ | `validation/reports/HUMAN_QA_CHECKLIST.md` has not been completed on a representative device. |
+| Hosted production verification | ⬜ | No production deployment has been authorized or performed. |
 
 ## Git state
 
 | Branch | Role |
 |---|---|
-| `main` | current remote default branch and PR #1 base. |
+| `main` | remote default branch and PR #1 base; intentionally not treated as the current implementation baseline before merge. |
 | `feat/foundation` | historical implementation lineage. |
 | `release/v1.0.0` | current release branch and PR #1 head. |
 
-PR #1 is open from `release/v1.0.0` to `main`. It has not been merged.
+PR #1 remains open from `release/v1.0.0` to `main`. No merge, auto-merge, release tag, or publication is implied by a green automated gate.
 
-## The remaining actions, exactly
+## Remaining actions, exactly
 
-1. Complete the human browser/device checks for audible audio, pointer lock,
-   and representative-device FPS.
-2. Review and merge PR #1 when its required GitHub checks are green.
-3. **Choose a hosting destination and authorise publication.** See
-   `docs/DEPLOYMENT.md`.
-4. Tag `v1.0.0` only after the merge decision.
-
-The automated gate is the CI authority; the listed browser/device checks remain
-manual evidence requirements.
+1. Complete the human browser/device checklist: recorded visual route, pointer-lock recovery/recapture, audible audio/subtitle agreement, and representative-device FPS.
+2. Repair only issues actually observed by that pass, then rerun the exact-head automated gates if code changes.
+3. Make an explicit owner decision to merge PR #1 and authorize a hosting destination/publication.
+4. Deploy the resulting reviewed `main` commit and verify the real hosted URL/headers/cache behavior.
+5. Tag the verified deployed commit as `v1.0.0`; do not tag a known-bad or merely pre-deploy commit.
