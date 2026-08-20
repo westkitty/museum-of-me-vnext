@@ -35,6 +35,11 @@ export function clear(node: Element): void {
   while (node.firstChild) node.removeChild(node.firstChild);
 }
 
+/** Enter and Space are the activation keys for custom button-like surfaces. */
+export function isActivationKey(event: Pick<KeyboardEvent, 'key'>): boolean {
+  return event.key === 'Enter' || event.key === ' ';
+}
+
 /** Trap focus inside a modal so keyboard visitors cannot fall out of it. */
 export function trapFocus(container: HTMLElement): () => void {
   const selector =
