@@ -1,6 +1,7 @@
 import { App } from './app/App';
 import { EnvironmentDressing } from './world/EnvironmentDressing';
 import { ExhibitThresholds } from './world/ExhibitThresholds';
+import { WingIdentity } from './world/WingIdentity';
 
 function fail(message: string, detail?: unknown): never {
   console.error('[museum]', message, detail);
@@ -28,6 +29,11 @@ try {
   // geometry and materials are disposed with the rest of the museum.
   const environment = new EnvironmentDressing(app.scope).build();
   app.scene.add(environment);
+
+  // Wing identity carries colour and shape language from the neutral Rotunda
+  // through each threshold, making every area recognisable before text is read.
+  const wingIdentity = new WingIdentity(app.scope).build();
+  app.scene.add(wingIdentity);
 
   // Exhibit thresholds inherit their colour signatures from the containing
   // wing rather than becoming thirty-five unrelated palettes.
