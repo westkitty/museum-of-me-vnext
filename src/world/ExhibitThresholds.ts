@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
-import { PLACEMENTS, WING_BY_ID, faceDirection, rightOf, type Vec3, type WingId } from './layout';
+import type { WingId } from '../content/types';
+import { PLACEMENTS, WING_BY_ID, faceDirection, rightOf, type Vec3 } from './layout';
 
 const FAMILY: Record<WingId, readonly number[]> = {
   north: [0x8176d9, 0x9e91ef, 0x566bd6, 0xc2a6e8],
@@ -37,7 +38,6 @@ export class ExhibitThresholds {
       const y = wing.floorY;
       const sign = placement.side === 'right' ? 1 : -1;
 
-      // Vertical colour blades sit on the hall wall immediately beside the bay.
       for (const edge of [-1, 1]) {
         const offset = edge * (wing.bayOpening / 2 + 0.36);
         const at: Vec3 = [
@@ -55,8 +55,6 @@ export class ExhibitThresholds {
         this.group.add(blade);
       }
 
-      // A thin header joins the blades. It is intentionally subtle: exhibit
-      // hero objects remain the content, while architecture communicates place.
       const header = new THREE.Mesh(
         this.scope.track(new THREE.BoxGeometry(wing.bayOpening + 0.7, 0.18, 0.2)),
         primaryMat,
