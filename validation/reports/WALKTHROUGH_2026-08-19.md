@@ -52,6 +52,15 @@ on both levels. Re-walked afterwards: 35 / 35 active, zero errors.
 | Dexter Sanctuary, wide | resting platform under a single shaft from the oculus, benches around the edge, inscription panel. Nothing else in the room. |
 | Dexter Sanctuary, close | tricolour Phalène at rest: white ground, black saddle and mask split by a white blaze, plumed tail carried over the back, and the long hanging fringed ears the variety is named for |
 
+## A note on the evidence format
+
+The plan asks for a screen recording. The browser surface available here cannot
+capture video, so this walkthrough produced still frames at each of the views
+listed above instead, alongside the machine-readable runtime results in the
+table at the top. The stills and the runtime results together cover what a
+recording would have shown; a human reviewer walking the museum would still be
+worth doing before publication.
+
 ## Not covered by this walkthrough
 
 - **Absolute frame rate.** The automation surface throttles `requestAnimationFrame`
