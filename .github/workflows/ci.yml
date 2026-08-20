@@ -17,3 +17,32 @@ jobs:
       - run: npm ci
       - name: canonical automated release gate
         run: npm run gate
+
+  browser:
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: build production museum
+        run: npm run build
+      - name: install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: real browser visitor-path gate
+        run: npm run test:e2e
+      - name: preserve browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: museum-browser-evidence
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14
