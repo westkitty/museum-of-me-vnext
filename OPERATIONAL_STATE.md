@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 23,
+  "state_revision": 24,
   "last_updated": "2026-08-20",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -25,7 +25,8 @@
 - Arrival garden + bright daylight: run #60 PASS.
 - Bright baseline-zero Rotunda/balcony, coherent wing palettes, facade/vestibule welcome layer, plants/seating/hall furnishing, all 35 exhibit accent frames, six wing threshold/motif identities: run #84 PASS.
 - Per-wing emissive hall fixtures and wall inlays: run #92 PASS.
-- Stronger garden-facing facade identity through `ExteriorIdentity.ts`: canonical run #104 PASS.
+- Stronger garden-facing facade identity through `ExteriorIdentity.ts`: run #104 PASS.
+- Three-phase environmental expansion — wing-specific furnishings, Rotunda route threads, and all-35 exhibit colour fields: canonical run #114 PASS.
 
 ## 3. Active invariants
 
@@ -38,8 +39,8 @@
 - Controls remain W/Up, S/Down, A/Left, D/Right, Q/E rotate, Shift sprint, Space grounded one-shot jump, F/Enter interact.
 - Start remains outside on Arrival Plaza facing the museum.
 - Rotunda/balcony remain bright neutral baseline-zero spaces.
-- Every major wing owns a coherent palette plus non-text shape identity.
-- Exhibit accents and interior colour fields derive from containing-wing palettes.
+- Every major wing owns a coherent palette plus non-text shape and furnishing identity.
+- Exhibit threshold accents and interior colour fields derive from containing-wing palettes.
 - Environmental overlays and authored furnishings remain non-colliding and may not narrow mandatory routes.
 - Decorative atmosphere uses emissive geometry rather than extra dynamic scene lights.
 - Rotunda wayfinding colour begins outside the neutral centre rather than recolouring the hub itself.
@@ -57,14 +58,13 @@
 - Exhibit-derived threshold accent frames.
 - Emissive per-wing atmosphere.
 - Strengthened public-building facade identity.
+- Two authored, palette-derived furnishing/sculptural stations in each of the six wings.
+- Palette-derived Rotunda/balcony floor threads, medallions and ticks toward all six wing thresholds.
+- Deterministic wing-derived floor fields, complementary backdrops and rails inside all 35 exhibit bays.
 
-### Implemented but unverified — current three-phase batch
+### Implemented but unverified
 
-1. `WingFurnishings.ts` adds two authored, palette-derived, non-colliding furnishing/sculptural stations per wing, with different form languages for north/east/south/west/media/infra.
-2. `RotundaWayfinding.ts` adds thin palette-derived floor threads, medallions and ticks from the neutral Rotunda/balcony toward all six wing thresholds without adding lights or collision.
-3. `ExhibitColorFields.ts` adds deterministic wing-derived low floor fields, complementary backdrops and rails inside all 35 exhibit bays while leaving bespoke exhibit hero objects untouched.
-
-Runtime wiring and environment regressions for all three phases are committed. Canonical gate #114 is currently running against the three-phase head.
+- None in the current code batch. Remaining uncertainty is perceptual/human-browser evidence rather than source or automated-gate status.
 
 ## 5. Known not working / superseded
 
@@ -86,10 +86,9 @@ Runtime wiring and environment regressions for all three phases are committed. C
 
 ## 7. Pending work
 
-1. Reconcile canonical gate #114 for the three-phase head; repair any concrete regression before further expansion.
-2. Direct browser walkthrough: garden → vestibule → Rotunda → all six wings → representative exhibit bays.
-3. Tune clipping/exposure/density only from observed runtime evidence.
-4. Add further furniture only where runtime still reads empty.
+1. Direct browser walkthrough: garden → vestibule → Rotunda → all six wings → representative exhibit bays.
+2. Tune clipping/exposure/density only from observed runtime evidence.
+3. Add further furniture only where runtime still reads empty.
 
 ## 8. Active decisions / prohibitions
 
@@ -112,10 +111,10 @@ Runtime wiring and environment regressions for all three phases are committed. C
 | Furnishing / welcome / exhibit accents / wing identity | verified-automated | run #84 PASS |
 | Wing emissive atmosphere | verified-automated | run #92 PASS |
 | Stronger garden-facing facade identity | verified-automated | run #104 PASS |
-| Distinct authored furnishings in all six wings | implemented-unverified | source + environment regression; gate #114 running |
-| Palette-derived Rotunda route threads to all six wings | implemented-unverified | source + environment regression; gate #114 running |
-| Wing-derived colour fields in all 35 exhibit bays | implemented-unverified | source + environment regression; gate #114 running |
-| Full newest-head core gate | pending | run #114 in progress |
+| Distinct authored furnishings in all six wings | verified-automated | run #114 PASS |
+| Palette-derived Rotunda route threads to all six wings | verified-automated | run #114 PASS |
+| Wing-derived colour fields in all 35 exhibit bays | verified-automated | run #114 PASS |
+| Full current runtime-code core gate | verified-automated | run #114 PASS |
 
 ## 10. Current change scope
 
@@ -123,7 +122,8 @@ Visual/environment refinement only. Layout, collision, controls, exhibit contrac
 
 ## 11. Compact revision log
 
-- **r23 — 2026-08-20:** Promoted exterior facade identity via canonical run #104. Implemented three additional visual phases: wing-specific authored furnishings, neutral-hub Rotunda wayfinding threads, and wing-derived interior colour fields for all 35 exhibit bays. Added runtime wiring and regressions; canonical gate #114 running.
+- **r24 — 2026-08-20:** Promoted the three-phase environmental expansion to automated-verified via canonical run #114. Remaining gaps are direct visual/browser/device evidence only.
+- **r23 — 2026-08-20:** Implemented wing-specific authored furnishings, neutral-hub Rotunda wayfinding threads, and wing-derived interior colour fields for all 35 exhibit bays; added runtime wiring and regressions.
 - **r22 — 2026-08-20:** Added non-colliding garden-facing facade identity; subsequently verified by run #104.
 - **r21 — 2026-08-20:** Promoted WingAtmosphere via run #92.
 - **r20 — 2026-08-20:** Promoted baseline/furnishing/exhibit/wing identity via run #84.
