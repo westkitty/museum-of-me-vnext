@@ -7,8 +7,9 @@ export const PLAYER_RADIUS = 0.35;
 export const PLAYER_HEIGHT = 1.78;
 export const EYE_HEIGHT = 1.64;
 
-const WALK_SPEED = 3.4;
-const RUN_SPEED = 6.2;
+export const WALK_SPEED = 3.4;
+export const RUN_SPEED = 6.2;
+export const JUMP_SPEED = 7.2;
 const ACCEL = 34;
 const FRICTION = 14;
 const GRAVITY = 22;
@@ -32,6 +33,8 @@ export class PlayerController {
   private readonly prevPosition = new THREE.Vector3();
   private readonly prevYaw = { v: 0 };
   private readonly prevPitch = { v: 0 };
+  /** A jump press is consumed by the next fixed step. */
+  private jumpQueued = false;
 
   /** Set while a scripted move (map wayfinding, reset) owns the player. */
   private frozen = false;
@@ -39,7 +42,11 @@ export class PlayerController {
   constructor(
     private readonly world: CollisionWorld,
     private readonly input: InputManager,
-  ) {}
+  ) {
+    this.input.on('jump', () => {
+      if (!this.frozen && !this.input.uiCaptured) this.jumpQueued = true;
+    });
+  }
 
   teleport(p: Vec3, yaw = this.yaw): void {
     this.position.set(p[0], p[1], p[2]);
@@ -47,14 +54,18 @@ export class PlayerController {
     this.velocity.set(0, 0, 0);
     this.yaw = yaw;
     this.prevYaw.v = yaw;
+    this.jumpQueued = false;
   }
 
   setFrozen(frozen: boolean): void {
     this.frozen = frozen;
-    if (frozen) this.velocity.set(0, 0, 0);
+    if (frozen) {
+      this.velocity.set(0, 0, 0);
+      this.jumpQueued = false;
+    }
   }
 
-  /** Mouse look. Applied once per frame from real deltas, not fixed steps. */
+  /** Mouse/keyboard/touch look. Applied once per frame from real deltas. */
   applyLook(dx: number, dy: number, sensitivity: number, invertY: boolean): void {
     if (this.frozen) return;
     this.yaw -= dx * LOOK_SCALE * sensitivity;
@@ -71,7 +82,7 @@ export class PlayerController {
     this.prevPitch.v = this.pitch;
     if (this.frozen) return;
 
-    // ── desired horizontal motion in world space ──
+    // -- desired horizontal motion in world space --
     let ix = 0;
     let iz = 0;
     if (this.input.isDown('forward')) iz -= 1;
@@ -95,12 +106,12 @@ export class PlayerController {
       iz /= len;
       const sin = Math.sin(this.yaw);
       const cos = Math.cos(this.yaw);
-      // Forward is −Z rotated by yaw.
+      // Forward is -Z rotated by yaw.
       wishX = (ix * cos - iz * sin) * speed;
       wishZ = (ix * sin + iz * cos) * speed;
     }
 
-    // ── accelerate toward the wish velocity, then apply friction ──
+    // -- accelerate toward the wish velocity, then apply friction --
     this.velocity.x = approach(this.velocity.x, wishX, ACCEL * dt);
     this.velocity.z = approach(this.velocity.z, wishZ, ACCEL * dt);
     if (len === 0) {
@@ -111,7 +122,7 @@ export class PlayerController {
     this.position.x += this.velocity.x * dt;
     this.position.z += this.velocity.z * dt;
 
-    // ── horizontal depenetration ──
+    // -- horizontal depenetration --
     const p = { x: this.position.x, y: this.position.y, z: this.position.z };
     if (this.world.resolveHorizontal(p, PLAYER_RADIUS, PLAYER_HEIGHT)) {
       // Cancel velocity into the surface so we slide rather than stick.
@@ -131,7 +142,16 @@ export class PlayerController {
       this.position.z = p.z;
     }
 
-    // ── vertical: support query, then gravity ──
+    // -- vertical: jump, then gravity and support --
+    if (this.jumpQueued) {
+      if (this.grounded) {
+        this.velocity.y = JUMP_SPEED;
+        this.grounded = false;
+      }
+      // A press is one attempt. Holding Space cannot auto-bunny-hop on landing.
+      this.jumpQueued = false;
+    }
+
     this.velocity.y -= GRAVITY * dt;
     this.position.y += this.velocity.y * dt;
 
@@ -182,7 +202,7 @@ export class PlayerController {
     camera.rotation.z = 0;
   }
 
-  /** Eye position at the current fixed step — used for raycasts and zone tests. */
+  /** Eye position at the current fixed step -- used for raycasts and zone tests. */
   get eyePosition(): Vec3 {
     return [this.position.x, this.position.y + EYE_HEIGHT, this.position.z];
   }

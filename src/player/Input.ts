@@ -5,26 +5,27 @@
 export type Action =
   | 'forward' | 'back' | 'left' | 'right'
   | 'lookLeft' | 'lookRight' | 'lookUp' | 'lookDown'
-  | 'run' | 'interact' | 'map' | 'journal'
+  | 'run' | 'jump' | 'interact' | 'map' | 'journal'
   | 'settings' | 'diagnostics' | 'accessibility';
 
 /**
- * WASD moves, arrow keys look. Separating them means the museum is fully
- * playable with a keyboard alone — no mouse and no pointer lock required —
- * which is the difference between "accessible" and "accessible if you can use
- * a mouse".
+ * Directional keys are movement. WASD and the arrow cluster are deliberately
+ * redundant so either hand can drive the visitor. Q/E provide keyboard yaw;
+ * PageUp/PageDown retain keyboard-only vertical look without stealing arrows
+ * from movement. Mouse/touch look remain available in parallel.
  */
 const BINDINGS: Record<string, Action> = {
-  KeyW: 'forward',
-  KeyS: 'back',
-  KeyA: 'left',
-  KeyD: 'right',
-  ArrowLeft: 'lookLeft',
-  ArrowRight: 'lookRight',
-  ArrowUp: 'lookUp',
-  ArrowDown: 'lookDown',
+  KeyW: 'forward', ArrowUp: 'forward',
+  KeyS: 'back', ArrowDown: 'back',
+  KeyA: 'left', ArrowLeft: 'left',
+  KeyD: 'right', ArrowRight: 'right',
+  KeyQ: 'lookLeft',
+  KeyE: 'lookRight',
+  PageUp: 'lookUp',
+  PageDown: 'lookDown',
   ShiftLeft: 'run', ShiftRight: 'run',
-  KeyE: 'interact', Enter: 'interact',
+  Space: 'jump',
+  KeyF: 'interact', Enter: 'interact',
   KeyM: 'map',
   KeyJ: 'journal',
   KeyO: 'settings',
@@ -36,7 +37,9 @@ const BINDINGS: Record<string, Action> = {
 export const KEYBOARD_LOOK_SPEED = 110;
 
 /** Actions that fire once per press rather than being held. */
-const EDGE_ACTIONS = new Set<Action>(['interact', 'map', 'journal', 'settings', 'diagnostics', 'accessibility']);
+const EDGE_ACTIONS = new Set<Action>([
+  'jump', 'interact', 'map', 'journal', 'settings', 'diagnostics', 'accessibility',
+]);
 
 function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;
@@ -53,7 +56,7 @@ export class InputManager {
   /** Touch look delta, in the same units as the mouse delta. */
   touchDeltaX = 0;
   touchDeltaY = 0;
-  /** Virtual stick, −1..1 on each axis. Zero when no touch is active. */
+  /** Virtual stick, -1..1 on each axis. Zero when no touch is active. */
   touchMoveX = 0;
   touchMoveY = 0;
   /** True once any touch has been seen; switches the HUD to touch affordances. */
@@ -182,7 +185,7 @@ export class InputManager {
     if (!this.pointerLocked) this.requestPointerLock();
   };
 
-  // ── touch: left half is a virtual stick, right half looks ──
+  // -- touch: left half is a virtual stick, right half looks --
   private moveTouchId: number | null = null;
   private lookTouchId: number | null = null;
   private moveOrigin = { x: 0, y: 0 };

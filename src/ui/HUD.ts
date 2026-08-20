@@ -25,7 +25,7 @@ export class HUD {
   constructor(onRequestLock: () => void) {
     this.reticle = el('div', { class: 'hud__reticle' });
     this.cueLabel = el('span', {});
-    this.cue = el('div', { class: 'hud__cue' }, el('kbd', { text: 'E' }), this.cueLabel);
+    this.cue = el('div', { class: 'hud__cue' }, el('kbd', { text: 'F' }), this.cueLabel);
     this.location = el('div', { class: 'hud__location' });
     this.subtitle = el('div', { class: 'hud__subtitle', role: 'status', 'aria-live': 'polite' });
     this.hints = el(
@@ -39,8 +39,8 @@ export class HUD {
       'div',
       { class: 'hud__lock', onclick: onRequestLock },
       el('h2', { text: 'Museum of Me' }),
-      el('p', { text: 'Click to enter. WASD to walk, mouse or the arrow keys to look, E to interact.' }),
-      el('p', { text: 'No mouse? The arrow keys look and the whole museum works from the keyboard alone.' }),
+      el('p', { text: 'Click to enter. WASD or arrow keys move, mouse looks, Q/E rotate, Shift sprints, Space jumps, F interacts.' }),
+      el('p', { text: 'No mouse? Q/E turn and Page Up/Page Down look vertically; the whole museum remains keyboard-usable.' }),
       el('p', { text: 'Press H at any time for the full text of every exhibit.' }),
     );
 

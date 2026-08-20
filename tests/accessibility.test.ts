@@ -63,48 +63,112 @@ function key(code: string, down = true): void {
   );
 }
 
+function flatWorld(): CollisionWorld {
+  const world = new CollisionWorld();
+  world.addFloor(-50, 50, -50, 50, 0);
+  return world;
+}
+
+function distanceAfter(code: string, shift = false): number {
+  const player = new PlayerController(flatWorld(), input);
+  player.teleport([0, 0, 0]);
+  key(code);
+  if (shift) key('ShiftLeft');
+  for (let i = 0; i < 60; i++) player.fixedUpdate(1 / 60);
+  return Math.hypot(player.position.x, player.position.z);
+}
+
 describe('keyboard-only operation', () => {
-  it('separates movement from looking so no mouse is needed', () => {
+  it('maps WASD and arrows to the same directional movement actions', () => {
     key('KeyW');
+    key('ArrowUp');
     expect(input.isDown('forward')).toBe(true);
+    key('KeyA');
     key('ArrowLeft');
-    expect(input.isDown('lookLeft'), 'arrow keys must look, not move').toBe(true);
-    expect(input.isDown('left'), 'arrow keys must not double as movement').toBe(false);
+    expect(input.isDown('left')).toBe(true);
+    expect(input.isDown('lookLeft'), 'arrow keys must move, not rotate').toBe(false);
   });
 
-  it('turns at a sensitivity-independent rate', () => {
-    key('ArrowRight');
+  it('uses Q/E for sensitivity-independent keyboard rotation', () => {
+    key('KeyE');
     const slow = input.keyboardLook(1 / 60, 0.4);
     const fast = input.keyboardLook(1 / 60, 2.4);
-    // The controller multiplies by sensitivity, so the raw delta must divide it
-    // back out — otherwise a mouse setting would change keyboard turn speed.
     expect(slow.dx * 0.4).toBeCloseTo(fast.dx * 2.4, 6);
     expect(slow.dx).toBeGreaterThan(0);
   });
 
-  it('actually turns the player when only the keyboard is used', () => {
-    const world = new CollisionWorld();
-    world.addFloor(-50, 50, -50, 50, 0);
-    const player = new PlayerController(world, input);
+  it('actually rotates left and right with Q/E', () => {
+    const player = new PlayerController(flatWorld(), input);
     const before = player.yaw;
-    key('ArrowRight');
+    key('KeyE');
     for (let i = 0; i < 60; i++) {
       const look = input.keyboardLook(1 / 60, 1);
       player.applyLook(look.dx, look.dy, 1, false);
     }
-    const turned = Math.abs(player.yaw - before);
-    // One second of held turn should be about the declared degrees per second.
-    expect((turned * 180) / Math.PI).toBeGreaterThan(KEYBOARD_LOOK_SPEED * 0.7);
+    expect((Math.abs(player.yaw - before) * 180) / Math.PI)
+      .toBeGreaterThan(KEYBOARD_LOOK_SPEED * 0.7);
+
+    key('KeyE', false);
+    const afterRight = player.yaw;
+    key('KeyQ');
+    for (let i = 0; i < 60; i++) {
+      const look = input.keyboardLook(1 / 60, 1);
+      player.applyLook(look.dx, look.dy, 1, false);
+    }
+    expect(player.yaw).toBeGreaterThan(afterRight);
   });
 
-  it('walks with WASD alone', () => {
-    const world = new CollisionWorld();
-    world.addFloor(-50, 50, -50, 50, 0);
-    const player = new PlayerController(world, input);
+  it('retains keyboard-only vertical look on PageUp/PageDown', () => {
+    key('PageUp');
+    expect(input.keyboardLook(1 / 60, 1).dy).toBeLessThan(0);
+    key('PageUp', false);
+    key('PageDown');
+    expect(input.keyboardLook(1 / 60, 1).dy).toBeGreaterThan(0);
+  });
+
+  it('walks forward with W and Up Arrow', () => {
+    const wDistance = distanceAfter('KeyW');
+    key('KeyW', false);
+    const arrowDistance = distanceAfter('ArrowUp');
+    expect(wDistance).toBeGreaterThan(1);
+    expect(arrowDistance).toBeCloseTo(wDistance, 5);
+  });
+
+  it('Shift produces a materially faster sprint', () => {
+    const walk = distanceAfter('KeyW');
+    key('KeyW', false);
+    const sprint = distanceAfter('KeyW', true);
+    expect(sprint).toBeGreaterThan(walk * 1.5);
+  });
+
+  it('jumps from the ground on Space and does not auto-repeat while held', () => {
+    const player = new PlayerController(flatWorld(), input);
     player.teleport([0, 0, 0]);
-    key('KeyW');
-    for (let i = 0; i < 60; i++) player.fixedUpdate(1 / 60);
-    expect(player.position.z, 'W did not move the visitor forward').toBeLessThan(-1);
+    player.fixedUpdate(1 / 60); // establish ground support
+    expect(player.grounded).toBe(true);
+
+    key('Space');
+    player.fixedUpdate(1 / 60);
+    expect(player.position.y).toBeGreaterThan(0);
+    expect(player.velocity.y).toBeGreaterThan(0);
+
+    // Hold Space through landing. It must not immediately launch again.
+    for (let i = 0; i < 180; i++) player.fixedUpdate(1 / 60);
+    expect(player.grounded).toBe(true);
+    expect(player.position.y).toBeCloseTo(0, 5);
+  });
+
+  it('uses F and Enter for interaction, leaving E exclusively for rotate-right', () => {
+    const interact = vi.fn();
+    input.on('interact', interact);
+    key('KeyE');
+    expect(interact).not.toHaveBeenCalled();
+    key('KeyE', false);
+    key('KeyF');
+    expect(interact).toHaveBeenCalledTimes(1);
+    key('KeyF', false);
+    key('Enter');
+    expect(interact).toHaveBeenCalledTimes(2);
   });
 
   it('never steals keys from a text field', () => {
@@ -162,9 +226,7 @@ describe('touch-only operation', () => {
   });
 
   it('drives the player from the touch stick alone', () => {
-    const world = new CollisionWorld();
-    world.addFloor(-50, 50, -50, 50, 0);
-    const player = new PlayerController(world, input);
+    const player = new PlayerController(flatWorld(), input);
     player.teleport([0, 0, 0]);
     canvas.fire('touchstart', {
       changedTouches: [{ identifier: 1, clientX: 200, clientY: 400 }],

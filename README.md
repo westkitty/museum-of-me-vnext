@@ -13,8 +13,9 @@ npm install
 npm run dev
 ```
 
-Then walk in. `WASD` move · mouse look · `Shift` faster · `E` interact · `M` map · `J` journal ·
-`Esc` release pointer.
+Then walk in. `WASD` or `arrows` move · mouse look · `Q/E` rotate · `Shift` sprint · `Space` jump ·
+`F` or `Enter` interact · `M` map · `J` journal · `Esc` release pointer. Keyboard-only vertical look
+uses `Page Up/Page Down`.
 
 ## Validate it
 
@@ -46,11 +47,10 @@ All fourteen phases of the governing build plan are complete. Thirty-five
 bespoke exhibits represent 64 project identities exactly once; traversal and
 lifecycle gates are automated through the canonical release gate.
 
-One thing remains, and it is a decision rather than engineering: **choose a
-hosting destination and authorise publication.** Nothing has been published —
-doing so makes sixty-four projects' documentation public, which is the owner's
-call. PR #1 is open from `release/v1.0.0` to `main`; `docs/RELEASE_CHECKLIST.md`
-also distinguishes automated proof from the remaining human browser/device checks.
+The current refinement work continues from `release/v1.0.0` without publishing the museum.
+Publication remains a separate owner decision because it exposes the documentation of sixty-four
+projects publicly. `docs/RELEASE_CHECKLIST.md` distinguishes automated proof from the remaining
+human browser/device checks.
 
 ## Lineage
 
