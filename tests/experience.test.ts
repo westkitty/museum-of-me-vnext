@@ -5,7 +5,8 @@ import { AmbientVisitors } from '../src/world/AmbientVisitors';
 import { Sky } from '../src/world/Sky';
 import { ResourceScope } from '../src/assets/ResourceScope';
 import { QUALITY } from '../src/render/QualityTiers';
-import { PLACEMENT_BY_EXHIBIT, SPAWN_POSITION, type Vec3 } from '../src/world/layout';
+import { PLACEMENT_BY_EXHIBIT, type Vec3 } from '../src/world/layout';
+import { START_POSITION } from '../src/world/start';
 
 describe('wayfinding', () => {
   it('shows nothing until a target is chosen', () => {
@@ -16,17 +17,16 @@ describe('wayfinding', () => {
     scope.dispose();
   });
 
-  it('points from the entrance toward the chosen exhibit', () => {
+  it('points from the exterior start toward the chosen exhibit', () => {
     const scope = new ResourceScope('t');
     const w = new Wayfinding(scope);
     w.setTarget('E01');
-    w.update(1 / 60, SPAWN_POSITION, false);
+    w.update(1 / 60, START_POSITION, false);
     expect(w.group.visible).toBe(true);
 
-    // Every marker sits ahead of the visitor, on the floor, pointing north.
     for (const marker of w.group.children) {
-      expect(marker.position.y).toBeCloseTo(SPAWN_POSITION[1] + 0.06, 3);
-      expect(marker.position.z, 'marker is behind the visitor').toBeLessThan(SPAWN_POSITION[2]);
+      expect(marker.position.y).toBeCloseTo(START_POSITION[1] + 0.06, 3);
+      expect(marker.position.z, 'marker is behind the visitor').toBeLessThan(START_POSITION[2]);
     }
     scope.dispose();
   });
@@ -47,9 +47,9 @@ describe('wayfinding', () => {
     const scope = new ResourceScope('t');
     const w = new Wayfinding(scope);
     w.setTarget('E24');
-    w.update(1 / 60, SPAWN_POSITION, true);
+    w.update(1 / 60, START_POSITION, true);
     const first = w.group.children.map((c) => c.position.clone());
-    for (let i = 0; i < 30; i++) w.update(1 / 60, SPAWN_POSITION, true);
+    for (let i = 0; i < 30; i++) w.update(1 / 60, START_POSITION, true);
     w.group.children.forEach((c, i) => {
       expect(c.position.distanceTo(first[i])).toBeLessThan(1e-6);
     });
