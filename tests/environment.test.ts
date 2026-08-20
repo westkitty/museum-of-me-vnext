@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { ResourceScope } from '../src/assets/ResourceScope';
 import { EnvironmentDressing } from '../src/world/EnvironmentDressing';
 import { ExhibitThresholds } from '../src/world/ExhibitThresholds';
+import { ExteriorIdentity } from '../src/world/ExteriorIdentity';
 import { PLACEMENTS, WINGS } from '../src/world/layout';
 import { PaletteSet } from '../src/world/palette';
 import { Sky } from '../src/world/Sky';
@@ -46,6 +47,19 @@ describe('museum environment coherence', () => {
     expect(names.has('indoor-plant')).toBe(true);
     expect(names.has('interior-bench')).toBe(true);
     expect(names.has('hall-pedestal')).toBe(true);
+    scope.dispose();
+  });
+
+  it('strengthens the visible museum facade without replacing the real entrance', () => {
+    const scope = new ResourceScope('environment-test');
+    const exterior = new ExteriorIdentity(scope).build();
+    const names = new Set<string>();
+    exterior.traverse((node) => { if (node.name) names.add(node.name); });
+
+    expect(names.has('exterior-museum-identity')).toBe(true);
+    expect(names.has('arrival-facade-cornice')).toBe(true);
+    expect(names.has('arrival-facade-glazing')).toBe(true);
+    expect(names.has('arrival-facade-crest')).toBe(true);
     scope.dispose();
   });
 
