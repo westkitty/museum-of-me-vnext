@@ -10,6 +10,12 @@ import { TerraformingLaboratory } from './starsilk/TerraformingLaboratory';
 import { HeliocideObservatory } from './starsilk/HeliocideObservatory';
 import { WorldsVaultLineage } from './archive/WorldsVaultLineage';
 import { DexTilt } from './dex/DexTilt';
+import { VoiceLab } from './dex/VoiceLab';
+import { CompanionSystems } from './dex/CompanionSystems';
+import { UtilityBench } from './dex/UtilityBench';
+import { CivicSupport } from './dex/CivicSupport';
+import { CreativeTools } from './dex/CreativeTools';
+import { SensemakingLab } from './dex/SensemakingLab';
 import { DnDexTable } from './games/DnDexTable';
 import { SunoStudio } from './media/SunoStudio';
 import { COLLECTION } from '../content/collection.generated';
@@ -49,6 +55,14 @@ registerBespoke('E05', (def) => new StarsilkMaker(def));
 registerBespoke('E06', (def) => new FieldAnatomy(def));
 registerBespoke('E07', (def) => new TerraformingLaboratory(def));
 registerBespoke('E08', (def) => new HeliocideObservatory(def));
+
+// ── East wing: Dex Systems ──
+registerBespoke('E17', (def) => new VoiceLab(def));
+registerBespoke('E18', (def) => new CompanionSystems(def));
+registerBespoke('E20', (def) => new UtilityBench(def));
+registerBespoke('E21', (def) => new CivicSupport(def));
+registerBespoke('E22', (def) => new CreativeTools(def));
+registerBespoke('E23', (def) => new SensemakingLab(def));
 
 let installed = false;
 
