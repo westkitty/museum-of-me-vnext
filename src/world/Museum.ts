@@ -78,7 +78,7 @@ export class Museum {
 
     // Production dressing on geometry that is already proven traversable.
     // Nothing here moves a wall, so every traversal test stays valid.
-    new Detailing(this.scope, this.pal, this.kit).applyAll(this.zoneGroups);
+    new Detailing(this.scope, this.pal).applyAll(this.zoneGroups);
 
     // Collapse the static architecture into one mesh per material. Collision
     // was already recorded during construction, so this changes only how the

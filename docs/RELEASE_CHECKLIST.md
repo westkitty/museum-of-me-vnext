@@ -75,7 +75,24 @@ artifact; the headers, CSP and a manual-only Pages workflow are in place; and
 This project has deliberately not published anything. Publishing makes the
 documentation of sixty-four projects public, and that is the owner's call.
 
-## Tagging
+## Git state
 
-Tag `v1.0.0` once the above is decided and `main` carries the release merge.
-Everything the tag would certify is green today.
+| Branch | Role |
+|---|---|
+| `feat/foundation` | where all fourteen phases were built, commit by commit. Currently the repository's default branch. |
+| `release/v1.0.0` | this release. Identical content, branched for tagging. |
+
+**There is no `main`.** The repository was initialised with `main` as the
+starting branch name but the first commit was made on `feat/foundation`, so
+`main` was never born. Creating it, repointing the default branch, and tagging
+are repository-configuration decisions, and this project has not made them on
+the owner's behalf.
+
+## The remaining actions, exactly
+
+1. **Choose a hosting destination and authorise publication.** This is the only
+   one that is not mechanical. See `docs/DEPLOYMENT.md`.
+2. Establish `main` from `release/v1.0.0` and set it as the default branch.
+3. Tag `v1.0.0`.
+
+Everything those three steps would certify is green today.

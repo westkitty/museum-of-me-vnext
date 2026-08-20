@@ -47,6 +47,9 @@ export class RhetoricalIndex extends ExhibitBase {
   private binSlots = this.tracked<THREE.Vector3>();
   private revealed = false;
 
+  /** Reused every frame; allocating these per element churned the heap. */
+  private readonly scratchTarget = new THREE.Vector3();
+
   constructor(def: ExhibitDefinition) {
     super(def);
   }
@@ -183,9 +186,13 @@ export class RhetoricalIndex extends ExhibitBase {
 
     for (let i = 0; i < this.cards.length; i++) {
       const bin = this.sorted[i];
-      const target = bin < 0
-        ? this.homes[i]
-        : this.binSlots[bin].clone().add(new THREE.Vector3(0, counts[bin]++ * 0.03, 0));
+      let target: THREE.Vector3;
+      if (bin < 0) {
+        target = this.homes[i];
+      } else {
+        target = this.scratchTarget.copy(this.binSlots[bin]);
+        target.y += counts[bin]++ * 0.03;
+      }
       this.cards[i].position.lerp(target, rate);
 
       // Under the reveal, a correct classification lifts slightly.

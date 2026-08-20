@@ -157,6 +157,27 @@ describe(`per-exhibit gate (${BESPOKE.length} bespoke exhibits)`, () => {
     host.dispose();
   });
 
+  it.each(BESPOKE)('%s — repeated reset allocates nothing', async (id) => {
+    // A reset that clears a cached material or geometry, and an update that
+    // lazily rebuilds it, leaks one resource per cycle into the exhibit's
+    // scope. Nothing may be allocated in the frame loop.
+    const { host, captured } = await live(id);
+    for (let i = 0; i < 30; i++) host.update(1 / 60, [1, 1.6, 3], i / 60);
+    const settled = host.resourceCount;
+
+    for (let cycle = 0; cycle < 4; cycle++) {
+      for (const control of captured) control.activate();
+      for (let i = 0; i < 30; i++) host.update(1 / 60, [1, 1.6, 3], i / 60);
+      host.reset();
+      for (let i = 0; i < 30; i++) host.update(1 / 60, [1, 1.6, 3], i / 60);
+      expect(
+        host.resourceCount,
+        `cycle ${cycle} grew the scope from ${settled} to ${host.resourceCount}`,
+      ).toBe(settled);
+    }
+    host.dispose();
+  });
+
   it.each(BESPOKE)('%s — owns only its own group and no frame loop', async (id) => {
     const parent = new THREE.Group();
     const { host } = build(id);

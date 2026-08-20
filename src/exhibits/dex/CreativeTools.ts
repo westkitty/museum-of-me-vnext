@@ -35,6 +35,9 @@ export class CreativeTools extends ExhibitBase {
   private strokeCount = 0;
   private surface!: THREE.Mesh;
 
+  /** Reused every frame; allocating these per element churned the heap. */
+  private readonly scratchColour = new THREE.Color();
+
   constructor(def: ExhibitDefinition) {
     super(def);
   }
@@ -194,7 +197,7 @@ export class CreativeTools extends ExhibitBase {
 
     const t = TARGETS[this.target];
     const sm = this.surface.material as THREE.MeshStandardMaterial;
-    sm.emissive.lerp(new THREE.Color(t.colour), Math.min(1, dt * 3));
+    sm.emissive.lerp(this.scratchColour.setHex(t.colour), Math.min(1, dt * 3));
     sm.emissiveIntensity = 0.12 + (this.strokeCount / MAX_STROKES) * 0.2;
 
     if (!this.reducedMotion) {

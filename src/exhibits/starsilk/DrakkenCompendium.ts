@@ -58,6 +58,8 @@ export class DrakkenCompendium extends ExhibitBase {
   private projection!: THREE.Group;
   private forms = this.tracked<THREE.Group>();
   private stations = this.tracked<THREE.Group>();
+  /** One projection form per archetype, built once and shown by index. */
+  private projections = this.tracked<THREE.Group>();
   private selected = -1;
   private openAmount = 0;
 
@@ -111,6 +113,18 @@ export class DrakkenCompendium extends ExhibitBase {
     this.projection.position.copy(this.eggShell.position);
     this.projection.visible = false;
     this.group.add(this.projection);
+
+    // All five projection forms are built here. Building one per selection
+    // allocated geometry and materials into the exhibit's scope every time a
+    // visitor pressed a station, and kept growing for as long as they stayed.
+    for (const archetype of ARCHETYPES) {
+      const form = this.buildForm(archetype);
+      form.scale.setScalar(0.85);
+      form.position.y = -0.4;
+      form.visible = false;
+      this.projection.add(form);
+      this.projections.push(form);
+    }
 
     // ── five archetype stations, arranged so the visitor walks the ring ──
     const transforms = ringTransforms(ARCHETYPES.length, 4.6);
@@ -207,13 +221,9 @@ export class DrakkenCompendium extends ExhibitBase {
       return;
     }
     this.selected = index;
-
-    // Rebuild the projection's contents by reusing the station specimen forms.
-    this.projection.clear();
-    const form = this.buildForm(archetype);
-    form.scale.setScalar(0.85);
-    form.position.y = -0.4;
-    this.projection.add(form);
+    this.projections.forEach((form, i) => {
+      form.visible = i === index;
+    });
     this.projection.visible = true;
 
     this.ctx.announce(`${archetype.name} — ${archetype.stage}. ${archetype.note}`);
@@ -243,7 +253,7 @@ export class DrakkenCompendium extends ExhibitBase {
     this.selected = -1;
     this.openAmount = 0;
     if (this.projection) {
-      this.projection.clear();
+      for (const form of this.projections) form.visible = false;
       this.projection.visible = false;
       this.projection.rotation.set(0, 0, 0);
     }

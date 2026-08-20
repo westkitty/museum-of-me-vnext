@@ -135,8 +135,10 @@ export class Lighting {
     this.group.add(sanctuary);
     this.managed.push(sanctuary);
 
-    // Nothing here allocates a disposable resource, but keep the scope in the
-    // signature so lighting joins the same ownership discipline as everything else.
+    // Lights are not scope-tracked: their only disposable resource is the
+    // shadow map, which three allocates lazily at render time and which
+    // dispose() releases directly. The parameter is kept so lighting reads
+    // like every other subsystem at the call site.
     void scope;
   }
 
@@ -187,6 +189,13 @@ export class Lighting {
   }
 
   dispose(): void {
+    // A shadow-casting light allocates a WebGLRenderTarget lazily on first
+    // render. Clearing the group detaches it but never frees that target, so
+    // it has to be disposed explicitly.
+    this.group.traverse((node) => {
+      const shadow = (node as { shadow?: THREE.LightShadow }).shadow;
+      if (shadow?.dispose) shadow.dispose();
+    });
     this.group.removeFromParent();
     this.group.clear();
     this.bayLights.clear();

@@ -89,11 +89,10 @@ export class HeliocideObservatory extends ExhibitBase {
 
     const random = rng(80808);
     const starGeo = scope.track(new THREE.IcosahedronGeometry(0.05, 0));
+    // There is no "extinguished" material, deliberately. The canon rule is
+    // that the Siege Wall is an absence, so a star that goes out is removed
+    // from the sky rather than recoloured.
     const liveMat = this.emissive(0xf0f2ff, 1.5);
-    const deadMat = scope.track(new THREE.MeshStandardMaterial({
-      color: 0x0a0a12, roughness: 1, transparent: true, opacity: 0.0,
-    }));
-    this.deadMaterial = deadMat;
     this.liveMaterial = liveMat;
 
     for (const p of fibonacciSphere(this.scaled(STAR_COUNT), 7.4)) {
@@ -181,7 +180,6 @@ export class HeliocideObservatory extends ExhibitBase {
     });
   }
 
-  private deadMaterial!: THREE.Material;
   private liveMaterial!: THREE.Material;
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
@@ -226,7 +224,6 @@ export class HeliocideObservatory extends ExhibitBase {
       (l.material as THREE.MeshStandardMaterial).emissiveIntensity = li === 0 ? 1.4 : 0.08;
     });
     if (this.sky) this.sky.rotation.set(0, 0, 0);
-    void this.deadMaterial;
   }
 
   protected override describeState(): string {

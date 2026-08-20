@@ -41,6 +41,9 @@ export class ContinuitySystems extends ExhibitBase {
   private rejected = this.tracked<boolean>();
   private chain!: Filament;
 
+  /** Reused every frame; allocating these per element churned the heap. */
+  private readonly scratchTarget = new THREE.Vector3();
+
   constructor(def: ExhibitDefinition) {
     super(def);
   }
@@ -201,7 +204,9 @@ export class ContinuitySystems extends ExhibitBase {
     const rate = this.reducedMotion ? 1 : Math.min(1, dt * 4);
     for (let i = 0; i < this.blocks.length; i++) {
       const anchor = this.stageAnchors[this.stage[i]];
-      const target = anchor.clone().add(new THREE.Vector3((i - 1.5) * 0.24, 0.1, 0));
+      const target = this.scratchTarget.copy(anchor);
+      target.x += (i - 1.5) * 0.24;
+      target.y += 0.1;
       this.blocks[i].position.lerp(target, rate);
       // A rejected block visibly recoils at the gate.
       if (this.rejected[i] && !this.reducedMotion) {

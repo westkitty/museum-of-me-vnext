@@ -1,10 +1,9 @@
 import * as THREE from 'three';
-import { GeometryKit } from './GeometryKit';
 import { PaletteSet } from './palette';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { buildWingSign } from '../exhibits/Furniture';
 import { buildBench } from '../assets/generators';
-import { COLLECTION, WINGS_BY_ID, EXHIBITS_BY_ID } from '../content/collection.generated';
+import { WINGS_BY_ID, EXHIBITS_BY_ID } from '../content/collection.generated';
 import {
   WINGS, PLACEMENTS, OCTAGON_FACES, ROTUNDA_APOTHEM, LEVEL_1_Y, GROUND_Y,
   DOME_SPRING_Y, faceDirection, rightOf, place, VESTIBULE_TO, VESTIBULE_FROM,
@@ -23,15 +22,10 @@ const side = (a: number) => 2 * a * Math.tan(Math.PI / 8);
  * by construction rather than by re-verification.
  */
 export class Detailing {
-  private readonly kit: GeometryKit;
-
   constructor(
     private readonly scope: ResourceScope,
     private readonly pal: PaletteSet,
-    kit: GeometryKit,
-  ) {
-    this.kit = kit;
-  }
+  ) {}
 
   applyAll(parents: ReadonlyMap<string, THREE.Group>): void {
     this.detailRotunda(parents.get('rotunda')!);
@@ -323,7 +317,5 @@ export class Detailing {
     sign.rotation.y = Math.atan2(SANCTUARY_DIR[0], SANCTUARY_DIR[2]) + Math.PI;
     parent.add(sign);
     this.scope.track(sign.geometry);
-    void COLLECTION;
-    void this.kit;
   }
 }

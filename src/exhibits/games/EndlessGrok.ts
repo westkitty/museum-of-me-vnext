@@ -30,6 +30,10 @@ const TECHS: readonly Tech[] = [
 const NODE_COUNT = 34;
 const SEED = 33033;
 
+/** Reused every frame. Allocating these per node per frame churned the heap. */
+const CLAIMED_SCALE = new THREE.Vector3(1.5, 1.5, 1.5);
+const UNCLAIMED_SCALE = new THREE.Vector3(1, 1, 1);
+
 export class EndlessGrok extends ExhibitBase {
   private board!: THREE.Group;
   private nodes = this.tracked<THREE.Mesh>();
@@ -37,6 +41,8 @@ export class EndlessGrok extends ExhibitBase {
   private claimed = this.tracked<boolean>();
   private lanes = this.tracked<Filament>();
   private dial!: Dial;
+  private unclaimedMaterial!: THREE.MeshStandardMaterial;
+  private claimedMaterial!: THREE.MeshStandardMaterial;
   private tech = 0;
   private crisis = false;
 
@@ -83,10 +89,14 @@ export class EndlessGrok extends ExhibitBase {
     // ── deterministic galaxy from a fixed seed ──
     const random = rng(SEED);
     const nodeGeo = scope.track(new THREE.IcosahedronGeometry(0.07, 1));
-    const unclaimedMat = this.emissive(0x6a7a8a, 0.35);
+    // Both materials are built here, not lazily during update(). Allocating in
+    // the frame loop leaked one material into the exhibit's scope on every
+    // reset-then-claim cycle.
+    this.unclaimedMaterial = this.emissive(0x6a7a8a, 0.35);
+    this.claimedMaterial = this.emissive(TECHS[0].colour, 1.3);
     for (let i = 0; i < this.scaled(NODE_COUNT); i++) {
       const p = new THREE.Vector3((random() - 0.5) * 3.8, 0.09, (random() - 0.5) * 2.6);
-      const node = new THREE.Mesh(nodeGeo, unclaimedMat);
+      const node = new THREE.Mesh(nodeGeo, this.unclaimedMaterial);
       node.position.copy(p);
       this.board.add(node);
       this.nodes.push(node);
@@ -198,33 +208,39 @@ export class EndlessGrok extends ExhibitBase {
     const tech = TECHS[this.tech];
     const rate = this.reducedMotion ? 1 : Math.min(1, dt * 5);
 
+    this.claimedMaterial.emissive.setHex(tech.colour);
+
     for (let i = 0; i < this.nodes.length; i++) {
       const node = this.nodes[i];
-      const mat = node.material as THREE.MeshStandardMaterial;
       if (this.claimed[i]) {
-        node.material = this.claimedMaterial ?? (this.claimedMaterial = this.emissive(tech.colour, 1.3));
-        (node.material as THREE.MeshStandardMaterial).emissive.setHex(tech.colour);
-        node.scale.lerp(new THREE.Vector3(1.5, 1.5, 1.5), rate);
+        node.material = this.claimedMaterial;
+        node.scale.lerp(CLAIMED_SCALE, rate);
       } else {
-        node.scale.lerp(new THREE.Vector3(1, 1, 1), rate);
-        mat.emissiveIntensity += (0.35 - mat.emissiveIntensity) * rate;
+        // Restore the unclaimed material explicitly. Reading node.material here
+        // and fading it would drive the *shared* claimed material's intensity
+        // down for every other node once one had been claimed and reset.
+        node.material = this.unclaimedMaterial;
+        node.scale.lerp(UNCLAIMED_SCALE, rate);
       }
     }
+    this.unclaimedMaterial.emissiveIntensity = 0.35;
 
     if (!this.reducedMotion) {
       this.board.rotation.y = Math.sin(this.elapsed * 0.12) * 0.03;
     }
   }
 
-  private claimedMaterial: THREE.MeshStandardMaterial | null = null;
-
   protected override onReset(): void {
     this.tech = 0;
     this.crisis = false;
-    this.claimedMaterial = null;
     for (let i = 0; i < this.claimed.length; i++) {
       this.claimed[i] = false;
       this.nodes[i].scale.setScalar(1);
+      this.nodes[i].material = this.unclaimedMaterial;
+    }
+    if (this.claimedMaterial) {
+      this.claimedMaterial.emissive.setHex(TECHS[0].colour);
+      this.claimedMaterial.emissiveIntensity = 1.3;
     }
     if (this.dial) {
       this.dial.value = 0;
