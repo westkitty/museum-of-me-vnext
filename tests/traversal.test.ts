@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { buildMuseum, walkRoute, walkSegment } from './helpers/walk';
 import { canonicalRoute } from '../src/world/route';
-import { PLACEMENTS, WINGS, SPAWN_POSITION, zoneAt, ZONES } from '../src/world/layout';
+import { PLACEMENTS, WINGS, zoneAt, ZONES } from '../src/world/layout';
+import { START_POSITION } from '../src/world/start';
 import { COLLECTION } from '../src/content/collection.generated';
 
 const built = buildMuseum();
@@ -35,15 +36,21 @@ describe('museum architecture', () => {
     expect(built.collision.size).toBeGreaterThan(500);
   });
 
-  it('supports the visitor at the spawn point', () => {
-    const support = built.collision.supportHeight(SPAWN_POSITION[0], SPAWN_POSITION[2], 2, 3);
+  it('supports the visitor at the exterior start point', () => {
+    const support = built.collision.supportHeight(START_POSITION[0], START_POSITION[2], 2, 3);
     expect(support).not.toBeNull();
-    expect(Math.abs(support! - SPAWN_POSITION[1])).toBeLessThan(0.6);
+    expect(Math.abs(support! - START_POSITION[1])).toBeLessThan(0.6);
   });
 });
 
 describe('mandatory traversal', () => {
   const route = canonicalRoute();
+
+  it('starts outside before the visitor chooses to enter', () => {
+    expect(route[0].label).toBe('arrival plaza');
+    expect(route[0].at).toEqual(START_POSITION);
+    expect(zoneAt([START_POSITION[0], START_POSITION[1] + 1, START_POSITION[2]])).toBe('plaza');
+  });
 
   it('has a route that visits every wing, the upper level and the Sanctuary', () => {
     const labels = route.map((w) => w.label).join(' | ');
@@ -58,7 +65,7 @@ describe('mandatory traversal', () => {
     expect(reached.size).toBe(35);
   });
 
-  it('walks entrance → every wing → upper floor → Sanctuary → entrance without a break', () => {
+  it('walks exterior → entrance → every wing → upper floor → Sanctuary → entrance without a break', () => {
     const failures = walkRoute(built.collision, route);
     const message = failures.map((f) => `${f.label}: ${f.reason} at ${f.at.map((n) => n.toFixed(1))}`).join('\n');
     expect(failures, `\n${message}`).toHaveLength(0);
@@ -83,8 +90,8 @@ describe('zones', () => {
     }
   });
 
-  it('puts the spawn point inside the museum, not the plaza', () => {
-    expect(zoneAt([SPAWN_POSITION[0], 1, SPAWN_POSITION[2]])).toBe('south');
+  it('puts the start point on the arrival plaza', () => {
+    expect(zoneAt([START_POSITION[0], START_POSITION[1] + 1, START_POSITION[2]])).toBe('plaza');
   });
 
   it('puts the rotunda centre in the rotunda', () => {
