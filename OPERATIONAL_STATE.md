@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 2,
+  "state_revision": 3,
   "last_updated": "2026-08-19",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -37,9 +37,9 @@
 |---|---|
 | Repository | initialised, branch `main`, first phase branch `feat/foundation` |
 | Remote | `git@github.com:westkitty/museum-of-me-vnext.git` (private), pushing `feat/foundation` |
-| Runtime | renderer + single frame loop live; empty scene |
+| Runtime | complete traversable graybox: Rotunda, 6 wings, mezzanine, Sanctuary, 35 bays |
 | Toolchain | Node 26.7.0, npm 11.19.0, Vite 6, TypeScript 5.7, Three.js **0.185.0** (pinned) |
-| Current phase | **Phase 1 complete.** Next: Phase 2 — complete traversable graybox. |
+| Current phase | **Phase 2 complete.** Next: Phase 3 — core museum systems. |
 
 ## 4. Active invariants
 
@@ -54,6 +54,8 @@
 | INV-007 | No runtime asset is fetched from a host this project does not control. | `docs/ASSET_POLICY.md`, `npm run validate:assets` |
 | INV-008 | Every exhibit's `ResourceScope` drains to zero on unmount. | `ExhibitHost` assertion + lifecycle tests |
 | INV-009 | The museum requires no live AI, cloud API, or backend for the core experience. | architecture; no network code outside asset fetch of own files |
+| INV-010 | Every dimension of the building derives from `src/world/layout.ts`. Geometry, collision, zones, the map and exhibit anchors may not hard-code a position. | code review; traversal tests fail if they disagree |
+| INV-011 | The mandatory traversal must keep passing: entrance → every wing → upper floor → Sanctuary → entrance, with no teleport and no visible level load. | `tests/traversal.test.ts` |
 
 ## 5. Verified working behaviour
 
@@ -66,6 +68,11 @@
 | Toolchain installs and resolves | `npm install` clean; three@0.185.0 resolved | ✅ 2026-08-19 |
 | Typecheck, lint, unit tests, production build all pass | `npm run gate` → all PASS; 29 unit tests green; build 1.0 s | ✅ 2026-08-19 |
 | Application boots and renders in a real browser | dev server + browser probe: `loopRunning true`, WebGL2 context live, `contextLost false`, DPR capped to 1 on auto-selected `medium` tier, **zero console errors** | ✅ 2026-08-19 |
+| **Mandatory traversal passes**: entrance → south → Rotunda → north → east → west → grand stair → balcony → NW mezzanine → NE mezzanine → Sanctuary → entrance, continuously | `tests/traversal.test.ts` simulates the walk against the real `CollisionWorld` using the player's own radius, height and step-up rule. 0 failures across the full route. | ✅ 2026-08-19 |
+| Every one of the 35 exhibit bays can be entered and left on foot | same harness, 70 segments (in and out of each bay), 0 failures | ✅ 2026-08-19 |
+| Museum geometry builds 35 exhibit mount points and 1,000+ colliders | traversal test + browser probe (`mounts: 35`, `colliders: 1064`) | ✅ 2026-08-19 |
+| Zone resolution is correct for every zone, including diagonal mezzanines | `zoneAt` unit tests + live browser check (Sanctuary resolved correctly while standing in it) | ✅ 2026-08-19 |
+| The graybox renders as architecture, with long sightlines from the south hall through the Rotunda to the north wing | browser screenshots at entrance, south hall, Rotunda and Sanctuary | ✅ 2026-08-19 |
 | Single frame loop is structurally enforced | `validate:frameloop` PASS — `src/app/Loop.ts` is the only `requestAnimationFrame` owner across 13 source files | ✅ 2026-08-19 |
 | Asset governance gate operational | `validate:assets` PASS — no hotlinked runtime asset in any source file | ✅ 2026-08-19 |
 
@@ -76,6 +83,8 @@
 | Quality-tier switching at runtime | `setQuality` is implemented and typechecked; no runtime tier-change observation yet. Phase 12. |
 | Context-loss recovery | Handlers are installed and typechecked; not exercised against a real context loss. Phase 12. |
 | Preference persistence in a browser | Unit-tested against an in-memory Storage; not yet observed against real `localStorage`. Phase 11. |
+| Frame rate | The browser-automation tab throttles `requestAnimationFrame`, so measured FPS there is not meaningful. Real measurement is Phase 12 work. |
+| Interactive walking with keyboard and pointer lock | Input and controller are implemented and typechecked; traversal so far is proven by simulation against real collision, not by a human walking it. Phase 3 adds the interaction layer and Phase 13 captures the recorded walkthrough. |
 
 ## 7. Known blockers / unknowns
 
@@ -91,8 +100,8 @@
 |---|---|
 | 0 — authority/source freeze | ✅ complete |
 | 1 — repository/runtime foundation | ✅ complete |
-| 2 — complete museum graybox | ▶ next |
-| 3 — core museum systems | pending |
+| 2 — complete museum graybox | ✅ complete |
+| 3 — core museum systems | ▶ next |
 | 4 — governed asset pipeline | pending |
 | 5 — vertical slice | pending |
 | 6 — production architecture | pending |

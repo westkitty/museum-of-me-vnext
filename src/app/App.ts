@@ -6,6 +6,11 @@ import { detectQualityTier, type QualityTier } from '../render/QualityTiers';
 import { loadPreferences, savePreferences, type VisitorPreferences } from '../state/Preferences';
 import { Journal } from '../state/Journal';
 import { ResourceScope } from '../assets/ResourceScope';
+import { Museum } from '../world/Museum';
+import { Lighting } from '../render/Lighting';
+import { InputManager } from '../player/Input';
+import { PlayerController } from '../player/PlayerController';
+import { SPAWN_POSITION, SPAWN_YAW, zoneAt, ZONE_BY_ID } from '../world/layout';
 
 export interface AppOptions {
   canvas: HTMLCanvasElement;
@@ -23,6 +28,12 @@ export class App implements LoopCallbacks {
   readonly diagnostics = new Diagnostics();
   readonly journal: Journal;
   readonly scope = new ResourceScope('app');
+  readonly museum: Museum;
+  readonly lighting: Lighting;
+  readonly input: InputManager;
+  readonly player: PlayerController;
+  /** Zone the visitor is currently standing in. Drives audio and streaming. */
+  currentZone = 'plaza';
 
   readonly uiRoot: HTMLElement;
   readonly a11yRoot: HTMLElement;
@@ -46,6 +57,20 @@ export class App implements LoopCallbacks {
     this.renderer.camera.updateProjectionMatrix();
 
     document.documentElement.style.setProperty('--ui-scale', String(this.preferences.uiScale));
+
+    this.museum = new Museum(this.scope);
+    const built = this.museum.build();
+    this.renderer.scene.add(built.root);
+
+    this.lighting = new Lighting(this.scope, this.renderer.quality);
+    this.renderer.scene.add(this.lighting.group);
+
+    this.renderer.scene.fog = new THREE.Fog(0x0d0c12, 90, 320);
+    this.renderer.scene.background = new THREE.Color(0x0d0c12);
+
+    this.input = new InputManager(opts.canvas);
+    this.player = new PlayerController(built.collision, this.input);
+    this.player.teleport(SPAWN_POSITION, SPAWN_YAW);
 
     this.loop = new Loop(this);
   }
@@ -74,15 +99,35 @@ export class App implements LoopCallbacks {
 
   // ── LoopCallbacks ─────────────────────────────────────────────────────────
 
-  fixedUpdate(_dt: number): void {
-    // Phase 3 wires player + collision + active exhibits here.
+  fixedUpdate(dt: number): void {
+    this.player.fixedUpdate(dt);
+    // Phase 3 adds active exhibit updates here.
   }
 
   variableUpdate(_dt: number): void {
-    // Phase 3 wires audio zones, streaming and interaction focus here.
+    this.player.applyLook(
+      this.input.mouseDeltaX,
+      this.input.mouseDeltaY,
+      this.preferences.mouseSensitivity,
+      this.preferences.invertY,
+    );
+
+    const eye = this.player.eyePosition;
+    const zone = zoneAt([eye[0], this.player.position.y + 0.1, eye[2]]);
+    if (zone !== this.currentZone) this.currentZone = zone;
+
+    this.diagnostics.stats.playerPosition = [
+      Math.round(this.player.position.x * 10) / 10,
+      Math.round(this.player.position.y * 10) / 10,
+      Math.round(this.player.position.z * 10) / 10,
+    ];
+    this.diagnostics.stats.wing = ZONE_BY_ID.get(this.currentZone as never)?.label ?? this.currentZone;
+
+    this.input.endFrame();
   }
 
-  render(_alpha: number): void {
+  render(alpha: number): void {
+    this.player.applyToCamera(this.camera, alpha);
     this.renderer.render();
     this.diagnostics.sample(this.renderer.renderer, this.loop.fps);
   }
@@ -91,6 +136,8 @@ export class App implements LoopCallbacks {
     if (this.disposed) return;
     this.disposed = true;
     this.loop.stop();
+    this.input.dispose();
+    this.lighting.dispose();
     this.scope.dispose();
     this.renderer.dispose();
   }

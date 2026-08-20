@@ -1,0 +1,624 @@
+import * as THREE from 'three';
+import { GeometryKit } from './GeometryKit';
+import { PaletteSet } from './palette';
+import { CollisionWorld } from './CollisionWorld';
+import type { ResourceScope } from '../assets/ResourceScope';
+import {
+  ROTUNDA_APOTHEM, ROTUNDA_WALL, LEVEL_1_Y, BALCONY_INNER_APOTHEM,
+  DOME_SPRING_Y, DOME_APEX_Y, GROUND_Y,
+  OCTAGON_FACES, faceDirection, rightOf, place, add,
+  WINGS, type WingSpec, type OctagonFace, type Vec3,
+  SOUTH, VESTIBULE_FROM, VESTIBULE_TO, PLAZA_DEPTH, PLAZA_HALF_WIDTH,
+  SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_FLOOR_Y,
+  SANCTUARY_RAMP_HALF_WIDTH, SANCTUARY_RADIUS, SANCTUARY_HEIGHT, SANCTUARY_CENTER,
+  STAIRS, PLACEMENTS,
+} from './layout';
+
+/** Circumradius of the octagon whose apothem is `a`. */
+const circum = (a: number) => a / Math.cos(Math.PI / 8);
+/** Side length of the octagon whose apothem is `a`. */
+const side = (a: number) => 2 * a * Math.tan(Math.PI / 8);
+
+/** The two endpoints of an octagon face, at the given apothem. */
+function faceEnds(face: OctagonFace, apothem: number): [Vec3, Vec3] {
+  const d = faceDirection(face);
+  const r = rightOf(d);
+  const half = side(apothem) / 2;
+  const mid = place(d, apothem);
+  return [
+    [mid[0] - r[0] * half, 0, mid[2] - r[2] * half],
+    [mid[0] + r[0] * half, 0, mid[2] + r[2] * half],
+  ];
+}
+
+export interface MuseumBuildResult {
+  readonly root: THREE.Group;
+  readonly collision: CollisionWorld;
+  /** One group per exhibit bay: where exhibit modules mount their contents. */
+  readonly exhibitMounts: ReadonlyMap<string, THREE.Group>;
+  /** Streaming groups, keyed by zone, for Layer-2 detail. */
+  readonly zoneGroups: ReadonlyMap<string, THREE.Group>;
+}
+
+/**
+ * Builds the entire museum: exterior, plaza, entrance, Rotunda, all six wings,
+ * mezzanine, stairs, the Dexter Sanctuary, and all 35 exhibit volumes.
+ *
+ * Phase 2 builds this as a deliberately plain graybox. Phase 6 replaces the
+ * materials and adds architectural detail without moving a single wall, because
+ * every dimension comes from `layout.ts`.
+ */
+export class Museum {
+  readonly root = new THREE.Group();
+  readonly collision = new CollisionWorld();
+  readonly exhibitMounts = new Map<string, THREE.Group>();
+  readonly zoneGroups = new Map<string, THREE.Group>();
+
+  private readonly kit: GeometryKit;
+  private readonly pal: PaletteSet;
+
+  constructor(private readonly scope: ResourceScope) {
+    this.root.name = 'museum-building';
+    this.pal = new PaletteSet(scope);
+    this.kit = new GeometryKit(scope, this.collision, this.root);
+  }
+
+  build(): MuseumBuildResult {
+    this.buildExterior();
+    this.buildRotunda();
+    this.buildBalcony();
+    this.buildStairs();
+    for (const w of WINGS) this.buildWing(w);
+    this.buildEntrance();
+    this.buildSanctuary();
+    return {
+      root: this.root,
+      collision: this.collision,
+      exhibitMounts: this.exhibitMounts,
+      zoneGroups: this.zoneGroups,
+    };
+  }
+
+  private zoneGroup(id: string): THREE.Group {
+    let g = this.zoneGroups.get(id);
+    if (!g) {
+      g = new THREE.Group();
+      g.name = `zone:${id}`;
+      this.root.add(g);
+      this.zoneGroups.set(id, g);
+    }
+    return g;
+  }
+
+  // ── Exterior and arrival ─────────────────────────────────────────────────
+
+  private buildExterior(): void {
+    const p = this.pal.get('plaza');
+    const dir = faceDirection('s');
+
+    // Ground plane wide enough that the building reads as sited, not floating.
+    const groundGeo = this.scope.track(new THREE.PlaneGeometry(600, 600));
+    const ground = new THREE.Mesh(groundGeo, p.floor);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = GROUND_Y - 0.5;
+    ground.receiveShadow = true;
+    this.root.add(ground);
+    this.collision.addFloor(-300, 300, -300, 300, GROUND_Y - 0.5);
+
+    // Arrival plaza: a raised terrace in front of the entrance.
+    const plazaNear = VESTIBULE_TO;
+    const plazaFar = VESTIBULE_TO + PLAZA_DEPTH;
+    const nearZ = place(dir, plazaNear)[2];
+    const farZ = place(dir, plazaFar)[2];
+    this.kit.slab(-PLAZA_HALF_WIDTH, PLAZA_HALF_WIDTH, Math.min(nearZ, farZ), Math.max(nearZ, farZ), GROUND_Y, 0.5, p.floor);
+
+    // Steps down from the plaza to the ground, so the entry has a real threshold.
+    this.kit.stair(
+      [0, 0, Math.max(nearZ, farZ)],
+      [0, 0, Math.max(nearZ, farZ) + 6],
+      GROUND_Y, GROUND_Y - 0.5, 12, 4, p.trim,
+    );
+
+    // Low parapets flanking the plaza — never fully enclosing it.
+    for (const s of [-1, 1]) {
+      this.kit.box(
+        [s * PLAZA_HALF_WIDTH, GROUND_Y + 0.6, (Math.min(nearZ, farZ) + Math.max(nearZ, farZ)) / 2],
+        [0.6, 0.6, PLAZA_DEPTH / 2],
+        p.trim,
+      );
+    }
+  }
+
+  // ── Rotunda ──────────────────────────────────────────────────────────────
+
+  private buildRotunda(): void {
+    const g = this.zoneGroup('rotunda');
+    const p = this.pal.get('rotunda');
+    const kit = new GeometryKit(this.scope, this.collision, g);
+
+    // Octagonal floor.
+    const floorShape = octagonShape(circum(ROTUNDA_APOTHEM));
+    const floorGeo = this.scope.track(new THREE.ExtrudeGeometry(floorShape, { depth: 0.6, bevelEnabled: false }));
+    const floor = new THREE.Mesh(floorGeo, p.floor);
+    floor.rotation.x = Math.PI / 2;
+    floor.position.y = GROUND_Y;
+    floor.receiveShadow = true;
+    g.add(floor);
+    this.collision.addFloor(-ROTUNDA_APOTHEM - 2, ROTUNDA_APOTHEM + 2, -ROTUNDA_APOTHEM - 2, ROTUNDA_APOTHEM + 2, GROUND_Y);
+
+    // Eight wall faces. Wings open on N/E/S/W; the Sanctuary threshold on NW.
+    const wingFaces = new Map(WINGS.filter((w) => w.level === 0).map((w) => [w.face, w]));
+    for (const face of OCTAGON_FACES) {
+      const [a, b] = faceEnds(face, ROTUNDA_APOTHEM);
+      const wing = wingFaces.get(face);
+      if (wing) {
+        kit.wallWithOpening(a, b, GROUND_Y, LEVEL_1_Y, ROTUNDA_WALL, wing.archWidth, wing.archHeight, p.wall);
+      } else if (face === 'nw') {
+        kit.wallWithOpening(a, b, GROUND_Y, LEVEL_1_Y, ROTUNDA_WALL, 5, 4.6, p.wall);
+      } else {
+        kit.wall(a, b, GROUND_Y, LEVEL_1_Y, ROTUNDA_WALL, p.wall);
+      }
+      // Pier at each corner, giving the octagon a readable structure.
+      kit.prop(add(a, [0, LEVEL_1_Y / 2, 0]), [1, LEVEL_1_Y / 2, 1], p.trim);
+    }
+
+    // Drum above the balcony: solid on the wing faces, glazed clerestory elsewhere.
+    const drumTop = DOME_SPRING_Y;
+    const mezzFaces = new Set(WINGS.filter((w) => w.level === 1).map((w) => w.face));
+    for (const face of OCTAGON_FACES) {
+      const [a, b] = faceEnds(face, ROTUNDA_APOTHEM);
+      const wing = WINGS.find((w) => w.level === 1 && w.face === face);
+      if (wing) {
+        kit.wallWithOpening(a, b, LEVEL_1_Y, drumTop - LEVEL_1_Y, ROTUNDA_WALL, wing.archWidth, wing.archHeight, p.wall);
+      } else {
+        // Solid below, clerestory glazing above — light without an opening.
+        kit.wall(a, b, LEVEL_1_Y, 3.2, ROTUNDA_WALL, p.wall);
+        const glassMid = add([(a[0] + b[0]) / 2, 0, (a[2] + b[2]) / 2], [0, LEVEL_1_Y + 3.2 + (drumTop - LEVEL_1_Y - 3.2) / 2, 0]);
+        const glassPane = new THREE.Mesh(
+          this.scope.track(new THREE.BoxGeometry(side(ROTUNDA_APOTHEM) * 0.82, drumTop - LEVEL_1_Y - 3.2, 0.2)),
+          this.pal.glass(),
+        );
+        glassPane.position.set(glassMid[0], glassMid[1], glassMid[2]);
+        const d = faceDirection(face);
+        glassPane.rotation.y = Math.atan2(d[0], d[2]) + Math.PI;
+        g.add(glassPane);
+        kit.wallCollision(a, b, LEVEL_1_Y + 3.2, drumTop - LEVEL_1_Y - 3.2, ROTUNDA_WALL);
+      }
+      if (!mezzFaces.has(face)) continue;
+    }
+
+    // Glass dome. A sphere cap, springing from the drum and reaching the apex.
+    const domeRadius = circum(ROTUNDA_APOTHEM);
+    const rise = DOME_APEX_Y - DOME_SPRING_Y;
+    const domeGeo = this.scope.track(
+      new THREE.SphereGeometry(domeRadius, 40, 20, 0, Math.PI * 2, 0, Math.asin(Math.min(1, domeRadius / Math.hypot(domeRadius, rise)))),
+    );
+    const dome = new THREE.Mesh(domeGeo, this.pal.glass());
+    dome.scale.set(1, rise / domeRadius, 1);
+    dome.position.y = DOME_SPRING_Y;
+    g.add(dome);
+
+    // Structural dome ribs, so the glass reads as architecture.
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      const rib = new THREE.Mesh(
+        this.scope.track(new THREE.TorusGeometry(domeRadius * 0.98, 0.18, 6, 24, Math.PI / 2)),
+        p.trim,
+      );
+      rib.position.y = DOME_SPRING_Y;
+      rib.scale.set(1, rise / domeRadius, 1);
+      rib.rotation.set(0, a, Math.PI / 2);
+      g.add(rib);
+    }
+
+    // Central orientation installation — a low ring, not a monument to anyone.
+    const plinth = new THREE.Mesh(
+      this.scope.track(new THREE.CylinderGeometry(3.2, 3.8, 0.9, 32)),
+      p.trim,
+    );
+    plinth.position.set(0, GROUND_Y + 0.45, 0);
+    g.add(plinth);
+    this.collision.addBox([0, GROUND_Y + 0.45, 0], [3.8, 0.45, 3.8]);
+
+    const armature = new THREE.Mesh(
+      this.scope.track(new THREE.TorusGeometry(2.2, 0.09, 8, 48)),
+      p.accent,
+    );
+    armature.position.set(0, GROUND_Y + 2.4, 0);
+    armature.rotation.x = Math.PI / 2.6;
+    g.add(armature);
+  }
+
+  private buildBalcony(): void {
+    const g = this.zoneGroup('balcony');
+    const p = this.pal.get('balcony');
+    const kit = new GeometryKit(this.scope, this.collision, g);
+
+    // Octagonal ring floor with the atrium open through the middle.
+    const ringShape = octagonShape(circum(ROTUNDA_APOTHEM));
+    ringShape.holes.push(octagonPath(circum(BALCONY_INNER_APOTHEM)));
+    const ringGeo = this.scope.track(new THREE.ExtrudeGeometry(ringShape, { depth: 0.7, bevelEnabled: false }));
+    const ring = new THREE.Mesh(ringGeo, p.floor);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = LEVEL_1_Y;
+    ring.receiveShadow = true;
+    g.add(ring);
+
+    // Ring collision: one oriented strip per octagon face.
+    for (const face of OCTAGON_FACES) {
+      const d = faceDirection(face);
+      const r = rightOf(d);
+      const half = side(ROTUNDA_APOTHEM) / 2;
+      const mid = (BALCONY_INNER_APOTHEM + ROTUNDA_APOTHEM) / 2;
+      const c = place(d, mid);
+      const from: Vec3 = [c[0] - r[0] * half, 0, c[2] - r[2] * half];
+      const to: Vec3 = [c[0] + r[0] * half, 0, c[2] + r[2] * half];
+      kit.orientedFloorCollision(from, to, (ROTUNDA_APOTHEM - BALCONY_INNER_APOTHEM) / 2, LEVEL_1_Y);
+
+      // Balustrade along the atrium edge.
+      const inner = place(d, BALCONY_INNER_APOTHEM);
+      const ih = side(BALCONY_INNER_APOTHEM) / 2;
+      kit.wall(
+        [inner[0] - r[0] * ih, 0, inner[2] - r[2] * ih],
+        [inner[0] + r[0] * ih, 0, inner[2] + r[2] * ih],
+        LEVEL_1_Y, 1.1, 0.35, p.trim,
+      );
+    }
+  }
+
+  private buildStairs(): void {
+    const g = this.zoneGroup('rotunda');
+    const p = this.pal.get('rotunda');
+    const kit = new GeometryKit(this.scope, this.collision, g);
+
+    for (const s of STAIRS) {
+      const d = faceDirection(s.face);
+      const r = rightOf(d);
+      const from: Vec3 = [
+        d[0] * s.footAlong + r[0] * (s.lateral - s.run / 2), 0,
+        d[2] * s.footAlong + r[2] * (s.lateral - s.run / 2),
+      ];
+      const to: Vec3 = [
+        d[0] * s.headAlong + r[0] * (s.lateral + s.run / 2), 0,
+        d[2] * s.headAlong + r[2] * (s.lateral + s.run / 2),
+      ];
+      kit.stair(from, to, s.fromY, s.toY, s.halfWidth, 20, p.trim);
+
+      // Landing where the stair meets the balcony.
+      kit.orientedFloorCollision(to, add(to, [d[0], 0, d[2]], -3), s.halfWidth, s.toY);
+    }
+  }
+
+  // ── Wings ────────────────────────────────────────────────────────────────
+
+  private buildWing(w: WingSpec): void {
+    const g = this.zoneGroup(w.id);
+    const p = this.pal.get(w.id);
+    const kit = new GeometryKit(this.scope, this.collision, g);
+    const d = faceDirection(w.face);
+    const r = rightOf(d);
+    const y = w.floorY;
+
+    // Connector corridor from the rotunda wall to the hall.
+    kit.orientedFloor(place(d, w.corridorFrom, 0, y), place(d, w.corridorTo, 0, y), w.corridorHalfWidth, y, 0.5, p.floor);
+    for (const s of [-1, 1]) {
+      kit.wall(
+        place(d, w.corridorFrom, s * w.corridorHalfWidth, y),
+        place(d, w.corridorTo, s * w.corridorHalfWidth, y),
+        y, w.archHeight, 0.6, p.wall,
+      );
+    }
+    kit.ceiling(
+      Math.min(place(d, w.corridorFrom, -w.corridorHalfWidth)[0], place(d, w.corridorTo, w.corridorHalfWidth)[0]),
+      Math.max(place(d, w.corridorFrom, -w.corridorHalfWidth)[0], place(d, w.corridorTo, w.corridorHalfWidth)[0]),
+      Math.min(place(d, w.corridorFrom, -w.corridorHalfWidth)[2], place(d, w.corridorTo, w.corridorHalfWidth)[2]),
+      Math.max(place(d, w.corridorFrom, -w.corridorHalfWidth)[2], place(d, w.corridorTo, w.corridorHalfWidth)[2]),
+      y + w.archHeight, 0.4, p.ceiling,
+    );
+
+    // Main hall floor and ceiling.
+    kit.orientedFloor(place(d, w.hallFrom, 0, y), place(d, w.hallTo, 0, y), w.hallHalfWidth, y, 0.5, p.floor);
+    this.orientedCeiling(kit, d, w.hallFrom, w.hallTo, w.hallHalfWidth, y + w.hallHeight, p.ceiling);
+
+    // Hall side walls, opened where a bay sits.
+    const bayAlongs = new Map<'left' | 'right', number[]>([['left', []], ['right', []]]);
+    for (const pl of PLACEMENTS) {
+      if (pl.wing !== w.id) continue;
+      bayAlongs.get(pl.side)!.push(w.hallFrom + w.bayLead + pl.slot * w.bayPitch);
+    }
+
+    for (const side of ['left', 'right'] as const) {
+      const sign = side === 'right' ? 1 : -1;
+      const openings = bayAlongs.get(side)!.sort((a, b) => a - b);
+      let cursor = w.hallFrom;
+      for (const centre of openings) {
+        const openFrom = centre - w.bayOpening / 2;
+        const openTo = centre + w.bayOpening / 2;
+        if (openFrom > cursor) {
+          kit.wall(
+            place(d, cursor, sign * w.hallHalfWidth, y),
+            place(d, openFrom, sign * w.hallHalfWidth, y),
+            y, w.hallHeight, 0.6, p.wall,
+          );
+        }
+        // Lintel above the bay opening.
+        kit.wall(
+          place(d, openFrom, sign * w.hallHalfWidth, y),
+          place(d, openTo, sign * w.hallHalfWidth, y),
+          y + w.bayHeight * 0.72, w.hallHeight - w.bayHeight * 0.72, 0.6, p.wall,
+        );
+        cursor = openTo;
+      }
+      if (cursor < w.hallTo) {
+        kit.wall(
+          place(d, cursor, sign * w.hallHalfWidth, y),
+          place(d, w.hallTo, sign * w.hallHalfWidth, y),
+          y, w.hallHeight, 0.6, p.wall,
+        );
+      }
+    }
+
+    // End wall. The south hall's far end is the inner doorway to the vestibule,
+    // so it is opened rather than closed.
+    if (w.id === 'south') {
+      kit.wallWithOpening(
+        place(d, w.hallTo, -w.hallHalfWidth, y),
+        place(d, w.hallTo, w.hallHalfWidth, y),
+        y, w.hallHeight, 0.8, 8, 6, p.wall,
+      );
+    } else {
+      kit.wall(
+        place(d, w.hallTo, -w.hallHalfWidth, y),
+        place(d, w.hallTo, w.hallHalfWidth, y),
+        y, w.hallHeight, 0.8, p.wall,
+      );
+    }
+
+    // Bays.
+    for (const pl of PLACEMENTS) {
+      if (pl.wing !== w.id) continue;
+      this.buildBay(kit, w, d, r, pl.exhibitId, pl.slot, pl.side, g);
+    }
+  }
+
+  private buildBay(
+    kit: GeometryKit,
+    w: WingSpec,
+    d: Vec3,
+    r: Vec3,
+    exhibitId: string,
+    slot: number,
+    side: 'left' | 'right',
+    parent: THREE.Group,
+  ): void {
+    const p = this.pal.get(w.id);
+    const y = w.floorY;
+    const sign = side === 'right' ? 1 : -1;
+    const centreAlong = w.hallFrom + w.bayLead + slot * w.bayPitch;
+    const nearLat = sign * w.hallHalfWidth;
+    const farLat = sign * (w.hallHalfWidth + w.bayDepth);
+    const a = w.bayHalfAlong;
+
+    // Floor and ceiling.
+    kit.orientedFloor(
+      place(d, centreAlong, nearLat, y),
+      place(d, centreAlong, farLat, y),
+      a, y, 0.5, p.floor,
+    );
+    this.baySlabCeiling(kit, d, r, centreAlong, nearLat, farLat, a, y + w.bayHeight, p.ceiling);
+
+    // Back wall and the two side walls.
+    kit.wall(
+      place(d, centreAlong - a, farLat, y),
+      place(d, centreAlong + a, farLat, y),
+      y, w.bayHeight, 0.7, p.wall,
+    );
+    for (const s of [-1, 1]) {
+      kit.wall(
+        place(d, centreAlong + s * a, nearLat, y),
+        place(d, centreAlong + s * a, farLat, y),
+        y, w.bayHeight, 0.7, p.wall,
+      );
+    }
+
+    // Mount point for the exhibit module. Empty in the graybox.
+    const mount = new THREE.Group();
+    mount.name = `exhibit:${exhibitId}`;
+    const anchor = place(d, centreAlong, (nearLat + farLat) / 2, y);
+    mount.position.set(anchor[0], anchor[1], anchor[2]);
+    // Orient so +Z of the mount points back toward the hall.
+    mount.rotation.y = Math.atan2(-sign * r[0], -sign * r[2]);
+    parent.add(mount);
+    this.exhibitMounts.set(exhibitId, mount);
+
+    // Graybox volume marker: a plinth that reads as "an exhibit belongs here".
+    // It sits at the bay centre where the hero object will stand, leaving the
+    // approach from the doorway clear.
+    const marker = new THREE.Mesh(
+      this.scope.track(new THREE.BoxGeometry(2.6, 0.9, 2.6)),
+      p.trim,
+    );
+    marker.position.set(0, 0.45, 0);
+    mount.add(marker);
+    this.collision.addBox([anchor[0], y + 0.45, anchor[2]], [1.3, 0.45, 1.3]);
+  }
+
+  private baySlabCeiling(
+    kit: GeometryKit, d: Vec3, r: Vec3,
+    centreAlong: number, nearLat: number, farLat: number, halfAlong: number,
+    y: number, mat: THREE.Material,
+  ): void {
+    const c1 = place(d, centreAlong, nearLat);
+    const c2 = place(d, centreAlong, farLat);
+    const minX = Math.min(c1[0], c2[0]) - Math.abs(d[0]) * halfAlong - Math.abs(r[0]) * 0.1;
+    const maxX = Math.max(c1[0], c2[0]) + Math.abs(d[0]) * halfAlong + Math.abs(r[0]) * 0.1;
+    const minZ = Math.min(c1[2], c2[2]) - Math.abs(d[2]) * halfAlong - Math.abs(r[2]) * 0.1;
+    const maxZ = Math.max(c1[2], c2[2]) + Math.abs(d[2]) * halfAlong + Math.abs(r[2]) * 0.1;
+    kit.ceiling(minX, maxX, minZ, maxZ, y, 0.4, mat);
+  }
+
+  private orientedCeiling(
+    kit: GeometryKit, d: Vec3, from: number, to: number, halfWidth: number, y: number, mat: THREE.Material,
+  ): void {
+    const r = rightOf(d);
+    const a = place(d, from, -halfWidth);
+    const b = place(d, to, halfWidth);
+    const pad = Math.abs(r[0]) > 0.01 && Math.abs(r[2]) > 0.01 ? halfWidth : 0;
+    kit.ceiling(
+      Math.min(a[0], b[0]) - pad, Math.max(a[0], b[0]) + pad,
+      Math.min(a[2], b[2]) - pad, Math.max(a[2], b[2]) + pad,
+      y, 0.5, mat,
+    );
+  }
+
+  // ── Entrance ─────────────────────────────────────────────────────────────
+
+  private buildEntrance(): void {
+    const g = this.zoneGroup('south');
+    const p = this.pal.get('south');
+    const kit = new GeometryKit(this.scope, this.collision, g);
+    const d = faceDirection('s');
+    const hw = SOUTH.hallHalfWidth;
+
+    kit.orientedFloor(place(d, VESTIBULE_FROM, 0, GROUND_Y), place(d, VESTIBULE_TO, 0, GROUND_Y), hw, GROUND_Y, 0.5, p.floor);
+    this.orientedCeiling(kit, d, VESTIBULE_FROM, VESTIBULE_TO, hw, GROUND_Y + 9, p.ceiling);
+    for (const s of [-1, 1]) {
+      kit.wall(
+        place(d, VESTIBULE_FROM, s * hw, GROUND_Y),
+        place(d, VESTIBULE_TO, s * hw, GROUND_Y),
+        GROUND_Y, 9, 0.8, p.wall,
+      );
+    }
+    // Front facade with the main doorway.
+    kit.wallWithOpening(
+      place(d, VESTIBULE_TO, -hw - 6, GROUND_Y),
+      place(d, VESTIBULE_TO, hw + 6, GROUND_Y),
+      GROUND_Y, 12, 1.2, 7, 5.2, p.wall,
+    );
+  }
+
+  // ── Dexter Sanctuary ─────────────────────────────────────────────────────
+
+  /**
+   * Plan §7. Below and behind the Rotunda axis, through a quieter threshold.
+   * It is deliberately sparse and it is not one of the 35 exhibits.
+   */
+  private buildSanctuary(): void {
+    const g = this.zoneGroup('sanctuary');
+    const p = this.pal.get('sanctuary');
+    const kit = new GeometryKit(this.scope, this.collision, g);
+    const d = SANCTUARY_DIR;
+    const hw = SANCTUARY_RAMP_HALF_WIDTH;
+
+    // Descending approach.
+    kit.ramp(
+      place(d, SANCTUARY_RAMP_FROM), place(d, SANCTUARY_RAMP_TO),
+      GROUND_Y, SANCTUARY_FLOOR_Y, hw, p.floor,
+    );
+    for (const s of [-1, 1]) {
+      kit.wall(
+        place(d, SANCTUARY_RAMP_FROM, s * hw, SANCTUARY_FLOOR_Y),
+        place(d, SANCTUARY_RAMP_TO, s * hw, SANCTUARY_FLOOR_Y),
+        SANCTUARY_FLOOR_Y, GROUND_Y - SANCTUARY_FLOOR_Y + 4.4, 0.6, p.wall,
+      );
+    }
+
+    // The chamber: circular, low, quiet.
+    const floorGeo = this.scope.track(new THREE.CylinderGeometry(SANCTUARY_RADIUS, SANCTUARY_RADIUS, 0.6, 48));
+    const floor = new THREE.Mesh(floorGeo, p.floor);
+    floor.position.set(SANCTUARY_CENTER[0], SANCTUARY_FLOOR_Y - 0.3, SANCTUARY_CENTER[2]);
+    g.add(floor);
+    this.collision.addFloor(
+      SANCTUARY_CENTER[0] - SANCTUARY_RADIUS, SANCTUARY_CENTER[0] + SANCTUARY_RADIUS,
+      SANCTUARY_CENTER[2] - SANCTUARY_RADIUS, SANCTUARY_CENTER[2] + SANCTUARY_RADIUS,
+      SANCTUARY_FLOOR_Y,
+    );
+
+    // Enclosing wall, left open where the approach arrives.
+    const segments = 32;
+    const approach = Math.atan2(-d[0], -d[2]);
+    for (let i = 0; i < segments; i++) {
+      const a0 = (i / segments) * Math.PI * 2;
+      const a1 = ((i + 1) / segments) * Math.PI * 2;
+      let delta = Math.atan2(Math.sin(a0 - approach), Math.cos(a0 - approach));
+      if (Math.abs(delta) < 0.22) continue; // the doorway
+      const from: Vec3 = [
+        SANCTUARY_CENTER[0] + Math.sin(a0) * SANCTUARY_RADIUS, 0,
+        SANCTUARY_CENTER[2] + Math.cos(a0) * SANCTUARY_RADIUS,
+      ];
+      const to: Vec3 = [
+        SANCTUARY_CENTER[0] + Math.sin(a1) * SANCTUARY_RADIUS, 0,
+        SANCTUARY_CENTER[2] + Math.cos(a1) * SANCTUARY_RADIUS,
+      ];
+      kit.wall(from, to, SANCTUARY_FLOOR_Y, SANCTUARY_HEIGHT, 0.6, p.wall);
+      delta = 0;
+    }
+
+    // Ceiling with a small oculus overhead — the only light that enters directly.
+    const ceilGeo = this.scope.track(new THREE.RingGeometry(2.4, SANCTUARY_RADIUS + 0.4, 48));
+    const ceil = new THREE.Mesh(ceilGeo, p.ceiling);
+    ceil.rotation.x = Math.PI / 2;
+    ceil.position.set(SANCTUARY_CENTER[0], SANCTUARY_FLOOR_Y + SANCTUARY_HEIGHT, SANCTUARY_CENTER[2]);
+    g.add(ceil);
+    this.collision.addBox(
+      [SANCTUARY_CENTER[0], SANCTUARY_FLOOR_Y + SANCTUARY_HEIGHT + 0.2, SANCTUARY_CENTER[2]],
+      [SANCTUARY_RADIUS, 0.2, SANCTUARY_RADIUS],
+    );
+
+    // The central resting platform. Nothing stands on it in the graybox.
+    const platform = new THREE.Mesh(
+      this.scope.track(new THREE.CylinderGeometry(2.6, 2.9, 0.55, 32)),
+      p.trim,
+    );
+    platform.position.set(SANCTUARY_CENTER[0], SANCTUARY_FLOOR_Y + 0.28, SANCTUARY_CENTER[2]);
+    g.add(platform);
+    this.collision.addBox(
+      [SANCTUARY_CENTER[0], SANCTUARY_FLOOR_Y + 0.28, SANCTUARY_CENTER[2]],
+      [2.9, 0.28, 2.9],
+    );
+
+    // Quiet seating around the edge.
+    for (let i = 0; i < 5; i++) {
+      const a = approach + Math.PI + (i - 2) * 0.42;
+      const bench = new THREE.Mesh(
+        this.scope.track(new THREE.BoxGeometry(2.4, 0.45, 0.7)),
+        p.trim,
+      );
+      bench.position.set(
+        SANCTUARY_CENTER[0] + Math.sin(a) * (SANCTUARY_RADIUS - 2.6),
+        SANCTUARY_FLOOR_Y + 0.22,
+        SANCTUARY_CENTER[2] + Math.cos(a) * (SANCTUARY_RADIUS - 2.6),
+      );
+      bench.rotation.y = -a;
+      g.add(bench);
+    }
+  }
+}
+
+// ── octagon helpers ────────────────────────────────────────────────────────
+
+function octagonPath(radius: number): THREE.Path {
+  const path = new THREE.Path();
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+    const x = Math.sin(a) * radius;
+    const y = Math.cos(a) * radius;
+    if (i === 0) path.moveTo(x, y);
+    else path.lineTo(x, y);
+  }
+  path.closePath();
+  return path;
+}
+
+function octagonShape(radius: number): THREE.Shape {
+  const shape = new THREE.Shape();
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+    const x = Math.sin(a) * radius;
+    const y = Math.cos(a) * radius;
+    if (i === 0) shape.moveTo(x, y);
+    else shape.lineTo(x, y);
+  }
+  shape.closePath();
+  return shape;
+}
