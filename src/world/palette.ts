@@ -3,9 +3,9 @@ import type { ResourceScope } from '../assets/ResourceScope';
 import type { ZoneId } from './layout';
 
 /**
- * Wing identity through material. Plan §6.5 gives each wing a colour language;
- * the graybox uses flat, deliberately plain versions of it so the building is
- * readable while walking without pretending to be finished.
+ * Museum-wide colour grammar. The Rotunda and balcony are the bright neutral
+ * baseline; every wing then owns a distinct family so visitors can understand
+ * where they are before reading a sign.
  */
 export interface Palette {
   readonly floor: THREE.Material;
@@ -16,17 +16,33 @@ export interface Palette {
 }
 
 const HEX: Record<ZoneId | 'shell' | 'sanctuaryZone', { floor: number; wall: number; trim: number; ceiling: number; accent: number }> = {
-  rotunda:   { floor: 0xd8d2c4, wall: 0xc4bdae, trim: 0xc9a227, ceiling: 0xa8a294, accent: 0xe8c65a },
-  balcony:   { floor: 0xcfc8b9, wall: 0xbdb6a7, trim: 0xc9a227, ceiling: 0xa8a294, accent: 0xe8c65a },
-  north:     { floor: 0x3a3358, wall: 0x453c68, trim: 0x8878e8, ceiling: 0x241f38, accent: 0xb0a0ff },
-  east:      { floor: 0xcfd6d4, wall: 0xdde3e1, trim: 0x2f8f8a, ceiling: 0xb4bdba, accent: 0x3fb9b2 },
-  south:     { floor: 0x6b4a34, wall: 0x8a6448, trim: 0xb5543a, ceiling: 0x503626, accent: 0xd97a4e },
-  west:      { floor: 0x4e4160, wall: 0x5d4d70, trim: 0xa484d0, ceiling: 0x362b42, accent: 0xc3a8ec },
-  media:     { floor: 0x5e4a32, wall: 0x755c3d, trim: 0xcb9f47, ceiling: 0x43331f, accent: 0xe8c470 },
-  infra:     { floor: 0x3d493b, wall: 0x4b5748, trim: 0x76a566, ceiling: 0x2b332a, accent: 0x9fd48c },
-  plaza:     { floor: 0xb9b3a4, wall: 0xa8a294, trim: 0xc9a227, ceiling: 0x8f8a7d, accent: 0xe8c65a },
+  // Baseline zero: luminous museum white with restrained warm metal.
+  rotunda:   { floor: 0xf2f1ed, wall: 0xf8f7f2, trim: 0xc8ad72, ceiling: 0xffffff, accent: 0xd8c18d },
+  balcony:   { floor: 0xe9e8e3, wall: 0xf5f4ef, trim: 0xbfa66f, ceiling: 0xffffff, accent: 0xd3bc87 },
+
+  // Starsilk & Drakken: midnight / indigo / celestial violet.
+  north:     { floor: 0x18192c, wall: 0x27233f, trim: 0x7368bd, ceiling: 0x111221, accent: 0xa99cff },
+
+  // Dex systems / technical systems: cool teal, cyan, slate.
+  east:      { floor: 0x244248, wall: 0x31575d, trim: 0x52a9a4, ceiling: 0x172d32, accent: 0x72d2cc },
+
+  // Games & play: coral, amber, orange with warm depth.
+  south:     { floor: 0x6d3f32, wall: 0x8f5741, trim: 0xd26a46, ceiling: 0x44281f, accent: 0xf1a35d },
+
+  // Archive & canon: plum, ink-violet, muted rose.
+  west:      { floor: 0x3d304d, wall: 0x554064, trim: 0xa978ae, ceiling: 0x261e31, accent: 0xd0a0cc },
+
+  // Music / promptcraft / media: ochre, amber, warm gold.
+  media:     { floor: 0x5b4329, wall: 0x765538, trim: 0xd1a04c, ceiling: 0x352717, accent: 0xf0c36d },
+
+  // Local systems: moss, forest, restrained mint.
+  infra:     { floor: 0x314334, wall: 0x405946, trim: 0x78a86b, ceiling: 0x202d22, accent: 0xa8d696 },
+
+  // Exterior stays pale so garden colour and the building silhouette dominate.
+  plaza:     { floor: 0xd8d4ca, wall: 0xe4e0d7, trim: 0xb8a47a, ceiling: 0xf0ede6, accent: 0xd7bd83 },
+
   sanctuary: { floor: 0x3a342d, wall: 0x453e35, trim: 0x9c8b68, ceiling: 0x24201b, accent: 0xd9c69a },
-  shell:     { floor: 0x8f8a7d, wall: 0x9a9488, trim: 0xc9a227, ceiling: 0x6f6b60, accent: 0xe8c65a },
+  shell:     { floor: 0xd1cdc4, wall: 0xe2ded5, trim: 0xb8a47a, ceiling: 0xbdb8ad, accent: 0xd7bd83 },
   sanctuaryZone: { floor: 0x2a2622, wall: 0x35302a, trim: 0x8a7a5c, ceiling: 0x1c1916, accent: 0xd9c69a },
 };
 
@@ -63,11 +79,11 @@ export class PaletteSet {
     if (cached) return cached.floor;
     const m = this.scope.track(
       new THREE.MeshStandardMaterial({
-        color: 0xbfd8ea,
+        color: 0xd4ebf5,
         roughness: 0.08,
         metalness: 0,
         transparent: true,
-        opacity: 0.22,
+        opacity: 0.25,
         side: THREE.DoubleSide,
       }),
     );
