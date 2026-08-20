@@ -1,4 +1,4 @@
-import { el } from './dom';
+import { el, isActivationKey } from './dom';
 import type { InteractionFocus } from '../interaction/InteractionManager';
 import { ZONE_BY_ID, type ZoneId } from '../world/layout';
 import { WINGS_BY_ID } from '../content/collection.generated';
@@ -35,11 +35,25 @@ export class HUD {
       el('div', { html: '<b>H</b> contents · <b>O</b> settings' }),
     );
 
+    const requestLock = (event?: Event): void => {
+      event?.preventDefault();
+      onRequestLock();
+    };
     this.lockPrompt = el(
       'div',
-      { class: 'hud__lock', onclick: onRequestLock },
+      {
+        class: 'hud__lock',
+        role: 'button',
+        tabindex: '0',
+        'aria-label': 'Enter the museum and capture mouse look',
+        onclick: requestLock,
+        onkeydown: (event: Event) => {
+          const keyEvent = event as KeyboardEvent;
+          if (isActivationKey(keyEvent)) requestLock(keyEvent);
+        },
+      },
       el('h2', { text: 'Museum of Me' }),
-      el('p', { text: 'Click to enter. WASD or arrow keys move, mouse looks, Q/E rotate, Shift sprints, Space jumps, F interacts.' }),
+      el('p', { text: 'Click or press Enter to enter. WASD or arrow keys move, mouse looks, Q/E rotate, Shift sprints, Space jumps, F interacts.' }),
       el('p', { text: 'No mouse? Q/E turn and Page Up/Page Down look vertically; the whole museum remains keyboard-usable.' }),
       el('p', { text: 'Press H at any time for the full text of every exhibit.' }),
     );
