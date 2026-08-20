@@ -9,6 +9,8 @@ export interface HostServices {
   readonly announce: (exhibitId: string, message: string) => void;
   readonly reducedMotion: () => boolean;
   readonly detailScale: () => number;
+  /** Load a governed asset into the exhibit's own scope. */
+  readonly loadAsset: (assetId: string, scope: ResourceScope, detail: number) => Promise<THREE.Object3D>;
 }
 
 class IllegalTransition extends Error {
@@ -78,6 +80,7 @@ export class ExhibitHost {
       detailScale: this.services.detailScale(),
       addControl: (control) => this.services.addControl(this.record.id, control),
       announce: (message) => this.services.announce(this.record.id, message),
+      loadAsset: (assetId) => this.services.loadAsset(assetId, this.scope, this.services.detailScale()),
     };
   }
 

@@ -44,6 +44,8 @@ export interface ExhibitContext {
   readonly addControl: (control: ExhibitControl) => () => void;
   /** Announce a change to assistive technology and the subtitle line. */
   readonly announce: (message: string) => void;
+  /** Load a governed asset into this exhibit's scope. */
+  readonly loadAsset: (assetId: string) => Promise<THREE.Object3D>;
 }
 
 export interface ExhibitUpdateContext {

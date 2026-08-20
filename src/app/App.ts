@@ -15,6 +15,7 @@ import { installExhibits } from '../exhibits';
 import { StreamingManager } from '../exhibits/StreamingManager';
 import { InteractionManager } from '../interaction/InteractionManager';
 import { AudioManager } from '../audio/AudioManager';
+import { AssetManager } from '../assets/AssetManager';
 import { UILayer } from './UILayer';
 
 export interface AppOptions {
@@ -40,6 +41,7 @@ export class App implements LoopCallbacks {
   readonly interaction = new InteractionManager();
   readonly streaming: StreamingManager;
   readonly audio = new AudioManager();
+  readonly assets = new AssetManager();
   ui!: UILayer;
   /** Zone the visitor is currently standing in. Drives audio and streaming. */
   currentZone: ZoneId = 'plaza';
@@ -81,6 +83,10 @@ export class App implements LoopCallbacks {
     this.player = new PlayerController(built.collision, this.input);
     this.player.teleport(SPAWN_POSITION, SPAWN_YAW);
 
+    // File-backed loaders are wired even though the museum ships procedural
+    // assets, so an authentic project artifact can be carried in at any point.
+    this.assets.attachRenderer(this.renderer.renderer);
+
     installExhibits();
     this.streaming = new StreamingManager(
       built.exhibitMounts,
@@ -89,6 +95,8 @@ export class App implements LoopCallbacks {
         announce: (id, message) => this.announce(id, message),
         reducedMotion: () => this.preferences.reducedMotion,
         detailScale: () => this.renderer.quality.detailScale,
+        loadAsset: async (assetId, scope, detail) =>
+          (await this.assets.load(assetId, scope, { detail })).object,
       },
       {
         loadRadius: this.renderer.quality.exhibitStreamRadius + 14,
@@ -229,6 +237,7 @@ export class App implements LoopCallbacks {
     this.loop.stop();
     this.ui?.dispose();
     this.audio.dispose();
+    this.assets.dispose();
     this.streaming.dispose();
     this.interaction.dispose();
     this.input.dispose();

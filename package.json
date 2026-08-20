@@ -18,7 +18,7 @@
     "validate:content": "node scripts/validate-content.mjs",
     "validate:privacy": "node scripts/validate-privacy.mjs",
     "check:budgets": "node scripts/check-budgets.mjs",
-    "gate": "npm run typecheck && npm run lint && npm test && npm run validate:mapping && npm run validate:content && npm run validate:privacy && npm run validate:frameloop && npm run build",
+    "gate": "npm run typecheck && npm run lint && npm test && npm run validate:mapping && npm run validate:content && npm run validate:privacy && npm run validate:frameloop && npm run validate:assets && npm run build && npm run check:budgets",
     "validate:frameloop": "node scripts/validate-frameloop.mjs",
     "build:collection": "node scripts/build-collection.mjs"
   },

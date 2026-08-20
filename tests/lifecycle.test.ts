@@ -8,15 +8,20 @@ import { InteractionManager } from '../src/interaction/InteractionManager';
 import { EXHIBITS_BY_ID } from '../src/content/collection.generated';
 import { PLACEMENT_BY_EXHIBIT, type Vec3 } from '../src/world/layout';
 import { buildMuseum } from './helpers/walk';
+import { AssetManager } from '../src/assets/AssetManager';
+import type { ResourceScope } from '../src/assets/ResourceScope';
 
 installExhibits();
 
 const interaction = new InteractionManager();
+const assets = new AssetManager();
 const services = {
   addControl: (id: string, c: Parameters<InteractionManager['register']>[1]) => interaction.register(id, c),
   announce: () => {},
   reducedMotion: () => false,
   detailScale: () => 1,
+  loadAsset: async (assetId: string, scope: ResourceScope, detail: number) =>
+    (await assets.load(assetId, scope, { detail })).object,
 };
 
 function makeHost(id: string): ExhibitHost {
