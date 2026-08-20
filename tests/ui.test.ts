@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { COLLECTION, WINGS_BY_ID, exhibitsForWing } from '../src/content/collection.generated';
-import { ZONES, ZONE_BY_ID, WINGS, zoneAt, shapeContains } from '../src/world/layout';
+import { ZONES, ZONE_BY_ID, WINGS, WING_BY_ID, PLACEMENTS, zoneAt, shapeContains } from '../src/world/layout';
 
 /**
  * The map, the HUD location line and the accessible mirror all read from the
@@ -39,6 +39,27 @@ describe('interface data sources', () => {
     for (const wing of COLLECTION.wings) {
       expect(wing.blurb.length, `${wing.id}`).toBeGreaterThan(40);
       expect(wing.subtitle.length).toBeGreaterThan(4);
+    }
+  });
+
+  it('resolves a mezzanine bay to its mezzanine, not the wing beneath it', () => {
+    // Found by the Phase 13 walkthrough: standing in a mezzanine bay reported
+    // the ground wing below, because the ground slab reached up past the
+    // balcony floor and the mezzanines run diagonally over those bays.
+    for (const placement of PLACEMENTS) {
+      const wing = WING_BY_ID.get(placement.wing)!;
+      if (wing.level !== 1) continue;
+      const spot = placement.visitorSpot;
+      expect(zoneAt([spot[0], spot[1] + 0.1, spot[2]]), `${placement.exhibitId}`).toBe(placement.wing);
+    }
+  });
+
+  it('resolves every ground-floor bay to its own wing', () => {
+    for (const placement of PLACEMENTS) {
+      const wing = WING_BY_ID.get(placement.wing)!;
+      if (wing.level !== 0) continue;
+      const spot = placement.visitorSpot;
+      expect(zoneAt([spot[0], spot[1] + 0.1, spot[2]]), `${placement.exhibitId}`).toBe(placement.wing);
     }
   });
 

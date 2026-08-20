@@ -6,4 +6,3 @@ playwright-report/
 test-results/
 .vite/
 validation/reports/*.json
-!validation/reports/.gitkeep

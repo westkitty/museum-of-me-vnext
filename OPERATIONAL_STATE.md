@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 12,
+  "state_revision": 13,
   "last_updated": "2026-08-19",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -39,7 +39,7 @@
 | Remote | `git@github.com:westkitty/museum-of-me-vnext.git` (private), pushing `feat/foundation` |
 | Runtime | traversable graybox + exhibit lifecycle, streaming, interaction, full DOM interface, procedural audio |
 | Toolchain | Node 26.7.0, npm 11.19.0, Vite 6, TypeScript 5.7, Three.js **0.185.0** (pinned) |
-| Current phase | **Phase 12 complete.** Next: Phase 13 — full museum QA. |
+| Current phase | **Phase 13 complete.** Next: Phase 14 — deployment and release preparation. |
 
 ## 4. Active invariants
 
@@ -111,6 +111,11 @@
 | Draw calls reduced from 986 to 253 at the entrance | `mergeStatic` collapses static architecture per material; measured in-browser before and after; `tests/performance.test.ts` holds the ratio | ✅ 2026-08-19 |
 | Simultaneous point lights reduced from 31 to a hard cap of 8 anywhere in the building | light director; measured in-browser at eight positions; `tests/performance.test.ts` asserts the cap | ✅ 2026-08-19 |
 | Merging cannot move a wall | collision is recorded during construction, before any merge; traversal tests still green afterwards | ✅ 2026-08-19 |
+| **Phase 13 full-museum QA passes**: every one of the 35 exhibits reached and activated in a real browser, zero uncaught errors, zero unhandled rejections, zero console errors | `validation/reports/WALKTHROUGH_2026-08-19.md` — driven through the museum's own loop, streaming, interaction and zone resolution, at each exhibit's visitor standing position | ✅ 2026-08-19 |
+| Every exhibit has registered controls and ≥4 paragraphs of interpretation at runtime | same walkthrough | ✅ 2026-08-19 |
+| All six wings resolve correctly while walking | same walkthrough, after the zone fix below | ✅ 2026-08-19 |
+| Visual evidence captured for the plaza, vestibule, south hall, Rotunda, balcony, north wing, mezzanine and Sanctuary | same report | ✅ 2026-08-19 |
+| Dexter reads as a tricolour Phalène at rest, with the hanging ears intact | close visual inspection in the Sanctuary | ✅ 2026-08-19 |
 | Single frame loop is structurally enforced | `validate:frameloop` PASS — `src/app/Loop.ts` is the only `requestAnimationFrame` owner across 13 source files | ✅ 2026-08-19 |
 | Asset governance gate operational | `validate:assets` PASS — no hotlinked runtime asset in any source file | ✅ 2026-08-19 |
 
@@ -152,5 +157,5 @@
 | 10 — experience pass | ✅ complete |
 | 11 — accessibility/input | ✅ complete |
 | 12 — performance/lifecycle | ✅ complete |
-| 13 — full museum QA | ▶ next |
-| 14 — deployment/release | pending |
+| 13 — full museum QA | ✅ complete |
+| 14 — deployment/release | ▶ next |

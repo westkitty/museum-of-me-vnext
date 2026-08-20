@@ -377,14 +377,19 @@ export function shapeContains(shape: ZoneShape, p: Vec3): boolean {
 function wingShape(w: WingSpec): ZoneShape {
   // The south wing owns its vestibule, so arriving visitors are already inside.
   const outer = w.id === 'south' ? VESTIBULE_TO : w.hallTo;
+  // Zones are level-aware. A ground wing's volume stops at the upper floor even
+  // where its hall is taller than that, because a visitor standing at balcony
+  // height is on the upper level — and the mezzanine wings run diagonally over
+  // the ground wings' bays, so without this clamp a ground wing swallows them.
+  const isUpper = w.level === 1;
   return {
     kind: 'slab',
     dir: faceDirection(w.face),
     alongMin: ROTUNDA_APOTHEM - 0.5,
     alongMax: outer + 1,
     halfWidth: w.hallHalfWidth + w.bayDepth + 1,
-    yMin: w.floorY - 1,
-    yMax: w.floorY + w.hallHeight + 2,
+    yMin: isUpper ? LEVEL_1_Y - 0.6 : w.floorY - 1,
+    yMax: isUpper ? w.floorY + w.hallHeight + 2 : Math.min(w.floorY + w.hallHeight + 2, LEVEL_1_Y - 0.6),
   };
 }
 
