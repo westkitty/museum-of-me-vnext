@@ -65,16 +65,22 @@ The repository is engineered to release, but publication is **not** the only thi
 
 ## Post-deploy verification
 
-After an explicitly authorized deployment, verify the real hosted URL rather than inferring success from the build artifact:
+After an explicitly authorized deployment, verify the real hosted URL rather than inferring success from the build artifact. Start with the transport/header check:
+
+```bash
+npm run verify:hosted -- https://museum.example/
+```
+
+Require that command to pass, then perform the real browser/device checks:
 
 - direct load and hard refresh return the museum shell;
-- hashed JavaScript/CSS assets return 200;
-- the hosted responses actually carry the intended CSP/cache/security headers;
 - the exterior start, map, journal, settings and accessible contents work;
 - pointer lock captures, releases and recaptures on a real browser/device;
 - audible output and subtitles agree;
 - representative exhibit interaction works in every wing;
 - representative-device FPS remains acceptable.
+
+`verify:hosted` checks the hosted shell, required security/cache headers, same-origin hashed JavaScript/CSS, successful asset responses and immutable asset caching. It does not substitute for visual, audio, pointer-lock-feel or device-performance evidence.
 
 The exact merge/deploy/verify/tag ordering is governed by `docs/RELEASE_RUNBOOK.md`.
 
