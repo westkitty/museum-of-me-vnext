@@ -19,7 +19,7 @@ Then walk in. `WASD` move · mouse look · `Shift` faster · `E` interact · `M`
 ## Validate it
 
 ```bash
-npm run gate     # typecheck, lint, tests, mapping, content, privacy, frame-loop, build
+npm run gate     # canonical automated release gate: checks, QA report, build, budgets
 ```
 
 ## Structure
@@ -42,14 +42,15 @@ npm run gate     # typecheck, lint, tests, mapping, content, privacy, frame-loop
 
 ## State
 
-All fourteen phases of the governing build plan are complete. 35 exhibits, all
-bespoke; 64 project identities, each represented exactly once; 410 tests; the
-mandatory traversal and the memory gate both green.
+All fourteen phases of the governing build plan are complete. Thirty-five
+bespoke exhibits represent 64 project identities exactly once; traversal and
+lifecycle gates are automated through the canonical release gate.
 
 One thing remains, and it is a decision rather than engineering: **choose a
 hosting destination and authorise publication.** Nothing has been published —
 doing so makes sixty-four projects' documentation public, which is the owner's
-call. `docs/RELEASE_CHECKLIST.md` has the full gate with evidence.
+call. PR #1 is open from `release/v1.0.0` to `main`; `docs/RELEASE_CHECKLIST.md`
+also distinguishes automated proof from the remaining human browser/device checks.
 
 ## Lineage
 

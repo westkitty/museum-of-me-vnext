@@ -35,11 +35,11 @@
 
 | Item | State |
 |---|---|
-| Repository | initialised, branch `main`, first phase branch `feat/foundation` |
-| Remote | `git@github.com:westkitty/museum-of-me-vnext.git` (private), pushing `feat/foundation` |
+| Repository topology | `main` exists and is the remote default branch; `feat/foundation` is historical implementation lineage; the active release branch is `release/v1.0.0` |
+| Remote / PR | private `git@github.com:westkitty/museum-of-me-vnext.git`; PR #1 is open from `release/v1.0.0` to `main` |
 | Runtime | traversable graybox + exhibit lifecycle, streaming, interaction, full DOM interface, procedural audio |
 | Toolchain | Node 26.7.0, npm 11.19.0, Vite 6, TypeScript 5.7, Three.js **0.185.0** (pinned) |
-| Current phase | **Phase 14 complete — deployment prepared and validated.** The museum is release-ready; publication is blocked only on a hosting decision. |
+| Current release state | Phase 14 deployment preparation is complete. PR #1 awaits review; publication still requires a hosting decision and remains deliberately unperformed. |
 
 ## 4. Active invariants
 
@@ -133,8 +133,8 @@
 | Quality-tier switching at runtime | `setQuality` is implemented and typechecked; no runtime tier-change observation yet. Phase 12. |
 | Context-loss recovery | Handlers are installed and typechecked; not exercised against a real context loss. Phase 12. |
 | Absolute frame rate in ms | The automation surface throttles `requestAnimationFrame` and does not synchronise GPU work, so wall-clock render timings taken there are noise (the same view measured 1 ms and 99 ms on consecutive runs). Draw calls, triangle counts, light counts and resident-exhibit counts **are** reliable there and are the numbers recorded above. A human FPS reading on real hardware is the one remaining unmeasured performance figure. |
-| Audio | The AudioManager is implemented and typechecked but browsers refuse audio before a real gesture, which automation cannot supply. Unverified until a human walk-through in Phase 13. |
-| Pointer-lock capture and release | Implemented and wired; a real pointer lock needs a user gesture the automation surface cannot supply. Keyboard and touch paths are tested and require no lock at all, so no visitor is dependent on it. Confirmed in the Phase 13 walkthrough. |
+| Audio | A local browser loaded the museum, but its canvas gesture did not unlock pointer lock or start the AudioContext. Code-level lifecycle and preference paths are covered; actual audible output still needs a human browser/device check. |
+| Pointer-lock capture and release | A local browser loaded the museum but did not grant pointer lock from the intended canvas gesture, so real lock/movement/escape recovery remains unverified there. Keyboard and touch paths are tested and require no lock. |
 | Gamepad support | Not implemented. The plan lists it as "retained gamepad support if implemented"; it was not, and no visitor path depends on it. |
 | Interactive walking with keyboard and pointer lock | Input and controller are implemented and typechecked; traversal so far is proven by simulation against real collision, not by a human walking it. Phase 3 adds the interaction layer and Phase 13 captures the recorded walkthrough. |
 
@@ -143,7 +143,7 @@
 | Item | Status |
 |---|---|
 | Production hosting target | **Not configured, and deliberately not chosen.** Deployment is fully prepared and validated: `dist/` is a complete self-contained artifact, `public/_headers` carries the cache policy and a CSP that forbids every outbound connection, `docs/DEPLOYMENT.md` has the exact steps for Cloudflare Pages or GitHub Pages, and `.github/workflows/deploy-pages.yml` exists but is manual-only. The single remaining action is an account decision: **choose a destination and authorise publication.** Publishing makes the documentation of sixty-four projects public, which is the owner's call, so nothing has been published. |
-| Runtime performance | Unmeasured until Phase 12. |
+| Runtime performance | Structural budgets are verified; absolute FPS still requires a representative real-device measurement. |
 | Push remote | Recorded at the first push attempt. `gh` is authenticated as `westkitty` with `repo` scope. |
 
 ## 8. Phase ledger

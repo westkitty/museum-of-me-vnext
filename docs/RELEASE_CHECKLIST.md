@@ -52,6 +52,10 @@ The plan's §39 gate, checked item by item. Every ✅ names the evidence.
 | No uncaught core-path exceptions | ✅ | Full 35-exhibit browser walkthrough: zero uncaught errors, zero unhandled rejections, zero console errors. |
 | Load/unload lifecycle stable | ✅ | `tests/lifecycle-memory.test.ts` — four full traversals, peak allocation does not creep, resting level stable, mounts balance unmounts. |
 | Quality tiers work | ✅ | Auto-detected at boot, overridable in settings, DPR capped on all three, low tier drops shadows and crowds. |
+| Audio graph and preferences | 🟨 | Implemented and static/unit paths are covered, but the local browser did not unlock AudioContext from its canvas gesture. Audible output requires a human browser/device check. |
+| Pointer-lock capture, look, and release | 🟨 | Implemented; the local browser did not grant lock, so keyboard/touch fallback is the only directly verified input path. A human browser check remains required. |
+| Absolute frame rate | 🟨 | Draw-call, light, residency, lifecycle, and bundle budgets are automated. Do not infer device FPS from throttled automation; measure on representative hardware. |
+| Browser E2E suite | ⬜ | `@playwright/test` is installed, but there is no committed Playwright configuration or browser test. `npm run test:e2e` is outside the release gate and currently discovers no E2E suite, so it provides no release evidence. |
 
 ## Deployment
 
@@ -79,20 +83,20 @@ documentation of sixty-four projects public, and that is the owner's call.
 
 | Branch | Role |
 |---|---|
-| `feat/foundation` | where all fourteen phases were built, commit by commit. Currently the repository's default branch. |
-| `release/v1.0.0` | this release. Identical content, branched for tagging. |
+| `main` | current remote default branch and PR #1 base. |
+| `feat/foundation` | historical implementation lineage. |
+| `release/v1.0.0` | current release branch and PR #1 head. |
 
-**There is no `main`.** The repository was initialised with `main` as the
-starting branch name but the first commit was made on `feat/foundation`, so
-`main` was never born. Creating it, repointing the default branch, and tagging
-are repository-configuration decisions, and this project has not made them on
-the owner's behalf.
+PR #1 is open from `release/v1.0.0` to `main`. It has not been merged.
 
 ## The remaining actions, exactly
 
-1. **Choose a hosting destination and authorise publication.** This is the only
-   one that is not mechanical. See `docs/DEPLOYMENT.md`.
-2. Establish `main` from `release/v1.0.0` and set it as the default branch.
-3. Tag `v1.0.0`.
+1. Complete the human browser/device checks for audible audio, pointer lock,
+   and representative-device FPS.
+2. Review and merge PR #1 when its required GitHub checks are green.
+3. **Choose a hosting destination and authorise publication.** See
+   `docs/DEPLOYMENT.md`.
+4. Tag `v1.0.0` only after the merge decision.
 
-Everything those three steps would certify is green today.
+The automated gate is the CI authority; the listed browser/device checks remain
+manual evidence requirements.
