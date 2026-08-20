@@ -4,6 +4,7 @@ import {
   SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_CENTER, SANCTUARY_FLOOR_Y,
   STAIRS, type Vec3, type WingSpec,
 } from './layout';
+import { START_POSITION } from './start';
 
 /** A named waypoint on the museum's canonical visitor route. */
 export interface Waypoint {
@@ -24,7 +25,6 @@ function hallWaypoints(w: WingSpec): Waypoint[] {
   );
   for (const p of mine) {
     const along = w.hallFrom + w.bayLead + p.slot * w.bayPitch;
-    // Stand in the hall opposite the bay, then step into the bay itself.
     out.push({ label: `${w.id}: outside ${p.exhibitId}`, at: place(d, along, 0, w.floorY) });
     out.push({ label: `${w.id}: inside ${p.exhibitId}`, at: p.visitorSpot, exhibitId: p.exhibitId });
     out.push({ label: `${w.id}: back to hall ${p.exhibitId}`, at: place(d, along, 0, w.floorY) });
@@ -34,18 +34,12 @@ function hallWaypoints(w: WingSpec): Waypoint[] {
   return out;
 }
 
-/**
- * The Rotunda's circulation ring. The centre is occupied by the orientation
- * installation, so visitors move around it rather than through it — the route
- * has to do the same.
- */
 const RING_RADIUS = 10.5;
 
 function ringPoint(face: Parameters<typeof faceDirection>[0], y = GROUND_Y): Vec3 {
   return place(faceDirection(face), RING_RADIUS, 0, y);
 }
 
-/** Walk the ring from one face to another the short way round. */
 function ringPath(from: Parameters<typeof faceDirection>[0], to: Parameters<typeof faceDirection>[0], y = GROUND_Y): Waypoint[] {
   const order = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'] as const;
   const a = order.indexOf(from);
@@ -82,25 +76,23 @@ function stairWaypoints(): Waypoint[] {
 }
 
 /**
- * THE MANDATORY TRAVERSAL (plan Phase 2 gate and Phase 12 §"Mandatory traversal"):
- * entrance → every wing → upper level → Sanctuary → entrance, continuously,
- * with no teleport and no level transition.
+ * THE MANDATORY TRAVERSAL:
+ * exterior start → entrance → every wing → upper level → Sanctuary → entrance,
+ * continuously, with no teleport and no level transition.
  */
 export function canonicalRoute(): readonly Waypoint[] {
   const south = WINGS.find((w) => w.id === 'south')!;
   const sd = faceDirection('s');
 
   const route: Waypoint[] = [
-    { label: 'arrival plaza', at: place(sd, VESTIBULE_TO + 8, 0, GROUND_Y) },
+    { label: 'arrival plaza', at: START_POSITION },
     { label: 'main entrance', at: SPAWN_POSITION },
     { label: 'vestibule', at: place(sd, south.hallTo + 3, 0, GROUND_Y) },
   ];
 
-  // South wing on the way in, arriving at the Rotunda's south ring point.
   route.push(...reverseHall(south));
   route.push({ label: 'rotunda ring s', at: ringPoint('s') });
 
-  // North, east and west, each reached around the circulation ring.
   let atFace: 'n' | 'e' | 's' | 'w' = 's';
   for (const id of ['north', 'east', 'west'] as const) {
     const w = WINGS.find((x) => x.id === id)!;
@@ -111,7 +103,6 @@ export function canonicalRoute(): readonly Waypoint[] {
     atFace = face;
   }
 
-  // Up to the balcony by the grand stair.
   route.push(...ringPath(atFace, 'sw'));
   route.push(...stairWaypoints());
   for (const id of ['media', 'infra'] as const) {
@@ -121,7 +112,6 @@ export function canonicalRoute(): readonly Waypoint[] {
     route.push({ label: `balcony from ${id}`, at: place(faceDirection(w.face), 13.5, 0, LEVEL_1_Y) });
   }
 
-  // Back down and into the Sanctuary.
   route.push(...stairWaypoints().reverse());
   route.push(...ringPath('sw', 'nw'));
   route.push({ label: 'sanctuary threshold', at: place(SANCTUARY_DIR, SANCTUARY_RAMP_FROM + 2, 0, GROUND_Y) });
@@ -129,7 +119,6 @@ export function canonicalRoute(): readonly Waypoint[] {
   route.push({ label: 'dexter sanctuary', at: [SANCTUARY_CENTER[0], SANCTUARY_FLOOR_Y, SANCTUARY_CENTER[2]] });
   route.push({ label: 'sanctuary return', at: place(SANCTUARY_DIR, SANCTUARY_RAMP_FROM + 2, 0, GROUND_Y) });
 
-  // Out through the south wing to where we started.
   route.push(...ringPath('nw', 's'));
   route.push({ label: 'south hall', at: place(sd, south.hallFrom + 3, 0, GROUND_Y) });
   route.push({ label: 'vestibule', at: place(sd, south.hallTo + 3, 0, GROUND_Y) });
@@ -138,13 +127,11 @@ export function canonicalRoute(): readonly Waypoint[] {
   return route;
 }
 
-/** South is walked inward from the entrance, so its waypoints run in reverse. */
 function reverseHall(w: WingSpec): Waypoint[] {
   const forward = hallWaypoints(w);
   return [...forward].reverse();
 }
 
-/** Every exhibit doorway, for the QA checklist. */
 export function exhibitWaypoints(): readonly Waypoint[] {
   return PLACEMENTS.map((p) => ({
     label: p.exhibitId,
