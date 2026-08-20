@@ -47,8 +47,8 @@ The plan's §39 gate, checked against the current `release/v1.0.0` release candi
 | Load/unload lifecycle stable | ✅ | Repeated traversal/lifecycle tests require bounded residency and balanced disposal. |
 | Persistent environment bounded | ✅ | Always-resident refinement systems are measured by explicit mesh/triangle/material/light/resource budgets and dispose to zero tracked resources. |
 | Quality tiers work | ✅ | Auto-detection, settings override, DPR limits, shadow/crowd reductions, and budget contracts are covered. |
-| Real production-browser boot + semantic visitor path | ✅ | Exact release head `8c1fa44185421be58ebbe197f6c5cadeaa6e7c26`: museum-gate run #174 passed both jobs; Chromium visitor-path suite 3/3 PASS. |
-| Production dependency surface | ✅ | Browser job runs `npm audit --omit=dev --audit-level=high`; current exact-head run passes. Development-tool audit findings are not represented as deployed dependency findings. |
+| Real production-browser boot + semantic visitor path | ✅ automated contract | The committed Chromium suite boots the production WebGL app, proves keyboard input reaches the real controller, exercises map/focus/reduced-motion behavior, and reaches the complete accessible collection. The exact release head must have its browser job green before publication. |
+| Production dependency surface | ✅ automated contract | The browser job runs `npm audit --omit=dev --audit-level=high`. Development-tool audit findings are not represented as deployed dependency findings; the exact release head must pass this job before publication. |
 | Audio graph and preferences | 🟨 human check required | Static/unit behavior is covered, but audible output and subtitle agreement require a real browser/device. |
 | Pointer-lock capture/look/release/recapture feel | 🟨 human check required | Runtime implementation is present; actual device capture, Escape/loss recovery and recapture remain a human acceptance check. |
 | Representative-device FPS | 🟨 human check required | Draw-call/light/residency/lifecycle/bundle budgets are automated. CI software rendering is not representative hardware performance. |
@@ -60,6 +60,7 @@ The plan's §39 gate, checked against the current `release/v1.0.0` release candi
 | Production build succeeds | ✅ | `npm run build` inside the canonical gate. |
 | Hashed JS/CSS and multiple production chunks | ✅ | `npm run verify:dist`. |
 | Static security/cache policy emitted | ✅ source + build | `public/_headers` is copied into `dist/_headers`; `verify:dist` requires the CSP, frame denial, `nosniff`, and immutable hashed-asset caching. |
+| Hosted transport/header verification prepared | ✅ tool contract | `npm run verify:hosted -- <url>` checks the live shell, security/cache headers and same-origin hashed assets after an authorized deployment; its deterministic tests run inside the canonical gate. |
 | Release runbook prepared | ✅ | `docs/RELEASE_RUNBOOK.md`. |
 | Human visual/device QA | ⬜ | `validation/reports/HUMAN_QA_CHECKLIST.md` has not been completed on a representative device. |
 | Hosted production verification | ⬜ | No production deployment has been authorized or performed. |
@@ -79,5 +80,5 @@ PR #1 remains open from `release/v1.0.0` to `main`. No merge, auto-merge, releas
 1. Complete the human browser/device checklist: recorded visual route, pointer-lock recovery/recapture, audible audio/subtitle agreement, and representative-device FPS.
 2. Repair only issues actually observed by that pass, then rerun the exact-head automated gates if code changes.
 3. Make an explicit owner decision to merge PR #1 and authorize a hosting destination/publication.
-4. Deploy the resulting reviewed `main` commit and verify the real hosted URL/headers/cache behavior.
+4. Deploy the resulting reviewed `main` commit, run `npm run verify:hosted -- <production-url>`, and verify the real browser/device path.
 5. Tag the verified deployed commit as `v1.0.0`; do not tag a known-bad or merely pre-deploy commit.
