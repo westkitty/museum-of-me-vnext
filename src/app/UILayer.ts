@@ -89,7 +89,6 @@ export class UILayer {
       }),
     );
 
-    // Interact opens deeper reading when the visitor is already at an exhibit.
     this.unbind.push(
       input.on('interact', () => {
         const focus = interaction.currentFocus;
@@ -97,7 +96,6 @@ export class UILayer {
       }),
     );
 
-    // Touch: a tap in the middle of the screen is the interact action.
     this.app.renderer.canvas.addEventListener('touchend', this.onTouchInteract);
     document.addEventListener('pointerlockchange', this.onPointerLock);
     this.applyPreferences({});
@@ -141,6 +139,9 @@ export class UILayer {
 
     document.documentElement.style.setProperty('--ui-scale', String(p.uiScale));
     document.documentElement.dataset.contrast = p.highContrast ? 'high' : 'normal';
+    // The explicit in-app reduced-motion switch governs DOM transitions too;
+    // the CSS media query remains a second independent system-level safeguard.
+    document.documentElement.dataset.motion = p.reducedMotion ? 'reduced' : 'full';
     this.app.camera.fov = p.fieldOfView;
     this.app.camera.updateProjectionMatrix();
     this.app.audio.setVolumes(p.masterVolume, p.ambienceVolume);
