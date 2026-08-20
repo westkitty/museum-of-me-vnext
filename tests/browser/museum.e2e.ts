@@ -46,6 +46,10 @@ test('boots at the exterior arrival and keyboard input reaches the real controll
   await expect(report).toHaveValue(/Museum of Me vNext — Human QA Evidence/);
   await expect(report).toHaveValue(/PASS.*Garden and facade composition/s);
 
+  // Report generation intentionally selects its text for easy human copying.
+  // Blur that QA-only control before proving the ordinary global movement path.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+
   const before = await page.evaluate(() => {
     const p = window.__museum?.player.position;
     return p ? [p.x, p.y, p.z] : null;
