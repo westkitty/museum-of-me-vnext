@@ -15,6 +15,7 @@ export class Lighting {
   readonly group = new THREE.Group();
   /** Bay key lights, addressable by exhibit so streaming can switch them off. */
   readonly bayLights = new Map<string, THREE.PointLight>();
+  private readonly bayFills = new Map<string, THREE.PointLight>();
 
   constructor(scope: ResourceScope, quality: QualitySettings) {
     this.group.name = 'lighting';
@@ -22,7 +23,7 @@ export class Lighting {
     const hemi = new THREE.HemisphereLight(0xcfe0f0, 0x2a2620, 0.55);
     this.group.add(hemi);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.28);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.42);
     this.group.add(ambient);
 
     // Sun through the dome. The one shadow caster in the building.
@@ -65,7 +66,7 @@ export class Lighting {
     // hall lamp does not reach them and the exhibit would sit in shadow.
     for (const placement of PLACEMENTS) {
       const wing = WING_BY_ID.get(placement.wing)!;
-      const key = new THREE.PointLight(0xffe9c8, 70, 26, 2);
+      const key = new THREE.PointLight(0xffe9c8, 160, 30, 2);
       key.position.set(
         placement.anchor[0],
         wing.floorY + wing.bayHeight - 2.2,
@@ -75,7 +76,16 @@ export class Lighting {
       // would cost far more than the handful the visitor can actually see.
       key.visible = false;
       this.group.add(key);
+
+      // A low fill so the hero object reads from below as well as above —
+      // a single overhead key leaves the underside of a suspended piece black.
+      const fill = new THREE.PointLight(0xbfc8e0, 45, 18, 2);
+      fill.position.set(placement.anchor[0], wing.floorY + 1.6, placement.anchor[2]);
+      fill.visible = false;
+      this.group.add(fill);
+
       this.bayLights.set(placement.exhibitId, key);
+      this.bayFills.set(placement.exhibitId, fill);
     }
 
     // Balcony ring wash.
@@ -97,11 +107,14 @@ export class Lighting {
   setBayLight(exhibitId: string, on: boolean): void {
     const light = this.bayLights.get(exhibitId);
     if (light) light.visible = on;
+    const fill = this.bayFills.get(exhibitId);
+    if (fill) fill.visible = on;
   }
 
   dispose(): void {
     this.group.removeFromParent();
     this.group.clear();
     this.bayLights.clear();
+    this.bayFills.clear();
   }
 }

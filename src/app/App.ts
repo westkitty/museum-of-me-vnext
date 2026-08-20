@@ -16,6 +16,7 @@ import { StreamingManager } from '../exhibits/StreamingManager';
 import { InteractionManager } from '../interaction/InteractionManager';
 import { AudioManager } from '../audio/AudioManager';
 import { AssetManager } from '../assets/AssetManager';
+import { DexterSanctuary } from '../exhibits/sanctuary/DexterSanctuary';
 import { UILayer } from './UILayer';
 
 export interface AppOptions {
@@ -42,6 +43,8 @@ export class App implements LoopCallbacks {
   readonly streaming: StreamingManager;
   readonly audio = new AudioManager();
   readonly assets = new AssetManager();
+  /** Outside the 35. Dexter is not a project and this is not an exhibit. */
+  readonly sanctuary: DexterSanctuary;
   ui!: UILayer;
   /** Zone the visitor is currently standing in. Drives audio and streaming. */
   currentZone: ZoneId = 'plaza';
@@ -72,6 +75,9 @@ export class App implements LoopCallbacks {
     this.museum = new Museum(this.scope);
     const built = this.museum.build();
     this.renderer.scene.add(built.root);
+
+    this.sanctuary = new DexterSanctuary(this.scope);
+    this.renderer.scene.add(this.sanctuary.group);
 
     this.lighting = new Lighting(this.scope, this.renderer.quality);
     this.renderer.scene.add(this.lighting.group);
@@ -183,6 +189,9 @@ export class App implements LoopCallbacks {
   fixedUpdate(dt: number): void {
     this.player.fixedUpdate(dt);
     this.streaming.updateActive(dt, this.player.eyePosition);
+    if (this.currentZone === 'sanctuary') {
+      this.sanctuary.update(dt, this.preferences.reducedMotion);
+    }
   }
 
   variableUpdate(dt: number): void {
@@ -238,6 +247,7 @@ export class App implements LoopCallbacks {
     this.ui?.dispose();
     this.audio.dispose();
     this.assets.dispose();
+    this.sanctuary.dispose();
     this.streaming.dispose();
     this.interaction.dispose();
     this.input.dispose();

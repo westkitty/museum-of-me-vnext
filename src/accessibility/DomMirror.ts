@@ -48,6 +48,7 @@ export class DomMirror {
       this.liveRegion,
       el('h2', { id: 'a11y-collection', text: 'The collection' }),
       ...this.collectionNodes(),
+      ...this.sanctuaryNodes(),
     );
   }
 
@@ -77,6 +78,22 @@ export class DomMirror {
       nodes.push(list);
     }
     return nodes;
+  }
+
+  /**
+   * The Sanctuary, listed after the collection and deliberately not among it.
+   * Dexter is not a project and this is not exhibit thirty-six.
+   */
+  private sanctuaryNodes(): Node[] {
+    return [
+      el('h3', { text: 'The Dexter Sanctuary' }),
+      el('p', {
+        text:
+          'Below and behind the Rotunda, reached by a ramp through a narrow threshold. It is not one of the thirty-five exhibits. ' +
+          'A tricolour Phalène, with the hanging ears the variety is named for. Several systems in this museum carry his name; none of them are him. ' +
+          'There is nothing to collect here and nothing to complete.',
+      }),
+    ];
   }
 
   /** Called when the visitor's focus or location changes. */

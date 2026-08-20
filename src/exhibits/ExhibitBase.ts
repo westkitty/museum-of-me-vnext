@@ -20,6 +20,7 @@ export abstract class ExhibitBase implements ExhibitModule {
 
   private readonly disposers: (() => void)[] = [];
   private controls: ExhibitControl[] = [];
+  private readonly trackedLists: { length: number }[] = [];
 
   constructor(readonly def: ExhibitDefinition) {}
 
@@ -33,6 +34,11 @@ export abstract class ExhibitBase implements ExhibitModule {
   mount(ctx: ExhibitContext): void {
     this.ctx = ctx;
     this.group = ctx.group;
+    // Streaming mounts and unmounts an exhibit many times in a visit, and the
+    // module instance survives across cycles. Any array a subclass fills during
+    // build() must therefore be emptied first, or the second mount builds twice
+    // as much as the first. `tracked()` makes that automatic.
+    for (const list of this.trackedLists) list.length = 0;
     this.build();
     this.built = true;
   }
@@ -118,6 +124,18 @@ export abstract class ExhibitBase implements ExhibitModule {
 
   protected get reducedMotion(): boolean {
     return this.ctx.reducedMotion;
+  }
+
+  /**
+   * Declare an array that build() fills. It is emptied automatically before
+   * every mount, so an exhibit cannot accumulate across streaming cycles.
+   *
+   *     private machines = this.tracked<THREE.Group>();
+   */
+  protected tracked<T>(): T[] {
+    const list: T[] = [];
+    this.trackedLists.push(list);
+    return list;
   }
 
   /** Scale a count by the quality tier, never below 1. */

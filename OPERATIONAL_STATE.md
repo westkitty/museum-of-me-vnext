@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 5,
+  "state_revision": 6,
   "last_updated": "2026-08-19",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -39,7 +39,7 @@
 | Remote | `git@github.com:westkitty/museum-of-me-vnext.git` (private), pushing `feat/foundation` |
 | Runtime | traversable graybox + exhibit lifecycle, streaming, interaction, full DOM interface, procedural audio |
 | Toolchain | Node 26.7.0, npm 11.19.0, Vite 6, TypeScript 5.7, Three.js **0.185.0** (pinned) |
-| Current phase | **Phase 4 complete.** Next: Phase 5 — representative vertical slice. |
+| Current phase | **Phase 5 complete.** Next: Phase 6 — production architecture. |
 
 ## 4. Active invariants
 
@@ -55,6 +55,8 @@
 | INV-008 | Every exhibit's `ResourceScope` drains to zero on unmount. | `ExhibitHost` assertion + lifecycle tests |
 | INV-009 | The museum requires no live AI, cloud API, or backend for the core experience. | architecture; no network code outside asset fetch of own files |
 | INV-010 | Every dimension of the building derives from `src/world/layout.ts`. Geometry, collision, zones, the map and exhibit anchors may not hard-code a position. | code review; traversal tests fail if they disagree |
+| INV-014 | An exhibit's build-time arrays are declared with `this.tracked()` so they empty before every mount. Streaming remounts modules many times per visit. | `tests/lifecycle.test.ts` allocation-parity check |
+| INV-015 | The Dexter Sanctuary contains no score, badge, collectible, paw-print, achievement, unlock or reward, and is never counted among the 35. | `tests/sanctuary.test.ts` |
 | INV-012 | Every asset reaches the scene through `AssetManager.load`, which refuses any id without a manifest record. | `validate:assets` + unit tests |
 | INV-013 | Procedural generators never call `Math.random`; they use the seeded `rng`. | code review + determinism test |
 | INV-011 | The mandatory traversal must keep passing: entrance → every wing → upper floor → Sanctuary → entrance, with no teleport and no visible level load. | `tests/traversal.test.ts` |
@@ -85,6 +87,9 @@
 | An undocumented asset cannot reach the scene | `registerGenerator` and `load` both throw without a manifest record; unit-tested | ✅ 2026-08-19 |
 | Procedural generators are deterministic | seeded xorshift; same seed produces identical sequences, unit-tested | ✅ 2026-08-19 |
 | Exhibit tiers match the plan exactly (A=9, B=16, C=10) and the initial-visit bundle is 0.71 MB of its 20 MB budget | `npm run check:budgets` | ✅ 2026-08-19 |
+| **Phase 5 vertical-slice gate passes**: five deliberately different exhibits built bespoke — E01 Starsilk Universe (spatial sculpture), E10 WorldsVault Lineage (sequence/history), E19 DexTilt (device interaction), E25 DnDex (miniature game), E13 Suno Studio (audio) | `tests/vertical-slice.test.ts` — real 3D volume in all three axes, >12 meshes each, controls that change observable state, usable under reduced motion, three clean streaming cycles, deterministic reset | ✅ 2026-08-19 |
+| The Dexter Sanctuary exists, is outside the 35, and is not mascotised | `tests/sanctuary.test.ts` — Dexter modelled with the hanging Phalène ears, below and behind the Rotunda axis, holds still under reduced motion, and the implementation contains no score, badge, collectible, paw-print, achievement, unlock or reward | ✅ 2026-08-19 |
+| The interaction architecture did not need repairing to carry five different exhibits | all five compose the same shared parts (Filament, Dial, Lever, Pulse, console) and the frozen contract; no exhibit-specific engine work was required | ✅ 2026-08-19 |
 | Single frame loop is structurally enforced | `validate:frameloop` PASS — `src/app/Loop.ts` is the only `requestAnimationFrame` owner across 13 source files | ✅ 2026-08-19 |
 | Asset governance gate operational | `validate:assets` PASS — no hotlinked runtime asset in any source file | ✅ 2026-08-19 |
 
@@ -117,8 +122,8 @@
 | 2 — complete museum graybox | ✅ complete |
 | 3 — core museum systems | ✅ complete |
 | 4 — governed asset pipeline | ✅ complete |
-| 5 — vertical slice | ▶ next |
-| 6 — production architecture | pending |
+| 5 — vertical slice | ✅ complete |
+| 6 — production architecture | ▶ next |
 | 7 — exhibit wave one | pending |
 | 8 — exhibit wave two | pending |
 | 9 — content completion | pending |
