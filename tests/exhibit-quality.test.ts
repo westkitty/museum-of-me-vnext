@@ -157,10 +157,10 @@ describe(`per-exhibit gate (${BESPOKE.length} bespoke exhibits)`, () => {
     host.dispose();
   });
 
-  it.each(BESPOKE)('%s — repeated reset allocates nothing', async (id) => {
+  it.each(BESPOKE)('%s — repeated interaction/reset keeps tracked resources stable', async (id) => {
     // A reset that clears a cached material or geometry, and an update that
-    // lazily rebuilds it, leaks one resource per cycle into the exhibit's
-    // scope. Nothing may be allocated in the frame loop.
+    // lazily rebuilds it, leaks a tracked disposable resource per cycle into
+    // the exhibit scope. This does not measure general JavaScript heap churn.
     const { host, captured } = await live(id);
     for (let i = 0; i < 30; i++) host.update(1 / 60, [1, 1.6, 3], i / 60);
     const settled = host.resourceCount;

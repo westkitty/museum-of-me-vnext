@@ -41,6 +41,8 @@ const STATEMENTS: readonly { text: string; answer: Kind; why: string }[] = [
 ];
 
 export class RhetoricalIndex extends ExhibitBase {
+  /** Reused by onUpdate; classification counts must not allocate every frame. */
+  private readonly binCounts = new Uint8Array(KINDS.length);
   private cards = this.tracked<THREE.Group>();
   private homes = this.tracked<THREE.Vector3>();
   private sorted = this.tracked<number>();
@@ -182,7 +184,7 @@ export class RhetoricalIndex extends ExhibitBase {
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
     const rate = this.reducedMotion ? 1 : Math.min(1, dt * 4);
-    const counts = new Array(KINDS.length).fill(0);
+    this.binCounts.fill(0);
 
     for (let i = 0; i < this.cards.length; i++) {
       const bin = this.sorted[i];
@@ -191,7 +193,7 @@ export class RhetoricalIndex extends ExhibitBase {
         target = this.homes[i];
       } else {
         target = this.scratchTarget.copy(this.binSlots[bin]);
-        target.y += counts[bin]++ * 0.03;
+        target.y += this.binCounts[bin]++ * 0.03;
       }
       this.cards[i].position.lerp(target, rate);
 

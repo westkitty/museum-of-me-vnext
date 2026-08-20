@@ -43,6 +43,8 @@ const BINS: readonly Bin[] = [
 const FILE_COUNT = 36;
 
 export class UtilityBench extends ExhibitBase {
+  /** Reused by onUpdate; bin counts are transient values, not per-frame arrays. */
+  private readonly binCounts = new Uint8Array(BINS.length);
   private files = this.tracked<THREE.Mesh>();
   private fileBins = this.tracked<number>();
   private homes = this.tracked<THREE.Vector3>();
@@ -203,13 +205,13 @@ export class UtilityBench extends ExhibitBase {
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
     const rate = this.reducedMotion ? 1 : Math.min(1, dt * 3);
-    const counts = new Array(BINS.length).fill(0);
+    this.binCounts.fill(0);
 
     for (let i = 0; i < this.files.length; i++) {
       let target: THREE.Vector3;
       if (this.sorted) {
         target = this.scratchTarget.copy(this.binSlots[this.fileBins[i]]);
-        target.y += counts[this.fileBins[i]]++ * 0.035;
+        target.y += this.binCounts[this.fileBins[i]]++ * 0.035;
       } else {
         target = this.homes[i];
       }
