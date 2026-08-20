@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import type { CollisionWorld } from './CollisionWorld';
 import {
-  GROUND_Y, PLAZA_DEPTH, PLAZA_HALF_WIDTH, VESTIBULE_TO,
+  GROUND_Y, PLAZA_DEPTH, VESTIBULE_TO,
   faceDirection, place, type Vec3,
 } from './layout';
 
@@ -53,10 +53,8 @@ export class ArrivalGarden {
     const z1 = Math.max(nearZ, farZ);
     const midZ = (z0 + z1) / 2;
 
-    // A pale central walk makes the entrance route immediately legible.
     this.box('garden-main-walk', [0, GROUND_Y + 0.025, midZ], [5.4, 0.025, PLAZA_DEPTH / 2], this.stone);
 
-    // Long planted lawns frame the walk while keeping the entire approach open.
     for (const side of [-1, 1]) {
       this.box(
         `garden-lawn-${side < 0 ? 'west' : 'east'}`,
@@ -66,8 +64,6 @@ export class ArrivalGarden {
       );
     }
 
-    // Trees compose the façade rather than hiding it. Their trunks are solid;
-    // crowns are visual only, so the visitor never collides with foliage.
     const trees: readonly Vec3[] = [
       [-27, GROUND_Y, z0 + 6], [27, GROUND_Y, z0 + 6],
       [-25, GROUND_Y, midZ + 5], [25, GROUND_Y, midZ + 5],
@@ -75,8 +71,6 @@ export class ArrivalGarden {
     ];
     trees.forEach((p, i) => this.tree(p, 4.6 + (i % 2) * 0.6));
 
-    // Layer shrubs and flowers inside the lawn panels, always well outside the
-    // central ten-metre walk corridor.
     for (const side of [-1, 1]) {
       for (const z of [z0 + 5, midZ, z1 - 5]) {
         this.shrub([side * 14.5, GROUND_Y, z], 1.45);
@@ -87,16 +81,9 @@ export class ArrivalGarden {
       }
     }
 
-    // Seating faces the central axis. Benches are solid and remain outside the
-    // required path, producing real rest points rather than decorative decals.
     this.bench([-10.5, GROUND_Y, midZ - 3], Math.PI / 2);
     this.bench([10.5, GROUND_Y, midZ + 4], -Math.PI / 2);
-
-    // One restrained water feature makes the court feel intentionally designed.
-    // It is offset from spawn and the entrance path, not placed in the visitor's way.
     this.fountain([18.5, GROUND_Y, midZ - 1]);
-
-    // A pair of low arrival markers frame the start without forming a gate.
     this.arrivalMarker([-7.5, GROUND_Y, z1 - 4]);
     this.arrivalMarker([7.5, GROUND_Y, z1 - 4]);
 
