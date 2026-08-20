@@ -41,11 +41,16 @@ export class ResourceScope {
   }
 
   /**
-   * Walk an Object3D and track every geometry, material and material-owned
-   * texture beneath it. Materials shared with other objects are tracked once.
+   * Walk an Object3D and track every geometry, material, material-owned texture
+   * and self-disposing object beneath it. Anything shared is tracked once.
    */
   trackObject(root: THREE.Object3D): THREE.Object3D {
     root.traverse((node) => {
+      // Some objects own GPU buffers of their own beyond their geometry and
+      // materials — an InstancedMesh holds instanceMatrix and instanceColor,
+      // and those leak unless the mesh itself is disposed. track() ignores
+      // anything without a dispose method, so this is safe for plain meshes.
+      this.track(node);
       const mesh = node as THREE.Mesh;
       if (mesh.geometry) this.track(mesh.geometry);
       const mat = mesh.material;

@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 14,
+  "state_revision": 15,
   "last_updated": "2026-08-19",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -120,6 +120,9 @@
 | **No hotlinked runtime asset — verified at runtime, not just by static scan** | production build makes exactly **4 requests, all same-origin, zero external**, totalling 321 KB | ✅ 2026-08-19 |
 | **Direct refresh works, and visitor state survives it** | against the production server: preferences, journal visits, bookmarks, high contrast, interface scale and reduced motion all persist across a real reload | ✅ 2026-08-19 |
 | Shipped bundle is 2.9 MB against a 20 MB initial-visit budget | `npm run check:budgets` + `du` on `dist/` excluding source maps | ✅ 2026-08-19 |
+| **Nothing is allocated in the frame loop or in an interaction handler** | `tests/exhibit-quality.test.ts` — "repeated reset allocates nothing" runs four control-then-reset cycles over all 35 exhibits and requires the scope size to be identical every time. Verified in the browser too: E02's resource count stays flat at 123 across interactions and reset | ✅ 2026-08-19 |
+| GPU resources owned by an object rather than its geometry are released | `ResourceScope.trackObject` now tracks self-disposing objects, so `InstancedMesh` instance buffers are freed on unmount | ✅ 2026-08-19 |
+| Shadow-map render target is released on teardown | `Lighting.dispose` disposes every light's shadow | ✅ 2026-08-19 |
 | Single frame loop is structurally enforced | `validate:frameloop` PASS — `src/app/Loop.ts` is the only `requestAnimationFrame` owner across 13 source files | ✅ 2026-08-19 |
 | Asset governance gate operational | `validate:assets` PASS — no hotlinked runtime asset in any source file | ✅ 2026-08-19 |
 

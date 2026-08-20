@@ -51,6 +51,9 @@ export class UtilityBench extends ExhibitBase {
   private explained = -1;
   private meter!: THREE.Mesh;
 
+  /** Reused every frame; allocating these per element churned the heap. */
+  private readonly scratchTarget = new THREE.Vector3();
+
   constructor(def: ExhibitDefinition) {
     super(def);
   }
@@ -203,11 +206,13 @@ export class UtilityBench extends ExhibitBase {
     const counts = new Array(BINS.length).fill(0);
 
     for (let i = 0; i < this.files.length; i++) {
-      const target = this.sorted
-        ? this.binSlots[this.fileBins[i]].clone().add(
-            new THREE.Vector3(0, counts[this.fileBins[i]]++ * 0.035, 0),
-          )
-        : this.homes[i];
+      let target: THREE.Vector3;
+      if (this.sorted) {
+        target = this.scratchTarget.copy(this.binSlots[this.fileBins[i]]);
+        target.y += counts[this.fileBins[i]]++ * 0.035;
+      } else {
+        target = this.homes[i];
+      }
       this.files[i].position.lerp(target, rate);
     }
 

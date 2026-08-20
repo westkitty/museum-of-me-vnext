@@ -42,7 +42,6 @@ export class OrbitalTomb extends ExhibitBase {
   private dial!: Dial;
   private monthLabel!: THREE.Mesh;
   private month = 0;
-  private blend = 0;
 
   constructor(def: ExhibitDefinition) {
     super(def);
@@ -159,9 +158,6 @@ export class OrbitalTomb extends ExhibitBase {
     this.dial.update(dt);
 
     const month = MONTHS[this.month];
-    const rate = this.reducedMotion ? 1 : Math.min(1, dt * 2.4);
-    this.blend += (1 - this.blend) * rate;
-
     const intact = month.intact;
     const drift = month.drift;
     for (let i = 0; i < this.plates.length; i++) {
@@ -184,7 +180,6 @@ export class OrbitalTomb extends ExhibitBase {
 
   protected override onReset(): void {
     this.month = 0;
-    this.blend = 0;
     if (this.dial) {
       this.dial.value = 0;
       this.dial.update(0, true);

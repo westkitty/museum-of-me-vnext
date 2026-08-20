@@ -89,13 +89,12 @@ export class StarsilkUniverse extends ExhibitBase {
 
     // ── the four threads ──
     const segments = this.scaled(30);
-    THREADS.forEach((thread, i) => {
+    for (const thread of THREADS) {
       const mat = this.emissive(thread.colour, 1.1);
       const filament = new Filament(scope, segments, 0.035, mat);
       this.loom.add(filament.group);
       this.filaments.push(filament);
-      void i;
-    });
+    }
 
     // ── star field ──
     this.starBase = fibonacciSphere(this.scaled(STAR_COUNT), 3.1).map((p) =>

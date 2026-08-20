@@ -3,7 +3,7 @@ import { el } from './dom';
 import {
   WINGS, PLACEMENTS, ROTUNDA_APOTHEM, VESTIBULE_TO, SANCTUARY_CENTER, SANCTUARY_RADIUS,
   SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_DIR,
-  faceDirection, place, rightOf, type Vec3,
+  faceDirection, place, type Vec3,
 } from '../world/layout';
 import { EXHIBITS_BY_ID, WINGS_BY_ID, exhibitsForWing, COLLECTION } from '../content/collection.generated';
 import type { Journal } from '../state/Journal';
@@ -84,7 +84,6 @@ export class MapPanel extends Panel {
     for (const wing of WINGS) {
       if (wing.level !== this.level) continue;
       const dir = faceDirection(wing.face);
-      const r = rightOf(dir);
       const colour = WING_COLOUR[wing.id];
 
       // Hall as a thick line along the wing axis.
@@ -127,7 +126,6 @@ export class MapPanel extends Panel {
         label.textContent = `${record.id} · ${record.title} — ${record.copy.plaque}`;
         g.append(box, label);
         g.addEventListener('click', () => this.setTarget(this.target === record.id ? null : record.id));
-        void r;
         plan.append(g);
       }
     }

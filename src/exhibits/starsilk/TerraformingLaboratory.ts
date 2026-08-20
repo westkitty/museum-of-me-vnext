@@ -51,6 +51,11 @@ export class TerraformingLaboratory extends ExhibitBase {
   private completed = 0;
   private refusals = 0;
 
+  /** Reused every frame; allocating these per element churned the heap. */
+  private readonly scratchScale = new THREE.Vector3();
+  private static readonly BARREN = new THREE.Color(0x6b4a3a);
+  private static readonly VERDANT = new THREE.Color(0x3f7a52);
+
   constructor(def: ExhibitDefinition) {
     super(def);
   }
@@ -198,14 +203,14 @@ export class TerraformingLaboratory extends ExhibitBase {
     // The world answers the chain's progress.
     const progress = this.completed / CHAIN.length;
     const worldMat = this.world.material as THREE.MeshStandardMaterial;
-    worldMat.color.lerpColors(new THREE.Color(0x6b4a3a), new THREE.Color(0x3f7a52), progress);
+    worldMat.color.lerpColors(TerraformingLaboratory.BARREN, TerraformingLaboratory.VERDANT, progress);
     (this.atmosphere.material as THREE.MeshStandardMaterial).opacity =
       this.completed >= CHAIN.length ? 0.28 : progress * 0.08;
 
     for (let i = 0; i < this.surface.length; i++) {
       const target = 0.6 + progress * 0.9;
       this.surface[i].scale.lerp(
-        new THREE.Vector3(target, target, target),
+        this.scratchScale.setScalar(target),
         this.reducedMotion ? 1 : Math.min(1, dt * 2),
       );
     }

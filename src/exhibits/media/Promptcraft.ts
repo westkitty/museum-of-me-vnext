@@ -42,6 +42,11 @@ export class Promptcraft extends ExhibitBase {
   private sceneParts = this.tracked<THREE.Mesh>();
   private ran = false;
 
+  /** Reused every frame; allocating these per element churned the heap. */
+  private readonly scratchScale = new THREE.Vector3();
+  private static readonly DAY = new THREE.Color(0x4a4030);
+  private static readonly DUSK = new THREE.Color(0x3a2c3a);
+
   constructor(def: ExhibitDefinition) {
     super(def);
   }
@@ -217,10 +222,10 @@ export class Promptcraft extends ExhibitBase {
     }
 
     const ground = this.sceneParts[0].material as THREE.MeshStandardMaterial;
-    ground.color.lerp(new THREE.Color(this.ran && dusk ? 0x3a2c3a : 0x4a4030), rate);
+    ground.color.lerp(this.ran && dusk ? Promptcraft.DUSK : Promptcraft.DAY, rate);
 
     const targetScale = this.ran && wide ? 1.25 : 1;
-    this.scene.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), rate);
+    this.scene.scale.lerp(this.scratchScale.setScalar(targetScale), rate);
 
     if (!this.reducedMotion && this.ran) this.scene.rotation.y = Math.sin(this.elapsed * 0.3) * 0.12;
   }

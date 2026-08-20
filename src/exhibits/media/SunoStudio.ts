@@ -42,6 +42,9 @@ export class SunoStudio extends ExhibitBase {
   private excerptLabel!: THREE.Mesh;
   private playing = false;
 
+  /** Reused every frame; allocating these per element churned the heap. */
+  private readonly scratchScale = new THREE.Vector3();
+
   constructor(def: ExhibitDefinition) {
     super(def);
   }
@@ -219,7 +222,7 @@ export class SunoStudio extends ExhibitBase {
     this.instruments.forEach((instrument, i) => {
       const level = this.levels[i] / 2;
       const target = 0.45 + level * 0.75;
-      instrument.scale.lerp(new THREE.Vector3(target, target, target), Math.min(1, dt * 4));
+      instrument.scale.lerp(this.scratchScale.setScalar(target), Math.min(1, dt * 4));
       const mat = instrument.material as THREE.MeshStandardMaterial;
       mat.emissiveIntensity = 0.12 + level * 0.9;
       if (!this.reducedMotion) instrument.rotation.z += dt * (0.1 + level * 0.5);

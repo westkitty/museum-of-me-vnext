@@ -46,6 +46,9 @@ export class CivicSupport extends ExhibitBase {
   private packet!: THREE.Mesh;
   private rail!: Filament;
 
+  /** Reused every frame; allocating these per element churned the heap. */
+  private readonly scratchTarget = new THREE.Vector3();
+
   constructor(def: ExhibitDefinition) {
     super(def);
   }
@@ -208,7 +211,9 @@ export class CivicSupport extends ExhibitBase {
 
     for (let i = 0; i < this.cards.length; i++) {
       const card = this.cards[i];
-      const target = this.locked[i] ? this.slots[i] : new THREE.Vector3(this.slots[i].x, 1.35, -3.4);
+      const target = this.locked[i]
+        ? this.slots[i]
+        : this.scratchTarget.set(this.slots[i].x, 1.35, -3.4);
       card.position.lerp(target, rate);
       if (this.locked[i]) lockedCount++;
 

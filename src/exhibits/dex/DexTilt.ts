@@ -41,6 +41,9 @@ export class DexTilt extends ExhibitBase {
   private indicator!: THREE.Mesh;
   private trail!: Filament;
   private trailPoints = this.tracked<THREE.Vector3>();
+  /** Holds `trailPoints` by reference, so the curve never has to be rebuilt. */
+  private trailCurve!: THREE.CatmullRomCurve3;
+  private readonly scratchTip = new THREE.Vector3();
 
   private target = new THREE.Vector2(0, 0);
   private current = new THREE.Vector2(0, 0);
@@ -126,7 +129,8 @@ export class DexTilt extends ExhibitBase {
     });
 
     // ── the gesture trail ──
-    this.trailPoints = Array.from({ length: TRAIL_POINTS }, () => this.phone.position.clone());
+    for (let i = 0; i < TRAIL_POINTS; i++) this.trailPoints.push(this.phone.position.clone());
+    this.trailCurve = new THREE.CatmullRomCurve3(this.trailPoints);
     this.trail = new Filament(scope, TRAIL_POINTS - 1, 0.028, this.emissive(0x3fb9b2, 1.2));
     this.group.add(this.trail.group);
 
@@ -197,9 +201,8 @@ export class DexTilt extends ExhibitBase {
     this.target.set(0, 0);
     this.current.set(0, 0);
     this.phone.rotation.set(0, 0, 0);
-    const start = this.phone.position.clone();
-    for (const p of this.trailPoints) p.copy(start);
-    this.trail.follow(new THREE.CatmullRomCurve3(this.trailPoints));
+    for (const p of this.trailPoints) p.copy(this.phone.position);
+    this.trail.follow(this.trailCurve);
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
@@ -211,11 +214,13 @@ export class DexTilt extends ExhibitBase {
 
     this.indicator.position.set(this.current.y * 0.26, -this.current.x * 0.5, 0.07);
 
-    // The trail records where the phone's top corner has been.
-    const tip = new THREE.Vector3(0, 0.8, 0.1).applyEuler(this.phone.rotation).add(this.phone.position);
+    // The trail records where the phone's top corner has been. The oldest
+    // point is recycled rather than discarded, so following the trail costs
+    // nothing per frame.
+    const tip = this.trailPoints.shift() ?? this.scratchTip.clone();
+    tip.set(0, 0.8, 0.1).applyEuler(this.phone.rotation).add(this.phone.position);
     this.trailPoints.push(tip);
-    if (this.trailPoints.length > TRAIL_POINTS) this.trailPoints.shift();
-    this.trail.follow(new THREE.CatmullRomCurve3(this.trailPoints));
+    this.trail.follow(this.trailCurve);
 
     if (this.settleTimer > 0) {
       this.settleTimer -= dt;

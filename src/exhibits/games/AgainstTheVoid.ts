@@ -36,6 +36,9 @@ export class AgainstTheVoid extends ExhibitBase {
   private turnResolved = false;
   private lastReport = '';
 
+  /** Reused every frame; allocating these per element churned the heap. */
+  private readonly scratchTarget = new THREE.Vector3();
+
   constructor(def: ExhibitDefinition) {
     super(def);
   }
@@ -224,7 +227,7 @@ export class AgainstTheVoid extends ExhibitBase {
     this.pieceMeshes.forEach((mesh, i) => {
       const target = this.placed[i]
         ? this.slots[i]
-        : new THREE.Vector3(-1.6 + i * 0.5, 1.28, 1.5);
+        : this.scratchTarget.set(-1.6 + i * 0.5, 1.28, 1.5);
       mesh.position.lerp(target, rate);
 
       const bar = this.readoutBars[i];

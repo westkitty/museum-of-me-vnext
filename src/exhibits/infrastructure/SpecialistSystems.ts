@@ -219,7 +219,9 @@ export class SpecialistSystems extends ExhibitBase {
     this.faceDial.update(dt);
 
     // Landmarks appear progressively with the operation.
-    const shown = this.faceOp === 0 ? 0 : this.faceOp === 1 ? this.landmarks.length : this.landmarks.length;
+    // Detect finds the face but marks nothing; landmarking and analysis both
+    // show the full point set, and analysis animates it.
+    const shown = this.faceOp === 0 ? 0 : this.landmarks.length;
     for (let i = 0; i < this.landmarks.length; i++) {
       this.landmarks[i].visible = i < shown;
       if (this.faceOp === 2 && !this.reducedMotion) {
