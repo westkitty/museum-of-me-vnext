@@ -7,8 +7,11 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
   workers: 1,
-  timeout: 15_000,
-  expect: { timeout: 4_000 },
+  // WebGL application construction on GitHub's software renderer normally
+  // takes 10–15 seconds. Keep the test bounded without making runner variance
+  // look like a product failure; semantic assertions still have short waits.
+  timeout: 30_000,
+  expect: { timeout: 5_000 },
   reporter: 'list',
   outputDir: 'test-results',
   use: {
