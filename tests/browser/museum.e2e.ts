@@ -1,15 +1,22 @@
 import { expect, test, type Page } from '@playwright/test';
 
-async function bootMuseum(page: Page): Promise<string[]> {
+async function bootMuseum(page: Page, path = '/'): Promise<string[]> {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {
     if (message.type() === 'error') errors.push(`console: ${message.text()}`);
   });
 
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto(path, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__museum));
   await expect(page.locator('#museum-canvas')).toBeVisible();
+
+  if (path.includes('qa=1')) {
+    const diagnostics = page.locator('.diag');
+    await expect(diagnostics).toBeVisible();
+    await expect(diagnostics).toContainText('pointer');
+    await expect(diagnostics).toContainText('exhibit');
+  }
 
   // The CI runner has no real GPU. Prove that the real WebGL application boots,
   // then stop its render loop so browser semantics can be tested without making
@@ -19,7 +26,7 @@ async function bootMuseum(page: Page): Promise<string[]> {
 }
 
 test('boots at the exterior arrival and keyboard input reaches the real controller', async ({ page }) => {
-  const errors = await bootMuseum(page);
+  const errors = await bootMuseum(page, '/?qa=1');
 
   const zone = await page.evaluate(() => window.__museum?.currentZone);
   expect(zone).toBe('plaza');
