@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 13,
+  "state_revision": 14,
   "last_updated": "2026-08-19",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -39,7 +39,7 @@
 | Remote | `git@github.com:westkitty/museum-of-me-vnext.git` (private), pushing `feat/foundation` |
 | Runtime | traversable graybox + exhibit lifecycle, streaming, interaction, full DOM interface, procedural audio |
 | Toolchain | Node 26.7.0, npm 11.19.0, Vite 6, TypeScript 5.7, Three.js **0.185.0** (pinned) |
-| Current phase | **Phase 13 complete.** Next: Phase 14 — deployment and release preparation. |
+| Current phase | **Phase 14 complete — deployment prepared and validated.** The museum is release-ready; publication is blocked only on a hosting decision. |
 
 ## 4. Active invariants
 
@@ -116,6 +116,10 @@
 | All six wings resolve correctly while walking | same walkthrough, after the zone fix below | ✅ 2026-08-19 |
 | Visual evidence captured for the plaza, vestibule, south hall, Rotunda, balcony, north wing, mezzanine and Sanctuary | same report | ✅ 2026-08-19 |
 | Dexter reads as a tricolour Phalène at rest, with the hanging ears intact | close visual inspection in the Sanctuary | ✅ 2026-08-19 |
+| **Production build runs and behaves identically to dev** | served from `dist/` and walked: 35 exhibit hosts, streaming, interaction, the 8-light cap and zone resolution all correct | ✅ 2026-08-19 |
+| **No hotlinked runtime asset — verified at runtime, not just by static scan** | production build makes exactly **4 requests, all same-origin, zero external**, totalling 321 KB | ✅ 2026-08-19 |
+| **Direct refresh works, and visitor state survives it** | against the production server: preferences, journal visits, bookmarks, high contrast, interface scale and reduced motion all persist across a real reload | ✅ 2026-08-19 |
+| Shipped bundle is 2.9 MB against a 20 MB initial-visit budget | `npm run check:budgets` + `du` on `dist/` excluding source maps | ✅ 2026-08-19 |
 | Single frame loop is structurally enforced | `validate:frameloop` PASS — `src/app/Loop.ts` is the only `requestAnimationFrame` owner across 13 source files | ✅ 2026-08-19 |
 | Asset governance gate operational | `validate:assets` PASS — no hotlinked runtime asset in any source file | ✅ 2026-08-19 |
 
@@ -125,7 +129,6 @@
 |---|---|
 | Quality-tier switching at runtime | `setQuality` is implemented and typechecked; no runtime tier-change observation yet. Phase 12. |
 | Context-loss recovery | Handlers are installed and typechecked; not exercised against a real context loss. Phase 12. |
-| Preference persistence in a browser | Unit-tested against an in-memory Storage; not yet observed against real `localStorage`. Phase 11. |
 | Absolute frame rate in ms | The automation surface throttles `requestAnimationFrame` and does not synchronise GPU work, so wall-clock render timings taken there are noise (the same view measured 1 ms and 99 ms on consecutive runs). Draw calls, triangle counts, light counts and resident-exhibit counts **are** reliable there and are the numbers recorded above. A human FPS reading on real hardware is the one remaining unmeasured performance figure. |
 | Audio | The AudioManager is implemented and typechecked but browsers refuse audio before a real gesture, which automation cannot supply. Unverified until a human walk-through in Phase 13. |
 | Pointer-lock capture and release | Implemented and wired; a real pointer lock needs a user gesture the automation surface cannot supply. Keyboard and touch paths are tested and require no lock at all, so no visitor is dependent on it. Confirmed in the Phase 13 walkthrough. |
@@ -136,7 +139,7 @@
 
 | Item | Status |
 |---|---|
-| Production hosting target | **Not configured.** No account decision has been made. Phase 14 will prepare deployment completely and stop short of publishing to an unidentified destination. |
+| Production hosting target | **Not configured, and deliberately not chosen.** Deployment is fully prepared and validated: `dist/` is a complete self-contained artifact, `public/_headers` carries the cache policy and a CSP that forbids every outbound connection, `docs/DEPLOYMENT.md` has the exact steps for Cloudflare Pages or GitHub Pages, and `.github/workflows/deploy-pages.yml` exists but is manual-only. The single remaining action is an account decision: **choose a destination and authorise publication.** Publishing makes the documentation of sixty-four projects public, which is the owner's call, so nothing has been published. |
 | Runtime performance | Unmeasured until Phase 12. |
 | Push remote | Recorded at the first push attempt. `gh` is authenticated as `westkitty` with `repo` scope. |
 
@@ -158,4 +161,4 @@
 | 11 — accessibility/input | ✅ complete |
 | 12 — performance/lifecycle | ✅ complete |
 | 13 — full museum QA | ✅ complete |
-| 14 — deployment/release | ▶ next |
+| 14 — deployment/release | ✅ prepared and validated; publication blocked on a hosting decision |
