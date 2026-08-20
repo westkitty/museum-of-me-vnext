@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 9,
+  "state_revision": 10,
   "last_updated": "2026-08-19",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -39,7 +39,7 @@
 | Remote | `git@github.com:westkitty/museum-of-me-vnext.git` (private), pushing `feat/foundation` |
 | Runtime | traversable graybox + exhibit lifecycle, streaming, interaction, full DOM interface, procedural audio |
 | Toolchain | Node 26.7.0, npm 11.19.0, Vite 6, TypeScript 5.7, Three.js **0.185.0** (pinned) |
-| Current phase | **Phase 9 complete.** Next: Phase 10 — experience pass. |
+| Current phase | **Phase 10 complete.** Next: Phase 11 — accessibility and input. |
 
 ## 4. Active invariants
 
@@ -99,6 +99,9 @@
 | **Phase 9 content gate passes**: no visitor-facing placeholder anywhere, and every project carries full layered interpretation | `validate:content` now scans 1,843 visitor-facing string literals across exhibits, UI and the accessible mirror in addition to the data layer; `tests/content-completion.test.ts` checks every project and exhibit field for length, finished prose and banned language | ✅ 2026-08-19 |
 | Interpretation stays project-first across the entire corpus | creator-praise scan over every project paragraph, exhibit copy and wing blurb — zero matches | ✅ 2026-08-19 |
 | Repository references are public paths, never local ones | content test | ✅ 2026-08-19 |
+| **Phase 10 experience pass**: gradient sky, fog matched to the horizon, exterior massing lit, hall lighting rhythm, floor wayfinding and ambient visitors | `tests/experience.test.ts`; browser-verified at the plaza and in the vestibule with wayfinding running | ✅ 2026-08-19 |
+| Wayfinding points from the entrance and clears itself on arrival | `tests/experience.test.ts`; browser screenshot shows the floor markers leading north from the vestibule | ✅ 2026-08-19 |
+| Ambient visitors respect the plan's 4–8 range, vanish entirely on the low tier, and share one geometry | `tests/experience.test.ts` | ✅ 2026-08-19 |
 | Single frame loop is structurally enforced | `validate:frameloop` PASS — `src/app/Loop.ts` is the only `requestAnimationFrame` owner across 13 source files | ✅ 2026-08-19 |
 | Asset governance gate operational | `validate:assets` PASS — no hotlinked runtime asset in any source file | ✅ 2026-08-19 |
 
@@ -136,8 +139,8 @@
 | 7 — exhibit wave one | ✅ complete |
 | 8 — exhibit wave two | ✅ complete |
 | 9 — content completion | ✅ complete |
-| 10 — experience pass | ▶ next |
-| 11 — accessibility/input | pending |
+| 10 — experience pass | ✅ complete |
+| 11 — accessibility/input | ▶ next |
 | 12 — performance/lifecycle | pending |
 | 13 — full museum QA | pending |
 | 14 — deployment/release | pending |

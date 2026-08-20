@@ -75,6 +75,12 @@ export class UILayer {
         this.hud.setFocus(focus);
         this.mirror.setCurrentExhibit(focus?.exhibitId ?? null);
       }),
+      this.map.onTargetChange((exhibitId) => {
+        app.wayfinding.setTarget(exhibitId);
+        if (exhibitId) {
+          this.hud.announce('Wayfinding set. A line on the floor points the way; it clears when you arrive.');
+        }
+      }),
       app.onAnnounce((exhibitId, message) => {
         if (app.preferences.subtitles) this.hud.announce(message);
         this.mirror.announce(message);

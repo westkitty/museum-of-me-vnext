@@ -17,6 +17,9 @@ import { InteractionManager } from '../interaction/InteractionManager';
 import { AudioManager } from '../audio/AudioManager';
 import { AssetManager } from '../assets/AssetManager';
 import { DexterSanctuary } from '../exhibits/sanctuary/DexterSanctuary';
+import { Sky } from '../world/Sky';
+import { Wayfinding } from '../world/Wayfinding';
+import { AmbientVisitors } from '../world/AmbientVisitors';
 import { UILayer } from './UILayer';
 
 export interface AppOptions {
@@ -45,6 +48,9 @@ export class App implements LoopCallbacks {
   readonly assets = new AssetManager();
   /** Outside the 35. Dexter is not a project and this is not an exhibit. */
   readonly sanctuary: DexterSanctuary;
+  readonly sky: Sky;
+  readonly wayfinding: Wayfinding;
+  readonly visitors: AmbientVisitors;
   ui!: UILayer;
   /** Zone the visitor is currently standing in. Drives audio and streaming. */
   currentZone: ZoneId = 'plaza';
@@ -79,11 +85,21 @@ export class App implements LoopCallbacks {
     this.sanctuary = new DexterSanctuary(this.scope);
     this.renderer.scene.add(this.sanctuary.group);
 
+    this.sky = new Sky(this.scope);
+    this.renderer.scene.add(this.sky.mesh);
+
+    this.wayfinding = new Wayfinding(this.scope);
+    this.renderer.scene.add(this.wayfinding.group);
+
+    this.visitors = new AmbientVisitors(this.scope, this.renderer.quality.ambientVisitors);
+    this.renderer.scene.add(this.visitors.group);
+
     this.lighting = new Lighting(this.scope, this.renderer.quality);
     this.renderer.scene.add(this.lighting.group);
 
-    this.renderer.scene.fog = new THREE.Fog(0x0d0c12, 90, 320);
-    this.renderer.scene.background = new THREE.Color(0x0d0c12);
+    // The fog's colour is the sky's horizon, so distance reads as air rather
+    // than as the building fading into a void.
+    this.renderer.scene.fog = new THREE.Fog(this.sky.horizon.getHex(), 70, 300);
 
     this.input = new InputManager(opts.canvas);
     this.player = new PlayerController(built.collision, this.input);
@@ -192,6 +208,7 @@ export class App implements LoopCallbacks {
     if (this.currentZone === 'sanctuary') {
       this.sanctuary.update(dt, this.preferences.reducedMotion);
     }
+    this.visitors.update(dt, this.preferences.reducedMotion);
   }
 
   variableUpdate(dt: number): void {
@@ -230,6 +247,13 @@ export class App implements LoopCallbacks {
     ];
     this.diagnostics.stats.wing = ZONE_BY_ID.get(this.currentZone as never)?.label ?? this.currentZone;
 
+    this.wayfinding.update(
+      dt,
+      [this.player.position.x, this.player.position.y, this.player.position.z],
+      this.preferences.reducedMotion,
+    );
+    this.sky.follow(this.camera);
+
     this.ui?.update(dt);
     this.input.endFrame();
   }
@@ -248,6 +272,8 @@ export class App implements LoopCallbacks {
     this.audio.dispose();
     this.assets.dispose();
     this.sanctuary.dispose();
+    this.wayfinding.dispose();
+    this.visitors.dispose();
     this.streaming.dispose();
     this.interaction.dispose();
     this.input.dispose();

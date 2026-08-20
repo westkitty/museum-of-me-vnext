@@ -20,15 +20,16 @@ export class Lighting {
   constructor(scope: ResourceScope, quality: QualitySettings) {
     this.group.name = 'lighting';
 
-    const hemi = new THREE.HemisphereLight(0xcfe0f0, 0x2a2620, 0.55);
+    const hemi = new THREE.HemisphereLight(0xbfd0e8, 0x38323c, 0.85);
     this.group.add(hemi);
 
     const ambient = new THREE.AmbientLight(0xffffff, 0.42);
     this.group.add(ambient);
 
-    // Sun through the dome. The one shadow caster in the building.
-    const sun = new THREE.DirectionalLight(0xfff2d8, 1.5);
-    sun.position.set(60, 120, 40);
+    // Sun through the dome, and across the entrance facade. The one shadow
+    // caster in the building — arrivals come from the south, so it sits there.
+    const sun = new THREE.DirectionalLight(0xffeccd, 2.1);
+    sun.position.set(48, 96, 120);
     sun.target.position.set(0, 0, 0);
     if (quality.shadows) {
       sun.castShadow = true;
@@ -44,6 +45,18 @@ export class Lighting {
     }
     this.group.add(sun, sun.target);
 
+    // A cool bounce from the opposite side so the exterior massing reads as a
+    // solid building rather than a silhouette.
+    const bounce = new THREE.DirectionalLight(0x9fb4d0, 0.55);
+    bounce.position.set(-70, 40, -90);
+    bounce.target.position.set(0, 6, 0);
+    this.group.add(bounce, bounce.target);
+
+    // The arrival plaza, lit so the entrance reads before you are inside it.
+    const arrival = new THREE.PointLight(0xffe6bd, 260, 90, 2);
+    arrival.position.set(0, 10, 132);
+    this.group.add(arrival);
+
     // Rotunda: light falling from the oculus.
     const oculus = new THREE.PointLight(0xfff4de, 240, 90, 2);
     oculus.position.set(0, DOME_APEX_Y - 3, 0);
@@ -56,7 +69,9 @@ export class Lighting {
       for (let i = 0; i < count; i++) {
         const along = w.hallFrom + ((i + 0.5) / count) * (w.hallTo - w.hallFrom);
         const p = place(d, along, 0, w.floorY + w.hallHeight - 1.6);
-        const lamp = new THREE.PointLight(0xffe6bd, 90, 42, 2);
+        // Alternating strength gives the hall a rhythm rather than an even wash.
+        const strong = i % 2 === 0;
+        const lamp = new THREE.PointLight(0xffe6bd, strong ? 130 : 70, strong ? 46 : 34, 2);
         lamp.position.set(p[0], p[1], p[2]);
         this.group.add(lamp);
       }
