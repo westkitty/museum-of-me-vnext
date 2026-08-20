@@ -37,12 +37,18 @@ export class DomMirror {
       }),
       el('h2', { text: 'Controls' }),
       el('ul', {},
-        el('li', { text: 'W A S D or the arrow keys — walk' }),
-        el('li', { text: 'Mouse — look. Shift — walk faster.' }),
+        el('li', { text: 'W A S D — walk. Shift — walk faster.' }),
+        el('li', { text: 'Arrow keys — look. A mouse is optional; the whole museum works from the keyboard alone.' }),
         el('li', { text: 'E or Enter — interact with whatever you are facing' }),
         el('li', { text: 'M — map. J — journal. O — settings. H — these contents.' }),
         el('li', { text: 'Escape — release the mouse, or close a panel' }),
+        el('li', { text: 'On a touch screen: the left half of the screen walks, the right half looks, and a tap in the centre interacts.' }),
       ),
+      el('p', {
+        text:
+          'Settings (O) offer reduced motion, high contrast, interface scaling, field of view, look sensitivity and subtitles. ' +
+          'With reduced motion on, every exhibit stays fully usable — its moving parts simply hold still.',
+      }),
       el('h2', { text: 'Where you are' }),
       this.stateBlock,
       this.liveRegion,

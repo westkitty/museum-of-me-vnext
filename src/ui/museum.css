@@ -67,7 +67,10 @@ html, body {
   z-index: 40;
 }
 .a11y-root:focus-within {
-  width: min(720px, 100vw);
+  /* clamp rather than min: a degenerate viewport (a hidden or zero-width pane)
+     makes `min(720px, 100vw)` collapse to nothing, which would hide the
+     accessible contents exactly when someone is trying to read them. */
+  width: clamp(320px, 100vw, 720px);
   height: 100vh;
   clip-path: none;
   overflow-y: auto;

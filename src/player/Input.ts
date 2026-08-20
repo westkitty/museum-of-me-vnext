@@ -4,14 +4,25 @@
  */
 export type Action =
   | 'forward' | 'back' | 'left' | 'right'
+  | 'lookLeft' | 'lookRight' | 'lookUp' | 'lookDown'
   | 'run' | 'interact' | 'map' | 'journal'
   | 'settings' | 'diagnostics' | 'accessibility';
 
+/**
+ * WASD moves, arrow keys look. Separating them means the museum is fully
+ * playable with a keyboard alone — no mouse and no pointer lock required —
+ * which is the difference between "accessible" and "accessible if you can use
+ * a mouse".
+ */
 const BINDINGS: Record<string, Action> = {
-  KeyW: 'forward', ArrowUp: 'forward',
-  KeyS: 'back', ArrowDown: 'back',
-  KeyA: 'left', ArrowLeft: 'left',
-  KeyD: 'right', ArrowRight: 'right',
+  KeyW: 'forward',
+  KeyS: 'back',
+  KeyA: 'left',
+  KeyD: 'right',
+  ArrowLeft: 'lookLeft',
+  ArrowRight: 'lookRight',
+  ArrowUp: 'lookUp',
+  ArrowDown: 'lookDown',
   ShiftLeft: 'run', ShiftRight: 'run',
   KeyE: 'interact', Enter: 'interact',
   KeyM: 'map',
@@ -21,8 +32,15 @@ const BINDINGS: Record<string, Action> = {
   KeyH: 'accessibility',
 };
 
+/** Degrees per second when looking with the keyboard. */
+export const KEYBOARD_LOOK_SPEED = 110;
+
 /** Actions that fire once per press rather than being held. */
 const EDGE_ACTIONS = new Set<Action>(['interact', 'map', 'journal', 'settings', 'diagnostics', 'accessibility']);
+
+function clamp(v: number, lo: number, hi: number): number {
+  return v < lo ? lo : v > hi ? hi : v;
+}
 
 export class InputManager {
   private readonly held = new Set<Action>();
@@ -32,6 +50,14 @@ export class InputManager {
   mouseDeltaX = 0;
   mouseDeltaY = 0;
   pointerLocked = false;
+  /** Touch look delta, in the same units as the mouse delta. */
+  touchDeltaX = 0;
+  touchDeltaY = 0;
+  /** Virtual stick, −1..1 on each axis. Zero when no touch is active. */
+  touchMoveX = 0;
+  touchMoveY = 0;
+  /** True once any touch has been seen; switches the HUD to touch affordances. */
+  touchActive = false;
 
   /** True while any modal DOM surface has focus; movement is suppressed. */
   uiCaptured = false;
@@ -46,6 +72,25 @@ export class InputManager {
     document.addEventListener('pointerlockchange', this.onPointerLockChange);
     document.addEventListener('mousemove', this.onMouseMove);
     canvas.addEventListener('click', this.onCanvasClick);
+    canvas.addEventListener('touchstart', this.onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', this.onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', this.onTouchEnd);
+    canvas.addEventListener('touchcancel', this.onTouchEnd);
+  }
+
+  /** Keyboard look contribution for this frame, in mouse-delta units. */
+  keyboardLook(dt: number, sensitivity: number): { dx: number; dy: number } {
+    const step = (KEYBOARD_LOOK_SPEED * dt * Math.PI) / 180;
+    // The player controller multiplies by LOOK_SCALE and sensitivity, so undo
+    // both here to keep keyboard turning speed independent of mouse settings.
+    const scale = 1 / (0.0022 * Math.max(0.0001, sensitivity));
+    let dx = 0;
+    let dy = 0;
+    if (this.isDown('lookLeft')) dx -= step * scale;
+    if (this.isDown('lookRight')) dx += step * scale;
+    if (this.isDown('lookUp')) dy -= step * scale;
+    if (this.isDown('lookDown')) dy += step * scale;
+    return { dx, dy };
   }
 
   isDown(action: Action): boolean {
@@ -65,6 +110,8 @@ export class InputManager {
     this.pressedThisFrame.clear();
     this.mouseDeltaX = 0;
     this.mouseDeltaY = 0;
+    this.touchDeltaX = 0;
+    this.touchDeltaY = 0;
   }
 
   requestPointerLock(): void {
@@ -77,6 +124,10 @@ export class InputManager {
   }
 
   dispose(): void {
+    this.canvas.removeEventListener('touchstart', this.onTouchStart);
+    this.canvas.removeEventListener('touchmove', this.onTouchMove);
+    this.canvas.removeEventListener('touchend', this.onTouchEnd);
+    this.canvas.removeEventListener('touchcancel', this.onTouchEnd);
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
     window.removeEventListener('blur', this.onBlur);
@@ -126,6 +177,58 @@ export class InputManager {
   };
 
   private readonly onCanvasClick = (): void => {
+    // Touch devices cannot hold a pointer lock and do not need one.
+    if (this.touchActive) return;
     if (!this.pointerLocked) this.requestPointerLock();
+  };
+
+  // ── touch: left half is a virtual stick, right half looks ──
+  private moveTouchId: number | null = null;
+  private lookTouchId: number | null = null;
+  private moveOrigin = { x: 0, y: 0 };
+  private lookLast = { x: 0, y: 0 };
+
+  private readonly onTouchStart = (e: TouchEvent): void => {
+    this.touchActive = true;
+    if (this.uiCaptured) return;
+    for (const touch of Array.from(e.changedTouches)) {
+      const left = touch.clientX < window.innerWidth / 2;
+      if (left && this.moveTouchId === null) {
+        this.moveTouchId = touch.identifier;
+        this.moveOrigin = { x: touch.clientX, y: touch.clientY };
+      } else if (!left && this.lookTouchId === null) {
+        this.lookTouchId = touch.identifier;
+        this.lookLast = { x: touch.clientX, y: touch.clientY };
+      }
+    }
+    e.preventDefault();
+  };
+
+  private readonly onTouchMove = (e: TouchEvent): void => {
+    if (this.uiCaptured) return;
+    for (const touch of Array.from(e.changedTouches)) {
+      if (touch.identifier === this.moveTouchId) {
+        const radius = 70;
+        this.touchMoveX = clamp((touch.clientX - this.moveOrigin.x) / radius, -1, 1);
+        this.touchMoveY = clamp((touch.clientY - this.moveOrigin.y) / radius, -1, 1);
+      } else if (touch.identifier === this.lookTouchId) {
+        this.touchDeltaX += touch.clientX - this.lookLast.x;
+        this.touchDeltaY += touch.clientY - this.lookLast.y;
+        this.lookLast = { x: touch.clientX, y: touch.clientY };
+      }
+    }
+    e.preventDefault();
+  };
+
+  private readonly onTouchEnd = (e: TouchEvent): void => {
+    for (const touch of Array.from(e.changedTouches)) {
+      if (touch.identifier === this.moveTouchId) {
+        this.moveTouchId = null;
+        this.touchMoveX = 0;
+        this.touchMoveY = 0;
+      } else if (touch.identifier === this.lookTouchId) {
+        this.lookTouchId = null;
+      }
+    }
   };
 }

@@ -212,9 +212,12 @@ export class App implements LoopCallbacks {
   }
 
   variableUpdate(dt: number): void {
+    // Mouse, touch and keyboard all feed the same look, so the museum is fully
+    // usable with any one of them alone.
+    const keyboardLook = this.input.keyboardLook(dt, this.preferences.mouseSensitivity);
     this.player.applyLook(
-      this.input.mouseDeltaX,
-      this.input.mouseDeltaY,
+      this.input.mouseDeltaX + this.input.touchDeltaX * 1.6 + keyboardLook.dx,
+      this.input.mouseDeltaY + this.input.touchDeltaY * 1.6 + keyboardLook.dy,
       this.preferences.mouseSensitivity,
       this.preferences.invertY,
     );

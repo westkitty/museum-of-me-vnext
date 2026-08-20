@@ -79,6 +79,13 @@ export class PlayerController {
     if (this.input.isDown('left')) ix -= 1;
     if (this.input.isDown('right')) ix += 1;
 
+    // The touch stick adds to the same intent, so nothing downstream needs to
+    // know which input the visitor is using.
+    if (!this.input.uiCaptured) {
+      ix += this.input.touchMoveX;
+      iz += this.input.touchMoveY;
+    }
+
     const len = Math.hypot(ix, iz);
     const speed = this.input.isDown('run') ? RUN_SPEED : WALK_SPEED;
     let wishX = 0;

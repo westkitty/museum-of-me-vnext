@@ -97,9 +97,26 @@ export class UILayer {
       }),
     );
 
+    // Touch: a tap in the middle of the screen is the interact action.
+    this.app.renderer.canvas.addEventListener('touchend', this.onTouchInteract);
     document.addEventListener('pointerlockchange', this.onPointerLock);
     this.applyPreferences({});
   }
+
+  private readonly onTouchInteract = (e: TouchEvent): void => {
+    if (this.anyPanelOpen) return;
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    if (Math.hypot(touch.clientX - cx, touch.clientY - cy) > 90) return;
+    if (this.app.interaction.activate()) {
+      const focus = this.app.interaction.currentFocus;
+      if (focus) this.app.journal.markVisited(focus.exhibitId);
+      this.app.audio.start();
+      this.app.audio.tick();
+    }
+  };
 
   private readonly onPointerLock = (): void => {
     const locked = document.pointerLockElement === this.app.renderer.canvas;
@@ -132,6 +149,7 @@ export class UILayer {
 
   /** Once per frame from the single loop. */
   update(dt: number): void {
+    this.hud.setTouchMode(this.app.input.touchActive);
     this.hud.update(dt);
     this.hud.setLocation(this.app.currentZone);
     this.diagnostics.update(dt, {
@@ -147,6 +165,7 @@ export class UILayer {
   }
 
   dispose(): void {
+    this.app.renderer.canvas.removeEventListener('touchend', this.onTouchInteract);
     document.removeEventListener('pointerlockchange', this.onPointerLock);
     for (const off of this.unbind) off();
     this.hud.dispose();

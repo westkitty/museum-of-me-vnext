@@ -73,12 +73,15 @@ export class RendererHost {
   }
 
   resize(): void {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    // A hidden or not-yet-laid-out surface can report zero, which would produce
+    // a zero-size drawing buffer and a NaN aspect ratio. Hold the last good
+    // size instead of rendering into nothing.
+    const w = Math.max(1, window.innerWidth || this.canvas.clientWidth || 1);
+    const h = Math.max(1, window.innerHeight || this.canvas.clientHeight || 1);
     const dpr = Math.min(window.devicePixelRatio || 1, this.settings.maxPixelRatio);
     this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(w, h, false);
-    this.camera.aspect = w / Math.max(1, h);
+    this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
   }
 
