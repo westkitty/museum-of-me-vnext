@@ -1,0 +1,101 @@
+/* ── tokens ─────────────────────────────────────────────────────────────── */
+:root {
+  --ink: #0b0a10;
+  --stone: #1a1822;
+  --stone-2: #24212f;
+  --parchment: #ece5d8;
+  --parchment-dim: #b9b2a5;
+  --gold: #c9a227;
+  --gold-bright: #e8c65a;
+  --focus: #7fd6ff;
+
+  --wing-north: #6f5bd6;
+  --wing-east: #2f8f8a;
+  --wing-south: #b5543a;
+  --wing-west: #8a6bb5;
+  --wing-media: #b58b3a;
+  --wing-infra: #5f8a52;
+
+  --ui-scale: 1;
+  --font-body: ui-serif, Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+  --font-ui: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --radius: 3px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--parchment);
+  font-family: var(--font-ui);
+  font-size: calc(16px * var(--ui-scale));
+  -webkit-font-smoothing: antialiased;
+}
+
+#museum-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.ui-root {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+.ui-root > * { pointer-events: auto; }
+
+/* ── accessible mirror ──────────────────────────────────────────────────── */
+/* Visually hidden but fully reachable by keyboard and assistive technology.
+   Focusing anything inside reveals it, so keyboard visitors can read the museum. */
+.a11y-root {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  z-index: 40;
+}
+.a11y-root:focus-within {
+  width: min(720px, 100vw);
+  height: 100vh;
+  clip-path: none;
+  overflow-y: auto;
+  background: var(--ink);
+  border-right: 1px solid var(--gold);
+  padding: 2rem 2.25rem;
+  box-shadow: 0 0 80px rgba(0, 0, 0, 0.9);
+}
+
+.noscript {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  padding: 2rem;
+  text-align: center;
+  background: var(--ink);
+  z-index: 100;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

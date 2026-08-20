@@ -19,7 +19,8 @@
     "validate:privacy": "node scripts/validate-privacy.mjs",
     "check:budgets": "node scripts/check-budgets.mjs",
     "gate": "npm run typecheck && npm run lint && npm test && npm run validate:mapping && npm run validate:content && npm run validate:privacy && npm run validate:frameloop && npm run build",
-    "validate:frameloop": "node scripts/validate-frameloop.mjs"
+    "validate:frameloop": "node scripts/validate-frameloop.mjs",
+    "build:collection": "node scripts/build-collection.mjs"
   },
   "dependencies": {
     "three": "0.185.0"

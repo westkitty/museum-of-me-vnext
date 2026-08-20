@@ -1,0 +1,35 @@
+name: museum gate
+
+on:
+  push:
+    branches-ignore: []
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: typecheck
+        run: npm run typecheck
+      - name: lint
+        run: npm run lint
+      - name: unit tests
+        run: npm test
+      - name: mapping gate (64 -> 35)
+        run: npm run validate:mapping
+      - name: content gate (no visitor-facing placeholders)
+        run: npm run validate:content
+      - name: privacy gate
+        run: npm run validate:privacy
+      - name: frame-loop ownership gate
+        run: npm run validate:frameloop
+      - name: asset governance gate
+        run: npm run validate:assets
+      - name: production build
+        run: npm run build

@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 1,
+  "state_revision": 2,
   "last_updated": "2026-08-19",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -36,10 +36,10 @@
 | Item | State |
 |---|---|
 | Repository | initialised, branch `main`, first phase branch `feat/foundation` |
-| Remote | see §7 |
-| Runtime | not yet built |
+| Remote | `git@github.com:westkitty/museum-of-me-vnext.git` (private), pushing `feat/foundation` |
+| Runtime | renderer + single frame loop live; empty scene |
 | Toolchain | Node 26.7.0, npm 11.19.0, Vite 6, TypeScript 5.7, Three.js **0.185.0** (pinned) |
-| Current phase | **Phase 0 complete.** Next: Phase 1 — repository/runtime foundation. |
+| Current phase | **Phase 1 complete.** Next: Phase 2 — complete traversable graybox. |
 
 ## 4. Active invariants
 
@@ -64,10 +64,18 @@
 | No sensitive material in authored content | `node scripts/validate-privacy.mjs` → PASS | ✅ 2026-08-19 |
 | Controlling plan copied without weakening | sha256 matches bundle-recorded identity | ✅ 2026-08-19 |
 | Toolchain installs and resolves | `npm install` clean; three@0.185.0 resolved | ✅ 2026-08-19 |
+| Typecheck, lint, unit tests, production build all pass | `npm run gate` → all PASS; 29 unit tests green; build 1.0 s | ✅ 2026-08-19 |
+| Application boots and renders in a real browser | dev server + browser probe: `loopRunning true`, WebGL2 context live, `contextLost false`, DPR capped to 1 on auto-selected `medium` tier, **zero console errors** | ✅ 2026-08-19 |
+| Single frame loop is structurally enforced | `validate:frameloop` PASS — `src/app/Loop.ts` is the only `requestAnimationFrame` owner across 13 source files | ✅ 2026-08-19 |
+| Asset governance gate operational | `validate:assets` PASS — no hotlinked runtime asset in any source file | ✅ 2026-08-19 |
 
 ## 6. Implemented but NOT verified
 
-Nothing yet — Phase 0 produced documents and data only, all of which are machine-validated above.
+| Item | Why not yet verified |
+|---|---|
+| Quality-tier switching at runtime | `setQuality` is implemented and typechecked; no runtime tier-change observation yet. Phase 12. |
+| Context-loss recovery | Handlers are installed and typechecked; not exercised against a real context loss. Phase 12. |
+| Preference persistence in a browser | Unit-tested against an in-memory Storage; not yet observed against real `localStorage`. Phase 11. |
 
 ## 7. Known blockers / unknowns
 
@@ -82,8 +90,8 @@ Nothing yet — Phase 0 produced documents and data only, all of which are machi
 | Phase | State |
 |---|---|
 | 0 — authority/source freeze | ✅ complete |
-| 1 — repository/runtime foundation | ▶ next |
-| 2 — complete museum graybox | pending |
+| 1 — repository/runtime foundation | ✅ complete |
+| 2 — complete museum graybox | ▶ next |
 | 3 — core museum systems | pending |
 | 4 — governed asset pipeline | pending |
 | 5 — vertical slice | pending |
