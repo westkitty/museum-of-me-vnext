@@ -1,5 +1,5 @@
 import { Panel } from './Panel';
-import { el } from './dom';
+import { el, isActivationKey } from './dom';
 import {
   WINGS, PLACEMENTS, ROTUNDA_APOTHEM, VESTIBULE_TO, SANCTUARY_CENTER, SANCTUARY_RADIUS,
   SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_DIR,
@@ -86,7 +86,6 @@ export class MapPanel extends Panel {
       const dir = faceDirection(wing.face);
       const colour = WING_COLOUR[wing.id];
 
-      // Hall as a thick line along the wing axis.
       const [x1, y1] = toSvg(place(dir, wing.corridorFrom));
       const [x2, y2] = toSvg(place(dir, wing.hallTo));
       plan.append(
@@ -97,7 +96,6 @@ export class MapPanel extends Panel {
         }),
       );
 
-      // Vestibule and entrance for the south wing.
       if (wing.id === 'south') {
         const [vx, vy] = toSvg(place(dir, VESTIBULE_TO));
         plan.append(svg('line', { x1: x2, y1: y2, x2: vx, y2: vy, stroke: colour, 'stroke-width': wing.hallHalfWidth * 2, 'stroke-opacity': '0.18' }));
@@ -109,11 +107,19 @@ export class MapPanel extends Panel {
       const [lx, ly] = toSvg(place(dir, wing.hallTo + 8, 0));
       plan.append(textAt(lx, ly, wingRecord?.name ?? wing.id));
 
-      // One clickable bay per exhibit.
+      // One selectable bay per exhibit. The visual map is keyboard-operable in
+      // its own right; the destination cards remain a redundant text route.
       for (const placement of PLACEMENTS.filter((p) => p.wing === wing.id)) {
         const record = EXHIBITS_BY_ID.get(placement.exhibitId)!;
+        const selected = this.target === record.id;
         const [bx, by] = toSvg(placement.anchor);
-        const g = svg('g', { class: 'bay' + (this.target === record.id ? ' bay--target' : '') });
+        const g = svg('g', {
+          class: 'bay' + (selected ? ' bay--target' : ''),
+          role: 'button',
+          tabindex: 0,
+          'aria-pressed': String(selected),
+          'aria-label': `${record.id}, ${record.title}. ${record.copy.plaque}`,
+        });
         const box = svg('rect', {
           x: bx - wing.bayHalfAlong * 0.7, y: by - wing.bayHalfAlong * 0.7,
           width: wing.bayHalfAlong * 1.4, height: wing.bayHalfAlong * 1.4,
@@ -124,13 +130,18 @@ export class MapPanel extends Panel {
         });
         const label = svg('title');
         label.textContent = `${record.id} · ${record.title} — ${record.copy.plaque}`;
+        const activate = (): void => this.setTarget(selected ? null : record.id);
         g.append(box, label);
-        g.addEventListener('click', () => this.setTarget(this.target === record.id ? null : record.id));
+        g.addEventListener('click', activate);
+        g.addEventListener('keydown', (event) => {
+          if (!isActivationKey(event)) return;
+          event.preventDefault();
+          activate();
+        });
         plan.append(g);
       }
     }
 
-    // Dexter Sanctuary — shown on the ground plan, marked as its own kind of space.
     if (this.level === 0) {
       const [sx, sy] = toSvg(SANCTUARY_CENTER);
       const [rx1, ry1] = toSvg(place(SANCTUARY_DIR, SANCTUARY_RAMP_FROM));
@@ -140,14 +151,12 @@ export class MapPanel extends Panel {
       plan.append(textAt(sx, sy - SANCTUARY_RADIUS - 3, 'Dexter Sanctuary'));
     }
 
-    // You are here.
     const pos = this.getPosition();
     const [px, py] = toSvg(pos);
     plan.append(svg('circle', { class: 'you', cx: px, cy: py, r: 2.6 }));
     const halo = svg('circle', { cx: px, cy: py, r: 5.2, fill: 'none', stroke: '#e8c65a', 'stroke-width': 0.8, 'stroke-opacity': '0.6' });
     plan.append(halo);
 
-    // Destination list, which is also the keyboard-operable version of the map.
     const list = el('div', {});
     for (const wing of COLLECTION.wings) {
       if (wing.level !== this.level) continue;
