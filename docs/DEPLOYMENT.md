@@ -29,7 +29,7 @@ The independent GitHub Actions browser job additionally performs the production-
 
 ## Hosting
 
-Any static host that preserves the required response policy can work. Two prepared paths exist.
+Any static host that preserves the required response policy can work. The currently prepared release path is Cloudflare Pages; a manual GitHub Pages workflow also exists as a fallback but is not considered release-equivalent until it passes the same hosted verification contract.
 
 ### Cloudflare Pages — recommended release path
 
@@ -45,9 +45,9 @@ Root directory:       repository root
 
 `public/_headers` ships with the build and declares immutable caching for hashed assets, revalidation for the HTML shell, `nosniff`, framing protection, permissions/referrer policies, and the current same-origin Content-Security-Policy.
 
-### GitHub Pages — manual alternative
+### GitHub Pages — manual fallback only
 
-`.github/workflows/deploy-pages.yml` is `workflow_dispatch` only. It is deliberately not triggered by pushes. Using it is a separate owner publication decision and must not be enabled or dispatched merely because CI is green.
+`.github/workflows/deploy-pages.yml` is `workflow_dispatch` only. It is deliberately not triggered by pushes. The workflow's existence does not prove that the resulting hosted responses satisfy the current cache/security-header contract. Do not use this fallback for release unless an explicitly authorized deployment passes `npm run verify:hosted -- <url>` or the equivalent policy is otherwise verified on the live responses.
 
 ## Direct refresh
 
