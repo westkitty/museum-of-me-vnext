@@ -21,10 +21,12 @@ A release candidate is eligible for an owner publication decision only when all 
 3. `npm run verify:dist` succeeds after the production build.
 4. The 35-exhibit / 64-project / 35-bespoke QA report remains green.
 5. A real-device human pass completes `validation/reports/HUMAN_QA_CHECKLIST.md`, including pointer lock, audible audio and representative-device FPS, and preserves a completed Markdown evidence record based on `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md` or the in-museum `?qa=1` recorder output.
-6. The human evidence record has no accidental **Pending** acceptance items; every **Needs work** item names a concrete observed blocker and keeps release blocked until repaired/rechecked.
+6. Run `npm run verify:human-evidence -- <completed-human-qa.md>` against that preserved record and require PASS. The verifier checks evidence completeness only: exactly nine human acceptance checks must be PASS, at least six telemetry snapshots must be present, and human notes must exist. It does not make the underlying perceptual/device judgments.
 7. The release PR remains reviewable and mergeable.
 
 Automated browser evidence reduces uncertainty; it does not substitute for the explicitly human checks above. The `?qa=1` recorder structures human evidence and captures telemetry snapshots, but the human tester still makes every perceptual/device judgment.
+
+The automated `npm run qa` command is not allowed to rewrite the hand-maintained human checklist. `scripts/qa-report-runner.mjs` preserves that file byte-for-byte while still allowing the Phase-13 automated QA report to regenerate.
 
 ## Cloudflare Pages configuration
 
@@ -75,7 +77,7 @@ Do not merge PR #1, create `v1.0.0`, or publish a production URL merely because 
 When those conditions are met and publication is explicitly authorized, the intended order is:
 
 1. confirm exact release-head checks
-2. confirm the durable human QA evidence record is complete and contains no unresolved **Needs work** blockers
+2. preserve the completed human QA evidence record and require `npm run verify:human-evidence -- <record>` PASS
 3. merge the reviewed release PR into `main`
 4. deploy the resulting `main` commit
 5. run hosted verification and verify the live browser/device path
