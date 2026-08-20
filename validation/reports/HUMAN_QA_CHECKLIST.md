@@ -12,9 +12,14 @@ npm run build
 npm run preview
 ```
 
-Open `http://127.0.0.1:4173/?qa=1` for the recording pass. `?qa=1` does not change museum behavior; it only opens the existing read-only diagnostics overlay automatically. The overlay records FPS/1% low, draw/triangle/resource counts, current zone/position, quality tier, interaction-control count, audio running state, pointer-lock state, pending loads, and the nearest/current exhibit. Backtick still toggles the overlay manually.
+Open `http://127.0.0.1:4173/?qa=1` for the recording pass. `?qa=1` does not change the museum world or visitor behavior. It opens two evidence aids:
 
-Keep the overlay visible for the performance checkpoints and pointer-lock/audio state transitions. Hide it when it obstructs a composition judgment. Overlay state is supporting evidence only: `audio on` does not prove sound was audible, and `pointer locked` does not prove mouse-look feel or recovery quality.
+1. the existing read-only diagnostics overlay, showing FPS/1% low, draw/triangle/resource counts, current zone/position, quality tier, interaction-control count, audio running state, pointer-lock state, pending loads, and the nearest/current exhibit;
+2. the **QA evidence** recorder, where the human tester manually marks the remaining perceptual/device checks, captures telemetry snapshots at meaningful locations, records notes, and generates a Markdown evidence report.
+
+The QA recorder is intentionally session-only: it does not persist checkmarks, alter the journal/preferences, or decide any pass/fail state automatically. Generate the Markdown report before closing or refreshing the page and preserve it with the screen recording as the human evidence record.
+
+Keep diagnostics visible for the performance checkpoints and pointer-lock/audio state transitions. Hide or collapse evidence UI when it obstructs a composition judgment. Telemetry is supporting evidence only: `audio on` does not prove sound was audible, `pointer locked` does not prove mouse-look feel or recovery quality, and an FPS number from non-representative hardware is not release performance evidence.
 
 ## Recording route
 
@@ -27,21 +32,24 @@ Keep the overlay visible for the performance checkpoints and pointer-lock/audio 
 - [ ] Walk to Dexter Sanctuary and back without teleport or route confusion.
 - [ ] Return to the exterior entrance.
 
+Capture QA-recorder telemetry snapshots at minimum at the exterior spawn, Rotunda, one dense wing, one Tier A exhibit, Dexter Sanctuary, and the final return to the entrance.
+
 ## Device interaction
 
-- [ ] Capture pointer lock with mouse and with keyboard activation of the entry prompt; record the overlay changing from `pointer free` to `pointer locked`.
+- [ ] Capture pointer lock with mouse and with keyboard activation of the entry prompt; record diagnostics changing from `pointer free` to `pointer locked`.
 - [ ] Verify mouse look, Q/E turn and Page Up/Page Down vertical keyboard look.
-- [ ] Press Escape or otherwise lose pointer lock; verify controls recover cleanly and recapture works, with the overlay returning to `pointer locked` after recapture.
+- [ ] Press Escape or otherwise lose pointer lock; verify controls recover cleanly and recapture works, with diagnostics returning to `pointer locked` after recapture.
 - [ ] Open Map, Journal, Settings and accessible contents using keyboard only; verify focus stays inside panels and returns on close.
+- [ ] While a semantic UI control has keyboard focus, verify Enter/Space operates that control without also interacting with or jumping in the 3D museum behind it.
 - [ ] Toggle reduced motion, high contrast and interface scale; verify each change is immediately visible/operative.
 - [ ] Confirm touch fallback on a touch-capable device when available.
 
 ## Audio and performance
 
-- [ ] Hear each wing ambience and at least one exhibit audio event; use the overlay's `audio on` state only to confirm the engine believes audio has started.
+- [ ] Hear each wing ambience and at least one exhibit audio event; use diagnostics `audio on` only to confirm the engine believes audio has started.
 - [ ] Verify subtitles correspond to audible museum speech/audio cues.
-- [ ] Record FPS and 1% low from the overlay on a representative device during exterior, Rotunda, a dense wing and a Tier A exhibit.
-- [ ] Watch for monotonic memory/resource growth during a long traversal if browser tooling is available; the overlay's geometry/texture/residency counts can provide a quick visible sanity check.
+- [ ] Record FPS and 1% low from diagnostics on a representative device during exterior, Rotunda, a dense wing and a Tier A exhibit.
+- [ ] Watch for monotonic memory/resource growth during a long traversal if browser tooling is available; geometry/texture/residency counts provide a quick visible sanity check.
 
 ## Visual acceptance
 
@@ -51,3 +59,12 @@ Keep the overlay visible for the performance checkpoints and pointer-lock/audio 
 - [ ] Wing furnishings add identity without clutter or blocked sightlines.
 - [ ] Exhibit colour fields support content rather than competing with it.
 - [ ] No visible voids, z-fighting, clipping, broken transparency or obvious texture/geometry failure.
+
+## Evidence closure
+
+At the end of the pass:
+
+- [ ] Every QA-recorder item is marked **Pass** or **Needs work**; no item is left Pending by accident.
+- [ ] The generated Markdown report includes the device/browser details in Notes and the required telemetry snapshots.
+- [ ] Any **Needs work** item names a concrete location and observed failure rather than a vague impression.
+- [ ] Preserve the generated report together with the screen recording before making a release decision.
