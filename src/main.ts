@@ -1,8 +1,11 @@
 import { App } from './app/App';
 import { EnvironmentDressing } from './world/EnvironmentDressing';
+import { ExhibitColorFields } from './world/ExhibitColorFields';
 import { ExhibitThresholds } from './world/ExhibitThresholds';
 import { ExteriorIdentity } from './world/ExteriorIdentity';
+import { RotundaWayfinding } from './world/RotundaWayfinding';
 import { WingAtmosphere } from './world/WingAtmosphere';
+import { WingFurnishings } from './world/WingFurnishings';
 import { WingIdentity } from './world/WingIdentity';
 
 function fail(message: string, detail?: unknown): never {
@@ -32,10 +35,15 @@ try {
   const environment = new EnvironmentDressing(app.scope).build();
   app.scene.add(environment);
 
-  // The garden now resolves into a stronger public-building facade without
+  // The garden resolves into a stronger public-building facade without
   // changing the real entrance wall, doorway, collision or canonical route.
   const exteriorIdentity = new ExteriorIdentity(app.scope).build();
   app.scene.add(exteriorIdentity);
+
+  // The white Rotunda remains neutral in its centre while thin palette-derived
+  // floor threads lead toward each themed area.
+  const rotundaWayfinding = new RotundaWayfinding(app.scope).build();
+  app.scene.add(rotundaWayfinding);
 
   // Wing identity carries colour and shape language from the neutral Rotunda
   // through each threshold, making every area recognisable before text is read.
@@ -47,10 +55,20 @@ try {
   const wingAtmosphere = new WingAtmosphere(app.scope).build();
   app.scene.add(wingAtmosphere);
 
+  // Hall furniture now varies by wing as well as by colour, producing distinct
+  // object vocabularies without touching collision or the mandatory route.
+  const wingFurnishings = new WingFurnishings(app.scope).build();
+  app.scene.add(wingFurnishings);
+
   // Exhibit thresholds inherit their colour signatures from the containing
   // wing rather than becoming thirty-five unrelated palettes.
   const thresholds = new ExhibitThresholds(app.scope).build();
   app.scene.add(thresholds);
+
+  // Persistent low floor fields and backdrops carry each wing family into the
+  // exhibit bay itself while leaving the bespoke hero objects untouched.
+  const exhibitColorFields = new ExhibitColorFields(app.scope).build();
+  app.scene.add(exhibitColorFields);
 } catch (err) {
   fail(
     'This museum needs WebGL 2, which this browser did not provide. The full text of every exhibit is still available in the accessible contents.',
