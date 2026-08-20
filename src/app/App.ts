@@ -7,6 +7,7 @@ import { loadPreferences, savePreferences, type VisitorPreferences } from '../st
 import { Journal } from '../state/Journal';
 import { ResourceScope } from '../assets/ResourceScope';
 import { Museum } from '../world/Museum';
+import { ArrivalGarden } from '../world/ArrivalGarden';
 import { Lighting } from '../render/Lighting';
 import { InputManager } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
@@ -40,6 +41,7 @@ export class App implements LoopCallbacks {
   readonly journal: Journal;
   readonly scope = new ResourceScope('app');
   readonly museum: Museum;
+  readonly arrivalGarden: ArrivalGarden;
   readonly lighting: Lighting;
   readonly input: InputManager;
   readonly player: PlayerController;
@@ -82,6 +84,9 @@ export class App implements LoopCallbacks {
     this.museum = new Museum(this.scope);
     const built = this.museum.build();
     this.renderer.scene.add(built.root);
+
+    this.arrivalGarden = new ArrivalGarden(this.scope, built.collision);
+    this.renderer.scene.add(this.arrivalGarden.build());
 
     this.sanctuary = new DexterSanctuary(this.scope);
     this.renderer.scene.add(this.sanctuary.group);
