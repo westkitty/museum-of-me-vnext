@@ -31,8 +31,8 @@ export class HUD {
     this.hints = el(
       'div',
       { class: 'hud__hints' },
-      el('div', { html: '<b>M</b> map · <b>J</b> journal' }),
-      el('div', { html: '<b>H</b> contents · <b>O</b> settings' }),
+      el('div', { html: '<b>M</b> map · <b>J</b> journal · <b>C</b> curator' }),
+      el('div', { html: '<b>Y</b> study · <b>Ctrl+K</b> command · <b>H</b> contents · <b>O</b> settings' }),
     );
 
     const requestLock = (event?: Event): void => {

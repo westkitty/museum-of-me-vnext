@@ -1,0 +1,170 @@
+{
+  "scentPath": [
+    [
+      0,
+      -29.8
+    ],
+    [
+      -0.45,
+      -32
+    ],
+    [
+      -0.95,
+      -34.2
+    ],
+    [
+      -1.55,
+      -36
+    ],
+    [
+      -2.45,
+      -37.7
+    ],
+    [
+      -2.75,
+      -39.6
+    ],
+    [
+      -2.1,
+      -41.4
+    ],
+    [
+      -0.85,
+      -42.55
+    ],
+    [
+      0,
+      -42.85
+    ],
+    [
+      0.85,
+      -42.55
+    ],
+    [
+      2.1,
+      -41.4
+    ],
+    [
+      2.75,
+      -39.6
+    ],
+    [
+      2.45,
+      -37.7
+    ]
+  ],
+  "composition": {
+    "focalPoint": [
+      0,
+      1.35,
+      -39
+    ],
+    "clearApproach": {
+      "minX": -4.6,
+      "maxX": 4.6,
+      "minZ": -37,
+      "maxZ": -29.5
+    },
+    "scentPath": [
+      [
+        0,
+        -29.8
+      ],
+      [
+        -0.45,
+        -32
+      ],
+      [
+        -0.95,
+        -34.2
+      ],
+      [
+        -1.55,
+        -36
+      ],
+      [
+        -2.45,
+        -37.7
+      ],
+      [
+        -2.75,
+        -39.6
+      ],
+      [
+        -2.1,
+        -41.4
+      ],
+      [
+        -0.85,
+        -42.55
+      ],
+      [
+        0,
+        -42.85
+      ],
+      [
+        0.85,
+        -42.55
+      ],
+      [
+        2.1,
+        -41.4
+      ],
+      [
+        2.75,
+        -39.6
+      ],
+      [
+        2.45,
+        -37.7
+      ]
+    ],
+    "referencePanelXs": [
+      -11.6,
+      7.6,
+      13.2
+    ],
+    "dialogueMode": "screen",
+    "platformBounds": {
+      "minX": -2.1,
+      "maxX": 2.1,
+      "minZ": -40.75,
+      "maxZ": -37.25
+    }
+  },
+  "modelLock": {
+    "identity": "Dexter",
+    "species": "small tricolor Phalene / Papillon-like dog",
+    "stance": "quadrupedal",
+    "ears": "hanging feathered",
+    "eyes": "readable brown",
+    "blindnessCue": "orientation, scent route, tactile paw placement",
+    "coat": [
+      "black outer coat and back",
+      "white chest plume and paws",
+      "tan brows and cheeks",
+      "cream-white muzzle"
+    ],
+    "requiredFeatures": [
+      "body",
+      "head",
+      "muzzle",
+      "brown-eye",
+      "tan-brow",
+      "tan-cheek",
+      "hanging-ear",
+      "chest-plume",
+      "front-leg",
+      "hind-leg",
+      "paw",
+      "tail-plume",
+      "nose"
+    ],
+    "modes": [
+      "calm",
+      "curious",
+      "playful"
+    ],
+    "reference": "Dexter_reference_turnaround.png"
+  }
+}

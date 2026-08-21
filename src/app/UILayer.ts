@@ -6,7 +6,12 @@ import { SettingsPanel } from '../ui/SettingsPanel';
 import { DiagnosticsOverlay } from '../ui/DiagnosticsOverlay';
 import { QACapture } from '../ui/QACapture';
 import { DomMirror } from '../accessibility/DomMirror';
-import { savePreferences, type VisitorPreferences } from '../state/Preferences';
+import { savePreferences, isSafeMode, type VisitorPreferences } from '../state/Preferences';
+import { CuratorPanel } from '../ui/CuratorPanel';
+import { StudyPanel } from '../ui/StudyPanel';
+import { CommandPalette } from '../ui/CommandPalette';
+import { SOURCE_INSTALLATIONS, SOURCE_SUPPLEMENTARY, SOURCE_VISITORS } from '../content/sourceParity';
+import { EXHIBITS_BY_ID, COLLECTION } from '../content/collection.generated';
 import type { App } from './App';
 import type { QualityTier } from '../render/QualityTiers';
 
@@ -23,6 +28,9 @@ export class UILayer {
   readonly diagnostics: DiagnosticsOverlay;
   readonly qaCapture: QACapture | null;
   readonly mirror: DomMirror;
+  readonly curator: CuratorPanel;
+  readonly study: StudyPanel;
+  readonly command: CommandPalette;
 
   private readonly unbind: (() => void)[] = [];
 
@@ -46,6 +54,47 @@ export class UILayer {
     this.diagnostics = new DiagnosticsOverlay(app.diagnostics);
     this.qaCapture = qaEnabled ? new QACapture(app) : null;
     this.mirror = new DomMirror(a11yRoot, app.streaming, (id) => this.deep.openFor(id));
+    this.curator = new CuratorPanel(app.journal, {
+      guideTo: (id) => this.mapGuide(id),
+      captureView: () => this.captureView(),
+      copyLocation: () => this.copyLocation(),
+      nextUnvisited: () => {
+        const next = app.journal.nextUnvisited(COLLECTION.exhibits.map((e) => e.id));
+        if (next) this.mapGuide(next);
+        else this.hud.announce('Every exhibit in this visit journal has been opened.');
+      },
+      restorePrevious: () => app.journal.restorePrevious(),
+      exportSession: () => this.exportSession(),
+      importSession: (file) => this.importSession(file),
+    });
+    this.study = new StudyPanel(
+      app.study,
+      () => [
+        ...SOURCE_INSTALLATIONS.map((i) => i.id),
+        ...SOURCE_SUPPLEMENTARY.map((s) => s.id),
+        ...SOURCE_VISITORS.map((v) => v.id),
+        ...COLLECTION.exhibits.map((e) => e.id),
+      ],
+      (id) => EXHIBITS_BY_ID.get(id)?.copy.plaque
+        ?? SOURCE_INSTALLATIONS.find((i) => i.id === id)?.summary
+        ?? SOURCE_SUPPLEMENTARY.find((s) => s.id === id)?.summary
+        ?? SOURCE_VISITORS.find((v) => v.id === id)?.lines.join(' ')
+        ?? id,
+    );
+    this.command = new CommandPalette(
+      (id) => this.mapGuide(id),
+      () => [
+        { id: 'open-map', label: 'Open map', detail: 'Wayfinding', keywords: 'guide walk', run: () => this.map.open() },
+        { id: 'open-journal', label: 'Open journal', detail: 'Visit record', run: () => this.journal.open() },
+        { id: 'open-curator', label: 'Open Curator Desk', detail: 'Records and recovery', run: () => this.curator.open() },
+        { id: 'open-study', label: 'Open Study Lab', detail: 'Collections and comparison', run: () => this.study.open() },
+        { id: 'next-unvisited', label: 'Guide to next unvisited', detail: 'Journal', run: () => {
+          const next = app.journal.nextUnvisited(COLLECTION.exhibits.map((e) => e.id));
+          if (next) this.mapGuide(next);
+        } },
+        { id: 'clear-guide', label: 'Clear guide', detail: 'Wayfinding', run: () => this.mapGuide(null) },
+      ],
+    );
 
     uiRoot.append(
       this.hud.root,
@@ -54,6 +103,9 @@ export class UILayer {
       this.deep.root,
       this.settings.root,
       this.diagnostics.root,
+      this.curator.root,
+      this.study.root,
+      this.command.root,
     );
     if (this.qaCapture) uiRoot.append(this.qaCapture.root);
 
@@ -64,7 +116,7 @@ export class UILayer {
 
     // A panel takes over input while it is open; movement stops and the mouse
     // is released so the visitor can actually use it.
-    for (const panel of [this.map, this.journal, this.deep, this.settings]) {
+    for (const panel of [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command]) {
       const originalOpen = panel.open.bind(panel);
       panel.open = () => {
         input.releasePointerLock();
@@ -78,6 +130,9 @@ export class UILayer {
     this.unbind.push(
       input.on('map', () => this.map.toggle()),
       input.on('journal', () => this.journal.toggle()),
+      input.on('curator', () => this.curator.toggle()),
+      input.on('study', () => this.study.toggle()),
+      input.on('command', () => this.command.toggle()),
       input.on('settings', () => this.settings.toggle()),
       input.on('diagnostics', () => this.diagnostics.toggle()),
       input.on('accessibility', () => this.mirror.focus()),
@@ -135,9 +190,89 @@ export class UILayer {
     }
   };
 
+  private mapGuide(id: string | null): void {
+    this.map.setTargetPublic(id);
+    this.app.wayfinding.setTarget(id);
+    this.app.journal.setGuideTarget(id ? { kind: 'exhibit', id } : undefined);
+    if (id) this.hud.announce('Wayfinding set. A line on the floor points the way; it clears when you arrive.');
+    else this.hud.announce('Guide cleared.');
+  }
+
+  private captureView(): void {
+    const canvas = this.app.renderer.canvas;
+    try {
+      const data = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = data;
+      a.download = `reliquary-view-${Date.now()}.png`;
+      a.click();
+      const sidecar = {
+        at: new Date().toISOString(),
+        position: this.app.player.position,
+        exhibit: this.app.currentExhibitId,
+      };
+      const blob = new Blob([JSON.stringify(sidecar, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const meta = document.createElement('a');
+      meta.href = url;
+      meta.download = `reliquary-view-${Date.now()}.json`;
+      meta.click();
+      URL.revokeObjectURL(url);
+      this.hud.announce('View captured with metadata sidecar.');
+    } catch {
+      this.hud.announce('View capture failed in this browser context.');
+    }
+  }
+
+  private async copyLocation(): Promise<void> {
+    const p = this.app.player.position;
+    const fragment = `#x=${p.x.toFixed(2)}&y=${p.y.toFixed(2)}&z=${p.z.toFixed(2)}`;
+    const href = `${location.href.split('#')[0]}${fragment}`;
+    try {
+      await navigator.clipboard.writeText(href);
+      this.hud.announce('Location copied. A local-file fragment is also in the address bar.');
+    } catch {
+      this.hud.announce(`Clipboard unavailable. Location fragment: ${fragment}`);
+    }
+    history.replaceState(null, '', fragment);
+  }
+
+  private exportSession(): void {
+    const payload = {
+      format: 'reliquary-session',
+      journal: this.app.journal.exportPayload(),
+      study: this.app.study.state,
+      preferences: this.app.preferences,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `reliquary-session-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private async importSession(file: File): Promise<string> {
+    if (file.size > 512 * 1024) return 'Import is too large.';
+    try {
+      const parsed = JSON.parse(await file.text()) as { journal?: unknown; study?: unknown };
+      const preview = window.confirm('Replace the current journal with this import? This can be undone via Restore previous save.');
+      if (!preview) return 'Import cancelled.';
+      const ok = parsed.journal ? this.app.journal.importPayload(parsed.journal, { replace: true }) : false;
+      if (parsed.study) {
+        const result = this.app.study.importRaw(JSON.stringify(parsed.study));
+        if (result.ok && result.preview) this.app.study.applyImport(result.preview);
+      }
+      return ok ? 'Session imported. Use Restore previous save if this was a mistake.' : 'Journal import failed integrity or shape checks.';
+    } catch {
+      return 'Import is not valid JSON.';
+    }
+  }
+
   private releaseCapture(): void {
-    const anyOpen = [this.map, this.journal, this.deep, this.settings].some((p) => p.isOpen);
-    if (anyOpen) return;
+    // Closing one panel must not hand input back while another is still open.
+    if (this.anyPanelOpen) return;
     this.app.input.uiCaptured = false;
     this.app.player.setFrozen(false);
   }
@@ -148,7 +283,14 @@ export class UILayer {
     const p = this.app.preferences;
 
     document.documentElement.style.setProperty('--ui-scale', String(p.uiScale));
+    document.documentElement.style.setProperty('--hud-opacity', String(p.hudOpacity));
     document.documentElement.dataset.contrast = p.highContrast ? 'high' : 'normal';
+    document.documentElement.dataset.transparency = p.reducedTransparency ? 'reduced' : 'normal';
+    document.documentElement.dataset.density = p.interfaceDensity;
+    document.documentElement.dataset.safe = isSafeMode() ? '1' : '0';
+    const cap = p.frameCap;
+    this.app.loop.setFrameCap(cap === '30' ? 30 : cap === '60' ? 60 : 0);
+    void this.app.lifecycle?.syncWakeLock();
     // The explicit in-app reduced-motion switch governs DOM transitions too;
     // the CSS media query remains a second independent system-level safeguard.
     document.documentElement.dataset.motion = p.reducedMotion ? 'reduced' : 'full';
@@ -179,8 +321,19 @@ export class UILayer {
     this.diagnostics.update(dt, extra);
   }
 
+  /**
+   * Every modal surface, including the restored Curator, Study and command
+   * panels. This is the single source of truth for "the UI owns input right
+   * now": a touch or a pointer-lock request must never reach the world behind
+   * an open panel, and capture must not be released while any panel is still
+   * open.
+   */
   get anyPanelOpen(): boolean {
-    return [this.map, this.journal, this.deep, this.settings].some((p) => p.isOpen);
+    return this.modalPanels.some((p) => p.isOpen);
+  }
+
+  private get modalPanels(): { isOpen: boolean }[] {
+    return [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command];
   }
 
   dispose(): void {
@@ -195,5 +348,8 @@ export class UILayer {
     this.diagnostics.dispose();
     this.qaCapture?.dispose();
     this.mirror.dispose();
+    this.curator.dispose();
+    this.study.dispose();
+    this.command.dispose();
   }
 }

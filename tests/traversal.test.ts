@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { buildMuseum, walkRoute, walkSegment } from './helpers/walk';
 import { canonicalRoute } from '../src/world/route';
-import { PLACEMENTS, WINGS, zoneAt, ZONES } from '../src/world/layout';
+import {
+  PLACEMENTS, WINGS, zoneAt, ZONES,
+  SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_FLOOR_Y,
+  SANCTUARY_CENTER, GROUND_Y, place,
+} from '../src/world/layout';
 import { START_POSITION } from '../src/world/start';
 import { COLLECTION } from '../src/content/collection.generated';
 
@@ -96,5 +100,64 @@ describe('zones', () => {
 
   it('puts the rotunda centre in the rotunda', () => {
     expect(zoneAt([0, 1, 0])).toBe('rotunda');
+  });
+});
+
+
+describe('the Dexter Sanctuary is reachable on foot (regression)', () => {
+  // Runtime QA found the Sanctuary physically unreachable: the exterior ground
+  // collider ran across the whole site at GROUND_Y - 0.5, and `supportHeight`
+  // stands the visitor on the HIGHEST surface at or below their step-up, so the
+  // visitor walked over the descending ramp instead of down it. Nothing caught
+  // it because the automated routes never walked the ramp against collision.
+  it('has no flat surface roofing the ramp', () => {
+    // The defect: the exterior ground ran across the whole site at
+    // GROUND_Y - 0.5, above the descending ramp, so `supportHeight` always
+    // chose the ground and the visitor never went down. The ramp collider is
+    // a padded, segmented approximation, so the assertion is not that support
+    // matches the ideal slope — it is that nothing flat sits on top of it.
+    const world = built.collision;
+    const ground = GROUND_Y - 0.5;
+    for (let a = SANCTUARY_RAMP_FROM + 8; a <= SANCTUARY_RAMP_TO; a += 1) {
+      const p = place(SANCTUARY_DIR, a);
+      const support = world.supportHeight(p[0], p[2], GROUND_Y + 0.55);
+      expect(support, `no support on the ramp at along ${a}`).not.toBeNull();
+      expect(support!, `along ${a} is roofed by a flat surface at ${support}`)
+        .toBeLessThan(ground);
+    }
+  });
+
+  it('descends continuously from the rotunda to the sanctuary floor', () => {
+    const world = built.collision;
+    // Follow the ramp axis and require the support height to fall to the floor.
+    let previous = GROUND_Y;
+    let lowest = GROUND_Y;
+    for (let a = SANCTUARY_RAMP_FROM; a <= SANCTUARY_RAMP_TO + 8; a += 0.5) {
+      const p = place(SANCTUARY_DIR, a);
+      const support = world.supportHeight(p[0], p[2], previous + 0.55);
+      expect(support, `no support at along ${a}`).not.toBeNull();
+      // Never a step down bigger than a person can take without falling far.
+      expect(previous - support!, `drop at along ${a}`).toBeLessThan(1.2);
+      previous = support!;
+      lowest = Math.min(lowest, support!);
+    }
+    expect(lowest).toBeLessThanOrEqual(SANCTUARY_FLOOR_Y + 0.01);
+  });
+
+  it('walks the real route from the rotunda into the sanctuary', () => {
+    const failures = walkRoute(built.collision, [
+      { label: 'rotunda centre', at: [0, GROUND_Y, 0] as const },
+      { label: 'ramp mouth', at: place(SANCTUARY_DIR, SANCTUARY_RAMP_FROM - 1, 0, GROUND_Y) },
+      { label: 'foot of the ramp', at: place(SANCTUARY_DIR, SANCTUARY_RAMP_TO, 0, SANCTUARY_FLOOR_Y) },
+      { label: 'sanctuary centre', at: [SANCTUARY_CENTER[0], SANCTUARY_FLOOR_Y, SANCTUARY_CENTER[2]] as const },
+    ]);
+    expect(failures.map((f) => `${f.label}: ${f.reason}`)).toEqual([]);
+  });
+
+  it('keeps solid ground everywhere outside the ramp trench', () => {
+    const world = built.collision;
+    for (const [x, z] of [[0, 60], [60, 0], [-60, 0], [0, -60], [80, 80], [-80, 80], [80, -80], [-120, -120], [-25, 25]]) {
+      expect(world.supportHeight(x, z, GROUND_Y + 0.55), `hole in the ground at ${x},${z}`).not.toBeNull();
+    }
   });
 });

@@ -51,7 +51,31 @@ export class SettingsPanel extends Panel {
       this.check('Subtitles', 'Shows a text line for anything the museum says or plays.', p.subtitles,
         (v) => this.handlers.update({ subtitles: v })),
 
-      el('p', { class: 'panel__note', text: 'Settings are stored in this browser only. The museum has no account and no server.' }),
+      el('h3', { text: 'Source comfort' }),
+      this.range('HUD opacity', 'Dims the overlay without hiding required museum text.', p.hudOpacity, 0.5, 1, 0.02,
+        (v) => this.handlers.update({ hudOpacity: v })),
+      this.check('Pause simulation when the tab hides', 'Stops the loop on blur. Keyboard paths still work when you return.', p.autoPauseOnBlur,
+        (v) => this.handlers.update({ autoPauseOnBlur: v })),
+      this.select('Frame limit', 'Caps rendering. Simulation stays on the fixed step.',
+        [['auto', 'Automatic'], ['30', '30 fps'], ['60', '60 fps'], ['unlimited', 'Unlimited']],
+        p.frameCap,
+        (v) => this.handlers.update({ frameCap: v as VisitorPreferences['frameCap'] }),
+      ),
+      this.check('Keep screen awake', 'Requests a Wake Lock while exploring. Safe Mode refuses this.', p.wakeLock,
+        (v) => this.handlers.update({ wakeLock: v })),
+      this.check('Show visitors on the map', '', p.showMapVisitors,
+        (v) => this.handlers.update({ showMapVisitors: v })),
+      this.check('Reduced transparency', 'Makes glass surfaces more opaque.', p.reducedTransparency,
+        (v) => this.handlers.update({ reducedTransparency: v })),
+      this.check('Show tooltips', '', p.showTooltips,
+        (v) => this.handlers.update({ showTooltips: v })),
+      this.select('Interface density', '',
+        [['comfortable', 'Comfortable'], ['compact', 'Compact']],
+        p.interfaceDensity,
+        (v) => this.handlers.update({ interfaceDensity: v as VisitorPreferences['interfaceDensity'] }),
+      ),
+
+      el('p', { class: 'panel__note', text: 'Settings are stored in this browser only. The museum has no account and no server. Append ?safe=1 for a session-only Safe Mode that leaves stored values intact.' }),
     );
   }
 

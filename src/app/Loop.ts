@@ -30,12 +30,19 @@ export class Loop {
   private running = false;
   private lastTime = 0;
   private accumulator = 0;
+  /** Optional render-rate cap in Hz. Simulation still uses the fixed step. */
+  private frameCapHz = 0;
+  private lastRenderTime = Number.NEGATIVE_INFINITY;
 
   private frameCount = 0;
   private fpsWindowStart = 0;
   private measuredFps = 0;
 
   constructor(private readonly cb: LoopCallbacks) {}
+
+  setFrameCap(hz: number): void {
+    this.frameCapHz = Number.isFinite(hz) && hz > 0 ? hz : 0;
+  }
 
   get fps(): number {
     return this.measuredFps;
@@ -79,6 +86,10 @@ export class Loop {
     if (steps === MAX_STEPS_PER_FRAME) this.accumulator = 0;
 
     this.cb.variableUpdate(delta);
+    if (this.frameCapHz > 0 && now - this.lastRenderTime < 1000 / this.frameCapHz) {
+      return;
+    }
+    this.lastRenderTime = now;
     this.cb.render(this.accumulator / FIXED_STEP);
 
     this.frameCount++;

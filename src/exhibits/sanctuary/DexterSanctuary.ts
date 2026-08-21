@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { ResourceScope } from '../../assets/ResourceScope';
 import { createTextTexture, createFallbackTexture, canRenderText } from '../../assets/TextTexture';
-import { SANCTUARY_CENTER, SANCTUARY_FLOOR_Y, SANCTUARY_RADIUS, SANCTUARY_HEIGHT } from '../../world/layout';
+import { SANCTUARY_CENTER, SANCTUARY_FLOOR_Y, SANCTUARY_RADIUS, SANCTUARY_HEIGHT, SANCTUARY_DIR, rightOf, add } from '../../world/layout';
+import { SOURCE_SANCTUARY } from '../../content/sourceParity';
+import { curatedUrl, registerCuratedAssets } from '../../assets/curatedAssets';
 
 /**
  * THE DEXTER SANCTUARY.
@@ -88,22 +90,53 @@ export class DexterSanctuary {
     inscription.position.set(0, 1.9, -SANCTUARY_RADIUS + 0.5);
     this.group.add(inscription);
 
-    // ── restrained reference imagery: three small framed panels, unlit ──
-    const frameMat = this.mat(0x322c25, 0.5, 0.3);
-    const panelMat = this.mat(0x8a7a5c, 0.85);
-    for (let i = 0; i < 3; i++) {
-      const a = Math.PI + (i - 1) * 0.52;
-      const frame = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(0.86, 0.66, 0.06)), frameMat);
-      const inner = new THREE.Mesh(this.scope.track(new THREE.PlaneGeometry(0.74, 0.54)), panelMat);
+    registerCuratedAssets();
+    const loader = new THREE.TextureLoader();
+    const refs = ['embedded-07', 'embedded-08'] as const;
+    refs.forEach((id, i) => {
+      const url = curatedUrl(id);
+      const a = Math.PI + (i - 0.5) * 0.52;
+      const frame = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(1.35, 1.05, 0.06)), this.mat(0x322c25, 0.5, 0.3));
+      const canLoad = typeof document !== 'undefined';
+      const material = url && canLoad
+        ? this.scope.track(new THREE.MeshStandardMaterial({
+            map: (() => {
+              const texture = loader.load(url);
+              texture.colorSpace = THREE.SRGBColorSpace;
+              return this.scope.track(texture);
+            })(),
+            roughness: 0.86,
+          }))
+        : this.mat(0x8a7a5c, 0.85);
+      const inner = new THREE.Mesh(this.scope.track(new THREE.PlaneGeometry(1.22, 0.92)), material);
+      inner.name = `dexter-reference:${id}`;
       inner.position.z = 0.04;
       frame.add(inner);
       frame.position.set(
         Math.sin(a) * (SANCTUARY_RADIUS - 0.45),
-        2.0,
+        2.15,
         Math.cos(a) * (SANCTUARY_RADIUS - 0.45),
       );
       frame.rotation.y = a + Math.PI;
       this.group.add(frame);
+    });
+
+    this.buildScentRoute();
+  }
+
+  private buildScentRoute(): void {
+    const path = SOURCE_SANCTUARY.scentPath;
+    const gold = this.mat(0xd4bd7a, 0.45, 0.08);
+    const stone = this.mat(0xb8a078, 0.7);
+    const right = rightOf(SANCTUARY_DIR);
+    for (let i = 0; i < path.length; i++) {
+      const [lx, lz] = path[i];
+      const depth = -(lz + 39);
+      const world = add(add(SANCTUARY_CENTER, right, lx), SANCTUARY_DIR, depth);
+      const disc = new THREE.Mesh(this.scope.track(new THREE.CylinderGeometry(0.055, 0.055, 0.018, 10)), i % 2 === 0 ? gold : stone);
+      disc.name = `scent:${i}`;
+      disc.position.set(world[0] - SANCTUARY_CENTER[0], 0.04, world[2] - SANCTUARY_CENTER[2]);
+      this.group.add(disc);
     }
   }
 
@@ -124,6 +157,7 @@ export class DexterSanctuary {
     const black = this.mat(0x1d1a18, 0.9);
     const tan = this.mat(0x9a6a3c, 0.9);
     const dark = this.mat(0x121110, 0.6);
+    const brownEye = this.mat(0x5c3a1e, 0.35, 0.08);
 
     // Body: lying, chest forward, hind legs tucked.
     const body = new THREE.Mesh(this.scope.track(new THREE.CapsuleGeometry(0.19, 0.42, 6, 14)), white);
@@ -195,7 +229,8 @@ export class DexterSanctuary {
       cheek.position.set(0.02, -0.035, s * 0.085);
       head.add(cheek);
 
-      const eye = new THREE.Mesh(this.scope.track(new THREE.SphereGeometry(0.019, 10, 8)), dark);
+      const eye = new THREE.Mesh(this.scope.track(new THREE.SphereGeometry(0.019, 10, 8)), brownEye);
+      eye.name = 'brown-eye';
       eye.position.set(0.082, 0.028, s * 0.048);
       head.add(eye);
 
@@ -273,6 +308,8 @@ export class DexterSanctuary {
         'A quiet room below and behind the Rotunda, reached by a ramp through a narrow threshold.',
         ...INSCRIPTION,
         'There is nothing to collect here and nothing to complete. There is a platform, a little light from an opening overhead, and somewhere to sit.',
+        `${SOURCE_SANCTUARY.modelLock.identity} is a ${SOURCE_SANCTUARY.modelLock.species}. Stance ${SOURCE_SANCTUARY.modelLock.stance}; ears ${SOURCE_SANCTUARY.modelLock.ears}; eyes ${SOURCE_SANCTUARY.modelLock.eyes}.`,
+        `Blindness is expressed through ${SOURCE_SANCTUARY.modelLock.blindnessCue}, not by erasing the eyes.`,
       ],
     };
   }

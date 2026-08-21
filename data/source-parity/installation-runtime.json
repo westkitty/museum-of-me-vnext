@@ -1,0 +1,686 @@
+{
+  "provenance": {
+    "defaultStates": "Version B src/data/source-data.json defaultStates (identical semantics to CURATED control contract)",
+    "constants": "Version B src/data/source-data.json constants; every list verified byte-identical to CURATED ERA_NAMES/ATLAS_OVERLAYS/STRAINS/FAMILIAR_MODES/FAMILIAR_STATES/OSINT_SEEDS/OSINT_ROUTES/VAULT_QUERIES/DEX_MODES",
+    "spatial": "CURATED installInterpretiveLecterns(): readingZone radius, interactionPoint, interactionRadius, cameraSafeDistance, lectern collision circle"
+  },
+  "defaultStates": {
+    "starsilk-atlas": {
+      "era": 2,
+      "overlay": 0
+    },
+    "drakken-sandbox": {
+      "strain": 0,
+      "step": 0,
+      "official": false
+    },
+    "orbital-tomb": {
+      "month": 0
+    },
+    "smores-katamari": {
+      "x": 0,
+      "z": 0,
+      "vx": 0,
+      "vz": 0,
+      "size": 0.34,
+      "collected": []
+    },
+    "westcat-east": {
+      "condition": 0,
+      "distance": 0
+    },
+    "parable": {
+      "armed": false,
+      "miracle": "None",
+      "casts": 0
+    },
+    "vibe-nexus": {
+      "route": 0,
+      "phase": 0,
+      "failures": 0
+    },
+    "westcat-familiar": {
+      "mode": 0,
+      "stateIndex": 0
+    },
+    "heliocide": {
+      "phase": 0,
+      "authorized": false,
+      "holding": false,
+      "log": []
+    },
+    "dexdictate": {
+      "mode": "hold",
+      "phase": 0,
+      "timer": 0,
+      "history": 0
+    },
+    "tablet-link": {
+      "phase": 0
+    },
+    "osint-box": {
+      "seed": 0,
+      "step": 0
+    },
+    "dexvault": {
+      "query": 0,
+      "step": 0
+    },
+    "dexgpt": {
+      "mode": 0,
+      "inspect": false
+    }
+  },
+  "constants": {
+    "eraNames": [
+      "Before the Blood Eclipse",
+      "Fringe Strikes — Y0",
+      "First Blood Rings — Y3",
+      "Siege of Ruby Eclipse — Y121",
+      "Aureal Gate / Siege Wall"
+    ],
+    "atlasOverlays": [
+      "Administration containment",
+      "Drakken transformation",
+      "Starbinding consequence",
+      "Contradictions and confidence"
+    ],
+    "strains": [
+      "Pyric / Solar",
+      "Seismic / Stone",
+      "Oceanic / Cloud",
+      "Air / Vacuum",
+      "Bio / Soil"
+    ],
+    "strainColors": [
+      [
+        0.67,
+        0.38,
+        0.2
+      ],
+      [
+        0.44,
+        0.31,
+        0.18
+      ],
+      [
+        0.18,
+        0.35,
+        0.68
+      ],
+      [
+        0.8,
+        0.79,
+        0.76
+      ],
+      [
+        0.27,
+        0.5,
+        0.36
+      ]
+    ],
+    "katamariItems": [
+      [
+        -1.45,
+        -1.22,
+        "cube",
+        [
+          0.71,
+          0.59,
+          0.34
+        ]
+      ],
+      [
+        -0.8,
+        -1.5,
+        "cylinder",
+        [
+          0.27,
+          0.5,
+          0.36
+        ]
+      ],
+      [
+        0.05,
+        -1.42,
+        "cube",
+        [
+          0.67,
+          0.38,
+          0.2
+        ]
+      ],
+      [
+        1.1,
+        -1.35,
+        "sphere",
+        [
+          0.52,
+          0.45,
+          0.6
+        ]
+      ],
+      [
+        -1.55,
+        -0.35,
+        "sphere",
+        [
+          0.23,
+          0.65,
+          0.74
+        ]
+      ],
+      [
+        -0.65,
+        -0.48,
+        "cube",
+        [
+          0.8,
+          0.79,
+          0.76
+        ]
+      ],
+      [
+        0.65,
+        -0.42,
+        "cylinder",
+        [
+          0.71,
+          0.59,
+          0.34
+        ]
+      ],
+      [
+        1.55,
+        -0.25,
+        "cube",
+        [
+          0.27,
+          0.5,
+          0.36
+        ]
+      ],
+      [
+        -1.3,
+        0.58,
+        "cube",
+        [
+          0.67,
+          0.38,
+          0.2
+        ]
+      ],
+      [
+        -0.35,
+        0.48,
+        "sphere",
+        [
+          0.52,
+          0.45,
+          0.6
+        ]
+      ],
+      [
+        0.65,
+        0.62,
+        "cube",
+        [
+          0.23,
+          0.65,
+          0.74
+        ]
+      ],
+      [
+        1.45,
+        0.75,
+        "cylinder",
+        [
+          0.8,
+          0.79,
+          0.76
+        ]
+      ],
+      [
+        -0.95,
+        1.38,
+        "sphere",
+        [
+          0.27,
+          0.5,
+          0.36
+        ]
+      ],
+      [
+        0.12,
+        1.42,
+        "cube",
+        [
+          0.71,
+          0.59,
+          0.34
+        ]
+      ],
+      [
+        1.08,
+        1.36,
+        "sphere",
+        [
+          0.67,
+          0.38,
+          0.2
+        ]
+      ]
+    ],
+    "familiarModes": [
+      "Focus",
+      "Check-in",
+      "Explore",
+      "Inspect"
+    ],
+    "familiarStates": [
+      [
+        "watching",
+        "working",
+        "blocked"
+      ],
+      [
+        "idle",
+        "attentive",
+        "annoyed"
+      ],
+      [
+        "watching",
+        "thinking",
+        "summoning"
+      ],
+      [
+        "judging",
+        "alert",
+        "working"
+      ]
+    ],
+    "osintSeeds": [
+      "URL",
+      "authorized domain",
+      "authorized username",
+      "local file"
+    ],
+    "osintRoutes": [
+      [
+        "ArchiveBox",
+        "yt-dlp / metadata",
+        "CyberChef if artifacts appear"
+      ],
+      [
+        "theHarvester",
+        "Amass",
+        "Photon",
+        "Metagoofil",
+        "ArchiveBox"
+      ],
+      [
+        "Maigret",
+        "ArchiveBox",
+        "Domain workflow only if authorized"
+      ],
+      [
+        "ExifTool",
+        "CyberChef",
+        "Archive discovered URLs"
+      ]
+    ],
+    "vaultQueries": [
+      "Canon constraint",
+      "Project state",
+      "Contradiction check"
+    ],
+    "dexModes": [
+      "Dex",
+      "Work",
+      "Plain"
+    ],
+    "installationTheses": {
+      "starsilk-atlas": {
+        "title": "Celestial continuity loom",
+        "subject": "A woven cosmological map held under tension between eras, witnesses, and contradictory sources.",
+        "silhouette": "suspended-loom",
+        "required": [
+          "loom-frame",
+          "starsilk-core",
+          "thread-ribbon",
+          "witness-node",
+          "era-spool"
+        ]
+      },
+      "drakken-sandbox": {
+        "title": "Planetary vivisection theatre",
+        "subject": "A living world under strain needles, extraction pressure, and an uneven vitrified Blood Ring.",
+        "silhouette": "ringed-vivisection-globe",
+        "required": [
+          "planet-core",
+          "blood-ring",
+          "strain-pylon",
+          "extraction-spine",
+          "official-mask"
+        ]
+      },
+      "orbital-tomb": {
+        "title": "Six-month orbital autopsy",
+        "subject": "Meridian Station dismantled month by month into authored corpse geography around Virgil.",
+        "silhouette": "orbital-autopsy-spindle",
+        "required": [
+          "gas-giant",
+          "month-orbit",
+          "meridian-module",
+          "dismantled-fragment",
+          "witness-beacon"
+        ]
+      },
+      "smores-katamari": {
+        "title": "Collectable Duncan landscape",
+        "subject": "Smudge, a rolling Katamari, and a compressed local landscape whose scale changes what can be collected.",
+        "silhouette": "rolling-town-diorama",
+        "required": [
+          "katamari-ball",
+          "collection-item",
+          "duncan-landmark",
+          "smudge-figure",
+          "scale-gate"
+        ]
+      },
+      "westcat-east": {
+        "title": "Island transit section",
+        "subject": "A climbable Vancouver Island route where rain, forest, slope, ferry, and town rhythm alter play.",
+        "silhouette": "island-route-ramp",
+        "required": [
+          "steep-road",
+          "forest-band",
+          "ferry-dock",
+          "weather-field",
+          "route-token"
+        ]
+      },
+      "parable": {
+        "title": "Ritual island altar",
+        "subject": "A mutable island ruled through a clockwise spiral, finishing glyph, shrine, village, and rival citadel.",
+        "silhouette": "ritual-island-altar",
+        "required": [
+          "living-island",
+          "ritual-spiral",
+          "village",
+          "shrine",
+          "rival-citadel"
+        ]
+      },
+      "vibe-nexus": {
+        "title": "Purpose-to-spec compiler loom",
+        "subject": "Atmosphere and ethics pass through protected-purpose gates into buildable structure without losing the premise.",
+        "silhouette": "compiler-loom",
+        "required": [
+          "vibe-reservoir",
+          "purpose-core",
+          "translation-gate",
+          "spec-stack",
+          "failure-chute"
+        ]
+      },
+      "westcat-familiar": {
+        "title": "Embodied desktop familiar",
+        "subject": "The familiar itself performs state, attention, evidence, and tool summoning instead of decorating a dashboard.",
+        "silhouette": "familiar-on-ledge",
+        "required": [
+          "familiar-body",
+          "state-ear",
+          "attention-eye",
+          "tool-orbit",
+          "evidence-drawer"
+        ]
+      },
+      "heliocide": {
+        "title": "Solar consequence instrument",
+        "subject": "A command dais records authority around an exposed star, orbital consequence, alarms, holds, and authorization.",
+        "silhouette": "solar-command-dais",
+        "required": [
+          "solar-core",
+          "orbit-cage",
+          "command-spindle",
+          "record-rail",
+          "authority-key"
+        ]
+      },
+      "dexdictate": {
+        "title": "Local acoustic pipeline",
+        "subject": "Voice travels from microphone capsule through waveform capture and a local model into a visible text ribbon.",
+        "silhouette": "acoustic-pipeline",
+        "required": [
+          "microphone-capsule",
+          "wave-tunnel",
+          "local-model",
+          "text-ribbon",
+          "privacy-shell"
+        ]
+      },
+      "tablet-link": {
+        "title": "Trusted two-device bridge",
+        "subject": "Two devices connect through discovery, trust, queue, packet transfer, failure, and explicit recovery states.",
+        "silhouette": "device-bridge",
+        "required": [
+          "mac-terminal",
+          "android-terminal",
+          "trust-gate",
+          "data-bridge",
+          "queue-token"
+        ]
+      },
+      "osint-box": {
+        "title": "Evidence provenance tree",
+        "subject": "Sources branch through verification and inference into evidence trays while manual proof remains visibly distinct.",
+        "silhouette": "forensic-source-tree",
+        "required": [
+          "source-root",
+          "provenance-branch",
+          "verification-lens",
+          "evidence-tray",
+          "manual-proof"
+        ]
+      },
+      "dexvault": {
+        "title": "Radial retrieval vault",
+        "subject": "A central retrieval lantern searches a ring of source reliquaries and returns an inspectable evidence folio.",
+        "silhouette": "radial-archive-vault",
+        "required": [
+          "vault-ring",
+          "source-reliquary",
+          "retrieval-lantern",
+          "query-key",
+          "evidence-folio"
+        ]
+      },
+      "dexgpt": {
+        "title": "Dexter sanctuary",
+        "subject": "Dexter remains the specific sacred focal figure inside the verified accommodation sanctuary.",
+        "silhouette": "dexter-sanctuary",
+        "required": [
+          "dexter-model"
+        ]
+      }
+    }
+  },
+  "spatialContract": {
+    "standard": {
+      "readingZoneRadius": 1.04,
+      "interactionRadius": 1.15,
+      "cameraSafeDistance": 1.55,
+      "lecternCollisionRadius": 0.55,
+      "lecternPrompt": "Ready. E / Space engages the installation in place."
+    },
+    "sanctuary": {
+      "readingZoneRadius": 1.1,
+      "interactionRadius": 0.7,
+      "cameraSafeDistance": 1.1,
+      "lecternCollisionRadius": 1.15,
+      "lecternPrompt": "Ready. E / Space engages the installation in place."
+    },
+    "maxControlsPerInstallation": 8,
+    "footprint": {
+      "centre": [
+        4.9,
+        4
+      ],
+      "wing": [
+        4.7,
+        3.8
+      ],
+      "sanctuary": [
+        4.6,
+        3.5
+      ]
+    }
+  },
+  "sourcePositions": {
+    "curated": {
+      "starsilk-atlas": [
+        0,
+        0,
+        20
+      ],
+      "drakken-sandbox": [
+        -7.5,
+        0,
+        5
+      ],
+      "orbital-tomb": [
+        6,
+        0,
+        -9
+      ],
+      "smores-katamari": [
+        -23,
+        0,
+        23
+      ],
+      "westcat-east": [
+        -19,
+        0,
+        12
+      ],
+      "parable": [
+        -25,
+        0,
+        0
+      ],
+      "vibe-nexus": [
+        -20,
+        0,
+        -12
+      ],
+      "westcat-familiar": [
+        -25,
+        0,
+        -23
+      ],
+      "heliocide": [
+        -18,
+        0,
+        -38
+      ],
+      "dexdictate": [
+        23,
+        0,
+        22
+      ],
+      "tablet-link": [
+        19,
+        0,
+        11
+      ],
+      "osint-box": [
+        25,
+        0,
+        -1
+      ],
+      "dexvault": [
+        23,
+        0,
+        -16
+      ],
+      "dexgpt": [
+        0,
+        0,
+        -41
+      ]
+    },
+    "versionB": {
+      "starsilk-atlas": [
+        0,
+        0,
+        18
+      ],
+      "drakken-sandbox": [
+        0,
+        0,
+        3
+      ],
+      "orbital-tomb": [
+        0,
+        0,
+        -14
+      ],
+      "smores-katamari": [
+        -21,
+        0,
+        25
+      ],
+      "westcat-east": [
+        -21,
+        0,
+        13
+      ],
+      "parable": [
+        -21,
+        0,
+        1
+      ],
+      "vibe-nexus": [
+        -21,
+        0,
+        -11
+      ],
+      "westcat-familiar": [
+        -21,
+        0,
+        -22
+      ],
+      "heliocide": [
+        -21,
+        0,
+        -37
+      ],
+      "dexdictate": [
+        21,
+        0,
+        25
+      ],
+      "tablet-link": [
+        21,
+        0,
+        13
+      ],
+      "osint-box": [
+        21,
+        0,
+        1
+      ],
+      "dexvault": [
+        21,
+        0,
+        -11
+      ],
+      "dexgpt": [
+        0,
+        0,
+        -39
+      ]
+    }
+  }
+}

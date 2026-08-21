@@ -107,6 +107,98 @@ export class Museum {
 
   // ── Exterior and arrival ─────────────────────────────────────────────────
 
+  /**
+   * Exterior ground collision, with the Dexter Sanctuary's ramp trench left as
+   * a genuine open cut.
+   *
+   * The ground plane sits at GROUND_Y - 0.5 and `supportHeight` stands the
+   * visitor on the HIGHEST surface at or below their step-up. A single ground
+   * rect across the whole site therefore sat on top of the descending sanctuary
+   * ramp: the visitor walked over the trench at -0.5 and the Sanctuary could
+   * not be reached on foot at all. The ground mesh is unchanged — a one-sided
+   * plane is invisible from inside the chamber below it — but the collider now
+   * omits the trench, so the ramp is the only thing to stand on there.
+   */
+  private addExteriorGroundCollision(): void {
+    this.addFloorClearOfSanctuaryRamp(-300, 300, -300, 300, GROUND_Y - 0.5);
+  }
+
+  /**
+   * Add a floor rect that stops short of the sanctuary ramp trench, so nothing
+   * roofs the descent. Used for both the exterior ground and the rotunda slab,
+   * whose generous square otherwise overhung the ramp mouth.
+   */
+  private addFloorClearOfSanctuaryRamp(
+    rectMinX: number, rectMaxX: number, rectMinZ: number, rectMaxZ: number, y: number,
+  ): void {
+    const d = SANCTUARY_DIR;
+    const r = rightOf(d);
+    // Conservative trench envelope in (along, lateral) ramp coordinates.
+    // The cut begins exactly where the ramp begins. Starting it any earlier
+    // would punch a hole in the rotunda floor before there is a ramp to land on.
+    const alongMin = SANCTUARY_RAMP_FROM;
+    const alongMax = SANCTUARY_RAMP_TO + 2;
+    const latMax = SANCTUARY_RAMP_HALF_WIDTH + 1.2;
+
+    // World-space bounds of that envelope, so the cut-out stays local.
+    let minX = Infinity; let maxX = -Infinity; let minZ = Infinity; let maxZ = -Infinity;
+    for (const a of [alongMin, alongMax]) {
+      for (const l of [-latMax, latMax]) {
+        const x = d[0] * a + r[0] * l;
+        const z = d[2] * a + r[2] * l;
+        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+        minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
+      }
+    }
+    minX = Math.floor(minX) - 1; maxX = Math.ceil(maxX) + 1;
+    minZ = Math.floor(minZ) - 1; maxZ = Math.ceil(maxZ) + 1;
+
+    // Clamp the cut-out to the rect being added.
+    minX = Math.max(minX, rectMinX); maxX = Math.min(maxX, rectMaxX);
+    minZ = Math.max(minZ, rectMinZ); maxZ = Math.min(maxZ, rectMaxZ);
+    if (minX >= maxX || minZ >= maxZ) {
+      this.collision.addFloor(rectMinX, rectMaxX, rectMinZ, rectMaxZ, y);
+      return;
+    }
+
+    // Everything outside the cut-out's bounding box, in four slabs.
+    if (rectMinX < minX) this.collision.addFloor(rectMinX, minX, rectMinZ, rectMaxZ, y);
+    if (maxX < rectMaxX) this.collision.addFloor(maxX, rectMaxX, rectMinZ, rectMaxZ, y);
+    if (rectMinZ < minZ) this.collision.addFloor(minX, maxX, rectMinZ, minZ, y);
+    if (maxZ < rectMaxZ) this.collision.addFloor(minX, maxX, maxZ, rectMaxZ, y);
+
+    // Inside the box, tile the ground and drop only the tiles the trench
+    // actually crosses. The chamber itself keeps its ground cover: it is
+    // underground, and from the sanctuary floor the plane is already above the
+    // visitor's step-up so it can never lift them.
+    const step = 2;
+    const inv = 1 / (d[0] * r[2] - d[2] * r[0]);
+    for (let x = minX; x < maxX; x += step) {
+      for (let z = minZ; z < maxZ; z += step) {
+        const x1 = Math.min(x + step, maxX);
+        const z1 = Math.min(z + step, maxZ);
+        let aMin = Infinity; let aMax = -Infinity; let lMin = Infinity; let lMax = -Infinity;
+        for (const cx of [x, x1]) {
+          for (const cz of [z, z1]) {
+            // Invert [d r] to recover (along, lateral) for this corner.
+            const a = (cx * r[2] - cz * r[0]) * inv;
+            const l = (cz * d[0] - cx * d[2]) * inv;
+            aMin = Math.min(aMin, a); aMax = Math.max(aMax, a);
+            lMin = Math.min(lMin, l); lMax = Math.max(lMax, l);
+          }
+        }
+        // Remove only tiles that begin at or beyond the ramp start, so the
+        // cut can never open a hole in the floor before there is a ramp to
+        // land on. Laterally the test stays conservative, which clears the
+        // full width of the corridor.
+        const crossesTrench = aMin >= alongMin && aMin <= alongMax
+          && lMax >= -latMax && lMin <= latMax;
+        if (crossesTrench) continue;
+        this.collision.addFloor(x, x1, z, z1, y);
+      }
+    }
+  }
+
   private buildExterior(): void {
     const p = this.pal.get('plaza');
     const dir = faceDirection('s');
@@ -118,7 +210,7 @@ export class Museum {
     ground.position.y = GROUND_Y - 0.5;
     ground.receiveShadow = true;
     this.root.add(ground);
-    this.collision.addFloor(-300, 300, -300, 300, GROUND_Y - 0.5);
+    this.addExteriorGroundCollision();
 
     // Arrival plaza: a raised terrace in front of the entrance.
     const plazaNear = VESTIBULE_TO;
@@ -159,7 +251,12 @@ export class Museum {
     floor.position.y = GROUND_Y;
     floor.receiveShadow = true;
     g.add(floor);
-    this.collision.addFloor(-ROTUNDA_APOTHEM - 2, ROTUNDA_APOTHEM + 2, -ROTUNDA_APOTHEM - 2, ROTUNDA_APOTHEM + 2, GROUND_Y);
+    // The rotunda slab is deliberately generous, which used to leave it
+    // overhanging the sanctuary ramp mouth and standing the visitor at y=0 over
+    // a ramp already 1.5 m below them. It now stops at the trench.
+    this.addFloorClearOfSanctuaryRamp(
+      -ROTUNDA_APOTHEM - 2, ROTUNDA_APOTHEM + 2, -ROTUNDA_APOTHEM - 2, ROTUNDA_APOTHEM + 2, GROUND_Y,
+    );
 
     // Eight wall faces. Wings open on N/E/S/W; the Sanctuary threshold on NW.
     const wingFaces = new Map(WINGS.filter((w) => w.level === 0).map((w) => [w.face, w]));

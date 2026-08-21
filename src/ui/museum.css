@@ -146,10 +146,8 @@ html[data-motion='reduced'] *::after {
   color: var(--parchment);
   opacity: 0;
   transition: opacity 140ms ease;
-  white-space: nowrap;
+  white-space: normal;
   max-width: 70vw;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .hud__cue--visible { opacity: 1; }
 .hud__cue kbd {
@@ -432,3 +430,50 @@ html[data-contrast='high'] .panel p,
 html[data-contrast='high'] .panel li { color: #ffffff; }
 html[data-contrast='high'] .hud__cue,
 html[data-contrast='high'] .hud__subtitle { background: #000; border-color: #ffdf7a; }
+
+.hud { opacity: var(--hud-opacity, 1); }
+.hud__lock {
+  background-image: var(--reliquary-entrance);
+  background-size: cover;
+  background-position: center;
+}
+html.reliquary-shell {
+  background-image: var(--reliquary-shell);
+  background-size: cover;
+}
+html[data-transparency='reduced'] .hud__cue,
+html[data-transparency='reduced'] .panel__body,
+html[data-transparency='reduced'] .hud__lock {
+  background: #111018;
+}
+html[data-density='compact'] .panel__body { padding: 1rem; }
+html[data-safe='1'] .hud::after {
+  content: 'Safe Mode';
+  position: absolute;
+  top: 0.8rem;
+  right: 1rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold-bright);
+}
+.study-tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
+.study-tab { border: 1px solid rgba(201,162,39,0.35); background: transparent; color: var(--parchment-dim); border-radius: 999px; padding: 0.4rem 0.8rem; }
+.study-tab[aria-selected='true'], .study-tab--active { color: var(--parchment); border-color: var(--gold); }
+.study-card { border: 1px solid rgba(255,255,255,0.12); padding: 0.8rem; margin: 0.6rem 0; }
+.study-input { width: 100%; background: #12111a; color: var(--parchment); border: 1px solid rgba(255,255,255,0.16); padding: 0.45rem; }
+.command-result { display: block; width: 100%; text-align: left; margin: 0.2rem 0; }
+.command-result[data-selected='true'] { outline: 2px solid var(--focus); }
+.panel__content, .panel p, .a11y-root p {
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+}
+@media (forced-colors: active) {
+  .panel__body, .hud__cue, .hud__lock, .study-card, .command-result {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+  .hud__reticle { background: CanvasText; }
+}

@@ -106,9 +106,13 @@ export class PlayerController {
       iz /= len;
       const sin = Math.sin(this.yaw);
       const cos = Math.cos(this.yaw);
-      // Forward is -Z rotated by yaw.
-      wishX = (ix * cos - iz * sin) * speed;
-      wishZ = (ix * sin + iz * cos) * speed;
+      // Forward is -Z rotated by yaw, matching the camera exactly. A camera
+      // with rotation.y = yaw (order YXZ) looks along (-sin, 0, -cos) and has
+      // its right along (cos, 0, -sin), so intent must be rotated the same way.
+      // Mirroring either axis makes the visitor walk away from where they are
+      // looking at every yaw that is not on the main axis.
+      wishX = (ix * cos + iz * sin) * speed;
+      wishZ = (-ix * sin + iz * cos) * speed;
     }
 
     // -- accelerate toward the wish velocity, then apply friction --

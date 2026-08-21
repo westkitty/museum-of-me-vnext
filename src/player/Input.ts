@@ -6,7 +6,8 @@ export type Action =
   | 'forward' | 'back' | 'left' | 'right'
   | 'lookLeft' | 'lookRight' | 'lookUp' | 'lookDown'
   | 'run' | 'jump' | 'interact' | 'map' | 'journal'
-  | 'settings' | 'diagnostics' | 'accessibility';
+  | 'settings' | 'diagnostics' | 'accessibility'
+  | 'curator' | 'study' | 'command';
 
 /**
  * Directional keys are movement. WASD and the arrow cluster are deliberately
@@ -29,6 +30,8 @@ const BINDINGS: Record<string, Action> = {
   KeyM: 'map',
   KeyJ: 'journal',
   KeyO: 'settings',
+  KeyC: 'curator',
+  KeyY: 'study',
   Backquote: 'diagnostics',
   KeyH: 'accessibility',
 };
@@ -39,6 +42,7 @@ export const KEYBOARD_LOOK_SPEED = 110;
 /** Actions that fire once per physical key press rather than being held. */
 const EDGE_ACTIONS = new Set<Action>([
   'jump', 'interact', 'map', 'journal', 'settings', 'diagnostics', 'accessibility',
+  'curator', 'study', 'command',
 ]);
 
 function clamp(v: number, lo: number, hi: number): number {
@@ -106,6 +110,17 @@ export class InputManager {
     return !this.uiCaptured && this.held.has(action);
   }
 
+  /**
+   * Raw key-code capture for an engaged source installation. The handler
+   * returns true when it consumed the code; anything it declines falls through
+   * to the ordinary action bindings, so movement and the UI keys keep working.
+   */
+  setCodeCapture(fn: ((code: string, down: boolean, repeat: boolean) => boolean) | null): void {
+    this.codeCapture = fn;
+  }
+
+  private codeCapture: ((code: string, down: boolean, repeat: boolean) => boolean) | null = null;
+
   /** Subscribe to an edge action. Returns an unsubscribe function. */
   on(action: Action, fn: () => void): () => void {
     let set = this.listeners.get(action);
@@ -145,25 +160,65 @@ export class InputManager {
     this.listeners.clear();
   }
 
-  private readonly onKeyDown = (e: KeyboardEvent): void => {
-    const action = BINDINGS[e.code];
-    if (!action) return;
+  /** Clear held keys after blur, freeze, or pointer-lock loss. */
+  resetTransient(): void {
+    this.held.clear();
+    this.edgeHeldCodes.clear();
+    this.mouseDeltaX = 0;
+    this.mouseDeltaY = 0;
+    this.touchDeltaX = 0;
+    this.touchDeltaY = 0;
+    this.touchMoveX = 0;
+    this.touchMoveY = 0;
+  }
 
-    // Semantic controls own their keyboard events. Without this guard, Enter on
-    // a panel button also fired the museum's global `interact` action and Space
-    // on a checkbox also fired `jump` behind the UI. Custom SVG/button-like
-    // controls are covered by the role check as well.
+  /**
+   * True when a keyboard event belongs to a semantic or custom UI control.
+   *
+   * Those controls own their own keys. Without this, Enter on a panel button
+   * also fired the museum's global `interact`, Space on a checkbox also fired
+   * `jump` behind the UI, and — once installations became operable — a digit
+   * pressed inside a panel could mutate an engaged installation behind it.
+   * This is the single gate for BOTH the global bindings and the raw
+   * installation code capture, so the two can never disagree.
+   */
+  private isSemanticControlTarget(e: KeyboardEvent): boolean {
     const target = e.target as {
       tagName?: string;
       isContentEditable?: boolean;
       getAttribute?: (name: string) => string | null;
     } | null;
     const tag = target?.tagName?.toUpperCase() ?? '';
-    if (
-      /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(tag)
-      || target?.isContentEditable
-      || target?.getAttribute?.('role') === 'button'
-    ) return;
+    return /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(tag)
+      || Boolean(target?.isContentEditable)
+      || target?.getAttribute?.('role') === 'button';
+  }
+
+  private readonly onKeyDown = (e: KeyboardEvent): void => {
+    // Decided once, before anything can act on the key.
+    const fromSemanticControl = this.isSemanticControlTarget(e);
+
+    if ((e.ctrlKey || e.metaKey) && e.code === 'KeyK' && !e.repeat) {
+      if (fromSemanticControl) return;
+      e.preventDefault();
+      for (const fn of this.listeners.get('command') ?? []) fn();
+      return;
+    }
+
+    // A source installation the visitor has engaged takes its own control keys
+    // first, exactly as the historical Reliquary did while operating an
+    // installation in place. Nothing is captured unless something engaged, and
+    // never from a UI control or while a modal surface holds input.
+    if (this.codeCapture && !fromSemanticControl && !this.uiCaptured) {
+      if (this.codeCapture(e.code, true, e.repeat)) {
+        e.preventDefault();
+        return;
+      }
+    }
+
+    const action = BINDINGS[e.code];
+    if (!action) return;
+    if (fromSemanticControl) return;
 
     if (EDGE_ACTIONS.has(action)) {
       if (this.edgeHeldCodes.has(e.code)) return;
@@ -177,6 +232,10 @@ export class InputManager {
   };
 
   private readonly onKeyUp = (e: KeyboardEvent): void => {
+    // Releasing is always allowed, whatever the target. A release only clears
+    // held state and can never mutate an installation, and suppressing it would
+    // strand a key as permanently held if focus moved into a panel mid-press.
+    if (this.codeCapture) this.codeCapture(e.code, false, false);
     const action = BINDINGS[e.code];
     if (!action) return;
     if (EDGE_ACTIONS.has(action)) this.edgeHeldCodes.delete(e.code);

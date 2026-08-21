@@ -58,6 +58,10 @@ export class MapPanel extends Panel {
     return this.target;
   }
 
+  setTargetPublic(id: string | null): void {
+    this.setTarget(id);
+  }
+
   private setTarget(id: string | null): void {
     this.target = id;
     for (const fn of this.targetListeners) fn(id);
@@ -219,6 +223,13 @@ export class MapPanel extends Panel {
           this.target
             ? el('p', { class: 'panel__note', text: `Wayfinding to ${EXHIBITS_BY_ID.get(this.target)?.title}. Select it again to clear.` })
             : el('p', { class: 'panel__note', text: `${this.journal.visitedCount} of 35 exhibits visited. There is no score.` }),
+          el('div', { class: 'panel__grid' },
+            el('button', { type: 'button', text: 'Next unvisited', onclick: () => {
+              const next = this.journal.nextUnvisited(COLLECTION.exhibits.map((e) => e.id));
+              if (next) this.setTarget(next);
+            } }),
+            el('button', { type: 'button', text: 'Clear guide', onclick: () => this.setTarget(null) }),
+          ),
           list,
         ),
       ),

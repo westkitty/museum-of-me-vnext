@@ -4,6 +4,9 @@ export default tseslint.config(
   {
     ignores: [
       'dist/**',
+      // Generated single-file artifact output; linting a 6 MB bundle is noise.
+      'dist-standalone/**',
+      'release/**',
       'node_modules/**',
       'playwright-report/**',
       'test-results/**',

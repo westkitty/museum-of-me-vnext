@@ -1,8 +1,14 @@
 node_modules/
 dist/
+dist-standalone/
+# Generated canonical single-file artifact. Reproduced byte-for-byte by
+# `npm run build:standalone`; its SHA-256 is recorded in Reliquary_Final_SHA256SUMS.txt.
+release/
 .DS_Store
 *.log
 playwright-report/
 test-results/
 .vite/
 validation/reports/*.json
+# The runtime source-parity evidence is a deliverable, not scratch output.
+!validation/reports/runtime-source-qa.json

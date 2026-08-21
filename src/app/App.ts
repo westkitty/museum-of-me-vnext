@@ -3,8 +3,19 @@ import { Loop, type LoopCallbacks } from './Loop';
 import { Diagnostics } from './Diagnostics';
 import { RendererHost } from '../render/RendererHost';
 import { detectQualityTier, type QualityTier } from '../render/QualityTiers';
-import { loadPreferences, savePreferences, type VisitorPreferences } from '../state/Preferences';
+import { loadPreferencesResult, savePreferences, type VisitorPreferences } from '../state/Preferences';
 import { Journal } from '../state/Journal';
+import { Study } from '../state/Study';
+import { Lifecycle } from './Lifecycle';
+import { SourceVisitors } from '../world/SourceVisitors';
+import { SupplementaryCases } from '../world/SupplementaryCases';
+import { SourceInstallations, INSTALLATION_HELD_CODES } from '../world/SourceInstallations';
+import { SourceArtwork } from '../world/SourceArtwork';
+import { registerCuratedAssets, shellUrl, entranceUrl } from '../assets/curatedAssets';
+import {
+  SOURCE_INSTALLATIONS, SOURCE_SUPPLEMENTARY, SOURCE_VISITORS,
+} from '../content/sourceParity';
+import { EXHIBITS_BY_ID } from '../content/collection.generated';
 import { ResourceScope } from '../assets/ResourceScope';
 import { Museum } from '../world/Museum';
 import { ArrivalGarden } from '../world/ArrivalGarden';
@@ -54,6 +65,12 @@ export class App implements LoopCallbacks {
   readonly sky: Sky;
   readonly wayfinding: Wayfinding;
   readonly visitors: AmbientVisitors;
+  readonly sourceVisitors: SourceVisitors;
+  readonly supplementary: SupplementaryCases;
+  readonly sourceInstallations: SourceInstallations;
+  readonly sourceArtwork: SourceArtwork;
+  readonly study: Study;
+  lifecycle!: Lifecycle;
   ui!: UILayer;
   /** Zone the visitor is currently standing in. Drives audio and streaming. */
   currentZone: ZoneId = 'plaza';
@@ -69,8 +86,22 @@ export class App implements LoopCallbacks {
     this.uiRoot = opts.uiRoot;
     this.a11yRoot = opts.a11yRoot;
 
-    this.preferences = loadPreferences();
+    registerCuratedAssets();
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.setProperty('--reliquary-shell', `url(${shellUrl})`);
+      document.documentElement.style.setProperty('--reliquary-entrance', `url(${entranceUrl})`);
+      document.documentElement.classList.add('reliquary-shell');
+    }
+    const loaded = loadPreferencesResult();
+    this.preferences = loaded.preferences;
     this.journal = new Journal();
+    this.study = new Study(() => new Set([
+      ...SOURCE_INSTALLATIONS.map((i) => i.id),
+      ...SOURCE_SUPPLEMENTARY.map((s) => s.id),
+      ...SOURCE_VISITORS.map((v) => v.id),
+      ...EXHIBITS_BY_ID.keys(),
+    ]));
+    if (loaded.notice) this.journal.recoveryNotice = loaded.notice;
 
     const tier: QualityTier =
       this.preferences.quality === 'auto' ? detectQualityTier() : this.preferences.quality;
@@ -97,7 +128,7 @@ export class App implements LoopCallbacks {
     this.wayfinding = new Wayfinding(this.scope);
     this.renderer.scene.add(this.wayfinding.group);
 
-    this.visitors = new AmbientVisitors(this.scope, this.renderer.quality.ambientVisitors);
+    this.visitors = new AmbientVisitors(this.scope, 0);
     this.renderer.scene.add(this.visitors.group);
 
     this.lighting = new Lighting(this.scope, this.renderer.quality);
@@ -143,8 +174,64 @@ export class App implements LoopCallbacks {
       }
     });
 
+    this.sourceArtwork = new SourceArtwork(this.scope, built.exhibitMounts);
+    this.renderer.scene.add(this.sourceArtwork.group);
+
+    this.sourceVisitors = new SourceVisitors(
+      this.scope,
+      built.collision,
+      this.interaction,
+      (visitor, line, thought) => {
+        this.journal.hearVisitor(visitor.id);
+        this.journal.recordHistory({ kind: 'visitor', id: visitor.id }, visitor.title);
+        const message = thought ? `${line} (${thought})` : line;
+        this.announce(`visitor:${visitor.id}`, `${visitor.title}: ${message}`);
+      },
+    );
+    this.renderer.scene.add(this.sourceVisitors.group);
+
+    this.supplementary = new SupplementaryCases(
+      this.scope,
+      this.interaction,
+      this.journal,
+      (id, title, summary) => this.announce(`supplementary:${id}`, `${title}. ${summary}`),
+    );
+    this.renderer.scene.add(this.supplementary.group);
+
+    // The fourteen source primary installations: real objects with the source
+    // keyed state machines, interpretive lecterns, collision and persistence.
+    this.sourceInstallations = new SourceInstallations(
+      this.scope,
+      built.collision,
+      this.interaction,
+      this.journal,
+      (id, message) => this.announce(id, message),
+    );
+    this.renderer.scene.add(this.sourceInstallations.group);
+    if (this.sourceInstallations.store.recoveryNotice) {
+      this.journal.recoveryNotice = this.sourceInstallations.store.recoveryNotice;
+    }
+    // While an installation is engaged its own source control codes take
+    // priority; Escape steps back, which is the source's own contract.
+    this.input.setCodeCapture((code, down, repeat) => {
+      const active = this.sourceInstallations.activeId;
+      if (!active) return false;
+      if (code === 'Escape') {
+        if (down) this.sourceInstallations.disengage();
+        return true;
+      }
+      this.sourceInstallations.hold(code, down);
+      if (!down || repeat) return INSTALLATION_HELD_CODES.has(code);
+      return this.sourceInstallations.key(active, code) || INSTALLATION_HELD_CODES.has(code);
+    });
+
     this.loop = new Loop(this);
+    const cap = this.preferences.frameCap;
+    this.loop.setFrameCap(cap === '30' ? 30 : cap === '60' ? 60 : 0);
     this.ui = new UILayer(this);
+    this.lifecycle = new Lifecycle(this.loop, this.input, this.renderer, () => this.preferences, (message) => {
+      this.ui.hud.announce(message);
+    });
   }
 
   /** Human-readable name of the space the visitor is in. */
@@ -215,6 +302,8 @@ export class App implements LoopCallbacks {
       this.sanctuary.update(dt, this.preferences.reducedMotion);
     }
     this.visitors.update(dt, this.preferences.reducedMotion);
+    this.sourceVisitors.update(dt, this.preferences.reducedMotion);
+    this.sourceInstallations.update(dt, this.preferences.reducedMotion);
   }
 
   variableUpdate(dt: number): void {
@@ -285,6 +374,10 @@ export class App implements LoopCallbacks {
     this.sanctuary.dispose();
     this.wayfinding.dispose();
     this.visitors.dispose();
+    this.sourceVisitors.dispose();
+    this.supplementary.dispose();
+    this.sourceInstallations.dispose();
+    this.lifecycle?.dispose();
     this.streaming.dispose();
     this.interaction.dispose();
     this.input.dispose();

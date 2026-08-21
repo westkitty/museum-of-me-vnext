@@ -290,3 +290,56 @@ describe('comfort settings', () => {
     expect(QUALITY.low.ambientVisitors).toBe(0);
   });
 });
+
+
+describe('movement follows the camera (regression)', () => {
+  // Runtime QA found the visitor walking mirrored about the Z axis at every
+  // yaw off the main axis: the intent vector was rotated by +yaw instead of
+  // -yaw, so it agreed with the camera only at yaw 0 and yaw pi. Automated
+  // routes had never turned off the main axis, so nothing caught it.
+  const CASES: Array<{ yaw: number; code: string; expect: [number, number] }> = [
+    { yaw: 0, code: 'KeyW', expect: [0, -1] },
+    { yaw: Math.PI / 2, code: 'KeyW', expect: [-1, 0] },
+    { yaw: -Math.PI / 2, code: 'KeyW', expect: [1, 0] },
+    { yaw: Math.PI, code: 'KeyW', expect: [0, 1] },
+    { yaw: Math.PI / 2, code: 'KeyD', expect: [0, -1] },
+    { yaw: Math.PI / 2, code: 'KeyS', expect: [1, 0] },
+    { yaw: Math.PI / 4, code: 'KeyW', expect: [-Math.SQRT1_2, -Math.SQRT1_2] },
+  ];
+
+  for (const c of CASES) {
+    it(`walks where the camera looks at yaw ${Math.round((c.yaw * 180) / Math.PI)} deg with ${c.code}`, () => {
+      const player = new PlayerController(flatWorld(), input);
+      player.teleport([0, 0, 0]);
+      player.yaw = c.yaw;
+      key(c.code);
+      for (let i = 0; i < 60; i++) player.fixedUpdate(1 / 60);
+      key(c.code, false);
+      const len = Math.hypot(player.position.x, player.position.z);
+      expect(len).toBeGreaterThan(0.5);
+      expect(player.position.x / len).toBeCloseTo(c.expect[0], 2);
+      expect(player.position.z / len).toBeCloseTo(c.expect[1], 2);
+    });
+  }
+
+  it('keeps forward exactly aligned with the camera forward at every yaw', () => {
+    // The camera looks along (-sin yaw, 0, -cos yaw) for rotation order YXZ.
+    for (let step = 0; step < 16; step++) {
+      const yaw = (step / 16) * Math.PI * 2 - Math.PI;
+      const player = new PlayerController(flatWorld(), input);
+      player.teleport([0, 0, 0]);
+      player.yaw = yaw;
+      key('KeyW');
+      for (let i = 0; i < 60; i++) player.fixedUpdate(1 / 60);
+      // Acceleration clamps each axis independently, so accumulated
+      // displacement carries a small start-up bias. Settled velocity is the
+      // honest reading of which way "forward" actually goes.
+      const speed = Math.hypot(player.velocity.x, player.velocity.z);
+      key('KeyW', false);
+      expect(speed, `yaw ${yaw}`).toBeGreaterThan(0.5);
+      expect(player.velocity.x / speed).toBeCloseTo(-Math.sin(yaw), 3);
+      expect(player.velocity.z / speed).toBeCloseTo(-Math.cos(yaw), 3);
+      expect(Math.hypot(player.position.x, player.position.z), `yaw ${yaw}`).toBeGreaterThan(0.5);
+    }
+  });
+});

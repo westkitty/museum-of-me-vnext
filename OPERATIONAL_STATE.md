@@ -6,8 +6,8 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 29,
-  "last_updated": "2026-08-20",
+  "state_revision": 30,
+  "last_updated": "2026-08-21",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
 -->
@@ -34,11 +34,21 @@
 - Release-verifier/QA-telemetry readiness through `740919bc70019318c7d6783a245c8b68712943a9`: run #202 PASS in both jobs.
 - r27 state-only head `20466855999f7c33d520a3a947c73ab07157a940`: run #204 PASS in both jobs.
 - Structured human-evidence and semantic-input-isolation batch through `347e7f1b2eb18ada820d0d7af891597c81d0368e`: run #224 PASS in both jobs.
-- Human-evidence completeness verification plus automated-QA checklist immutability through `034ef1e48400acca8632b4c8e2478d0663b30549`: run #238 PASS in both canonical and Chromium jobs. This is the current verified release-branch baseline before this r29 state-only reconciliation.
+- Human-evidence completeness verification plus automated-QA checklist immutability through `034ef1e48400acca8632b4c8e2478d0663b30549`: run #238 PASS in both canonical and Chromium jobs. This is the verified release-branch baseline that the r30 restoration integrates onto.
+- **Reliquary source-parity and runtime restoration (r30), integrated onto remote base `25cc3121e599ccf7ce535d8853501d81b659f0c4`:** canonical `npm run gate` PASS, standalone build and `npm run verify:standalone` PASS. `scripts/runtime-source-qa.mjs` executes **14/14 source installation runtime interaction paths and 17/17 authored visitor conversations** against the real production runtime inside the offline canonical artifact, with zero remote requests. Three real defects found by that exercise were repaired (movement mirrored about Z at off-axis yaw, a physically unreachable Dexter Sanctuary, and a rotunda slab overhanging the ramp mouth). The historical 200-observation ledger remains **MISSING HISTORICAL EVIDENCE** and was not fabricated; the museum itself is proven against all surviving authoritative source evidence.
 
 ## 3. Active invariants
 
 - Exactly one frame-loop owner: `src/app/Loop.ts`.
+- Movement intent must be rotated by the same basis as the camera. Forward is `(-sin yaw, -cos yaw)`; right is `(cos yaw, -sin yaw)`. Mirroring either axis makes the visitor walk away from where they are looking.
+- No floor collider may roof the Dexter Sanctuary ramp trench. `supportHeight` returns the highest surface at or below the step-up, so any slab laid across the trench makes the Sanctuary unreachable on foot. Exterior ground and the rotunda slab are added through `Museum.addFloorClearOfSanctuaryRamp`.
+- The fourteen source installations are live objects with the source keyed state machines, an interpretive lectern, a collision footprint and persistence — never labels. Their governing behaviour is `src/content/installationState.ts`.
+- Source installation control codes reach an installation only while it is engaged; `InputManager.setCodeCapture` must stay inert otherwise so museum movement and UI keys are unaffected.
+- Semantic and custom UI controls (INPUT, TEXTAREA, SELECT, BUTTON, A, contenteditable, `role="button"`) own their own keyboard events. `InputManager.isSemanticControlTarget` is decided once per keydown and is the single gate for BOTH the global BINDINGS and the raw installation code capture, so the two can never disagree. Raw capture is additionally blocked while `uiCaptured` is true. A panel or QA surface must never mutate an installation behind itself. Key release is never gated, so a key cannot be stranded as held when focus moves into a panel mid-press.
+- Installations stand clear inside the bay of the exhibit their project was frozen onto. They may not move, recolour or lifecycle-couple a bespoke hero object, and must keep at least 4 m of clearance from it.
+- The `INSTALLATION_THESES` silhouette and required-part contract is byte-identical in CURATED and Version B and outranks either builder's own part naming.
+- Exact old-hall installation coordinates are implementation detail: the two source authorities disagree on 14/14 of them. Room grouping, activation radius, reading zone, interaction radius and camera safe distance are governing and are preserved exactly.
+- ESLint 9 flat config does not read `.gitignore`. Generated output directories must be listed in `eslint.config.js` explicitly.
 - Frozen 64-project → 35-exhibit mapping remains exact.
 - No visitor-facing private data/placeholders.
 - Dexter Sanctuary remains outside the 35 and non-mascotised.
@@ -95,12 +105,30 @@
 - Deterministic hosted-verifier logic remains implemented as `scripts/hosted-verifier-lib.mjs`, `scripts/verify-hosted.mjs`, and `scripts/hosted-verifier.test.mjs`. `npm run test:release-tools` now covers both hosted verification and human-evidence completeness verification.
 - `verify:hosted` requires an HTTPS public target, successful shell response, the three museum mount points, HTML revalidation, `nosniff`, frame denial, required CSP boundary, same-origin content-hashed JS/CSS, successful asset responses, and immutable one-year asset caching.
 
+- **VERIFIED (r29):** all 14 source primary installation runtime interaction paths, individually exercised in the real production runtime — reached, object present, thesis parts complete, lectern present, focus acquired by the real raycast, interaction invoked, engaged, every source control driven through real keyboard events, state transitioned, persisted, examined, restored after reload, journal, guide target, study subject, touch control table, reset.
+- **VERIFIED (r29):** all 17 authored visitor conversations, individually exercised — identity, appearance, staff badge, route, in scene, focus acquired, conversation started through the real interaction manager, every authored line spoken, re-entry returns to the first line, journal heard and journal history.
+- **VERIFIED (r29):** the Dexter Sanctuary is reachable by walking the real museum route with real collision, descending to `y = -5`, arriving with interaction focus on the `dexgpt` installation.
+- **VERIFIED (r29):** movement agrees with the camera at every yaw (8 explicit cases plus a 16-step full-circle sweep).
+- **VERIFIED (r29):** installation persistence round-trips, and malformed, future-version and tampered payloads are quarantined rather than discarded.
+- **VERIFIED (r29):** the standalone canonical artifact boots offline from `file://` with zero remote requests while all of the above is exercised.
+
 ### Implemented but unverified
 
 - None in the current pre-deploy repository batch.
 
+### Missing historical evidence
+
+- `Reliquary_200_Observation_Closure_Ledger.md` — **UNRECOVERED**. Searched by name, by Spotlight content index, in all four archives, and across all 111 commits of git history. Every occurrence of its name on this machine is a statement of its absence. See `Reliquary_200_Ledger_Recovery_Report.md`. Recorded as missing historical documentation, **not** as a museum failure and **not** as superseded.
+- `Reliquary_Restoration_Validation_Report.md` — **UNRECOVERED**, same search.
+- `Reliquary_Restoration_SHA256SUMS.txt` — **UNRECOVERED**, same search.
+
 ## 5. Known not working / superseded
 
+- **BROKEN, NOW REPAIRED (r29):** `PlayerController` rotated movement intent by `+yaw` against a `-yaw` camera basis, so the visitor walked mirrored about Z at every heading off the main axis. Automated routes had only ever travelled the main axis and the pointer-look human check was still pending, so nothing caught it. Every earlier human impression of off-axis walking is invalid.
+- **BROKEN, NOW REPAIRED (r29):** the Dexter Sanctuary was physically unreachable on foot. A single 600x600 exterior ground collider at `GROUND_Y - 0.5` roofed the descending ramp, and `supportHeight` always chose it, so the visitor walked over the trench. The Sanctuary could only be entered by teleport.
+- **BROKEN, NOW REPAIRED (r29):** the rotunda slab overhung the sanctuary ramp mouth by about 9 m, leaving a 1.15 m drop onto the ramp.
+- **BROKEN, NOW REPAIRED (r29):** `npm run lint` was linting the 6 MB generated `dist-standalone` bundle, because ESLint 9 flat config does not read `.gitignore`.
+- **SUPERSEDED, cited:** source hall ordering within a room, and the West Systems Workshop room grouping, both yield to the frozen 64->35 mapping (`data/exhibit-mapping.json`, `frozen: true`, `frozenAt: 2026-08-19`). Project association is preserved instead. See `Reliquary_Installation_Spatial_Matrix.md` section 2.
 - Interior spawn, dark exterior sky and beige Rotunda baseline are superseded.
 - Gate #78 matcher issue is resolved; subsequent canonical gates passed.
 - Initial browser run #162 overloaded the CI software renderer while leaving the live frame loop running; this was a test-harness limitation, not accepted browser evidence. The browser harness now proves boot and then stops the loop before semantic checks.
@@ -129,12 +157,15 @@
 
 ## 7. Pending work
 
-1. Execute `validation/reports/HUMAN_QA_CHECKLIST.md` with a representative real browser/device and screen recording using `?qa=1`.
-2. Preserve the generated Markdown evidence output or complete `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md`; include device/browser details and required snapshots, with every acceptance item explicitly resolved to Pass or Needs work.
-3. Run `npm run verify:human-evidence -- <completed-human-qa.md>` against the preserved human record. A verifier PASS proves completeness only; the human observations remain the decisive evidence.
-4. Tune clipping/exposure/density or interaction feel only from concrete Needs-work observations; do not create speculative polishing work.
-5. If the human/device evidence passes and the owner explicitly authorizes release, follow `docs/RELEASE_RUNBOOK.md`: exact-head checks → merge reviewed PR → deploy `main` → run `verify:hosted` and live browser/device verification → tag the verified deployed commit.
-6. Do not add further environment furniture merely to continue polishing; require an observed empty/problem area.
+1. ~~Locate or reconstruct `Reliquary_200_Observation_Closure_Ledger.md`~~ — **closed as far as the evidence allows.** The original is unrecoverable (`Reliquary_200_Ledger_Recovery_Report.md`). A separately named reconstruction built from primary evidence exists: `Reliquary_Reconstructed_Source_Regression_Ledger.md`, 115 `R-nnn` rows, no FAIL and no governing UNVERIFIED row. Do not relabel it as the historical ledger.
+2. ~~Exercise all 14 source installation interaction paths and all 17 visitor conversations~~ — **closed.** `npm run verify:standalone` runs `scripts/runtime-source-qa.mjs` every time and fails the chain if any path regresses.
+3. Execute `validation/reports/HUMAN_QA_CHECKLIST.md` with a representative real browser/device and screen recording using `?qa=1`.
+4. Preserve the generated Markdown evidence output or complete `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md`; include device/browser details and required snapshots, with every acceptance item explicitly resolved to Pass or Needs work.
+5. Run `npm run verify:human-evidence -- <completed-human-qa.md>` against the preserved human record. A verifier PASS proves completeness only; the human observations remain the decisive evidence.
+6. The human walkthrough must be run from scratch rather than carried over: the r30 movement repair changes how the museum handles at every heading off the main axis, so impressions recorded before it do not transfer.
+7. Tune clipping/exposure/density or interaction feel only from concrete Needs-work observations; do not create speculative polishing work.
+8. If the human/device evidence passes and the owner explicitly authorizes release, follow `docs/RELEASE_RUNBOOK.md`: exact-head checks → merge reviewed PR → deploy `main` → run `verify:hosted` and live browser/device verification → tag the verified deployed commit.
+9. Do not add further environment furniture merely to continue polishing; require an observed empty/problem area.
 
 ## 8. Active decisions / prohibitions
 
@@ -180,6 +211,19 @@
 | Human visual/device QA | pending-human | no completed representative-device evidence record yet |
 | Hosted production verification | pending-owner-action | no deployment authorized/performed; `verify:hosted` cannot run against a nonexistent production URL |
 | Current release-readiness code/docs/tool batch | verified-automated | exact-head commit `034ef1e48400acca8632b4c8e2478d0663b30549`, run #238 gate + browser PASS |
+| Automated QA cannot rewrite the governing human checklist | verified-automated | `scripts/qa-report-runner.mjs`; checklist byte-identical after `npm run qa` |
+| Human-evidence completeness verification | verified-automated | `npm run verify:human-evidence` plus its deterministic tests |
+| 14/14 source installation runtime paths | verified-automated-browser | `scripts/runtime-source-qa.mjs` against the offline canonical artifact; `validation/reports/RUNTIME_SOURCE_QA.md` |
+| 17/17 authored visitor conversations | verified-automated-browser | same harness; every authored line spoken, re-entry proven |
+| Dexter Sanctuary reachable on foot | verified-automated-browser | walked rotunda → ramp → sanctuary, descended to y=-5, focus acquired |
+| Movement agrees with the camera at every yaw | verified-automated | `tests/accessibility.test.ts`, 8 cases + 16-step sweep |
+| Semantic UI controls isolated from global actions AND installation capture | verified-automated | `tests/input-ui-guard.test.ts` |
+| Installation/spatial parity matrix | verified-source | `Reliquary_Installation_Spatial_Matrix.md`, 14 rows, no unexplained row |
+| Version B builder disposition | verified-source | same document section 4; every builder ported, repaired, or excluded with a reason |
+| Installation persistence, quarantine and reset | verified-automated | `tests/source-installations.test.ts` |
+| Visitor contract matches the CURATED authority | verified-automated | `tests/source-visitors.test.ts`, `validate:source-parity` |
+| Historical 200-observation ledger | **missing historical evidence** | `Reliquary_200_Ledger_Recovery_Report.md` — unrecovered, not fabricated |
+| Human visual/audio/pointer-lock/device FPS | pending-human | governed by the remote human-QA process; restoration automation must never auto-promote it |
 
 ## 10. Current change scope
 
@@ -187,6 +231,7 @@ Phase-14 release-readiness only: protect the hand-maintained human QA contract f
 
 ## 11. Compact revision log
 
+- **r30 — 2026-08-21:** Re-landed the Reliquary source-parity and runtime restoration on top of the remote human-QA release line (base `25cc3121e599ccf7ce535d8853501d81b659f0c4`) by cherry-pick rather than by merging stale history. Restored the fourteen source installations' governing behaviour (keyed state machines, forms corrected against the shared thesis contract, interpretive lecterns, collision, persistence with quarantine) and proved 14/14 installation runtime paths and 17/17 authored visitor conversations against the real production runtime in the offline canonical artifact. Adjudicated the spatial question on evidence: the two source authorities disagree on 14/14 old coordinates while agreeing on every semantic field, so coordinates are implementation detail and the shared semantics are preserved exactly; hall ordering is superseded by the frozen mapping, cited. Repaired three defects the runtime exercise exposed (movement mirrored about Z off-axis, an unreachable Dexter Sanctuary, a rotunda slab overhanging the ramp mouth). Deliberately reconciled the overlapping input work: the r28 semantic-control isolation contract is now the single gate for BOTH global bindings and the new raw installation code capture, so a panel control can never mutate an installation behind itself. The historical 200-observation ledger remains UNRECOVERED and was not fabricated.
 - **r29 — 2026-08-20:** Continued Phase-14 readiness without publishing. Found and fixed an automated-QA authority bug where `npm run qa` rewrote the current human checklist from a stale embedded scaffold; the new runner preserves the hand-maintained checklist byte-for-byte. Added `verify:human-evidence` plus deterministic tests so an eventual human evidence record can be rejected for Pending/Needs-work checks, insufficient telemetry, or missing notes without pretending automation made the observations. Updated the runbook to require that completeness check before merge/publication consideration. Exact implementation head `034ef1e48400acca8632b4c8e2478d0663b30549` passed run #238 in both canonical and Chromium jobs. Human/device evidence and actual deployment remain pending.
 - **r28 — 2026-08-20:** Continued Phase-14 readiness without publishing. Added session-only structured human QA evidence recording under `?qa=1`, a durable Markdown evidence template and closure rules; fixed semantic-control keyboard events leaking into global museum interact/jump actions and added dedicated regressions; reconciled the release checklist/runbook/PR around that evidence boundary. Browser run #214 exposed a harness focus-sequencing issue after report generation; the harness was corrected and exact-head `347e7f1b2eb18ada820d0d7af891597c81d0368e` passed run #224 in both canonical and Chromium jobs. Human/device evidence and actual deployment remain pending.
 - **r27 — 2026-08-20:** Completed the previous bounded Phase-14 readiness passes without publishing: reconciled stale release/deployment evidence, added the opt-in diagnostics capture aid, and added deterministic hosted transport/header verification. Exact release-readiness head `740919bc70019318c7d6783a245c8b68712943a9` passed run #202 in both jobs.
