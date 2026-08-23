@@ -154,16 +154,26 @@ export class AudioManager {
       oscillators.push(osc);
     }
 
-    // Air: a short looping buffer of shaped noise.
+    // Air: a short looping buffer of shaped noise. The leaky integrator below
+    // is itself bounded to [-1, 1] (0.97 + 0.03 == 1, a convex combination),
+    // but a fixed post-gain assumed a "typical" peak that an occasional long
+    // same-signed run of white noise could exceed -- silently hard-clipping
+    // into a harsh, crackling tone. Normalizing to the buffer's own measured
+    // peak instead guarantees headroom regardless of how the randomness falls.
     const seconds = 4;
     const buffer = ctx.createBuffer(1, ctx.sampleRate * seconds, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     let last = 0;
+    let peak = 0;
     for (let i = 0; i < data.length; i++) {
       const white = Math.random() * 2 - 1;
       last = 0.97 * last + 0.03 * white;
-      data[i] = last * 3.4;
+      data[i] = last;
+      if (Math.abs(last) > peak) peak = Math.abs(last);
     }
+    const targetPeak = 0.5;
+    const scale = peak > 0 ? targetPeak / peak : 0;
+    for (let i = 0; i < data.length; i++) data[i] *= scale;
     const noise = ctx.createBufferSource();
     noise.buffer = buffer;
     noise.loop = true;

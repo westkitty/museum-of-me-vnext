@@ -283,14 +283,17 @@ export class Detailing {
     parent.add(title);
     this.scope.track(title.geometry);
 
-    // Orientation line inside the vestibule.
+    // Orientation line inside the vestibule. Set well back from
+    // EnvironmentDressing's "Welcome" sign (VESTIBULE_FROM + 2.2) -- the two
+    // used to sit only 1.2 m apart in the first sixth of the 14 m vestibule,
+    // reading as one cluttered, overlapping sign rather than two.
     const welcome = buildWingSign(
       this.scope,
       'Sixty-four projects, thirty-five exhibits',
       'The Rotunda is straight ahead. Press M for a map.',
     );
     welcome.scale.setScalar(0.82);
-    const welcomeAt = place(dir, VESTIBULE_FROM + 1.0, 0, GROUND_Y);
+    const welcomeAt = place(dir, VESTIBULE_FROM + 9.0, 0, GROUND_Y);
     welcome.position.set(welcomeAt[0], 4.2, welcomeAt[2]);
     parent.add(welcome);
     this.scope.track(welcome.geometry);

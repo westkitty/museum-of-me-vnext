@@ -403,7 +403,11 @@ html[data-motion='reduced'] *::after {
   line-height: 1.55;
   color: #9fe0c0;
   white-space: pre;
-  z-index: 35;
+  /* Below .panel (30): a diagnostics readout must never sit on top of an open
+     modal. It used to be 35 -- above every panel -- so opening the Command
+     Palette (or any panel) while diagnostics were visible let this box
+     overlap and clip the panel's own title and first row. */
+  z-index: 20;
 }
 .diag[hidden] { display: none; }
 

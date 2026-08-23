@@ -21,12 +21,17 @@ export class SupplementaryCases {
     onOpen: (id: string, title: string, summary: string) => void,
   ) {
     this.group.name = 'source-supplementary-cases';
-    const faces = ['ne', 'se', 'sw', 'nw'] as const;
+    // 'nw' is deliberately excluded: it is the Dexter Sanctuary threshold, not
+    // a blind wall, and mounting generic wall cases there read as the
+    // Sanctuary being "guarded" by unrelated supplementary content instead of
+    // opening as a plain passage. The 15 cases split evenly across the
+    // remaining three faces (5 apiece) instead.
+    const faces = ['ne', 'se', 'sw'] as const;
     SOURCE_SUPPLEMENTARY.forEach((spec, index) => {
       const face = faces[index % faces.length];
       const dir = faceDirection(face);
       const slot = Math.floor(index / faces.length);
-      const lateral = (slot - 1.5) * 3.6;
+      const lateral = (slot - 2) * 2.6;
       const pos = place(dir, ROTUNDA_APOTHEM - 0.42, lateral, GROUND_Y + 1.7);
       const caseGroup = this.buildCase(scope, spec.title, spec.stage, spec.summary, spec.accent, pos, dir);
       caseGroup.name = `supplementary:${spec.id}`;
