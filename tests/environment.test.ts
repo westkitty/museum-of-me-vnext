@@ -14,6 +14,7 @@ import { WingFurnishings } from '../src/world/WingFurnishings';
 import { WingIdentity } from '../src/world/WingIdentity';
 import { ArrivalGarden } from '../src/world/ArrivalGarden';
 import { CollisionWorld } from '../src/world/CollisionWorld';
+import { resolveExhibitTheme } from '../src/world/ExhibitTheme';
 
 describe('museum environment coherence', () => {
   it('keeps the Rotunda substantially brighter than the themed wings', () => {
@@ -89,6 +90,8 @@ describe('museum environment coherence', () => {
 
     expect(fixtures.length).toBeGreaterThanOrEqual(WINGS.length * 3);
     expect(inlays).toHaveLength(WINGS.length * 2);
+    expect(atmosphere.getObjectByName('north-azure-sparkles')).toBeTruthy();
+    expect(atmosphere.children.find((node) => node.name === 'north-azure-sparkles')?.children).toHaveLength(42);
     scope.dispose();
   });
 
@@ -132,22 +135,41 @@ describe('museum environment coherence', () => {
     scope.dispose();
   });
 
-  it('carries each wing palette into the interior of all 35 exhibit bays', () => {
+  it('uses existing project metadata to make every exhibit bay read as a themed room', () => {
     const scope = new ResourceScope('environment-test');
     const fields = new ExhibitColorFields(scope).build();
     let floors = 0;
-    let backdrops = 0;
-    let rails = 0;
+    let walls = 0;
+    let headers = 0;
+    let uprights = 0;
     fields.traverse((node) => {
       if (node.name.startsWith('exhibit-floor-field:')) floors++;
-      if (node.name.startsWith('exhibit-backdrop-field:')) backdrops++;
-      if (node.name.startsWith('exhibit-backdrop-rail:')) rails++;
+      if (node.name.startsWith('exhibit-theme-wall:')) walls++;
+      if (node.name.startsWith('exhibit-theme-wall-header:')) headers++;
+      if (node.name.startsWith('exhibit-theme-wall-upright:')) uprights++;
     });
 
     expect(fields.children).toHaveLength(PLACEMENTS.length);
     expect(floors).toBe(PLACEMENTS.length);
-    expect(backdrops).toBe(PLACEMENTS.length);
-    expect(rails).toBe(PLACEMENTS.length);
+    expect(walls).toBe(PLACEMENTS.length);
+    expect(headers).toBe(PLACEMENTS.length);
+    expect(uprights).toBe(PLACEMENTS.length * 2);
+    expect(fields.getObjectByName('exhibit-color-field:E17')?.userData.theme).toBe('dex');
+    expect(fields.getObjectByName('exhibit-color-field:E27')?.userData.theme).toBe('games');
+    scope.dispose();
+  });
+
+  it('keeps Starsilk rooms and halls in the black, deep-blue, azure palette', () => {
+    const scope = new ResourceScope('environment-test');
+    const palettes = new PaletteSet(scope);
+    const north = palettes.get('north');
+    const wall = (north.wall as THREE.MeshStandardMaterial).color;
+    const accent = (north.accent as THREE.MeshStandardMaterial).color;
+    const theme = resolveExhibitTheme('E01', 'north');
+
+    expect(wall.getHSL({ h: 0, s: 0, l: 0 }).l).toBeLessThan(0.08);
+    expect(accent.getHSL({ h: 0, s: 0, l: 0 }).h).toBeGreaterThan(0.5);
+    expect(theme.id).toBe('starsilk');
     scope.dispose();
   });
 

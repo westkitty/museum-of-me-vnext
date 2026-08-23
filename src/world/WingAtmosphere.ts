@@ -60,6 +60,31 @@ export class WingAtmosphere {
       panel.rotation.y = angle + Math.PI / 2;
       this.group.add(panel);
     }
+
+    if (wing.id === 'north') this.buildNorthSparkles(wing, glow);
+  }
+
+  /** Static, emissive Starsilk dust: visual atmosphere without another light or frame-loop system. */
+  private buildNorthSparkles(wing: WingSpec, material: THREE.Material): void {
+    const sparkles = new THREE.Group();
+    sparkles.name = 'north-azure-sparkles';
+    const geometry = this.scope.track(new THREE.SphereGeometry(0.045, 6, 5));
+    const d = faceDirection(wing.face);
+    const span = wing.hallTo - wing.hallFrom;
+
+    for (let index = 0; index < 42; index++) {
+      const along = wing.hallFrom + ((index * 37) % 101) / 101 * span;
+      const side = ((index * 19) % 29) / 29 * (wing.hallHalfWidth * 1.45) - wing.hallHalfWidth * 0.72;
+      const at = place(d, along, side, wing.floorY + 1.2 + ((index * 13) % 47) / 47 * (wing.hallHeight - 2.6));
+      const sparkle = new THREE.Mesh(geometry, material);
+      sparkle.name = 'north-azure-sparkle';
+      sparkle.position.set(at[0], at[1], at[2]);
+      const scale = 0.55 + ((index * 11) % 10) / 10;
+      sparkle.scale.setScalar(scale);
+      sparkles.add(sparkle);
+    }
+
+    this.group.add(sparkles);
   }
 
   private fixtureGeometry(id: WingSpec['id'], index: number): THREE.BufferGeometry {
