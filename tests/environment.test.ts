@@ -5,7 +5,7 @@ import { EnvironmentDressing } from '../src/world/EnvironmentDressing';
 import { ExhibitColorFields } from '../src/world/ExhibitColorFields';
 import { ExhibitThresholds } from '../src/world/ExhibitThresholds';
 import { ExteriorIdentity } from '../src/world/ExteriorIdentity';
-import { PLACEMENTS, WINGS } from '../src/world/layout';
+import { PLACEMENTS, ROTUNDA_APOTHEM, SANCTUARY_DIR, WINGS } from '../src/world/layout';
 import { PaletteSet } from '../src/world/palette';
 import { RotundaWayfinding } from '../src/world/RotundaWayfinding';
 import { Sky } from '../src/world/Sky';
@@ -15,6 +15,7 @@ import { WingIdentity } from '../src/world/WingIdentity';
 import { ArrivalGarden } from '../src/world/ArrivalGarden';
 import { CollisionWorld } from '../src/world/CollisionWorld';
 import { resolveExhibitTheme } from '../src/world/ExhibitTheme';
+import { buildMuseum } from './helpers/walk';
 
 describe('museum environment coherence', () => {
   it('keeps the Rotunda substantially brighter than the themed wings', () => {
@@ -190,5 +191,23 @@ describe('museum environment coherence', () => {
     expect(garden.getObjectByName('night-island-water')).toBeTruthy();
     expect(collision.size).toBeGreaterThan(0); // garden trees/benches retain their own proven blockers
     scope.dispose();
+  });
+
+  it('keeps the NW Sanctuary threshold as one clear signed passage', () => {
+    const built = buildMuseum();
+    const sign = built.root.getObjectByName('sanctuary-threshold-sign');
+    expect(sign).toBeTruthy();
+    expect(sign?.userData.copy).toBe('STINK WEASEL DEN');
+
+    const supplementaryAtThreshold: string[] = [];
+    built.root.traverse((node) => {
+      const world = node.getWorldPosition(new THREE.Vector3());
+      const alongSanctuary = world.x * SANCTUARY_DIR[0] + world.z * SANCTUARY_DIR[2];
+      if (node.name.startsWith('supplementary:') && alongSanctuary >= ROTUNDA_APOTHEM - 3) {
+        supplementaryAtThreshold.push(node.name);
+      }
+    });
+    expect(supplementaryAtThreshold).toEqual([]);
+    built.scope.dispose();
   });
 });

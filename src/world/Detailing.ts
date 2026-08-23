@@ -311,10 +311,12 @@ export class Detailing {
   }
 
   private detailSanctuaryApproach(parent: THREE.Group): void {
-    // One quiet sign at the threshold. The Sanctuary announces itself once and
-    // then says nothing else.
-    const sign = buildWingSign(this.scope, 'Dexter', 'Quiet, please');
-    sign.scale.setScalar(0.62);
+    // One quiet, non-colliding sign at the threshold. The Sanctuary announces
+    // itself once and the hall stays otherwise clear and distinct from E01–E35.
+    const sign = buildWingSign(this.scope, 'STINK WEASEL DEN', '');
+    sign.name = 'sanctuary-threshold-sign';
+    sign.userData.copy = 'STINK WEASEL DEN';
+    sign.scale.setScalar(0.74);
     const at = place(SANCTUARY_DIR, SANCTUARY_RAMP_FROM + 0.6, 0, GROUND_Y);
     sign.position.set(at[0], 2.9, at[2]);
     sign.rotation.y = Math.atan2(SANCTUARY_DIR[0], SANCTUARY_DIR[2]) + Math.PI;
