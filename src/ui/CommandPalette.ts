@@ -34,8 +34,6 @@ export class CommandPalette extends Panel {
   private query = '';
   private selected = 0;
   private recent: Array<{ id: string; label: string; at: number }> = [];
-  private actions: CommandAction[] = [];
-
   constructor(
     private readonly guideTo: (exhibitId: string) => void,
     private readonly getActions: () => CommandAction[],
@@ -44,7 +42,6 @@ export class CommandPalette extends Panel {
   }
 
   override open(): void {
-    this.actions = this.getActions();
     this.query = '';
     this.selected = 0;
     super.open();
@@ -119,7 +116,10 @@ export class CommandPalette extends Panel {
       keywords: v.lines.join(' '),
       run: () => { /* dialogue is world-space */ },
     }));
-    const all = [...this.actions, ...exhibitActions, ...sourceActions, ...visitorActions];
+    // Contextual actions (such as DexGPT admission after the visitor has
+    // crossed the threshold) must be resolved at render time. A palette can
+    // otherwise retain its exterior action snapshot after the world changes.
+    const all = [...this.getActions(), ...exhibitActions, ...sourceActions, ...visitorActions];
     if (!q) return all.slice(0, 12);
     return all
       .map((action) => ({ action, match: score(q, action.label, action.detail, action.keywords) }))
@@ -139,8 +139,10 @@ export class CommandPalette extends Panel {
     const entry = matches[index];
     if (!entry) return;
     this.recent = [{ id: entry.id, label: entry.label, at: Date.now() }, ...this.recent.filter((item) => item.id !== entry.id)].slice(0, 7);
-    entry.run();
+    // Release this modal before an action opens another one. Otherwise the
+    // command panel's close handler can undo the input capture of its child.
     this.close();
+    entry.run();
   }
 
   private runRecent(id: string): void {

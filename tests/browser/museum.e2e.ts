@@ -118,6 +118,57 @@ test('exposes the complete accessible collection without requiring pointer lock'
   expect(errors).toEqual([]);
 });
 
+test('admits DexGPT only after entry, then guides through the existing wayfinding path', async ({ page }) => {
+  const errors = await bootMuseum(page);
+
+  await page.keyboard.press('Control+k');
+  const command = page.getByRole('dialog', { name: 'Command palette' });
+  await expect(command).toBeVisible();
+  await expect(command).not.toContainText('Talk to DexGPT');
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+
+  // Enter through the actual south doorway using the same keyboard input and
+  // collision path as a visitor. The stopped render loop means the test must
+  // advance the real fixed and variable updates itself.
+  await page.keyboard.down('w');
+  await page.evaluate(() => {
+    const app = window.__museum;
+    if (!app) throw new Error('museum app missing');
+    for (let i = 0; i < 700; i++) {
+      app.fixedUpdate(1 / 60);
+      app.variableUpdate(1 / 60);
+    }
+  });
+  await page.keyboard.up('w');
+  expect(await page.evaluate(() => window.__museum?.currentZone)).not.toBe('plaza');
+
+  await page.keyboard.press('Control+k');
+  expect(await page.evaluate(() => window.__museum?.currentZone)).toBe('south');
+  await expect(command).toContainText('Talk to DexGPT');
+  await command.getByRole('button', { name: 'Talk to DexGPT — Local museum guide' }).click();
+
+  const guide = page.getByRole('dialog', { name: 'DexGPT' });
+  await expect(guide).toBeVisible();
+  const query = guide.locator('#dexgpt-guide-query');
+  await query.fill('The Full Weasel');
+  await query.press('Enter');
+  await expect(guide).toContainText('finished birthday rhythm game');
+  await expect.poll(() => page.evaluate(() => ({
+    captured: window.__museum?.input.uiCaptured,
+    frozen: window.__museum?.player.isFrozen,
+  }))).toEqual({ captured: true, frozen: true });
+
+  await guide.getByRole('button', { name: 'Guide me to The Full Weasel' }).click();
+  await expect(guide).toBeHidden();
+  expect(await page.evaluate(() => window.__museum?.wayfinding.currentTarget)).toBe('E27');
+  await expect.poll(() => page.evaluate(() => ({
+    captured: window.__museum?.input.uiCaptured,
+    frozen: window.__museum?.player.isFrozen,
+  }))).toEqual({ captured: false, frozen: false });
+  expect(errors).toEqual([]);
+});
+
 test('opens the local Full Weasel artifact and restores Museum input on Escape', async ({ page }) => {
   const errors = await bootMuseum(page);
   const embeddedRequests: string[] = [];
