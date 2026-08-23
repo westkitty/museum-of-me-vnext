@@ -12,6 +12,7 @@ import { SupplementaryCases } from '../world/SupplementaryCases';
 import { SourceInstallations, INSTALLATION_HELD_CODES } from '../world/SourceInstallations';
 import { SourceArtwork } from '../world/SourceArtwork';
 import { registerCuratedAssets, shellUrl, entranceUrl } from '../assets/curatedAssets';
+import { registerQuaterniusAssets } from '../assets/quaterniusAssets';
 import {
   SOURCE_INSTALLATIONS, SOURCE_SUPPLEMENTARY, SOURCE_VISITORS,
 } from '../content/sourceParity';
@@ -87,6 +88,7 @@ export class App implements LoopCallbacks {
     this.a11yRoot = opts.a11yRoot;
 
     registerCuratedAssets();
+    registerQuaterniusAssets();
     if (typeof document !== 'undefined') {
       document.documentElement.style.setProperty('--reliquary-shell', `url(${shellUrl})`);
       document.documentElement.style.setProperty('--reliquary-entrance', `url(${entranceUrl})`);
@@ -128,7 +130,7 @@ export class App implements LoopCallbacks {
     this.wayfinding = new Wayfinding(this.scope);
     this.renderer.scene.add(this.wayfinding.group);
 
-    this.visitors = new AmbientVisitors(this.scope, 0);
+    this.visitors = new AmbientVisitors(this.scope, this.renderer.quality.ambientVisitors);
     this.renderer.scene.add(this.visitors.group);
 
     this.lighting = new Lighting(this.scope, this.renderer.quality);
@@ -229,6 +231,10 @@ export class App implements LoopCallbacks {
     const cap = this.preferences.frameCap;
     this.loop.setFrameCap(cap === '30' ? 30 : cap === '60' ? 60 : 0);
     this.ui = new UILayer(this);
+    void this.visitors.setPopulation(this.assets, this.renderer.quality.ambientVisitors).catch((error) => {
+      console.error('Ambient visitors unavailable; no placeholder crowd was created.', error);
+      this.ui.hud.announce('Ambient visitors are unavailable on this device.');
+    });
     this.lifecycle = new Lifecycle(this.loop, this.input, this.renderer, () => this.preferences, (message) => {
       this.ui.hud.announce(message);
     });
@@ -267,6 +273,9 @@ export class App implements LoopCallbacks {
   setQuality(tier: QualityTier | 'auto'): void {
     this.preferences.quality = tier;
     this.renderer.setQuality(tier === 'auto' ? detectQualityTier() : tier);
+    void this.visitors.setPopulation(this.assets, this.renderer.quality.ambientVisitors).catch((error) => {
+      console.error('Ambient visitor quality update failed; no placeholder crowd was created.', error);
+    });
     savePreferences(this.preferences);
   }
 

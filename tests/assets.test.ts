@@ -121,6 +121,23 @@ describe('AssetManager (Phase 4 gate)', () => {
     await am.load('t.detail', scope, { detail: 1 });
     expect(seen).toEqual([0.4, 1]);
   });
+
+  it('keeps verified glTF animation clips on a file-backed loaded asset', async () => {
+    registerAsset({
+      id: 't.animated', title: 'Animated', kind: 'glb', source: 'external',
+      project: null, creator: 'Test', license: 'CC0', url: './animated.glb',
+      budgetKB: 100, streamingGroup: 'shell', attribution: 'Test, CC0',
+    });
+    const am = new AssetManager();
+    const walk = new THREE.AnimationClip('Walk', 1, []);
+    (am as unknown as { gltf: { load: (url: string, onLoad: (gltf: { scene: THREE.Group; animations: THREE.AnimationClip[] }) => void) => void } }).gltf = {
+      load: (_url, onLoad) => onLoad({ scene: new THREE.Group(), animations: [walk] }),
+    };
+    const scope = new ResourceScope('animated');
+    const loaded = await am.load('t.animated', scope);
+    expect(loaded.animations).toEqual([walk]);
+    scope.dispose();
+  });
 });
 
 describe('procedural generators', () => {

@@ -3,6 +3,7 @@ import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
   base: './',
+  assetsInclude: ['**/*.glb'],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

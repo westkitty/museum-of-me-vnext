@@ -29,7 +29,10 @@ notes.push(`ceilings: A=${TIER_MB.A} MB, B=${TIER_MB.B} MB, C=${TIER_MB.C} MB`);
 // If a production build exists, hold it to the initial-visit budget.
 if (existsSync('dist')) {
   let bytes = 0;
-  for (const f of walk('dist', ['.js', '.css', '.html', '.wasm'])) {
+  for (const f of walk('dist', [
+    '.js', '.css', '.html', '.wasm', '.glb', '.ktx2', '.png', '.jpg',
+    '.jpeg', '.webp', '.avif', '.ogg', '.mp3',
+  ])) {
     if (f.endsWith('.map')) continue;
     bytes += statSync(f).size;
   }
@@ -52,13 +55,21 @@ for (const f of walk('src', ['.ts'])) {
     declared.add(m[1]);
   }
 }
-const shipped = walk('public/assets', ['.glb', '.ktx2', '.png', '.jpg', '.ogg', '.mp3']);
+// Vite copies imports to hashed `dist/assets` names rather than `public/assets`.
+// Check those runtime GLBs too: they are the governed third-party model path.
+const shipped = [
+  ...walk('public/assets', ['.glb', '.ktx2', '.png', '.jpg', '.ogg', '.mp3']),
+  ...(existsSync('dist/assets') ? walk('dist/assets', ['.glb']) : []),
+];
 let undeclared = 0;
 for (const f of shipped) {
   // Declared ids are semantic (e.g. "kit.plinth"), not filenames, so this
   // accepts any declared id whose final segment matches the file's stem.
   const stem = basename(f).replace(/\.[^.]+$/, '');
-  const isDeclared = [...declared].some((id) => id === stem || id.endsWith(`.${stem}`) || id.endsWith(`/${stem}`));
+  const isDeclared = [...declared].some((id) => (
+    id === stem || id.endsWith(`.${stem}`) || id.endsWith(`/${stem}`)
+      || stem.startsWith(`${id}-`)
+  ));
   if (!isDeclared) { errors.push(`${f}: shipped binary has no matching registerAsset/registerProcedural id`); undeclared++; }
   notes.push(`shipped binary: ${f}${isDeclared ? '' : ' (undeclared)'}`);
 }

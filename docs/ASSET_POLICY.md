@@ -24,6 +24,16 @@ rather than modeled entirely from scratch."*
 | Disposal (Law 15) | Generators allocate through a tracked `ResourceScope`; disposal is verifiable rather than hopeful. |
 | Determinism | Seeded generators produce identical geometry every run, which makes visual regressions testable. |
 
+### Approved exception: governed bundled population assets
+
+Phase 3 adds a deliberately narrow exception for the ambient human population:
+three local Quaternius CC0 models are bundled as runtime GLBs. They remain
+ordinary governed file-backed assets: the manifest records their source and
+processed hashes, budget and attribution; `AssetManager` owns loading; and the
+application never requests a Quaternius host at runtime. Original sources are
+kept in ignored `.asset-sources/`, never in `public/` or build output. The
+evidence and conversion record is [QUATERNIUS_ASSET_PROVENANCE.md](QUATERNIUS_ASSET_PROVENANCE.md).
+
 ### What this does **not** mean
 
 - It does not mean boxes. A procedural asset must still meet the exhibit contract's *physical presence*
