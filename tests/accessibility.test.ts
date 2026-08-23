@@ -5,6 +5,7 @@ import { CollisionWorld } from '../src/world/CollisionWorld';
 import { DEFAULT_PREFERENCES } from '../src/state/Preferences';
 import { QUALITY } from '../src/render/QualityTiers';
 import { isActivationKey } from '../src/ui/dom';
+import { isOnFlightPad, FLIGHT_PAD_CENTER, FLIGHT_PAD_RADIUS } from '../src/world/layout';
 
 /**
  * THE PHASE 11 GATE.
@@ -341,5 +342,47 @@ describe('movement follows the camera (regression)', () => {
       expect(player.velocity.z / speed).toBeCloseTo(-Math.cos(yaw), 3);
       expect(Math.hypot(player.position.x, player.position.z), `yaw ${yaw}`).toBeGreaterThan(0.5);
     }
+  });
+});
+
+describe('rotunda flight pad (regression)', () => {
+  it('is centred on the rotunda plinth and false well outside its radius', () => {
+    expect(isOnFlightPad(FLIGHT_PAD_CENTER[0], FLIGHT_PAD_CENTER[2])).toBe(true);
+    expect(isOnFlightPad(FLIGHT_PAD_CENTER[0] + FLIGHT_PAD_RADIUS - 0.1, FLIGHT_PAD_CENTER[2])).toBe(true);
+    expect(isOnFlightPad(FLIGHT_PAD_CENTER[0] + FLIGHT_PAD_RADIUS + 1, FLIGHT_PAD_CENTER[2])).toBe(false);
+  });
+
+  it('launches upward on entry, then holds altitude under pure look/WASD control', () => {
+    const player = new PlayerController(flatWorld(), input);
+    player.teleport([0, 0, 0]);
+    player.enterFlight();
+    expect(player.flightMode).toBe(true);
+
+    player.fixedUpdate(1 / 60);
+    expect(player.position.y, 'the launch pop lifts the visitor immediately').toBeGreaterThan(0);
+
+    for (let i = 0; i < 30; i++) player.fixedUpdate(1 / 60);
+    const settled = player.position.y;
+    expect(settled, 'launch is finite, not sustained thrust').toBeGreaterThan(0);
+
+    for (let i = 0; i < 30; i++) player.fixedUpdate(1 / 60);
+    // No gravity in flight and no vertical input: altitude holds once the
+    // launch pop has fully decayed, rather than drifting under gravity.
+    expect(player.position.y).toBeCloseTo(settled, 1);
+    expect(player.flightMode).toBe(true);
+  });
+
+  it('ends flight and returns control once the visitor flies back down to a floor', () => {
+    const player = new PlayerController(flatWorld(), input);
+    player.teleport([0, 5, 0]);
+    player.enterFlight();
+    player.pitch = -Math.PI / 2; // straight down
+    key('KeyW');
+    for (let i = 0; i < 90 && player.flightMode; i++) player.fixedUpdate(1 / 60);
+    key('KeyW', false);
+
+    expect(player.flightMode).toBe(false);
+    expect(player.grounded).toBe(true);
+    expect(player.position.y).toBeCloseTo(0, 1);
   });
 });

@@ -82,7 +82,15 @@ export class GeometryKit {
     const length = Math.hypot(dx, dz);
     if (length < 1e-4) return;
     const axisAligned = Math.abs(dx) < 1e-6 || Math.abs(dz) < 1e-6;
-    const segments = axisAligned ? 1 : Math.max(1, Math.ceil(length / 1.5));
+    // A diagonal wall (every octagon face but the four cardinal ones, plus
+    // corridors in the diagonally-oriented wings) is chunked into axis-aligned
+    // boxes, each padded by half the wall's own thickness on both axes. At the
+    // old 1.5 m chunk length that padding made a 0.35 m-thick balustrade's real
+    // collision footprint over 1.2 m wide -- wide enough to catch a capsule
+    // walking a good half-metre from the visible wall and deflect it off
+    // course. Finer chunking shrinks that excess toward zero; 0.4 m keeps it
+    // under a few centimetres without materially growing collider count.
+    const segments = axisAligned ? 1 : Math.max(1, Math.ceil(length / 0.4));
     const halfT = thickness / 2;
     for (let i = 0; i < segments; i++) {
       const t0 = i / segments;

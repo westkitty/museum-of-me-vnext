@@ -22,7 +22,7 @@ import { ArrivalGarden } from '../world/ArrivalGarden';
 import { Lighting } from '../render/Lighting';
 import { InputManager } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
-import { zoneAt, ZONE_BY_ID, type ZoneId } from '../world/layout';
+import { zoneAt, ZONE_BY_ID, isOnFlightPad, type ZoneId } from '../world/layout';
 import { START_POSITION, START_YAW } from '../world/start';
 import { installExhibits } from '../exhibits';
 import { StreamingManager } from '../exhibits/StreamingManager';
@@ -296,6 +296,14 @@ export class App implements LoopCallbacks {
   }
 
   fixedUpdate(dt: number): void {
+    if (
+      !this.player.flightMode
+      && this.player.grounded
+      && isOnFlightPad(this.player.position.x, this.player.position.z)
+    ) {
+      this.player.enterFlight();
+      this.ui?.hud.announce('Launched. Fly with W/A/S/D and look. Shift for speed. Land to walk again.');
+    }
     this.player.fixedUpdate(dt);
     this.streaming.updateActive(dt, this.player.eyePosition);
     if (this.currentZone === 'sanctuary') {

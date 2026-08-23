@@ -118,7 +118,13 @@ export const WINGS: readonly WingSpec[] = [
     corridorFrom: ROTUNDA_APOTHEM, corridorTo: 24, corridorHalfWidth: 5,
     hallFrom: 24, hallTo: 96, hallHalfWidth: 8, hallHeight: 14,
     bayPitch: BAY_PITCH, bayLead: BAY_LEAD, bayDepth: BAY_DEPTH,
-    bayHalfAlong: BAY_HALF_ALONG, bayHeight: 12, bayOpening: BAY_OPENING,
+    // Bay walls run baseY..bayHeight at GROUND_Y. The media and infra wings
+    // (nw/ne) run diagonally over the north wing's bays at LEVEL_1_Y = 10; at
+    // the old bayHeight of 12 a north bay's own side wall stood two metres
+    // taller than that floor, poking straight through it and blocking the
+    // exhibit bays directly above (E14, E34) with a wall no visitor could see
+    // coming. 9 matches the east/west bays and stays clear of the floor above.
+    bayHalfAlong: BAY_HALF_ALONG, bayHeight: 9, bayOpening: BAY_OPENING,
     exhibits: ['E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07', 'E08'],
   },
   {
@@ -304,17 +310,49 @@ export interface StairSpec {
  * to the balcony. Both carry ramp collision beneath the visible steps (plan §21),
  * so the capsule controller walks them without a jump and they double as the
  * accessible route.
+ *
+ * The SW/SE octagon faces are only `side(ROTUNDA_APOTHEM) ≈ 13.3 m` wide. A run
+ * of 26 m centred 2 m off-axis used to swing each flight's ends past its own
+ * face's corners and into the neighbouring wing's corridor — where the landing
+ * sat behind the solid lintel above that wing's ground-floor archway (the
+ * archway only opens up to `archHeight`, well short of the balcony floor). The
+ * visitor could climb partway, hit that solid wall, and slide off the ramp's
+ * edge. `run: 10` keeps the whole flight, and its landing, inboard of both
+ * neighbouring faces' walls and clear of the corner piers.
  */
 export const STAIRS: readonly StairSpec[] = [
   {
     id: 'grand-stair-sw', face: 'sw', fromY: GROUND_Y, toY: LEVEL_1_Y,
-    halfWidth: 3, footAlong: 13.5, headAlong: 13.5, lateral: -2, run: 26,
+    halfWidth: 3, footAlong: 13.5, headAlong: 13.5, lateral: 0, run: 10,
   },
   {
     id: 'grand-stair-se', face: 'se', fromY: GROUND_Y, toY: LEVEL_1_Y,
-    halfWidth: 3, footAlong: 13.5, headAlong: 13.5, lateral: 2, run: 26,
+    halfWidth: 3, footAlong: 13.5, headAlong: 13.5, lateral: 0, run: 10,
   },
 ];
+
+// ── Rotunda centre plinth / flight pad ─────────────────────────────────────
+
+/**
+ * The rotunda's central orientation plinth, at the room's exact centre. Its
+ * top doubles as the flight pad: walking onto it while grounded suspends
+ * gravity (see `PlayerController.enterFlight`); landing again on any floor
+ * hands control back. Height stays at or under the player's step-up (0.55 m,
+ * `PlayerController.STEP_UP`) so it is climbed like any other low kerb rather
+ * than needing dedicated stairs.
+ */
+export const PLINTH_RADIUS = 3.2;
+export const PLINTH_HEIGHT = 0.5;
+export const PLINTH_TOP_Y = GROUND_Y + PLINTH_HEIGHT;
+
+export const FLIGHT_PAD_CENTER: Vec3 = [0, PLINTH_TOP_Y, 0];
+export const FLIGHT_PAD_RADIUS = PLINTH_RADIUS;
+
+export function isOnFlightPad(x: number, z: number): boolean {
+  const dx = x - FLIGHT_PAD_CENTER[0];
+  const dz = z - FLIGHT_PAD_CENTER[2];
+  return dx * dx + dz * dz <= FLIGHT_PAD_RADIUS * FLIGHT_PAD_RADIUS;
+}
 
 // ── Zones (streaming, audio, wayfinding, the map) ──────────────────────────
 

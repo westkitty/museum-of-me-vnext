@@ -133,6 +133,21 @@ export function walkSegment(world: CollisionWorld, step: WalkStep): WalkFailure 
       }
     }
   }
+  // The step budget is sized from the straight-line distance at STEP-sized
+  // strides. A walker that never stalls (bestRemaining keeps improving, e.g.
+  // sliding along a wall that happens to track the target on one axis) can
+  // still exhaust every step short of the target without ever triggering the
+  // stall check above. Falling out of the loop is not arrival — check it
+  // explicitly, or a walker that asymptotically approaches but never reaches
+  // the target reads as success.
+  const finalRemaining = Math.hypot(step.to[0] - pos.x, step.to[2] - pos.z);
+  if (finalRemaining > STEP) {
+    return {
+      label: step.label,
+      reason: `ran out of steps ${finalRemaining.toFixed(2)} m short of the target`,
+      at: [pos.x, pos.y, pos.z],
+    };
+  }
   return null;
 }
 

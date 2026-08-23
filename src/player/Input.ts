@@ -139,7 +139,19 @@ export class InputManager {
 
   requestPointerLock(): void {
     if (this.uiCaptured) return;
-    void this.canvas.requestPointerLock?.();
+    // The "Enter the museum" prompt is a focusable role="button" div, so a
+    // click leaves it focused. If the request is then rejected -- the Escape
+    // cooldown, a permissions policy, any of the several legitimate reasons
+    // requestPointerLock can reject -- pointerlockchange never fires, the
+    // prompt is never hidden, and every subsequent keydown still targets that
+    // focused element. isSemanticControlTarget() treats a focused
+    // role="button" as owning its own keys, so WASD, jump and interact would
+    // silently stop working with no visible error. Blurring immediately, and
+    // handling rejection instead of leaving it an unhandled promise, means
+    // keyboard movement works whether or not mouse look ever engages.
+    const active = document.activeElement as HTMLElement | null;
+    if (active && active !== document.body && active !== this.canvas) active.blur();
+    this.canvas.requestPointerLock?.()?.catch(() => {});
   }
 
   releasePointerLock(): void {

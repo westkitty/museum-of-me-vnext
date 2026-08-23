@@ -13,7 +13,7 @@ import {
   SOUTH, VESTIBULE_FROM, VESTIBULE_TO, PLAZA_DEPTH, PLAZA_HALF_WIDTH,
   SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_FLOOR_Y,
   SANCTUARY_RAMP_HALF_WIDTH, SANCTUARY_RADIUS, SANCTUARY_HEIGHT, SANCTUARY_CENTER,
-  STAIRS, PLACEMENTS,
+  STAIRS, PLACEMENTS, FLIGHT_PAD_CENTER, FLIGHT_PAD_RADIUS, PLINTH_RADIUS, PLINTH_HEIGHT, PLINTH_TOP_Y,
 } from './layout';
 
 /** Circumradius of the octagon whose apothem is `a`. */
@@ -323,22 +323,36 @@ export class Museum {
       g.add(rib);
     }
 
-    // Central orientation installation — a low ring, not a monument to anyone.
+    // Central orientation plinth, doubling as the flight pad: a low kerb a
+    // visitor steps up onto like any other ledge (height stays under the
+    // player's 0.55 m step-up, so it needs no stairs of its own). Stepping
+    // onto it launches the visitor and suspends gravity — see
+    // `PlayerController.enterFlight`, triggered from App's fixedUpdate.
     const plinth = new THREE.Mesh(
-      this.scope.track(new THREE.CylinderGeometry(3.2, 3.8, 0.9, 32)),
+      this.scope.track(new THREE.CylinderGeometry(PLINTH_RADIUS, PLINTH_RADIUS + 0.6, PLINTH_HEIGHT, 32)),
       p.trim,
     );
-    plinth.position.set(0, GROUND_Y + 0.45, 0);
+    plinth.position.set(0, PLINTH_TOP_Y - PLINTH_HEIGHT / 2, 0);
     g.add(plinth);
-    this.collision.addBox([0, GROUND_Y + 0.45, 0], [3.8, 0.45, 3.8]);
+    // A floor, not a wall: `addBox` would make this impassable regardless of
+    // height (see the identical Sanctuary-dais fix above), but a kerb this
+    // low should be climbed like any other low ledge.
+    this.collision.addFloor(-PLINTH_RADIUS, PLINTH_RADIUS, -PLINTH_RADIUS, PLINTH_RADIUS, PLINTH_TOP_Y);
 
-    const armature = new THREE.Mesh(
-      this.scope.track(new THREE.TorusGeometry(2.2, 0.09, 8, 48)),
+    const flightPad = new THREE.Mesh(
+      this.scope.track(new THREE.CircleGeometry(FLIGHT_PAD_RADIUS - 0.1, 48)),
       p.accent,
     );
-    armature.position.set(0, GROUND_Y + 2.4, 0);
-    armature.rotation.x = Math.PI / 2.6;
-    g.add(armature);
+    flightPad.rotation.x = -Math.PI / 2;
+    flightPad.position.set(FLIGHT_PAD_CENTER[0], PLINTH_TOP_Y + 0.01, FLIGHT_PAD_CENTER[2]);
+    g.add(flightPad);
+    const flightPadRing = new THREE.Mesh(
+      this.scope.track(new THREE.RingGeometry(FLIGHT_PAD_RADIUS - 0.16, FLIGHT_PAD_RADIUS - 0.1, 48)),
+      p.trim,
+    );
+    flightPadRing.rotation.x = -Math.PI / 2;
+    flightPadRing.position.set(FLIGHT_PAD_CENTER[0], PLINTH_TOP_Y + 0.011, FLIGHT_PAD_CENTER[2]);
+    g.add(flightPadRing);
   }
 
   private buildBalcony(): void {
@@ -356,11 +370,18 @@ export class Museum {
     ring.receiveShadow = true;
     g.add(ring);
 
-    // Ring collision: one oriented strip per octagon face.
+    // Ring collision: one oriented strip per octagon face. Each strip is a
+    // straight chord, not a true arc, so extending it a little past its own
+    // face's corner overlaps the neighbouring face's strip there. Without the
+    // overlap, two adjacent rotated rectangles meet at a single point and
+    // leave a thin uncovered sliver right at the turn -- too small to show up
+    // as a hole underfoot, but enough to catch a capsule walking the ring and
+    // deflect it off its line by half a metre.
+    const CORNER_OVERLAP = 0.75;
     for (const face of OCTAGON_FACES) {
       const d = faceDirection(face);
       const r = rightOf(d);
-      const half = side(ROTUNDA_APOTHEM) / 2;
+      const half = side(ROTUNDA_APOTHEM) / 2 + CORNER_OVERLAP;
       const mid = (BALCONY_INNER_APOTHEM + ROTUNDA_APOTHEM) / 2;
       const c = place(d, mid);
       const from: Vec3 = [c[0] - r[0] * half, 0, c[2] - r[2] * half];
@@ -684,9 +705,16 @@ export class Museum {
     );
     platform.position.set(SANCTUARY_CENTER[0], SANCTUARY_FLOOR_Y + 0.28, SANCTUARY_CENTER[2]);
     g.add(platform);
-    this.collision.addBox(
-      [SANCTUARY_CENTER[0], SANCTUARY_FLOOR_Y + 0.28, SANCTUARY_CENTER[2]],
-      [2.9, 0.28, 2.9],
+    // A floor, not a wall: at 0.55 m tall this is a step, not an obstacle, and
+    // a visitor should be able to walk up onto it like any other low ledge.
+    // `addBox` made it a 'wall' collider, which resolveHorizontal always
+    // treats as impassable regardless of height -- unlike a floor, walls are
+    // never steppable -- so the dais sat there as a solid drum blocking the
+    // exact centre of the chamber the whole route is built to reach.
+    this.collision.addFloor(
+      SANCTUARY_CENTER[0] - 2.6, SANCTUARY_CENTER[0] + 2.6,
+      SANCTUARY_CENTER[2] - 2.6, SANCTUARY_CENTER[2] + 2.6,
+      SANCTUARY_FLOOR_Y + 0.55,
     );
 
     // Quiet seating around the edge.

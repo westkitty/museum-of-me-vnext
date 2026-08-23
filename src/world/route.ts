@@ -35,12 +35,28 @@ function hallWaypoints(w: WingSpec): Waypoint[] {
 }
 
 const RING_RADIUS = 10.5;
+/** Balcony ring floor spans apothem 11..16 (layout.ts); 13.5 stays clear of
+ * both the inner atrium drop and the outer wall/piers, and matches the radius
+ * already used for the wing thresholds and the stair landings. */
+const BALCONY_RING_RADIUS = 13.5;
 
-function ringPoint(face: Parameters<typeof faceDirection>[0], y = GROUND_Y): Vec3 {
-  return place(faceDirection(face), RING_RADIUS, 0, y);
+function ringPoint(face: Parameters<typeof faceDirection>[0], y = GROUND_Y, radius = RING_RADIUS): Vec3 {
+  return place(faceDirection(face), radius, 0, y);
 }
 
-function ringPath(from: Parameters<typeof faceDirection>[0], to: Parameters<typeof faceDirection>[0], y = GROUND_Y): Waypoint[] {
+/**
+ * Faces stepped between `from` and `to`, tracing the annular ring rather than
+ * a straight chord across it. A straight line between two ring points whose
+ * faces are more than about 90° apart dips inside the inner apothem — on the
+ * balcony that is the open atrium drop, not floor — so hopping straight from
+ * one wing threshold to a distant one is not something a visitor can walk.
+ */
+function ringPath(
+  from: Parameters<typeof faceDirection>[0],
+  to: Parameters<typeof faceDirection>[0],
+  y = GROUND_Y,
+  radius = RING_RADIUS,
+): Waypoint[] {
   const order = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'] as const;
   const a = order.indexOf(from);
   const b = order.indexOf(to);
@@ -51,7 +67,8 @@ function ringPath(from: Parameters<typeof faceDirection>[0], to: Parameters<type
   const out: Waypoint[] = [];
   for (let i = 0; i !== delta + stepDir && Math.abs(i) <= Math.abs(delta); i += stepDir) {
     const face = order[(a + i + 16) % 8];
-    out.push({ label: `rotunda ring ${face}`, at: ringPoint(face, y) });
+    const label = radius === RING_RADIUS ? `rotunda ring ${face}` : `balcony ring ${face}`;
+    out.push({ label, at: ringPoint(face, y, radius) });
     if (i === delta) break;
   }
   return out;
@@ -105,12 +122,17 @@ export function canonicalRoute(): readonly Waypoint[] {
 
   route.push(...ringPath(atFace, 'sw'));
   route.push(...stairWaypoints());
+  let atBalconyFace: 'sw' | 'nw' | 'ne' = 'sw';
   for (const id of ['media', 'infra'] as const) {
     const w = WINGS.find((x) => x.id === id)!;
-    route.push({ label: `balcony toward ${id}`, at: place(faceDirection(w.face), 13.5, 0, LEVEL_1_Y) });
+    const face = w.face as 'nw' | 'ne';
+    route.push(...ringPath(atBalconyFace, face, LEVEL_1_Y, BALCONY_RING_RADIUS));
+    route.push({ label: `balcony toward ${id}`, at: place(faceDirection(face), BALCONY_RING_RADIUS, 0, LEVEL_1_Y) });
     route.push(...hallWaypoints(w));
-    route.push({ label: `balcony from ${id}`, at: place(faceDirection(w.face), 13.5, 0, LEVEL_1_Y) });
+    route.push({ label: `balcony from ${id}`, at: place(faceDirection(face), BALCONY_RING_RADIUS, 0, LEVEL_1_Y) });
+    atBalconyFace = face;
   }
+  route.push(...ringPath(atBalconyFace, 'sw', LEVEL_1_Y, BALCONY_RING_RADIUS));
 
   route.push(...stairWaypoints().reverse());
   route.push(...ringPath('sw', 'nw'));

@@ -146,6 +146,10 @@ describe('the Dexter Sanctuary is reachable on foot (regression)', () => {
 
   it('walks the real route from the rotunda into the sanctuary', () => {
     const failures = walkRoute(built.collision, [
+      // The literal centre is the flight-pad plinth. Its collision is a floor
+      // (steppable), not a wall, so walking straight across it is expected to
+      // succeed here; the pad's gravity-release behaviour itself is an App/
+      // PlayerController concern this collision-only walk doesn't exercise.
       { label: 'rotunda centre', at: [0, GROUND_Y, 0] as const },
       { label: 'ramp mouth', at: place(SANCTUARY_DIR, SANCTUARY_RAMP_FROM - 1, 0, GROUND_Y) },
       { label: 'foot of the ramp', at: place(SANCTUARY_DIR, SANCTUARY_RAMP_TO, 0, SANCTUARY_FLOOR_Y) },

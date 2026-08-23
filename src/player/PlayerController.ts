@@ -17,6 +17,18 @@ const STEP_UP = 0.55;
 const MAX_PITCH = Math.PI / 2 - 0.02;
 const LOOK_SCALE = 0.0022;
 
+export const FLIGHT_SPEED = 7;
+export const FLIGHT_RUN_SPEED = 16;
+/** Metres above the last support the visitor must clear before landing again
+ * can end flight -- otherwise entering while standing on the pad immediately
+ * counts as "touched the ground" and switches gravity straight back on. */
+const FLIGHT_LEAVE_GROUND_MARGIN = 1.2;
+/** Initial upward pop on stepping onto the flight pad, so gravity release
+ * reads as a launch rather than the visitor simply drifting off the floor. */
+const FLIGHT_LAUNCH_SPEED = 6;
+/** Decay rate for that launch pop, in m/s per second. */
+const FLIGHT_LAUNCH_DECAY = 12;
+
 /**
  * Capsule-ish first-person controller: a vertical cylinder with horizontal
  * depenetration and a support query for the floor. Fixed-step, so behaviour is
@@ -29,12 +41,21 @@ export class PlayerController {
   pitch = 0;
   grounded = false;
 
+  /** True while gravity and wall collision are suspended (the flight pad). */
+  flightMode = false;
+
   /** Previous fixed-step position, for render interpolation. */
   private readonly prevPosition = new THREE.Vector3();
   private readonly prevYaw = { v: 0 };
   private readonly prevPitch = { v: 0 };
   /** A jump press is consumed by the next fixed step. */
   private jumpQueued = false;
+  /** Cleared on entering flight, set once the visitor has actually cleared
+   * the floor -- see FLIGHT_LEAVE_GROUND_MARGIN. */
+  private hasLeftGroundInFlight = false;
+  /** Remaining upward pop from the launch; decays to 0 then flight is pure
+   * look/WASD control. See FLIGHT_LAUNCH_SPEED/FLIGHT_LAUNCH_DECAY. */
+  private launchVelocityY = 0;
 
   /** Set while a scripted move (map wayfinding, reset) owns the player. */
   private frozen = false;
@@ -55,6 +76,7 @@ export class PlayerController {
     this.yaw = yaw;
     this.prevYaw.v = yaw;
     this.jumpQueued = false;
+    this.flightMode = false;
   }
 
   setFrozen(frozen: boolean): void {
@@ -63,6 +85,22 @@ export class PlayerController {
       this.velocity.set(0, 0, 0);
       this.jumpQueued = false;
     }
+  }
+
+  /** Entered from the flight pad while grounded. Gravity and walls let go,
+   * with a brief upward pop so it reads as a launch, not a drift. */
+  enterFlight(): void {
+    if (this.flightMode) return;
+    this.flightMode = true;
+    this.hasLeftGroundInFlight = false;
+    this.velocity.set(0, 0, 0);
+    this.launchVelocityY = FLIGHT_LAUNCH_SPEED;
+  }
+
+  private exitFlight(): void {
+    this.flightMode = false;
+    this.velocity.set(0, 0, 0);
+    this.launchVelocityY = 0;
   }
 
   /** Mouse/keyboard/touch look. Applied once per frame from real deltas. */
@@ -81,6 +119,10 @@ export class PlayerController {
     this.prevYaw.v = this.yaw;
     this.prevPitch.v = this.pitch;
     if (this.frozen) return;
+    if (this.flightMode) {
+      this.fixedUpdateFlight(dt);
+      return;
+    }
 
     // -- desired horizontal motion in world space --
     let ix = 0;
@@ -191,6 +233,63 @@ export class PlayerController {
     if (Number.isFinite(ceiling) && this.position.y + PLAYER_HEIGHT > ceiling) {
       this.position.y = Math.max(support ?? this.position.y, ceiling - PLAYER_HEIGHT);
       if (this.velocity.y > 0) this.velocity.y = 0;
+    }
+  }
+
+  /**
+   * Free-fly noclip: gravity and wall collision are both off. Forward/back
+   * follow the full look direction (pitch included) so looking up or down
+   * and holding W climbs or dives, exactly like walking except untethered.
+   * Strafing stays level, using yaw only, so it never rolls with the pitch.
+   */
+  private fixedUpdateFlight(dt: number): void {
+    let ix = 0;
+    let iz = 0;
+    if (this.input.isDown('forward')) iz -= 1;
+    if (this.input.isDown('back')) iz += 1;
+    if (this.input.isDown('left')) ix -= 1;
+    if (this.input.isDown('right')) ix += 1;
+    if (!this.input.uiCaptured) {
+      ix += this.input.touchMoveX;
+      iz += this.input.touchMoveY;
+    }
+
+    const len = Math.hypot(ix, iz);
+    if (len > 0) {
+      ix /= len;
+      iz /= len;
+      const speed = this.input.isDown('run') ? FLIGHT_RUN_SPEED : FLIGHT_SPEED;
+      const f = this.forward;
+      const rightX = Math.cos(this.yaw);
+      const rightZ = -Math.sin(this.yaw);
+      // -iz because forward is bound to the 'forward' action, which sets iz = -1.
+      this.position.x += (f.x * -iz + rightX * ix) * speed * dt;
+      this.position.y += f.y * -iz * speed * dt;
+      this.position.z += (f.z * -iz + rightZ * ix) * speed * dt;
+    }
+
+    // The launch pop rides on top of look/WASD control and decays to nothing,
+    // rather than gating input -- so pushing forward immediately on entry
+    // still works, it just also happens to be climbing for a moment.
+    if (this.launchVelocityY > 0) {
+      this.position.y += this.launchVelocityY * dt;
+      this.launchVelocityY = Math.max(0, this.launchVelocityY - FLIGHT_LAUNCH_DECAY * dt);
+    }
+
+    this.velocity.set(0, 0, 0);
+    this.grounded = false;
+
+    // Landing ends flight. A margin above the last known support means
+    // standing on the pad at the moment flight begins can't immediately
+    // read as "already landed" and hand gravity straight back.
+    const support = this.world.supportHeight(this.position.x, this.position.z, this.position.y, 0.55);
+    if (support !== null && this.position.y - support > FLIGHT_LEAVE_GROUND_MARGIN) {
+      this.hasLeftGroundInFlight = true;
+    }
+    if (this.hasLeftGroundInFlight && support !== null && this.position.y <= support + 1e-3) {
+      this.position.y = support;
+      this.exitFlight();
+      this.grounded = true;
     }
   }
 
