@@ -5,6 +5,7 @@ import {
   PLACEMENTS, WINGS, zoneAt, ZONES,
   SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_FLOOR_Y,
   SANCTUARY_CENTER, GROUND_Y, place, PLINTH_RADIUS, PLINTH_TOP_Y,
+  STAIRS, stairArcPoint, faceDirection, LEVEL_1_Y,
 } from '../src/world/layout';
 import { START_POSITION } from '../src/world/start';
 import { COLLECTION } from '../src/content/collection.generated';
@@ -84,6 +85,33 @@ describe('mandatory traversal', () => {
       if (outbound) failures.push(`${outbound.label}: ${outbound.reason}`);
     }
     expect(failures, `\n${failures.join('\n')}`).toHaveLength(0);
+  });
+});
+
+describe('curved grand stairs', () => {
+  it('walks each winding flight continuously in both directions and onto its balcony landing', () => {
+    const failures: string[] = [];
+    for (const stair of STAIRS) {
+      const arc = Array.from({ length: stair.collisionSegments + 1 }, (_, index) => ({
+        label: `${stair.id} ${index}`,
+        at: stairArcPoint(stair, index / stair.collisionSegments),
+      }));
+      const lowerRing = {
+        label: `${stair.id} lower ring`,
+        at: place(faceDirection(stair.face), 10.5, 0, GROUND_Y),
+      };
+      const upperRing = {
+        label: `${stair.id} balcony ring`,
+        at: place(faceDirection(stair.face), 13.5, 0, LEVEL_1_Y),
+      };
+      for (const failure of walkRoute(built.collision, [lowerRing, ...arc, upperRing])) {
+        failures.push(`${stair.id} upward: ${failure.label}: ${failure.reason}`);
+      }
+      for (const failure of walkRoute(built.collision, [upperRing, ...[...arc].reverse(), lowerRing])) {
+        failures.push(`${stair.id} downward: ${failure.label}: ${failure.reason}`);
+      }
+    }
+    expect(failures, `\n${failures.join('\n')}`).toEqual([]);
   });
 });
 

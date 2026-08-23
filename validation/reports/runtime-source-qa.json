@@ -10,27 +10,29 @@
     "end": [
       1.6900125828233476e-14,
       0,
-      4.1499999999999995
+      -95.25
     ],
     "zones": [
       "plaza",
       "south",
-      "rotunda"
+      "rotunda",
+      "north"
     ]
   },
   "sanctuary": {
     "zones": [
+      "north",
       "rotunda",
       "sanctuary"
     ],
-    "reachedAll": false,
-    "steps": 9167,
+    "reachedAll": true,
+    "steps": 1089,
     "reached": true,
     "finalZone": "sanctuary",
     "position": [
-      -34.574859614855605,
+      -35.046926219675925,
       -5,
-      -41.71651384742897
+      -42.26719016924055
     ],
     "descended": true,
     "focusAtSanctuary": "installation:dexgpt"
