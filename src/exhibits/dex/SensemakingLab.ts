@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ExhibitBase } from '../ExhibitBase';
-import { buildPlaque, buildLectern, buildLabel } from '../Furniture';
+import { buildPlaque, buildLectern, buildLabel, updateLabel } from '../Furniture';
 import { buildConsole, Dial, Filament } from '../parts';
 import { fibonacciSphere, rng } from '../../assets/generators';
 import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
@@ -207,6 +207,8 @@ export class SensemakingLab extends ExhibitBase {
       activate: () => {
         this.phrase = this.phraseDial.advance();
         const p = PHRASES[this.phrase];
+        updateLabel(scope, this.esLabel, p.es);
+        updateLabel(scope, this.enLabel, p.en);
         this.ctx.announce(`“${p.es}” — “${p.en}”. ${p.note}`);
       },
     });
@@ -249,6 +251,10 @@ export class SensemakingLab extends ExhibitBase {
       this.phraseDial.update(0, true);
     }
     if (this.globe) this.globe.rotation.set(0, 0, 0);
+    if (this.esLabel && this.enLabel) {
+      updateLabel(this.ctx.scope, this.esLabel, PHRASES[0].es);
+      updateLabel(this.ctx.scope, this.enLabel, PHRASES[0].en);
+    }
   }
 
   protected override describeState(): string {

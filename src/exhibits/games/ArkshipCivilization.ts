@@ -126,7 +126,7 @@ export class ArkshipCivilization extends ExhibitBase {
 
     this.control({
       object: explodeConsole,
-      label: this.exploded ? 'Close the exploded view' : 'Explode the ship',
+      label: () => (this.exploded ? 'Close the exploded view' : 'Explode the ship'),
       description:
         'Separates the five modules. Each fails differently, and the differences are the simulation — a generation ship is a set of coupled failure modes.',
       activate: () => {

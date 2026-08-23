@@ -53,6 +53,7 @@ const NODE_COUNT = 90;
 export class PossibilityCartographer extends ExhibitBase {
   private nodes = this.tracked<THREE.Mesh>();
   private states = this.tracked<State>();
+  private materials: Map<State, THREE.MeshStandardMaterial> | null = null;
   private links = this.tracked<Filament>();
   private graph!: THREE.Group;
   private selected = -1;
@@ -86,6 +87,7 @@ export class PossibilityCartographer extends ExhibitBase {
     for (const state of Object.keys(STATE_COLOUR) as State[]) {
       materials.set(state, this.emissive(STATE_COLOUR[state], state === 'unresolved' ? 0.08 : 0.9));
     }
+    this.materials = materials;
 
     for (let i = 0; i < count; i++) {
       const node = buildNode(scope, 0.075, materials.get('unresolved')!);
@@ -194,7 +196,15 @@ export class PossibilityCartographer extends ExhibitBase {
     this.selected = -1;
     for (let i = 0; i < this.states.length; i++) this.states[i] = 'unresolved';
     if (this.graph) this.graph.rotation.set(0, 0, 0);
-    for (const node of this.nodes) node.scale.setScalar(0.7);
+    // select()/applyStates() recolour every node's material by state. Without
+    // reassigning it here too, a node stayed whatever colour the last
+    // selected fact left it at forever -- describeState() would report every
+    // region unresolved while the graph kept showing the previous answer.
+    const unresolved = this.materials?.get('unresolved');
+    for (const node of this.nodes) {
+      node.scale.setScalar(0.7);
+      if (unresolved) node.material = unresolved;
+    }
   }
 
   protected override describeState(): string {

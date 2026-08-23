@@ -20,7 +20,12 @@ function methodBody(source, start) {
 
 for (const file of walk('src/exhibits', ['.ts'])) {
   const source = readFileSync(file, 'utf8');
-  const pattern = /(?:protected\s+override\s+)?onUpdate\s*\([^)]*\)\s*:\s*void\s*\{/g;
+  // Matches both the method-declaration form every current exhibit uses and
+  // an arrow-function class-field form (`onUpdate = (...): void => {`), which
+  // would otherwise silently bypass this gate for any exhibit written that
+  // way in the future -- none currently are, but the pattern only protects
+  // what it can actually match.
+  const pattern = /(?:protected\s+override\s+)?onUpdate\s*(?:\([^)]*\)\s*:\s*void\s*\{|=\s*\([^)]*\)\s*:\s*void\s*=>\s*\{)/g;
   for (const match of source.matchAll(pattern)) {
     const body = methodBody(source, match.index);
     for (const found of body.matchAll(FORBIDDEN)) {

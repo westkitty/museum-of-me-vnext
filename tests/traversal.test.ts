@@ -4,7 +4,7 @@ import { canonicalRoute } from '../src/world/route';
 import {
   PLACEMENTS, WINGS, zoneAt, ZONES,
   SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_FLOOR_Y,
-  SANCTUARY_CENTER, GROUND_Y, place,
+  SANCTUARY_CENTER, GROUND_Y, place, PLINTH_RADIUS, PLINTH_TOP_Y,
 } from '../src/world/layout';
 import { START_POSITION } from '../src/world/start';
 import { COLLECTION } from '../src/content/collection.generated';
@@ -103,6 +103,35 @@ describe('zones', () => {
   });
 });
 
+
+describe('round platforms are not approximated by an oversized square (regression)', () => {
+  // CollisionWorld has no round primitive, only axis-aligned floors. A square
+  // floor sized to a round platform's own radius circumscribes the visible
+  // disc -- its corners land past the disc's edge, over open floor well
+  // below -- so a visitor cutting the corner is carried onto an invisible
+  // floating platform. Both the rotunda plinth and the Sanctuary dais made
+  // this mistake; both are now inscribed squares instead.
+  it('does not float a visitor over the rotunda plinth corner', () => {
+    const world = built.collision;
+    // Inside where a square sized to the full PLINTH_RADIUS (the bug) would
+    // have covered, but outside the corrected inscribed square and outside
+    // the visible disc itself.
+    const corner = PLINTH_RADIUS * 0.97;
+    const support = world.supportHeight(corner, corner, GROUND_Y);
+    expect(support === null || support < PLINTH_TOP_Y - 0.01, `corner floats at ${support}`).toBe(true);
+  });
+
+  it('does not float a visitor over the sanctuary dais corner', () => {
+    const world = built.collision;
+    const daisTopRadius = 2.6;
+    const daisTopY = SANCTUARY_FLOOR_Y + 0.55;
+    const corner = daisTopRadius * 0.9;
+    const support = world.supportHeight(
+      SANCTUARY_CENTER[0] + corner, SANCTUARY_CENTER[2] + corner, SANCTUARY_FLOOR_Y,
+    );
+    expect(support === null || support < daisTopY - 0.01, `corner floats at ${support}`).toBe(true);
+  });
+});
 
 describe('the Dexter Sanctuary is reachable on foot (regression)', () => {
   // Runtime QA found the Sanctuary physically unreachable: the exterior ground

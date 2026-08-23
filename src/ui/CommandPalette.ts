@@ -53,7 +53,11 @@ export class CommandPalette extends Panel {
 
   protected render(): void {
     const matches = this.matches();
-    this.selected = Math.min(this.selected, Math.max(0, matches.length - 1));
+    // ArrowUp at the top decrements unconditionally (see onKey below), so
+    // this must clamp both ends -- an upper-only clamp lets `selected` go
+    // negative, which then never matches any row's index and desyncs Enter
+    // (matches[-1] is undefined) until enough ArrowDown presses recover it.
+    this.selected = Math.max(0, Math.min(this.selected, Math.max(0, matches.length - 1)));
     const list = matches.map((entry, index) =>
       el('button', {
         type: 'button',

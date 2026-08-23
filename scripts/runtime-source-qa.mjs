@@ -171,7 +171,16 @@ try {
           status: postLine,
         });
       }
-      record.steps.controlsDriven = record.controls.length === spec.controls.length;
+      // record.controls is filled by one unconditional push per spec.controls
+      // entry in the loop just above, so `record.controls.length ===
+      // spec.controls.length` alone can never be false -- it was not a real
+      // check. Requiring every control to show moved/lineChanged is *also*
+      // wrong: a trailing Reset dispatched when the state already equals its
+      // default (a legitimate, common case -- see the comment below)
+      // produces neither, by design. The one real gap this can close cheaply
+      // is an empty or truncated control table for an installation that is
+      // supposed to have one.
+      record.steps.controlsDriven = spec.controls.length > 0 && record.controls.length === spec.controls.length;
       // Most installations end their control table with Reset, which returns
       // the state to its source default. "Transitioned" therefore means some
       // control moved the installation, not that the final state differs from
@@ -209,8 +218,14 @@ try {
         .some((h) => h.kind === 'installation' && h.id === spec.id);
 
       // 10. map/guide integration: the installation is a routable destination.
-      app.journal.guideTarget = { kind: 'installation', id: spec.id };
-      record.steps.guideTargetable = app.journal.guideTarget.id === spec.id;
+      // Setting the field and reading the same field back can never disagree
+      // -- that only proves the field exists, not that a visitor could
+      // actually be routed to it. A real destination is one the streaming/
+      // mount system tracks (or the Sanctuary, which isn't exhibit-hosted).
+      app.journal.setGuideTarget({ kind: 'installation', id: spec.id });
+      record.steps.guideTargetable =
+        app.journal.guideTarget?.id === spec.id
+        && (placement.host === 'sanctuary' || app.streaming.hosts.has(placement.host));
 
       // 11. study integration: `sanitizeStudy` drops ids the museum does not
       //     know, so a pin that survives proves the installation is a real

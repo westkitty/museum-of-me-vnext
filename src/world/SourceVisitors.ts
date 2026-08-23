@@ -99,11 +99,14 @@ export class SourceVisitors {
       lines.push(spoken.line);
     }
     // Re-entry: the next call must return the conversation's first line again.
-    const reentry = this.speak(id);
+    // This is a preview only -- calling speak() here would itself consume a
+    // line and fire onSpeak(), permanently shifting v.lineIndex one line past
+    // the full cycle every time a caller asks for this preview.
+    const repeated = v.data.lines[v.lineIndex % v.data.lines.length] ?? null;
     return {
       role: `${v.data.title} \u00b7 ${v.data.subtitle}`,
       lines,
-      repeated: reentry ? reentry.line : null,
+      repeated,
     };
   }
 

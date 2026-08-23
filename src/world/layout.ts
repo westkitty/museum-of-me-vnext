@@ -345,6 +345,20 @@ export const PLINTH_RADIUS = 3.2;
 export const PLINTH_HEIGHT = 0.5;
 export const PLINTH_TOP_Y = GROUND_Y + PLINTH_HEIGHT;
 
+/**
+ * `CollisionWorld` has no round primitive, only axis-aligned floors. A square
+ * floor sized to the plinth's own radius circumscribes the circular top --
+ * its corners land past the visible disc's edge, over open rotunda floor 0.5 m
+ * below -- so a visitor cutting the corner is carried onto a floating,
+ * invisible platform. Inscribing the square instead (half-extent = radius /
+ * √2) keeps every covered point strictly inside the visible disc: its own
+ * corners just touch the circle, so nothing floats. The cost is a thin,
+ * uncovered sliver at the disc's cardinal edges, where a visitor arriving
+ * dead-on from N/E/S/W steps down onto the ordinary floor half a metre below
+ * instead of the lip -- a minor, bounded imperfection, not a floating hazard.
+ */
+export const PLINTH_FLOOR_HALF = PLINTH_RADIUS / Math.SQRT2;
+
 export const FLIGHT_PAD_CENTER: Vec3 = [0, PLINTH_TOP_Y, 0];
 export const FLIGHT_PAD_RADIUS = PLINTH_RADIUS;
 

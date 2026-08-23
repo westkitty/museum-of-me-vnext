@@ -58,6 +58,11 @@ export class Loop {
     this.lastTime = performance.now();
     this.fpsWindowStart = this.lastTime;
     this.accumulator = 0;
+    // frameCount only zeroes inside tick() once a 500ms window elapses, so a
+    // stop() mid-window (tab backgrounded, context lost) leaves a stale count
+    // that a fresh, much shorter window after restart divides by -- the FPS
+    // reading briefly spikes to a bogus, inflated value.
+    this.frameCount = 0;
     this.rafId = requestAnimationFrame(this.tick);
   }
 

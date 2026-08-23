@@ -8,7 +8,7 @@ import { AssetManager } from '../src/assets/AssetManager';
 import { EXHIBITS_BY_ID } from '../src/content/collection.generated';
 import { PLACEMENT_BY_EXHIBIT } from '../src/world/layout';
 import type { ResourceScope } from '../src/assets/ResourceScope';
-import type { ExhibitControl } from '../src/exhibits/contract';
+import { resolveExhibitLabel, type ExhibitControl } from '../src/exhibits/contract';
 
 installExhibits();
 
@@ -91,7 +91,7 @@ describe(`per-exhibit gate (${BESPOKE.length} bespoke exhibits)`, () => {
     const { host, captured } = await live(id);
     expect(captured.length, 'registered no control').toBeGreaterThan(0);
     for (const control of captured) {
-      expect(control.label.length, 'control label too short').toBeGreaterThan(3);
+      expect(resolveExhibitLabel(control.label).length, 'control label too short').toBeGreaterThan(3);
       expect((control.description ?? '').length, 'control description too short').toBeGreaterThan(20);
     }
 

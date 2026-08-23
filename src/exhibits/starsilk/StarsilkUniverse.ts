@@ -79,11 +79,20 @@ export class StarsilkUniverse extends ExhibitBase {
     this.loom.add(lowerRing);
 
     // Suspension from the bay ceiling — the loom must read as hanging.
+    // The north wing's bayHeight is 9 m; a 6 m cable centred at y=8.2 spanned
+    // [5.2, 11.2], poking 2.2 m through the media/infra floor above (the
+    // exact failure layout.ts's own bayHeight comment describes). Run from
+    // the top ring (y=5.2) up to just under the ceiling instead.
     const cableMat = this.standard(0x3a3358, { roughness: 0.6 });
+    const cableTop = 8.7;
+    const cableBottom = 5.2;
     for (let i = 0; i < 4; i++) {
       const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
-      const cable = new THREE.Mesh(scope.track(new THREE.CylinderGeometry(0.03, 0.03, 6, 5)), cableMat);
-      cable.position.set(Math.sin(a) * 3.6, 8.2, Math.cos(a) * 3.6);
+      const cable = new THREE.Mesh(
+        scope.track(new THREE.CylinderGeometry(0.03, 0.03, cableTop - cableBottom, 5)),
+        cableMat,
+      );
+      cable.position.set(Math.sin(a) * 3.6, (cableTop + cableBottom) / 2, Math.cos(a) * 3.6);
       this.loom.add(cable);
     }
 

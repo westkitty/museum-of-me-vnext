@@ -175,7 +175,7 @@ export class DexTilt extends ExhibitBase {
       object: consoleGroup,
       label: 'Use the manual control instead',
       description:
-        'Every gesture has a button. The novel input is never the only input — that is what keeps it from being a novelty.',
+        `Sends the same command as the "${GESTURES[2].name}" gesture (${GESTURES[2].command}) with a button press instead. The novel input is never the only input — that is what keeps it from being a novelty.`,
       activate: () => {
         this.manualUsed = true;
         this.fire(GESTURES[2], true);

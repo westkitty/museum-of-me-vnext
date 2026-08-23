@@ -107,9 +107,14 @@ export class Lifecycle {
   }
 
   private resume(reason: string): void {
-    this.hidden = false;
-    if (!this.contextLost && !this.loop.isRunning) this.loop.start();
-    void reason;
+    // 'contextrestored' means the GPU handed the WebGL context back, which is
+    // not tied to page visibility -- it can fire while the tab is still
+    // backgrounded. Unconditionally clearing `hidden` (and, since contextLost
+    // would then be false, starting the loop below) restarted simulation and
+    // rendering while the document was still hidden, defeating autoPauseOnBlur
+    // until the next real visibility event happened to correct it.
+    if (reason !== 'contextrestored') this.hidden = false;
+    if (!this.contextLost && !this.hidden && !this.loop.isRunning) this.loop.start();
   }
 
   private async releaseWakeLock(): Promise<void> {

@@ -63,13 +63,24 @@ export interface ExhibitUpdateContext {
  */
 export interface ExhibitControl {
   readonly object: THREE.Object3D;
-  /** Shown in the interaction cue, e.g. "Pull the thread". */
-  readonly label: string;
+  /**
+   * Shown in the interaction cue, e.g. "Pull the thread". A plain string is
+   * fixed for the control's life. Pass a function instead when the label
+   * itself depends on the exhibit's state (e.g. toggling between "Open" and
+   * "Close") -- it is re-evaluated on every read, unlike a string computed
+   * once at registration time, which would freeze at whatever the state was
+   * when `build()` ran and never update again.
+   */
+  readonly label: string | (() => string);
   /** Longer description for the accessible mirror. */
   readonly description?: string;
   readonly activate: () => void;
   /** Optional drag handler, in normalised −1..1 screen delta. */
   readonly drag?: (dx: number, dy: number) => void;
+}
+
+export function resolveExhibitLabel(label: ExhibitControl['label']): string {
+  return typeof label === 'function' ? label() : label;
 }
 
 /** Text the accessible mirror renders for this exhibit. */

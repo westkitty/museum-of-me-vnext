@@ -115,7 +115,7 @@ export class Promptcraft extends ExhibitBase {
 
       this.control({
         object: g,
-        label: this.inserted[i] ? `Remove: ${block.label}` : `Insert: ${block.label}`,
+        label: () => (this.inserted[i] ? `Remove: ${block.label}` : `Insert: ${block.label}`),
         description: `${block.note} ${block.kind === 'constraint' ? 'Constraint blocks are square and the machine will not run without one.' : 'Description blocks are round.'}`,
         activate: () => {
           this.inserted[i] = !this.inserted[i];

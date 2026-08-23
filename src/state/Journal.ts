@@ -207,7 +207,16 @@ export class Journal {
     if (!raw) return false;
     try {
       const parsed = JSON.parse(raw) as JournalPayload;
+      // applyParsed() only adds to heard/supplementary and conditionally
+      // overwrites guideTarget -- it merges onto existing state rather than
+      // replacing it. A "restore" that skips clearing these three first keeps
+      // anything recorded after the backup snapshot, so a visitor heard or a
+      // supplementary text read after the last save would still read as
+      // heard/read even after "restoring" to before that save.
       this.entries.clear();
+      this.heard.clear();
+      this.supplementary.clear();
+      this.guideTarget = undefined;
       this.applyParsed(parsed);
       this.save();
       this.recoveryNotice = 'Previous journal save restored.';

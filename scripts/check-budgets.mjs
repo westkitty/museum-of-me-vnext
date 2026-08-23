@@ -1,7 +1,12 @@
 #!/usr/bin/env node
-// Gate (plan §24): every exhibit's declared budget is within its tier ceiling,
-// and the shipped bundle stays inside the initial-visit budget.
+// Gate (plan §24): every exhibit declares a known tier (A/B/C, each with its
+// own MB ceiling), and the shipped bundle stays inside the initial-visit
+// budget. There is no per-exhibit asset-weight measurement: the current data
+// model (data/exhibit-mapping.json) carries no per-exhibit byte figure to
+// check against a ceiling, so this validates tier categorization only, not
+// that any given exhibit's actual assets fit inside its tier's MB budget.
 import { statSync, existsSync } from 'node:fs';
+import { basename } from 'node:path';
 import { readJson, walk, report } from './_lib.mjs';
 
 const TIER_MB = { A: 15, B: 8, C: 4 };
@@ -37,7 +42,9 @@ if (existsSync('dist')) {
   notes.push('no dist/ — run npm run build first to check the transfer budget');
 }
 
-// Any shipped binary asset must be declared in the manifest.
+// Any shipped binary asset must be declared in the manifest. This previously
+// built both `declared` and `shipped` but never actually compared them --
+// an undeclared multi-megabyte binary in public/assets would pass silently.
 const declared = new Set();
 for (const f of walk('src', ['.ts'])) {
   const text = (await import('node:fs')).readFileSync(f, 'utf8');
@@ -46,9 +53,15 @@ for (const f of walk('src', ['.ts'])) {
   }
 }
 const shipped = walk('public/assets', ['.glb', '.ktx2', '.png', '.jpg', '.ogg', '.mp3']);
+let undeclared = 0;
 for (const f of shipped) {
-  notes.push(`shipped binary: ${f}`);
+  // Declared ids are semantic (e.g. "kit.plinth"), not filenames, so this
+  // accepts any declared id whose final segment matches the file's stem.
+  const stem = basename(f).replace(/\.[^.]+$/, '');
+  const isDeclared = [...declared].some((id) => id === stem || id.endsWith(`.${stem}`) || id.endsWith(`/${stem}`));
+  if (!isDeclared) { errors.push(`${f}: shipped binary has no matching registerAsset/registerProcedural id`); undeclared++; }
+  notes.push(`shipped binary: ${f}${isDeclared ? '' : ' (undeclared)'}`);
 }
-notes.push(`${declared.size} declared assets, ${shipped.length} shipped binaries`);
+notes.push(`${declared.size} declared assets, ${shipped.length} shipped binaries, ${undeclared} undeclared`);
 
 process.exit(report('budgets', errors, notes));

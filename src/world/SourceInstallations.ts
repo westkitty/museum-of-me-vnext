@@ -113,6 +113,10 @@ export class SourceInstallations {
   engage(id: string): boolean {
     const runtime = this.runtimes.get(id);
     if (!runtime) return false;
+    // Walking off to a second installation without pressing Escape must not
+    // leave the first one marked engaged forever -- only one installation can
+    // hold focus at a time.
+    if (this.activeId && this.activeId !== id) this.disengage();
     runtime.engaged = true;
     this.activeId = id;
     this.store.markExamined(id);
@@ -314,9 +318,20 @@ export class SourceInstallations {
     runtime.visual.update(runtime.state);
     if (!retexture) return;
     const material = runtime.lectern.material as THREE.MeshStandardMaterial;
+    const previous = material.map;
     const next = this.lecternTexture(runtime.spec, runtime.state);
     material.map = next;
     material.needsUpdate = true;
+    // lecternTexture() always tracks a fresh canvas+GPU texture in this
+    // always-resident scope, which only drains at app teardown. Every state
+    // change (engage, a control key) would otherwise orphan the previous
+    // texture's GPU backing for the rest of the session -- and leaving it
+    // tracked-but-disposed would still grow the scope's resource count
+    // forever, so it is untracked too, not just disposed.
+    if (previous) {
+      previous.dispose();
+      this.scope.untrack(previous);
+    }
   }
 
   private controlHint(spec: SourceInstallation): string {

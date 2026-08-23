@@ -11,7 +11,7 @@ import type { ExhibitRecord, ProjectRecord } from '../content/types';
  * builders are the permanent implementation of layers 1 and 2, not scaffolding.
  */
 
-function textMaterial(scope: ResourceScope, paragraphs: readonly string[], opts: Parameters<typeof createTextTexture>[2]): THREE.MeshStandardMaterial {
+export function textMaterial(scope: ResourceScope, paragraphs: readonly string[], opts: Parameters<typeof createTextTexture>[2]): THREE.MeshStandardMaterial {
   const map = canRenderText()
     ? createTextTexture(scope, paragraphs, opts)
     : createFallbackTexture(scope);
@@ -120,6 +120,25 @@ export function buildLabel(scope: ResourceScope, text: string, width = 0.9): THR
       titleColor: '#e8d9b0',
     }),
   );
+}
+
+/**
+ * Swap a `buildLabel` mesh's text in place, disposing the old material/texture
+ * so a control that re-labels a wall panel doesn't leak one text texture per
+ * change over the exhibit's lifetime (the geometry is a fixed-size plane, so
+ * only the material needs replacing).
+ */
+export function updateLabel(scope: ResourceScope, mesh: THREE.Mesh, text: string): void {
+  const previous = mesh.material as THREE.MeshStandardMaterial;
+  mesh.material = textMaterial(scope, [], {
+    width: 512, height: 164, title: text, titleSize: 56, align: 'center', rule: false,
+    padding: 24, background: '#1a1712', titleColor: '#e8d9b0',
+  });
+  const previousMap = previous.map as THREE.Texture | null;
+  previousMap?.dispose();
+  previous.dispose();
+  if (previousMap) scope.untrack(previousMap);
+  scope.untrack(previous);
 }
 
 /** Wing signage over a hall threshold. */

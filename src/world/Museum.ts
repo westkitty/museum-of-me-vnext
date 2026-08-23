@@ -14,6 +14,7 @@ import {
   SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_FLOOR_Y,
   SANCTUARY_RAMP_HALF_WIDTH, SANCTUARY_RADIUS, SANCTUARY_HEIGHT, SANCTUARY_CENTER,
   STAIRS, PLACEMENTS, FLIGHT_PAD_CENTER, FLIGHT_PAD_RADIUS, PLINTH_RADIUS, PLINTH_HEIGHT, PLINTH_TOP_Y,
+  PLINTH_FLOOR_HALF,
 } from './layout';
 
 /** Circumradius of the octagon whose apothem is `a`. */
@@ -336,8 +337,13 @@ export class Museum {
     g.add(plinth);
     // A floor, not a wall: `addBox` would make this impassable regardless of
     // height (see the identical Sanctuary-dais fix above), but a kerb this
-    // low should be climbed like any other low ledge.
-    this.collision.addFloor(-PLINTH_RADIUS, PLINTH_RADIUS, -PLINTH_RADIUS, PLINTH_RADIUS, PLINTH_TOP_Y);
+    // low should be climbed like any other low ledge. The floor is an
+    // inscribed square, not one sized to the full radius -- see
+    // `PLINTH_FLOOR_HALF` for why a circumscribed square would float a
+    // visitor over open air at the disc's corners.
+    this.collision.addFloor(
+      -PLINTH_FLOOR_HALF, PLINTH_FLOOR_HALF, -PLINTH_FLOOR_HALF, PLINTH_FLOOR_HALF, PLINTH_TOP_Y,
+    );
 
     const flightPad = new THREE.Mesh(
       this.scope.track(new THREE.CircleGeometry(FLIGHT_PAD_RADIUS - 0.1, 48)),
@@ -711,9 +717,16 @@ export class Museum {
     // treats as impassable regardless of height -- unlike a floor, walls are
     // never steppable -- so the dais sat there as a solid drum blocking the
     // exact centre of the chamber the whole route is built to reach.
+    // The platform's own visible top radius is 2.6 m; a square floor sized to
+    // that radius circumscribes the disc (corners at 2.6·√2 ≈ 3.68 m) and
+    // floats a visitor over open air at each corner (see `PLINTH_FLOOR_HALF`
+    // in layout.ts for the identical rotunda-plinth case). Inscribing the
+    // square instead keeps it strictly inside the visible disc.
+    const DAIS_TOP_RADIUS = 2.6;
+    const daisFloorHalf = DAIS_TOP_RADIUS / Math.SQRT2;
     this.collision.addFloor(
-      SANCTUARY_CENTER[0] - 2.6, SANCTUARY_CENTER[0] + 2.6,
-      SANCTUARY_CENTER[2] - 2.6, SANCTUARY_CENTER[2] + 2.6,
+      SANCTUARY_CENTER[0] - daisFloorHalf, SANCTUARY_CENTER[0] + daisFloorHalf,
+      SANCTUARY_CENTER[2] - daisFloorHalf, SANCTUARY_CENTER[2] + daisFloorHalf,
       SANCTUARY_FLOOR_Y + 0.55,
     );
 

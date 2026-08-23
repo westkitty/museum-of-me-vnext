@@ -162,7 +162,7 @@ export class DnDexTable extends ExhibitBase {
     // ── controls ──
     this.control({
       object: this.table,
-      label: this.currentStepLabel(),
+      label: () => this.currentStepLabel(),
       description:
         'Runs one deterministic encounter round: roll, move, resolve. Four steps and it is over — the project was built for table speed, not completeness.',
       activate: () => this.advance(),

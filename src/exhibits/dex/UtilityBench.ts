@@ -156,7 +156,7 @@ export class UtilityBench extends ExhibitBase {
 
     this.control({
       object: sortConsole,
-      label: this.sorted ? 'Return the files' : 'Audit and sort the files',
+      label: () => (this.sorted ? 'Return the files' : 'Audit and sort the files'),
       description:
         'Sorts every file into its category and shows what is genuinely reclaimable. Sorting is organisational — nothing is moved off the bench and nothing is destroyed.',
       activate: () => {

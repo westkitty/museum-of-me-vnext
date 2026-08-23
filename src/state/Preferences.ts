@@ -222,7 +222,13 @@ export function savePreferences(prefs: VisitorPreferences, storage: Storage | nu
 
 function loadStoredBase(storage: Storage): Partial<VisitorPreferences> {
   try {
-    const raw = storage.getItem(BACKUP_KEY) ?? storage.getItem(KEY_V2) ?? storage.getItem(KEY);
+    // KEY_V2 is the current real value; BACKUP_KEY is only set to what KEY_V2
+    // held immediately before the save now in progress (see savePreferences
+    // below), so it is always one save behind. Reading it first pulled a
+    // stale value for every Safe-Mode-protected field on every subsequent
+    // save, silently reverting real, current settings the visitor had
+    // already saved.
+    const raw = storage.getItem(KEY_V2) ?? storage.getItem(BACKUP_KEY) ?? storage.getItem(KEY);
     if (!raw) return {};
     return sanitizePreferences(JSON.parse(raw));
   } catch {

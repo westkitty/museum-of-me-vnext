@@ -23,6 +23,7 @@ export class ProvisionalExhibit extends ExhibitBase {
   private hero: THREE.Group | null = null;
   private opened = false;
   private spin = 0;
+  private scale = 1;
 
   constructor(def: ExhibitDefinition) {
     super(def);
@@ -46,7 +47,7 @@ export class ProvisionalExhibit extends ExhibitBase {
     // wing still reads as having different-sized rooms while under construction.
     const hero = new THREE.Group();
     hero.name = 'provisional-hero';
-    const scale = this.def.tier === 'A' ? 1.5 : this.def.tier === 'B' ? 1.15 : 0.9;
+    const scale = this.scale = this.def.tier === 'A' ? 1.5 : this.def.tier === 'B' ? 1.15 : 0.9;
     const shell = this.standard(0x6b6152, { roughness: 0.7, metalness: 0.12 });
     const core = this.emissive(0xc9a227, 0.5);
 
@@ -85,7 +86,10 @@ export class ProvisionalExhibit extends ExhibitBase {
     if (!this.hero) return;
     if (!this.reducedMotion) this.spin += dt * (this.opened ? 0.5 : 0.14);
     this.hero.rotation.y = this.spin;
-    const target = this.opened ? 2.1 : 1.6;
+    // build() positions the body/ring at 1.6 * scale, not the bare 1.6 this
+    // eased toward -- on any tier other than the unscaled case, activating
+    // immediately started sinking the body away from the still-fixed ring.
+    const target = (this.opened ? 2.1 : 1.6) * this.scale;
     const current = this.hero.children[1].position.y;
     this.hero.children[1].position.y += (target - current) * Math.min(1, dt * 4);
   }
@@ -95,7 +99,7 @@ export class ProvisionalExhibit extends ExhibitBase {
     this.spin = 0;
     if (this.hero) {
       this.hero.rotation.y = 0;
-      this.hero.children[1].position.y = 1.6;
+      this.hero.children[1].position.y = 1.6 * this.scale;
     }
   }
 

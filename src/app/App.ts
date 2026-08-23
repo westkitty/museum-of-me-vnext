@@ -298,6 +298,8 @@ export class App implements LoopCallbacks {
   fixedUpdate(dt: number): void {
     if (
       !this.player.flightMode
+      && !this.player.isFrozen
+      && !this.input.uiCaptured
       && this.player.grounded
       && isOnFlightPad(this.player.position.x, this.player.position.z)
     ) {

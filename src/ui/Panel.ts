@@ -97,8 +97,20 @@ export abstract class Panel {
   protected abstract render(): void;
 
   protected setContent(...nodes: (Node | string)[]): void {
+    // Removing the currently-focused element from the document moves focus
+    // to document.body (standard browser behavior) -- outside this.body,
+    // where the focus trap's keydown listener lives. Once that happens, Tab
+    // never reaches the listener again (events bubble from target toward
+    // ancestors, not into descendants), so the trap silently stops working
+    // for the rest of the panel's open lifetime. Any handler that rebuilds
+    // content in response to activating a control inside it hits this the
+    // same way, so the restore belongs here once, not in every caller.
+    const hadFocusInside = this.body.contains(document.activeElement);
     clear(this.content);
     this.content.append(...nodes);
+    if (hadFocusInside && !this.body.contains(document.activeElement)) {
+      this.body.focus();
+    }
   }
 
   dispose(): void {

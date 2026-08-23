@@ -60,6 +60,13 @@ export class PlayerController {
   /** Set while a scripted move (map wayfinding, reset) owns the player. */
   private frozen = false;
 
+  /** True while a scripted move or an open UI panel owns the player -- callers
+   * outside this class (App's flight-pad trigger) must not act on the player
+   * while this is true. */
+  get isFrozen(): boolean {
+    return this.frozen;
+  }
+
   constructor(
     private readonly world: CollisionWorld,
     private readonly input: InputManager,
@@ -95,12 +102,17 @@ export class PlayerController {
     this.hasLeftGroundInFlight = false;
     this.velocity.set(0, 0, 0);
     this.launchVelocityY = FLIGHT_LAUNCH_SPEED;
+    // A jump queued before liftoff (or during flight, where nothing ever
+    // consumes it) must not survive into normal mode and fire as an
+    // involuntary jump the instant the visitor lands.
+    this.jumpQueued = false;
   }
 
   private exitFlight(): void {
     this.flightMode = false;
     this.velocity.set(0, 0, 0);
     this.launchVelocityY = 0;
+    this.jumpQueued = false;
   }
 
   /** Mouse/keyboard/touch look. Applied once per frame from real deltas. */

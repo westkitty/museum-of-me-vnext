@@ -168,7 +168,7 @@ export class HeliocideObservatory extends ExhibitBase {
 
     this.control({
       object: consoleGroup,
-      label: this.running ? 'Restart the reconstruction' : 'Begin the reconstruction',
+      label: () => (this.running ? 'Restart the reconstruction' : 'Begin the reconstruction'),
       description:
         'Replays the extinction in canon order. What is left is not a structure — it is the shape of what was removed.',
       activate: () => {

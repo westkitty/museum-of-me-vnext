@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { ExhibitControl } from '../exhibits/contract';
+import { resolveExhibitLabel, type ExhibitControl } from '../exhibits/contract';
 
 interface RegisteredControl extends ExhibitControl {
   readonly exhibitId: string;
@@ -54,8 +54,8 @@ export class InteractionManager {
     return this.focused
       ? {
           exhibitId: this.focused.exhibitId,
-          label: this.focused.label,
-          description: this.focused.description ?? this.focused.label,
+          label: resolveExhibitLabel(this.focused.label),
+          description: this.focused.description ?? resolveExhibitLabel(this.focused.label),
         }
       : null;
   }

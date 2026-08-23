@@ -71,6 +71,21 @@ describe('Loop', () => {
     loop.stop();
   });
 
+  it('does not carry a stale frame count into a fresh FPS window after restart (regression)', () => {
+    // frameCount only zeroes inside tick() once a 500ms window elapses, so
+    // stopping mid-window used to leave it non-zero; a much shorter window
+    // after restart then divided by that leftover count, briefly reporting
+    // an inflated, bogus FPS.
+    const loop = new Loop({ fixedUpdate: vi.fn(), variableUpdate: vi.fn(), render: vi.fn() });
+    loop.start();
+    for (let i = 0; i < 25; i++) harness.advance(4); // 100ms elapsed, well under the 500ms window
+    loop.stop();
+    loop.start();
+    harness.advance(20); // a single short frame in the new window
+    expect(loop.fps).toBe(0); // no window has closed yet -- not an inflated reading
+    loop.stop();
+  });
+
   it('stops cleanly and does not reschedule', () => {
     const render = vi.fn();
     const loop = new Loop({ fixedUpdate: vi.fn(), variableUpdate: vi.fn(), render });

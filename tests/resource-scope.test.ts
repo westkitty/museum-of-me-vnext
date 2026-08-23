@@ -59,6 +59,25 @@ describe('ResourceScope', () => {
     expect(scope.size).toBe(0);
   });
 
+  it('untrack removes one resource without disposing it or the rest (regression)', () => {
+    // A subsystem that replaces one of its own resources at runtime (a
+    // retextured lectern, a swapped wall label) must be able to detach the
+    // stale one after disposing it, or `size` keeps growing forever even
+    // though the underlying GPU/canvas memory was freed correctly.
+    const scope = new ResourceScope('t');
+    const a = disposable();
+    const b = disposable();
+    scope.trackAll(a, b);
+    a.dispose();
+    scope.untrack(a);
+    expect(scope.size).toBe(1);
+    expect(a.dispose).toHaveBeenCalledOnce();
+    scope.dispose();
+    expect(b.dispose).toHaveBeenCalledOnce();
+    // untrack()ing a already-untracked/never-tracked resource is a no-op.
+    expect(() => scope.untrack(a)).not.toThrow();
+  });
+
   it('releaseAll empties without closing the scope', () => {
     const scope = new ResourceScope('t');
     scope.track(disposable());

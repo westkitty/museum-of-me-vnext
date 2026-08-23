@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { resolveExhibitLabel } from './contract';
 import type {
   ExhibitModule, ExhibitDefinition, ExhibitContext, ExhibitUpdateContext,
   AccessibleExhibitContent, ExhibitControl,
@@ -92,8 +93,8 @@ export abstract class ExhibitBase implements ExhibitModule {
       body,
       state: this.describeState(),
       controls: this.controls.map((c) => ({
-        label: c.label,
-        description: c.description ?? c.label,
+        label: resolveExhibitLabel(c.label),
+        description: c.description ?? resolveExhibitLabel(c.label),
       })),
     };
   }

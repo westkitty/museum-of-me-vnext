@@ -53,7 +53,13 @@ for (const [id, p] of copy) {
   for (const k of REQUIRED) {
     if (p[k] === undefined || p[k] === null || p[k] === '') errors.push(`${id}: missing field "${k}"`);
   }
-  if (Array.isArray(p.deep) && p.deep.length < 2) errors.push(`${id}: deep needs at least 2 paragraphs`);
+  // The Array.isArray guard used to skip this check entirely for a non-array
+  // "deep" (e.g. a single string): the field-presence check above only
+  // rejects undefined/null/'', so a malformed shape passed silently here and
+  // was only ever caught downstream by TypeScript compiling against the
+  // typed Collection -- not by this gate, despite its stated purpose.
+  if (!Array.isArray(p.deep)) errors.push(`${id}: deep must be an array of paragraphs, got ${typeof p.deep}`);
+  else if (p.deep.length < 2) errors.push(`${id}: deep needs at least 2 paragraphs`);
 }
 
 // Exhibit interpretive copy.

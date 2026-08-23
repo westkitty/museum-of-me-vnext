@@ -129,7 +129,7 @@ export class CivicSupport extends ExhibitBase {
 
       this.control({
         object: card,
-        label: this.attached[i] ? `Lock ${event.when} into the chronology` : `Attach evidence: ${event.evidence}`,
+        label: () => (this.attached[i] ? `Lock ${event.when} into the chronology` : `Attach evidence: ${event.evidence}`),
         description: `${event.note} An event with no evidence attached will not lock into the timeline.`,
         activate: () => this.step(i),
       });

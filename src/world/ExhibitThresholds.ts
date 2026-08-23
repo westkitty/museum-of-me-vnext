@@ -1,27 +1,26 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
-import type { WingId } from '../content/types';
 import { PLACEMENTS, WING_BY_ID, faceDirection, rightOf, type Vec3 } from './layout';
-
-const FAMILY: Record<WingId, readonly number[]> = {
-  north: [0x8176d9, 0x9e91ef, 0x566bd6, 0xc2a6e8],
-  east: [0x45a39e, 0x66c7c0, 0x4f8fa2, 0x8ad6bd],
-  south: [0xd86847, 0xee8d52, 0xc44e55, 0x9ebd67],
-  west: [0x9b6da9, 0xc28ab6, 0x755690, 0xd1a394],
-  media: [0xc9913f, 0xe1b45c, 0xc97855, 0xe2cf80],
-  infra: [0x6d9b65, 0x8abd78, 0x4f8070, 0xb1c982],
-};
+import { PaletteSet, type Palette } from './palette';
 
 /**
  * Gives each exhibit a small colour signature derived from its containing wing.
  * The result is variation without visual anarchy: every threshold is recognisably
  * part of its wing, but neighbouring exhibits do not collapse into one flat hue.
+ *
+ * Colours are hue-jittered variants of the wing's own accent/trim palette
+ * (see `ExhibitColorFields`, which uses the identical technique), not an
+ * independent hardcoded table -- so a museum-wide palette retune moves the
+ * threshold accents along with every other palette-driven layer instead of
+ * leaving them visibly off-family.
  */
 export class ExhibitThresholds {
   readonly group = new THREE.Group();
+  private readonly palettes: PaletteSet;
 
   constructor(private readonly scope: ResourceScope) {
     this.group.name = 'exhibit-threshold-accents';
+    this.palettes = new PaletteSet(scope);
   }
 
   build(): THREE.Group {
@@ -29,12 +28,10 @@ export class ExhibitThresholds {
       const wing = WING_BY_ID.get(placement.wing)!;
       const d = faceDirection(wing.face);
       const r = rightOf(d);
-      const family = FAMILY[placement.wing];
+      const palette = this.palettes.get(placement.wing);
       const seed = numericSeed(placement.exhibitId);
-      const primary = family[seed % family.length];
-      const secondary = family[(seed + 1 + (seed % 2)) % family.length];
-      const primaryMat = this.material(primary, 0.48, 0.18);
-      const secondaryMat = this.material(secondary, 0.62, 0.08);
+      const primaryMat = this.derivedMaterial(palette, seed, false, 0.48, 0.18);
+      const secondaryMat = this.derivedMaterial(palette, seed, true, 0.62, 0.08);
       const y = wing.floorY;
       const sign = placement.side === 'right' ? 1 : -1;
 
@@ -71,7 +68,30 @@ export class ExhibitThresholds {
     return this.group;
   }
 
-  private material(color: number, roughness: number, metalness: number): THREE.MeshStandardMaterial {
+  /** Same hue-jitter technique as `ExhibitColorFields.derivedMaterial`: a
+   * deterministic variant of the wing's own accent (primary) or a
+   * trim-leaning complement, never an independent colour. */
+  private derivedMaterial(
+    palette: Palette,
+    seed: number,
+    complement: boolean,
+    roughness: number,
+    metalness: number,
+  ): THREE.MeshStandardMaterial {
+    const accent = (palette.accent as THREE.MeshStandardMaterial).color.clone();
+    const trim = (palette.trim as THREE.MeshStandardMaterial).color.clone();
+    const hsl = { h: 0, s: 0, l: 0 };
+    accent.getHSL(hsl);
+    const color = complement
+      ? trim.clone().lerp(
+        new THREE.Color().setHSL((hsl.h + 0.5 + ((seed % 3) - 1) * 0.018 + 1) % 1, Math.max(0.22, hsl.s * 0.72), Math.min(0.72, hsl.l + 0.07)),
+        0.5,
+      )
+      : accent.setHSL(
+        (hsl.h + ((seed % 5) - 2) * 0.014 + 1) % 1,
+        Math.min(0.86, hsl.s + ((seed >> 2) % 3) * 0.025),
+        Math.max(0.25, Math.min(0.78, hsl.l + (((seed >> 4) % 5) - 2) * 0.018)),
+      );
     return this.scope.track(new THREE.MeshStandardMaterial({ color, roughness, metalness }));
   }
 }

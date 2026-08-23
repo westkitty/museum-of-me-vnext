@@ -41,6 +41,19 @@ export class ResourceScope {
   }
 
   /**
+   * Stop tracking one already-disposed resource. `size` (and every "the scope
+   * settles back to N resources" lifecycle assertion built on it) counts
+   * whatever is in the tracked set, disposed or not -- a subsystem that
+   * disposes and replaces one of its own resources at runtime (a lectern
+   * retexture, a wall-label swap) but never calls this leaves a dead entry
+   * behind on every replacement, so the count climbs forever even though the
+   * GPU/canvas memory itself was freed correctly.
+   */
+  untrack(resource: unknown): void {
+    if (isDisposable(resource)) this.tracked.delete(resource);
+  }
+
+  /**
    * Walk an Object3D and track every geometry, material, material-owned texture
    * and self-disposing object beneath it. Anything shared is tracked once.
    */

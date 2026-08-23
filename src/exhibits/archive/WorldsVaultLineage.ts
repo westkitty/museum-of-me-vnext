@@ -180,6 +180,12 @@ export class WorldsVaultLineage extends ExhibitBase {
   }
 
   private advanceStage(): void {
+    // The pulse auto-chains into the next leg in onUpdate() without another
+    // click; pressing interact again while one is still in flight used to
+    // call pulse.start() a second time, resetting its progress to the start
+    // of the current leg. Sibling exhibits (AgentHarness, MediaLineage) guard
+    // their equivalent re-click the same way.
+    if (this.pulse.isRunning) return;
     if (this.stage >= 1 && this.stage <= 3) {
       const from = this.stage - 1;
       if (from < this.curves.length) {

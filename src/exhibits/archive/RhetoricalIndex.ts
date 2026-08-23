@@ -155,7 +155,7 @@ export class RhetoricalIndex extends ExhibitBase {
 
     this.control({
       object: consoleGroup,
-      label: this.revealed ? 'Hide the analysis' : 'Show what the tool says',
+      label: () => (this.revealed ? 'Hide the analysis' : 'Show what the tool says'),
       description:
         'Reveals the tool’s classification and its reasoning for each statement. Every statement here is invented for the museum.',
       activate: () => {

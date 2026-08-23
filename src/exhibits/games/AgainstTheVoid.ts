@@ -133,7 +133,7 @@ export class AgainstTheVoid extends ExhibitBase {
 
       this.control({
         object: g,
-        label: this.placed[i] ? `Recall the ${piece.name}` : `Place the ${piece.name}`,
+        label: () => (this.placed[i] ? `Recall the ${piece.name}` : `Place the ${piece.name}`),
         description: `Attack ${piece.attack}, shield ${piece.shield}, hull ${piece.maxHull}. Placing changes what the readouts show, which is how a management game communicates.`,
         activate: () => {
           this.placed[i] = !this.placed[i];
