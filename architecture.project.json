@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "project": {
+    "id": "museum-of-me-vnext",
+    "name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
+    "repository": "westkitty/museum-of-me-vnext"
+  },
+  "runtime": {
+    "renderer": {
+      "engine": "three",
+      "engineVersion": "0.185.1",
+      "backend": "WebGLRenderer",
+      "webgpu": false,
+      "postprocessing": false,
+      "xr": false
+    },
+    "timing": {
+      "frameLoopOwner": "src/app/Loop.ts",
+      "fixedStepHz": 60,
+      "cameraInterpolation": true,
+      "workers": false,
+      "sharedArrayBuffer": false
+    },
+    "world": {
+      "collision": "static axis-aligned boxes, floors, and explicit ramps",
+      "physicsEngine": false,
+      "streaming": "three-layer proximity streaming",
+      "lod": false,
+      "instancing": false
+    },
+    "interaction": {
+      "pointerLock": true,
+      "semanticDomUi": true,
+      "localPersistence": true,
+      "networkRequiredForBaseline": false
+    }
+  },
+  "assets": {
+    "governance": "src/assets/manifest.ts and src/assets/AssetManager.ts",
+    "activeProductionKinds": [
+      "procedural geometry",
+      "locally bundled curated raster artwork"
+    ],
+    "supportedButNotActivated": [
+      "glTF/GLB loading",
+      "KTX2 textures",
+      "Draco decoding",
+      "Meshopt decoding",
+      "skeletal-animation production assets",
+      "embedded first-party web applications"
+    ],
+    "runtimeExternalAssetRequests": false
+  },
+  "quality": {
+    "tiers": ["low", "medium", "high"],
+    "lowTierAmbientPopulation": "suppressed",
+    "reducedMotion": "suppresses DOM motion and freezes ambient world motion"
+  },
+  "protectedContracts": [
+    "frozen 64-project to 35-exhibit mapping",
+    "35 bespoke exhibit hero-object contracts",
+    "fourteen source installation paths",
+    "seventeen authored visitor conversations",
+    "Dexter Sanctuary remains outside the exhibits",
+    "continuous exterior-to-Sanctuary traversal",
+    "ResourceScope disposal"
+  ],
+  "evidence": {
+    "recordedAt": "2026-08-23",
+    "baseCommit": "a87710b3b4c4403306ac322419faa6f9b153eedf",
+    "checks": [
+      "npm run typecheck",
+      "npm run lint",
+      "npm test (23 files, 536 tests)"
+    ]
+  }
+}
