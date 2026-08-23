@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { Wayfinding } from '../src/world/Wayfinding';
 import { AmbientVisitors } from '../src/world/AmbientVisitors';
 import { Sky } from '../src/world/Sky';
+import { FlightPadAtmosphere } from '../src/world/FlightPadAtmosphere';
 import { ResourceScope } from '../src/assets/ResourceScope';
 import type { LoadedAsset } from '../src/assets/AssetManager';
 import { QUATERNIUS_ASSET_IDS } from '../src/assets/quaterniusAssets';
@@ -168,5 +169,24 @@ describe('sky', () => {
     expect(sky.mesh.name).toBe('night-sky-starfield-blood-ring');
     expect(sky.mesh.frustumCulled).toBe(false);
     scope.dispose();
+  });
+});
+
+describe('flight pad atmosphere', () => {
+  it('rises in the existing loop, reduces its density by quality, and freezes for reduced motion', () => {
+    const scope = new ResourceScope('flight-pad-atmosphere');
+    const dust = new FlightPadAtmosphere(scope);
+    const first = dust.group.children[0];
+    const startY = first.position.y;
+    dust.update(1, 1, false);
+    expect(first.position.y).toBeGreaterThan(startY);
+    dust.update(0, 0.4, false);
+    expect(dust.group.children.filter((mote) => mote.visible)).toHaveLength(11);
+    const frozenY = first.position.y;
+    dust.update(1, 0.4, true);
+    expect(first.position.y).toBeCloseTo(frozenY, 8);
+    dust.dispose();
+    scope.dispose();
+    expect(scope.size).toBe(0);
   });
 });

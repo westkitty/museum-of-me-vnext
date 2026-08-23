@@ -34,6 +34,7 @@ import { DexterSanctuary } from '../exhibits/sanctuary/DexterSanctuary';
 import { Sky } from '../world/Sky';
 import { Wayfinding } from '../world/Wayfinding';
 import { AmbientVisitors } from '../world/AmbientVisitors';
+import { FlightPadAtmosphere } from '../world/FlightPadAtmosphere';
 import { UILayer } from './UILayer';
 
 export interface AppOptions {
@@ -66,6 +67,7 @@ export class App implements LoopCallbacks {
   readonly sky: Sky;
   readonly wayfinding: Wayfinding;
   readonly visitors: AmbientVisitors;
+  readonly flightPadAtmosphere: FlightPadAtmosphere;
   readonly sourceVisitors: SourceVisitors;
   readonly supplementary: SupplementaryCases;
   readonly sourceInstallations: SourceInstallations;
@@ -132,6 +134,9 @@ export class App implements LoopCallbacks {
 
     this.visitors = new AmbientVisitors(this.scope, this.renderer.quality.ambientVisitors);
     this.renderer.scene.add(this.visitors.group);
+
+    this.flightPadAtmosphere = new FlightPadAtmosphere(this.scope);
+    this.renderer.scene.add(this.flightPadAtmosphere.group);
 
     this.lighting = new Lighting(this.scope, this.renderer.quality);
     this.renderer.scene.add(this.lighting.group);
@@ -321,6 +326,7 @@ export class App implements LoopCallbacks {
       this.sanctuary.update(dt, this.preferences.reducedMotion);
     }
     this.visitors.update(dt, this.preferences.reducedMotion);
+    this.flightPadAtmosphere.update(dt, this.renderer.quality.detailScale, this.preferences.reducedMotion);
     this.sourceVisitors.update(dt, this.preferences.reducedMotion);
     this.sourceInstallations.update(dt, this.preferences.reducedMotion);
   }
@@ -394,6 +400,7 @@ export class App implements LoopCallbacks {
     this.sanctuary.dispose();
     this.wayfinding.dispose();
     this.visitors.dispose();
+    this.flightPadAtmosphere.dispose();
     this.sourceVisitors.dispose();
     this.supplementary.dispose();
     this.sourceInstallations.dispose();

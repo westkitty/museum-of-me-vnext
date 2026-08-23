@@ -39,14 +39,14 @@
     "governance": "src/assets/manifest.ts and src/assets/AssetManager.ts",
     "activeProductionKinds": [
       "procedural geometry",
-      "locally bundled curated raster artwork"
+      "locally bundled curated raster artwork",
+      "locally bundled CC0 Quaternius GLB population assets with skeletal animation",
+      "glTF/GLB loading with verified animation clips"
     ],
     "supportedButNotActivated": [
-      "glTF/GLB loading",
       "KTX2 textures",
       "Draco decoding",
       "Meshopt decoding",
-      "skeletal-animation production assets",
       "embedded first-party web applications"
     ],
     "runtimeExternalAssetRequests": false
@@ -54,7 +54,7 @@
   "quality": {
     "tiers": ["low", "medium", "high"],
     "lowTierAmbientPopulation": "suppressed",
-    "reducedMotion": "suppresses DOM motion and freezes ambient world motion"
+    "reducedMotion": "suppresses DOM motion and freezes ambient world motion, skeletal walks, and flight-pad dust"
   },
   "protectedContracts": [
     "frozen 64-project to 35-exhibit mapping",
