@@ -1,16 +1,15 @@
 # ADR 0001 — Governed bundled runtime assets
 
-**Status:** Accepted — policy activation; no new external or first-party binary
-asset is shipped by this ADR.
+**Status:** Accepted and realized — Phase 3 ships three governed Quaternius
+GLBs and Phase 6 ships the deferred first-party Full Weasel artifact.
 
 ## Context
 
-The vNext release was procedurally led. Its current runtime also includes a
-small, locally bundled set of curated raster artwork, while `AssetManager`
-already provides a governed GLTF loading path. The accepted creative expansion
-requires two further asset classes: approved third-party Quaternius population
-assets and a locally bundled first-party Full Weasel artifact. Neither may make
-the Museum dependent on a remote host.
+The vNext release is procedurally led and includes a small, locally bundled set
+of curated raster artwork. Its governed `AssetManager` path now also carries
+three approved third-party Quaternius population GLBs, while E27 embeds a
+locally bundled first-party Full Weasel artifact on explicit engagement. None
+of these runtime assets may make the Museum dependent on a remote host.
 
 ## Decision
 
@@ -26,10 +25,12 @@ must not hotlink source repositories, CDNs, or asset stores.
 
 ## Consequences
 
-Future Quaternius and Full Weasel phases must update the asset policy and
-manifest in the same change that introduces an asset. They must inspect physical
-files and retain evidence rather than relying on pack descriptions. This ADR
-does not assert that any Quaternius or Full Weasel file is currently integrated.
+The Phase 3 and Phase 6 integrations update the asset policy and manifest in
+the same changes that introduce the assets. Their physical-file inspection,
+source/processed hashes, licensing, conversion and offline-runtime evidence are
+recorded in `docs/QUATERNIUS_ASSET_PROVENANCE.md` and
+`docs/FULL_WEASEL_PROVENANCE.md`. Future assets follow the same contract rather
+than relying on pack descriptions or remote availability.
 
 ## Rollback
 

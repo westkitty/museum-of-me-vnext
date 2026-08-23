@@ -73,10 +73,8 @@ source            'original-museum' | 'derived:<projectId>' | 'authentic:<projec
 project           originating project ID, or null for museum architecture
 creator           attribution
 license           ownership statement
-generatorHash     for procedural: hash of the generator source (integrity)
 sourceHash        for file-backed: hash of the untouched original
 processedHash     for file-backed: hash of the shipped runtime file
-runtimeFormat     'procedural' | 'glb' | 'ktx2' | 'png' | 'ogg'
 budgetKB          transfer budget
 streamingGroup    which streaming layer/group owns it
 attribution       required visitor-facing credit, or null

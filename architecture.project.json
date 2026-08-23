@@ -32,6 +32,7 @@
       "pointerLock": true,
       "semanticDomUi": true,
       "localPersistence": true,
+      "guide": "local deterministic Collection and Journal lookup with existing floor-line wayfinding; no provider or teleport",
       "networkRequiredForBaseline": false
     }
   },
@@ -41,13 +42,13 @@
       "procedural geometry",
       "locally bundled curated raster artwork",
       "locally bundled CC0 Quaternius GLB population assets with skeletal animation",
-      "glTF/GLB loading with verified animation clips"
+      "glTF/GLB loading with verified animation clips",
+      "deferred locally bundled first-party Full Weasel web application for E27"
     ],
     "supportedButNotActivated": [
       "KTX2 textures",
       "Draco decoding",
-      "Meshopt decoding",
-      "embedded first-party web applications"
+      "Meshopt decoding"
     ],
     "runtimeExternalAssetRequests": false
   },
@@ -68,10 +69,13 @@
   "evidence": {
     "recordedAt": "2026-08-23",
     "baseCommit": "a87710b3b4c4403306ac322419faa6f9b153eedf",
+    "validatedBeforePhase9Docs": "f328f87",
     "checks": [
       "npm run typecheck",
       "npm run lint",
-      "npm test (23 files, 536 tests)"
+      "npm run gate (24 files, 548 tests)",
+      "npm run verify:standalone",
+      "focused fresh-production browser journeys for Full Weasel and DexGPT"
     ]
   }
 }
