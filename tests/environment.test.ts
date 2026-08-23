@@ -12,6 +12,8 @@ import { Sky } from '../src/world/Sky';
 import { WingAtmosphere } from '../src/world/WingAtmosphere';
 import { WingFurnishings } from '../src/world/WingFurnishings';
 import { WingIdentity } from '../src/world/WingIdentity';
+import { ArrivalGarden } from '../src/world/ArrivalGarden';
+import { CollisionWorld } from '../src/world/CollisionWorld';
 
 describe('museum environment coherence', () => {
   it('keeps the Rotunda substantially brighter than the themed wings', () => {
@@ -149,10 +151,22 @@ describe('museum environment coherence', () => {
     scope.dispose();
   });
 
-  it('uses a daylight sky rather than the former near-black exterior', () => {
+  it('uses a procedural night sky with a dark horizon', () => {
     const scope = new ResourceScope('environment-test');
     const sky = new Sky(scope);
-    expect(sky.horizon.getHSL({ h: 0, s: 0, l: 0 }).l).toBeGreaterThan(0.7);
+    expect(sky.mesh.name).toBe('night-sky-starfield-blood-ring');
+    expect(sky.horizon.getHSL({ h: 0, s: 0, l: 0 }).l).toBeLessThan(0.12);
+    scope.dispose();
+  });
+
+  it('adds visual-only island terrain, shoreline, and water without altering collision ownership', () => {
+    const scope = new ResourceScope('environment-test');
+    const collision = new CollisionWorld();
+    const garden = new ArrivalGarden(scope, collision).build();
+    expect(garden.getObjectByName('night-island-terrain')).toBeTruthy();
+    expect(garden.getObjectByName('night-island-shoreline')).toBeTruthy();
+    expect(garden.getObjectByName('night-island-water')).toBeTruthy();
+    expect(collision.size).toBeGreaterThan(0); // garden trees/benches retain their own proven blockers
     scope.dispose();
   });
 });

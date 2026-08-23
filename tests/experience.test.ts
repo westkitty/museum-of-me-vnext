@@ -117,6 +117,7 @@ describe('sky', () => {
     camera.position.set(120, 3, -240);
     sky.follow(camera);
     expect(sky.mesh.position.toArray()).toEqual([120, 3, -240]);
+    expect(sky.mesh.name).toBe('night-sky-starfield-blood-ring');
     expect(sky.mesh.frustumCulled).toBe(false);
     scope.dispose();
   });

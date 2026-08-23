@@ -362,6 +362,7 @@ export class App implements LoopCallbacks {
       [this.player.position.x, this.player.position.y, this.player.position.z],
       this.preferences.reducedMotion,
     );
+    this.arrivalGarden.update(dt, this.preferences.reducedMotion);
     this.sky.follow(this.camera);
 
     this.ui?.update(dt);

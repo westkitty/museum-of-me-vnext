@@ -22,30 +22,60 @@ export class ArrivalGarden {
   private readonly bark: THREE.MeshStandardMaterial;
   private readonly flower: THREE.MeshStandardMaterial;
   private readonly metal: THREE.MeshStandardMaterial;
-  private readonly water: THREE.MeshStandardMaterial;
+  private readonly poolWater: THREE.MeshStandardMaterial;
+  private readonly island: THREE.MeshStandardMaterial;
+  private readonly shoreline: THREE.MeshStandardMaterial;
+  private readonly water: THREE.ShaderMaterial;
+  private readonly waterTime: { value: number };
 
   constructor(
     private readonly scope: ResourceScope,
     private readonly collision: CollisionWorld,
   ) {
     this.group.name = 'arrival-garden';
-    this.stone = this.mat(0xe5e0d3, 0.92);
-    this.lawn = this.mat(0x4f7b45, 1);
-    this.leaf = this.mat(0x315f36, 0.94);
-    this.leafLight = this.mat(0x6f954f, 0.96);
-    this.bark = this.mat(0x604733, 1);
-    this.flower = this.mat(0xd79870, 0.86);
-    this.metal = this.mat(0x3e4545, 0.5, 0.18);
-    this.water = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x80b7c7,
-      roughness: 0.18,
-      metalness: 0,
+    this.stone = this.mat(0x6d7880, 0.92);
+    this.lawn = this.mat(0x183a37, 1);
+    this.leaf = this.mat(0x183b3e, 0.94);
+    this.leafLight = this.mat(0x296461, 0.96);
+    this.bark = this.mat(0x263035, 1);
+    this.flower = this.mat(0x3b9fc7, 0.72, 0.12);
+    this.metal = this.mat(0x1c2b35, 0.5, 0.3);
+    this.poolWater = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x24799b, roughness: 0.18, metalness: 0.28, transparent: true, opacity: 0.68,
+    }));
+    this.island = this.mat(0x142d2f, 0.96);
+    this.shoreline = this.mat(0x4a6a68, 0.94);
+    this.waterTime = { value: 0 };
+    this.water = this.scope.track(new THREE.ShaderMaterial({
       transparent: true,
-      opacity: 0.68,
+      depthWrite: false,
+      uniforms: { time: this.waterTime },
+      vertexShader: /* glsl */ `
+        varying vec2 vUv;
+        uniform float time;
+        void main() {
+          vUv = uv;
+          vec3 p = position;
+          p.z += sin((p.x + time * 2.0) * 0.09) * 0.10 + cos((p.y - time * 1.4) * 0.12) * 0.06;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        varying vec2 vUv;
+        uniform float time;
+        void main() {
+          float ripples = sin((vUv.x + vUv.y) * 160.0 + time * 2.4) * 0.5 + 0.5;
+          float moon = pow(max(0.0, 1.0 - distance(vUv, vec2(0.58, 0.64)) * 1.8), 4.0);
+          vec3 colour = mix(vec3(0.008, 0.035, 0.09), vec3(0.025, 0.17, 0.32), ripples * 0.32);
+          colour += vec3(0.10, 0.31, 0.52) * moon;
+          gl_FragColor = vec4(colour, 0.92);
+        }
+      `,
     }));
   }
 
   build(): THREE.Group {
+    this.buildIsland();
     const south = faceDirection('s');
     const nearZ = place(south, VESTIBULE_TO)[2];
     const farZ = place(south, VESTIBULE_TO + PLAZA_DEPTH)[2];
@@ -88,6 +118,53 @@ export class ArrivalGarden {
     this.arrivalMarker([7.5, GROUND_Y, z1 - 4]);
 
     return this.group;
+  }
+
+  /** Water and shoreline are visual-only: the proven exterior ground and its
+   * Sanctuary-trench cut-out remain the sole collision authority. */
+  private buildIsland(): void {
+    const water = new THREE.Mesh(this.scope.track(new THREE.CircleGeometry(330, 96)), this.water);
+    water.name = 'night-island-water';
+    water.rotation.x = -Math.PI / 2;
+    water.position.y = GROUND_Y - 0.46;
+    water.receiveShadow = false;
+    this.group.add(water);
+
+    const shape = new THREE.Shape();
+    const radii = [126, 133, 121, 136, 127, 142, 132, 124, 138, 128, 143, 129, 137, 123, 132, 126];
+    radii.forEach((radius, i) => {
+      const angle = (i / radii.length) * Math.PI * 2;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius * 0.86;
+      if (i === 0) shape.moveTo(x, z);
+      else shape.lineTo(x, z);
+    });
+    shape.closePath();
+    const island = new THREE.Mesh(
+      this.scope.track(new THREE.ExtrudeGeometry(shape, { depth: 0.12, bevelEnabled: false })),
+      this.island,
+    );
+    island.name = 'night-island-terrain';
+    island.rotation.x = -Math.PI / 2;
+    island.position.y = GROUND_Y - 0.5;
+    island.receiveShadow = true;
+    this.group.add(island);
+
+    const shore = new THREE.Mesh(this.scope.track(new THREE.TubeGeometry(
+      new THREE.CatmullRomCurve3(radii.map((radius, i) => {
+        const angle = (i / radii.length) * Math.PI * 2;
+        return new THREE.Vector3(Math.cos(angle) * radius, GROUND_Y - 0.36, Math.sin(angle) * radius * 0.86);
+      }), true, 'catmullrom', 0.2),
+      160, 0.85, 8, true,
+    )), this.shoreline);
+    shore.name = 'night-island-shoreline';
+    this.group.add(shore);
+  }
+
+  /** Called from the existing variable-step loop. Reduced motion keeps the
+   * water still; this visual-only animation never owns a frame loop. */
+  update(dt: number, reducedMotion: boolean): void {
+    if (!reducedMotion) this.waterTime.value += Math.min(dt, 0.1);
   }
 
   private mat(color: number, roughness: number, metalness = 0): THREE.MeshStandardMaterial {
@@ -191,7 +268,7 @@ export class ArrivalGarden {
 
     const pool = new THREE.Mesh(
       this.scope.track(new THREE.CylinderGeometry(2.55, 2.55, 0.08, 28)),
-      this.water,
+      this.poolWater,
     );
     pool.position.set(x, y + 0.59, z);
     this.group.add(pool);
@@ -204,7 +281,7 @@ export class ArrivalGarden {
     this.group.add(column);
     const bowl = new THREE.Mesh(
       this.scope.track(new THREE.CylinderGeometry(1.15, 0.85, 0.22, 18)),
-      this.water,
+      this.poolWater,
     );
     bowl.position.set(x, y + 2.6, z);
     this.group.add(bowl);

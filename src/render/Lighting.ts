@@ -19,16 +19,16 @@ export class Lighting {
   constructor(scope: ResourceScope, quality: QualitySettings) {
     this.group.name = 'lighting';
 
-    // Daylight fill is intentionally bright enough that the garden reads as a
-    // sunny public space while still leaving useful shadow and interior depth.
-    const hemi = new THREE.HemisphereLight(0xd8ecff, 0x6f755f, 1.25);
+    // Night exterior: cool sky fill leaves the garden legible without turning
+    // the whole interior dark. The Rotunda has its own architectural lighting.
+    const hemi = new THREE.HemisphereLight(0x10284c, 0x07100d, 0.54);
     this.group.add(hemi);
 
-    const ambient = new THREE.AmbientLight(0xfffdf7, 0.62);
+    const ambient = new THREE.AmbientLight(0x8bb9dc, 0.24);
     this.group.add(ambient);
 
-    const sun = new THREE.DirectionalLight(0xfff1cf, 2.65);
-    sun.position.set(48, 96, 120);
+    const sun = new THREE.DirectionalLight(0xb8d9ff, 1.25);
+    sun.position.set(-58, 96, 76);
     sun.target.position.set(0, 0, 0);
     if (quality.shadows) {
       sun.castShadow = true;
@@ -44,17 +44,26 @@ export class Lighting {
     }
     this.group.add(sun, sun.target);
 
-    const bounce = new THREE.DirectionalLight(0xbcd8ef, 0.78);
-    bounce.position.set(-70, 40, -90);
+    const bounce = new THREE.DirectionalLight(0x2c6f9f, 0.34);
+    bounce.position.set(70, 32, -90);
     bounce.target.position.set(0, 6, 0);
     this.group.add(bounce, bounce.target);
 
-    // The arrival plaza needs only a modest warm lift now that it is genuinely
-    // daylight; it remains useful beneath the entrance canopy.
-    const arrival = new THREE.PointLight(0xffefd1, 150, 78, 2);
+    // Three real exterior lights are justified: one holds the entrance under
+    // the canopy and two wash the facade. Searchlight cones elsewhere are
+    // emissive geometry, not additional scene lights.
+    const arrival = new THREE.PointLight(0x9ddcff, 220, 78, 2);
     arrival.position.set(0, 10, 132);
     this.group.add(arrival);
     this.managed.push(arrival);
+
+    for (const x of [-20, 20]) {
+      const flood = new THREE.PointLight(0x47b9ff, 180, 58, 2);
+      flood.name = 'night-exterior-floodlight';
+      flood.position.set(x, 7, 117);
+      this.group.add(flood);
+      this.managed.push(flood);
+    }
 
     const oculus = new THREE.PointLight(0xfff7e8, 260, 90, 2);
     oculus.position.set(0, DOME_APEX_Y - 3, 0);
