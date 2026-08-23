@@ -34,6 +34,24 @@ application never requests a Quaternius host at runtime. Original sources are
 kept in ignored `.asset-sources/`, never in `public/` or build output. The
 evidence and conversion record is [QUATERNIUS_ASSET_PROVENANCE.md](QUATERNIUS_ASSET_PROVENANCE.md).
 
+### Approved exception: deferred first-party Full Weasel artifact
+
+E27 presents the real completed `westkitty/The_Full_Weasel` application through
+a local same-origin iframe created only after the visitor explicitly engages its
+projection. The committed production artifact is governed as
+`full-weasel-complete`, belongs to `exhibit:E27`, has pinned provenance and a
+tree hash in [FULL_WEASEL_PROVENANCE.md](FULL_WEASEL_PROVENANCE.md), and makes
+no runtime request to GitHub Pages, Google Fonts, or any other remote host.
+
+The complete artifact is intentionally large because it preserves the
+first-party game's authored sprites, video backgrounds, and music. It is not
+part of the initial Museum transfer: the iframe does not exist before E27 is
+opened. `check:budgets` reports its bytes separately and verifies the initial
+Museum budget independently; the standalone artifact still contains the local
+files for offline use. The embedded build disables the original root-scoped
+service-worker registration, uses relative paths, and forwards Escape only as
+a parent close signal. It does not add another Museum frame-loop owner.
+
 ### What this does **not** mean
 
 - It does not mean boxes. A procedural asset must still meet the exhibit contract's *physical presence*
@@ -50,7 +68,7 @@ Every asset — procedural or file-backed — has a record in `src/assets/manife
 ```
 id                stable, kebab-case, unique
 title             human name
-kind              'procedural' | 'glb' | 'texture' | 'audio'
+kind              'procedural' | 'glb' | 'texture' | 'audio' | 'bundle'
 source            'original-museum' | 'derived:<projectId>' | 'authentic:<projectId>' | 'external'
 project           originating project ID, or null for museum architecture
 creator           attribution

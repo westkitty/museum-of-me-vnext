@@ -7,6 +7,9 @@ export default tseslint.config(
       // Generated single-file artifact output; linting a 6 MB bundle is noise.
       'dist-standalone/**',
       'release/**',
+      // E27's pinned first-party production build is runtime data, not Museum
+      // source. Its provenance and byte integrity are checked separately.
+      'public/embedded/**',
       'node_modules/**',
       'playwright-report/**',
       'test-results/**',

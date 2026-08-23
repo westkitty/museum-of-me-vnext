@@ -117,3 +117,33 @@ test('exposes the complete accessible collection without requiring pointer lock'
 
   expect(errors).toEqual([]);
 });
+
+test('opens the local Full Weasel artifact and restores Museum input on Escape', async ({ page }) => {
+  const errors = await bootMuseum(page);
+  const embeddedRequests: string[] = [];
+  page.on('request', (request) => {
+    if (request.url().includes('/embedded/full-weasel/')) embeddedRequests.push(request.url());
+  });
+
+  await expect(page.locator('#panel-full-weasel')).toBeHidden();
+  expect(embeddedRequests).toEqual([]);
+
+  await page.evaluate(() => window.__museum?.ui.openFullWeasel());
+  const panel = page.locator('#panel-full-weasel');
+  await expect(panel).toBeVisible();
+  const frame = page.frameLocator('.full-weasel__frame');
+  await expect(frame.locator('#root')).toBeVisible();
+  expect(embeddedRequests.some((url) => url.endsWith('/embedded/full-weasel/index.html'))).toBe(true);
+  await expect.poll(() => page.evaluate(() => ({
+    captured: window.__museum?.input.uiCaptured,
+    frozen: window.__museum?.player.isFrozen,
+  }))).toEqual({ captured: true, frozen: true });
+
+  await frame.locator('body').press('Escape');
+  await expect(panel).toBeHidden();
+  await expect.poll(() => page.evaluate(() => ({
+    captured: window.__museum?.input.uiCaptured,
+    frozen: window.__museum?.player.isFrozen,
+  }))).toEqual({ captured: false, frozen: false });
+  expect(errors).toEqual([]);
+});

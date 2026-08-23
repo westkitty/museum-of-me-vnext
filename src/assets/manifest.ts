@@ -1,6 +1,6 @@
 import type { Tier } from '../content/types';
 
-export type AssetKind = 'procedural' | 'glb' | 'texture' | 'audio';
+export type AssetKind = 'procedural' | 'glb' | 'texture' | 'audio' | 'bundle';
 export type StreamingGroup = 'shell' | `wing:${string}` | `exhibit:${string}` | 'sanctuary';
 
 /**

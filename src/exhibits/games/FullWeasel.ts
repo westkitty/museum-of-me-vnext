@@ -27,6 +27,7 @@ export class FullWeasel extends ExhibitBase {
   private lever!: THREE.Mesh;
   private treats = this.tracked<THREE.Mesh>();
   private meter!: THREE.Mesh;
+  private projection!: THREE.Mesh;
   private stage = 0;
   private spin = 0;
 
@@ -111,6 +112,28 @@ export class FullWeasel extends ExhibitBase {
     finished.position.set(0, 2.5, 0.46);
     this.cabinet.add(finished);
     scope.track(finished.geometry);
+
+    // The cabinet remains the interpretive object layer. The adjacent screen
+    // is the explicit doorway into the real, locally bundled finished game.
+    this.projection = new THREE.Mesh(
+      scope.track(new THREE.PlaneGeometry(2.8, 1.56)),
+      this.emissive(0xffb347, 0.85),
+    );
+    this.projection.position.set(0, 2.9, -4.75);
+    this.group.add(this.projection);
+    const projectionLabel = buildLabel(scope, 'FULL WEASEL // PLAY LOCAL BUILD', 1.5);
+    projectionLabel.position.set(0, 3.9, -4.7);
+    this.group.add(projectionLabel);
+    scope.track(projectionLabel.geometry);
+    this.control({
+      object: this.projection,
+      label: 'Play the finished Full Weasel',
+      description: 'Open the complete locally bundled Full Weasel rhythm game. Escape or Close returns to the museum.',
+      activate: () => {
+        this.ctx.openEmbeddedExperience?.('full-weasel');
+        this.ctx.announce('Opening the complete local Full Weasel build. Escape or Close returns to the museum.');
+      },
+    });
 
     MECHANISMS.forEach((mech, i) => {
       const handle = [this.crank, this.catchArm, this.lever][i];

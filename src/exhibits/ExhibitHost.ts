@@ -11,6 +11,8 @@ export interface HostServices {
   readonly detailScale: () => number;
   /** Load a governed asset into the exhibit's own scope. */
   readonly loadAsset: (assetId: string, scope: ResourceScope, detail: number) => Promise<THREE.Object3D>;
+  /** Open a locally bundled finished artifact through the Museum UI. */
+  readonly openEmbeddedExperience?: (id: 'full-weasel') => void;
 }
 
 class IllegalTransition extends Error {
@@ -81,6 +83,7 @@ export class ExhibitHost {
       addControl: (control) => this.services.addControl(this.record.id, control),
       announce: (message) => this.services.announce(this.record.id, message),
       loadAsset: (assetId) => this.services.loadAsset(assetId, this.scope, this.services.detailScale()),
+      openEmbeddedExperience: this.services.openEmbeddedExperience,
     };
   }
 

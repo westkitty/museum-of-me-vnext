@@ -13,6 +13,7 @@ import { SourceInstallations, INSTALLATION_HELD_CODES } from '../world/SourceIns
 import { SourceArtwork } from '../world/SourceArtwork';
 import { registerCuratedAssets, shellUrl, entranceUrl } from '../assets/curatedAssets';
 import { registerQuaterniusAssets } from '../assets/quaterniusAssets';
+import { registerFullWeaselArtifact } from '../assets/fullWeaselArtifact';
 import {
   SOURCE_INSTALLATIONS, SOURCE_SUPPLEMENTARY, SOURCE_VISITORS,
 } from '../content/sourceParity';
@@ -91,6 +92,7 @@ export class App implements LoopCallbacks {
 
     registerCuratedAssets();
     registerQuaterniusAssets();
+    registerFullWeaselArtifact();
     if (typeof document !== 'undefined') {
       document.documentElement.style.setProperty('--reliquary-shell', `url(${shellUrl})`);
       document.documentElement.style.setProperty('--reliquary-entrance', `url(${entranceUrl})`);
@@ -163,6 +165,9 @@ export class App implements LoopCallbacks {
         detailScale: () => this.renderer.quality.detailScale,
         loadAsset: async (assetId, scope, detail) =>
           (await this.assets.load(assetId, scope, { detail })).object,
+        openEmbeddedExperience: (id) => {
+          if (id === 'full-weasel') this.ui?.openFullWeasel();
+        },
       },
       {
         loadRadius: this.renderer.quality.exhibitStreamRadius + 14,

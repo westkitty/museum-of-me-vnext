@@ -346,6 +346,16 @@ html[data-motion='reduced'] *::after {
   margin-top: 1.4rem;
 }
 
+.full-weasel__frame {
+  display: block;
+  width: min(100%, 760px);
+  height: min(68vh, 620px);
+  margin: 0 auto;
+  border: 1px solid color-mix(in srgb, var(--accent, #6ce7ff) 65%, transparent);
+  border-radius: 10px;
+  background: #16111a;
+}
+
 /* ── map ────────────────────────────────────────────────────────────────── */
 .map__layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(240px, 1fr); gap: 1.6rem; }
 @media (max-width: 860px) { .map__layout { grid-template-columns: 1fr; } }
