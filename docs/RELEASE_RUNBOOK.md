@@ -20,7 +20,7 @@ A release candidate is eligible for an owner publication decision only when all 
 2. The browser job succeeds on the exact release head, including the production-only dependency audit and Playwright visitor-path suite.
 3. `npm run verify:dist` succeeds after the production build.
 4. The 35-exhibit / 64-project / 35-bespoke QA report remains green.
-5. A real-device human pass completes `validation/reports/HUMAN_QA_CHECKLIST.md`, including pointer lock, silent operation and representative-device FPS, and preserves a completed Markdown evidence record based on `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md` or the in-museum `?qa=1` recorder output.
+5. A real-device human pass completes `validation/reports/HUMAN_QA_CHECKLIST.md`, including pointer lock, muted-by-default audio and representative-device FPS, and preserves a completed Markdown evidence record based on `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md` or the in-museum `?qa=1` recorder output.
 6. Run `npm run verify:human-evidence -- <completed-human-qa.md>` against that preserved record and require PASS. The verifier checks evidence completeness only: exactly nine human acceptance checks must be PASS, at least six telemetry snapshots must be present, and human notes must exist. It does not make the underlying perceptual/device judgments.
 7. The release PR remains reviewable and mergeable.
 
@@ -53,7 +53,7 @@ npm run verify:hosted -- https://museum.example/
 
 It checks the hosted shell for a successful response, the three required mount points, shell revalidation, `nosniff`, frame denial, the required CSP boundary, same-origin content-hashed JavaScript/CSS, successful asset responses, and immutable one-year asset caching. Its own logic is exercised by `npm run test:release-tools`, which is part of the canonical gate.
 
-This is transport/header evidence only. It deliberately does **not** promote visual composition, silent operation, pointer-lock feel/recovery, or representative-device FPS to verified.
+This is transport/header evidence only. It deliberately does **not** promote visual composition, audio behavior, pointer-lock feel/recovery, or representative-device FPS to verified.
 
 ## Post-deploy verification
 
@@ -64,7 +64,7 @@ After an explicitly authorized deployment, verify the actual hosted URL rather t
 - the start view is the exterior Arrival Plaza
 - map, journal, settings and accessible contents open
 - pointer lock captures and recovers after Escape
-- the museum remains silent through entry, interaction, and zone changes
+- Sound controls begin muted and opted-in playback behaves as expected
 - a representative device records acceptable FPS
 - a representative exhibit in every wing loads, interacts and unloads without an uncaught error
 

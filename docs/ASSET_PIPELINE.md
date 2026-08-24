@@ -24,7 +24,7 @@ scope.dispose();          // asserts it drained to zero
 | `procedural` | a registered generator function, run at load time | 0 KB transferred | authored here, unambiguously owned |
 | `glb` | GLTFLoader, with KTX2 + Meshopt + Draco wired | declared per asset | source hash + processed hash |
 | `texture` | KTX2Loader | declared per asset | source hash + processed hash |
-| `audio` | no runtime playback while audio is disabled | 0 KB | retained manifest kind only |
+| `audio` | synthesised at runtime by `AudioManager`, muted by default | 0 KB | authored here |
 
 Procedural is the default (see `ASSET_POLICY.md`). The file-backed path is fully
 implemented and tested so an authentic project artifact can be carried in

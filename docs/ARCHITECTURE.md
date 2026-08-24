@@ -24,7 +24,7 @@ requestAnimationFrame
   │     └─ active exhibits: update(dt)
   │
   ├─ VARIABLE STEP (once per frame)
-  │     ├─ zone tracking (audio is temporarily disabled)
+  │     ├─ audio zones: crossfade by listener position (muted by default)
   │     ├─ streaming: evaluate zone residency, enqueue/cancel loads
   │     ├─ interaction: raycast focus, update cue
   │     └─ ui: HUD sync
@@ -46,7 +46,7 @@ src/
   interaction/  InteractionManager, focus raycast, verbs (inspect/manipulate/…)
   exhibits/     ExhibitHost, registry, 35 modules by wing
   assets/       AssetManager, manifest, ResourceScope, procedural generators
-  audio/        AudioManager silent façade (playback disabled)
+  audio/        AudioManager, zones, synthesised ambience (muted by default)
   content/      generated collection (64 projects, 35 exhibits)
   state/        preferences, journal, versioned persistence
   ui/           HUD, Map, Journal, DeepPanel, Settings — all DOM

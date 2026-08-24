@@ -94,7 +94,9 @@ test('operates the visual map and reduced-motion setting with the keyboard', asy
 
   await page.keyboard.press('o');
   await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
-  await expect(page.getByText('Sound', { exact: true })).toBeHidden();
+  await expect(page.getByText('Sound', { exact: true })).toBeVisible();
+  await expect(page.getByRole('slider', { name: 'Overall volume' })).toHaveValue('0');
+  await expect(page.getByRole('slider', { name: 'Ambience' })).toHaveValue('0');
   expect(await page.evaluate(() => window.__museum?.audio.isRunning)).toBe(false);
   const reducedMotion = page.getByRole('checkbox', { name: 'Reduced motion' });
   await reducedMotion.focus();

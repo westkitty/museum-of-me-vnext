@@ -100,6 +100,7 @@ export class App implements LoopCallbacks {
     }
     const loaded = loadPreferencesResult();
     this.preferences = loaded.preferences;
+    this.audio.setVolumes(this.preferences.masterVolume, this.preferences.ambienceVolume);
     this.journal = new Journal();
     this.study = new Study(() => new Set([
       ...SOURCE_INSTALLATIONS.map((i) => i.id),
@@ -182,6 +183,7 @@ export class App implements LoopCallbacks {
       if (this.interaction.activate()) {
         const focus = this.interaction.currentFocus;
         if (focus) this.journal.markVisited(focus.exhibitId);
+        this.audio.tick();
       }
     });
 

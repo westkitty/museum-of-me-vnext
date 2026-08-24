@@ -59,7 +59,7 @@ The repository is engineered to release, but publication is **not** the only thi
 
 1. complete `validation/reports/HUMAN_QA_CHECKLIST.md` on a representative real browser/device;
 2. verify pointer lock and recovery/recapture behavior;
-3. verify silent operation: no ambience, music, reactive sound, hidden playback, or active Sound control;
+3. verify audio starts muted at zero volume, then only plays after a visitor deliberately raises the Sound controls;
 4. record representative-device FPS and complete the visual walkthrough;
 5. keep the exact release head green after any repairs.
 
@@ -76,11 +76,11 @@ Require that command to pass, then perform the real browser/device checks:
 - direct load and hard refresh return the museum shell;
 - the exterior start, map, journal, settings and accessible contents work;
 - pointer lock captures, releases and recaptures on a real browser/device;
-- the museum remains silent through entry, interaction, and zone changes;
+- Sound controls begin at zero and opted-in audio/subtitles behave as expected;
 - representative exhibit interaction works in every wing;
 - representative-device FPS remains acceptable.
 
-`verify:hosted` checks the hosted shell, required security/cache headers, same-origin hashed JavaScript/CSS, successful asset responses and immutable asset caching. It does not substitute for visual, silent-operation, pointer-lock-feel or device-performance evidence.
+`verify:hosted` checks the hosted shell, required security/cache headers, same-origin hashed JavaScript/CSS, successful asset responses and immutable asset caching. It does not substitute for visual, audio, pointer-lock-feel or device-performance evidence.
 
 The exact merge/deploy/verify/tag ordering is governed by `docs/RELEASE_RUNBOOK.md`.
 

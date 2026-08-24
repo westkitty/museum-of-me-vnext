@@ -207,12 +207,18 @@ export class UILayer {
     if (this.app.interaction.activate()) {
       const focus = this.app.interaction.currentFocus;
       if (focus) this.app.journal.markVisited(focus.exhibitId);
+      this.app.audio.start();
+      this.app.audio.tick();
     }
   };
 
   private readonly onPointerLock = (): void => {
     const locked = document.pointerLockElement === this.app.renderer.canvas;
     this.hud.setPointerLocked(locked);
+    if (locked) {
+      this.app.audio.start();
+      this.app.audio.setZone(this.app.currentZone);
+    }
   };
 
   private mapGuide(id: string | null): void {
@@ -321,6 +327,7 @@ export class UILayer {
     document.documentElement.dataset.motion = p.reducedMotion ? 'reduced' : 'full';
     this.app.camera.fov = p.fieldOfView;
     this.app.camera.updateProjectionMatrix();
+    this.app.audio.setVolumes(p.masterVolume, p.ambienceVolume);
     savePreferences(p);
   }
 

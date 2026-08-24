@@ -22,7 +22,7 @@
 - [ ] **PENDING** — Wing furnishing and atmosphere add identity without clutter or blocked sightlines.
 - [ ] **PENDING** — Exhibit colour fields support rather than overpower representative hero objects.
 - [ ] **PENDING** — Pointer lock captures, releases, recovers, and recaptures correctly on this device.
-- [ ] **PENDING** — Museum remains silent: no ambience, music, reactive sound, or hidden playback starts.
+- [ ] **PENDING** — Audio begins muted at zero; Sound controls and opted-in playback behave as expected.
 - [ ] **PENDING** — Representative-device FPS and 1% low are acceptable at the required checkpoints.
 - [ ] **PENDING** — No visible voids, z-fighting, clipping, broken transparency, or obvious geometry failure.
 
@@ -41,9 +41,9 @@ Paste the recorder snapshots for at least:
 
 Record observed pointer-lock capture/release/recapture behavior, mouse look, keyboard look, semantic-control keyboard isolation, settings behavior, and touch fallback when available.
 
-## Silence notes
+## Audio notes
 
-Record entry, pointer-lock, interaction, zone-transition, and Suno Studio checks; note any unexpected sound or Sound control.
+Record initial zero-volume behavior, then deliberate Sound-control adjustment and the resulting ambience/reactive audio/subtitle behavior.
 
 ## Visual notes
 

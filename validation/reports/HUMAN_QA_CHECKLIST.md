@@ -14,12 +14,12 @@ npm run preview
 
 Open `http://127.0.0.1:4173/?qa=1` for the recording pass. `?qa=1` does not change the museum world or visitor behavior. It opens two evidence aids:
 
-1. the existing read-only diagnostics overlay, showing FPS/1% low, draw/triangle/resource counts, current zone/position, quality tier, interaction-control count, disabled-audio state, pointer-lock state, pending loads, and the nearest/current exhibit;
+1. the existing read-only diagnostics overlay, showing FPS/1% low, draw/triangle/resource counts, current zone/position, quality tier, interaction-control count, audio-engine state, pointer-lock state, pending loads, and the nearest/current exhibit;
 2. the **QA evidence** recorder, where the human tester manually marks the remaining perceptual/device checks, captures telemetry snapshots at meaningful locations, records notes, and generates a Markdown evidence report.
 
 The QA recorder is intentionally session-only: it does not persist checkmarks, alter the journal/preferences, or decide any pass/fail state automatically. Generate the Markdown report before closing or refreshing the page and preserve it with the screen recording as the human evidence record.
 
-Keep diagnostics visible for the performance checkpoints and pointer-lock state transitions. Hide or collapse evidence UI when it obstructs a composition judgment. Telemetry is supporting evidence only: `audio disabled` does not prove silence on its own, `pointer locked` does not prove mouse-look feel or recovery quality, and an FPS number from non-representative hardware is not release performance evidence.
+Keep diagnostics visible for the performance checkpoints and pointer-lock/audio state transitions. Hide or collapse evidence UI when it obstructs a composition judgment. Telemetry is supporting evidence only: `audio on` does not prove playback was audible, `pointer locked` does not prove mouse-look feel or recovery quality, and an FPS number from non-representative hardware is not release performance evidence.
 
 ## Recording route
 
@@ -44,10 +44,10 @@ Capture QA-recorder telemetry snapshots at minimum at the exterior spawn, Rotund
 - [ ] Toggle reduced motion, high contrast and interface scale; verify each change is immediately visible/operative.
 - [ ] Confirm touch fallback on a touch-capable device when available.
 
-## Silence and performance
+## Audio and performance
 
-- [ ] Confirm the museum remains silent through entry, pointer-lock changes, interaction, zone transitions, and the Suno Studio controls; diagnostics must remain `audio disabled`.
-- [ ] Confirm no Sound controls appear in Settings while audio is disabled.
+- [ ] Confirm Overall volume and Ambience begin at zero; entry, pointer-lock changes, interaction, and zone transitions produce no audible sound until a visitor raises them.
+- [ ] Raise the Sound controls deliberately and verify opted-in ambience/reactive audio and subtitles behave as expected.
 - [ ] Record FPS and 1% low from diagnostics on a representative device during exterior, Rotunda, a dense wing and a Tier A exhibit.
 - [ ] Watch for monotonic memory/resource growth during a long traversal if browser tooling is available; geometry/texture/residency counts provide a quick visible sanity check.
 
