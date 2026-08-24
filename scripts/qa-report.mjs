@@ -118,7 +118,7 @@ lines.push('## Human-only release evidence still required');
 lines.push('');
 lines.push('- Recorded visual walkthrough from garden through representative galleries and exhibit bays.');
 lines.push('- Pointer-lock capture, look, Escape/loss recovery and recapture on a real browser/device.');
-lines.push('- Audible ambience/exhibit audio and subtitle correspondence.');
+lines.push('- Silent-operation check: no ambience, music, reactive sound, or hidden playback.');
 lines.push('- Representative-device frame-rate measurement and subjective exposure/clipping/density review.');
 lines.push('');
 lines.push('See `validation/reports/HUMAN_QA_CHECKLIST.md` for the exact manual route.');
@@ -152,10 +152,10 @@ const manual = [
   '- [ ] Toggle reduced motion, high contrast and interface scale; verify each change is immediately visible/operative.',
   '- [ ] Confirm touch fallback on a touch-capable device when available.',
   '',
-  '## Audio and performance',
+  '## Silence and performance',
   '',
-  '- [ ] Hear each wing ambience and at least one exhibit audio event.',
-  '- [ ] Verify subtitles correspond to audible museum speech/audio cues.',
+  '- [ ] Confirm the museum remains silent through entry, pointer-lock changes, interaction, zone transitions, and the Suno Studio controls.',
+  '- [ ] Confirm no Sound controls appear in Settings while audio is disabled.',
   '- [ ] Record FPS on a representative device during exterior, Rotunda, a dense wing and a Tier A exhibit.',
   '- [ ] Watch for monotonic memory growth during a long traversal if browser tooling is available.',
   '',

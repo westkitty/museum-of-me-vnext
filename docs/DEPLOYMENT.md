@@ -4,7 +4,7 @@
 
 Static files only. There is no application server, database, API, or request-time build step.
 
-The build plan's Phase 14 recommends Cloudflare Pages for the shell plus Cloudflare R2 for large hashed museum assets. **The R2 half is not needed for the current release candidate.** Current museum models, textures and sounds are generated procedurally from code shipped in the bundle (see `docs/ASSET_POLICY.md`), so there are no runtime museum binary assets that need a second host.
+The build plan's Phase 14 recommends Cloudflare Pages for the shell plus Cloudflare R2 for large hashed museum assets. **The R2 half is not needed for the current release candidate.** Current museum models and textures are generated procedurally from code shipped in the bundle (see `docs/ASSET_POLICY.md`); runtime audio playback is disabled, so there are no runtime museum binary assets that need a second host.
 
 ## Release-candidate build
 
@@ -59,7 +59,7 @@ The repository is engineered to release, but publication is **not** the only thi
 
 1. complete `validation/reports/HUMAN_QA_CHECKLIST.md` on a representative real browser/device;
 2. verify pointer lock and recovery/recapture behavior;
-3. verify audible ambience/exhibit audio against subtitles;
+3. verify silent operation: no ambience, music, reactive sound, hidden playback, or active Sound control;
 4. record representative-device FPS and complete the visual walkthrough;
 5. keep the exact release head green after any repairs.
 
@@ -76,11 +76,11 @@ Require that command to pass, then perform the real browser/device checks:
 - direct load and hard refresh return the museum shell;
 - the exterior start, map, journal, settings and accessible contents work;
 - pointer lock captures, releases and recaptures on a real browser/device;
-- audible output and subtitles agree;
+- the museum remains silent through entry, interaction, and zone changes;
 - representative exhibit interaction works in every wing;
 - representative-device FPS remains acceptable.
 
-`verify:hosted` checks the hosted shell, required security/cache headers, same-origin hashed JavaScript/CSS, successful asset responses and immutable asset caching. It does not substitute for visual, audio, pointer-lock-feel or device-performance evidence.
+`verify:hosted` checks the hosted shell, required security/cache headers, same-origin hashed JavaScript/CSS, successful asset responses and immutable asset caching. It does not substitute for visual, silent-operation, pointer-lock-feel or device-performance evidence.
 
 The exact merge/deploy/verify/tag ordering is governed by `docs/RELEASE_RUNBOOK.md`.
 

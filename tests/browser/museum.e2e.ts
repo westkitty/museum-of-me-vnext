@@ -94,6 +94,8 @@ test('operates the visual map and reduced-motion setting with the keyboard', asy
 
   await page.keyboard.press('o');
   await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
+  await expect(page.getByText('Sound', { exact: true })).toBeHidden();
+  expect(await page.evaluate(() => window.__museum?.audio.isRunning)).toBe(false);
   const reducedMotion = page.getByRole('checkbox', { name: 'Reduced motion' });
   await reducedMotion.focus();
   await page.keyboard.press('Space');

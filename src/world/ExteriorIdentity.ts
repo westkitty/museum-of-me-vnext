@@ -18,10 +18,10 @@ export class ExteriorIdentity {
 
   constructor(private readonly scope: ResourceScope) {
     this.group.name = 'exterior-museum-identity';
-    this.stone = this.mat(0x101722, 0.82, 0.18);
-    this.warmStone = this.mat(0x1a2733, 0.72, 0.28);
+    this.stone = this.mat(0x182431, 0.76, 0.18);
+    this.warmStone = this.mat(0x263849, 0.68, 0.28);
     this.azure = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x3eabef, emissive: 0x1675ad, emissiveIntensity: 0.9, roughness: 0.3, metalness: 0.45,
+      color: 0x56b8ed, emissive: 0x17658f, emissiveIntensity: 0.62, roughness: 0.34, metalness: 0.45,
     }));
     this.beam = this.scope.track(new THREE.MeshBasicMaterial({
       color: 0x3bafff, transparent: true, opacity: 0.075, depthWrite: false, side: THREE.DoubleSide,

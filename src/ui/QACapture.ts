@@ -15,7 +15,7 @@ const CHECKS: readonly QACheck[] = [
   { id: 'wings', label: 'Wing furnishing and atmosphere add identity without clutter or blocked sightlines.' },
   { id: 'exhibits', label: 'Exhibit colour fields support rather than overpower representative hero objects.' },
   { id: 'pointer', label: 'Pointer lock captures, releases, recovers, and recaptures correctly on this device.' },
-  { id: 'audio', label: 'Audible ambience/exhibit audio agrees with visible subtitles.' },
+  { id: 'audio', label: 'Museum remains silent: no ambience, music, reactive sound, or hidden playback starts.' },
   { id: 'performance', label: 'Representative-device FPS and 1% low are acceptable at the required checkpoints.' },
   { id: 'defects', label: 'No visible voids, z-fighting, clipping, broken transparency, or obvious geometry failure.' },
 ];
@@ -99,7 +99,7 @@ export class QACapture {
 
     this.notes = el('textarea', {
       rows: '4',
-      placeholder: 'Human notes: clipping, exposure, audio mismatch, device details, exact problem location…',
+      placeholder: 'Human notes: clipping, exposure, unexpected sound, device details, exact problem location…',
       style: 'width:100%;resize:vertical;background:#0d0c12;color:#eee7db;border:1px solid #4a4358;border-radius:3px;padding:.45rem;font:11px/1.45 ui-sans-serif,system-ui;',
     });
 
@@ -116,7 +116,7 @@ export class QACapture {
       style: 'padding:.1rem .7rem .75rem;',
     },
     el('p', {
-      text: 'Manual evidence only. Mark what you actually observe; telemetry supports the record but does not decide visual, audio, pointer-lock, or performance acceptance.',
+      text: 'Manual evidence only. Mark what you actually observe; telemetry supports the record but does not decide visual, silence, pointer-lock, or performance acceptance.',
       style: 'margin:.55rem 0;color:#d3cabd;font:.7rem/1.45 ui-sans-serif,system-ui;',
     }),
     this.summary,
@@ -170,7 +170,7 @@ export class QACapture {
       `tex=${s.textures}`,
       `resident=${s.streamingResident}`,
       `active=${s.activeExhibits}`,
-      `audio=${this.app.audio.isRunning ? 'on' : 'off'}`,
+      `audio=${this.app.audio.isRunning ? 'on' : 'disabled'}`,
       `pointer=${this.app.input.pointerLocked ? 'locked' : 'free'}`,
       `exhibit=${this.app.currentExhibitId ?? '—'}`,
     ].join(' | ');

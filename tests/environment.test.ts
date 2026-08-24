@@ -174,11 +174,16 @@ describe('museum environment coherence', () => {
     scope.dispose();
   });
 
-  it('uses a procedural night sky with a dark horizon', () => {
+  it('uses a readable procedural night sky with layered stars and a Blood Band', () => {
     const scope = new ResourceScope('environment-test');
     const sky = new Sky(scope);
-    expect(sky.mesh.name).toBe('night-sky-starfield-blood-ring');
-    expect(sky.horizon.getHSL({ h: 0, s: 0, l: 0 }).l).toBeLessThan(0.12);
+    expect(sky.mesh.name).toBe('night-sky-layered-stars-blood-band');
+    const material = sky.mesh.material as THREE.ShaderMaterial;
+    expect(material.fragmentShader).toContain('starLayer');
+    expect(material.fragmentShader).toContain('bloodBand');
+    expect(material.fragmentShader).not.toContain('ringAngle');
+    expect(sky.horizon.getHSL({ h: 0, s: 0, l: 0 }).l).toBeGreaterThan(0.03);
+    expect(sky.horizon.getHSL({ h: 0, s: 0, l: 0 }).l).toBeLessThan(0.07);
     scope.dispose();
   });
 

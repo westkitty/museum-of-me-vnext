@@ -24,7 +24,7 @@ requestAnimationFrame
   │     └─ active exhibits: update(dt)
   │
   ├─ VARIABLE STEP (once per frame)
-  │     ├─ audio zones: crossfade by listener position
+  │     ├─ zone tracking (audio is temporarily disabled)
   │     ├─ streaming: evaluate zone residency, enqueue/cancel loads
   │     ├─ interaction: raycast focus, update cue
   │     └─ ui: HUD sync
@@ -46,7 +46,7 @@ src/
   interaction/  InteractionManager, focus raycast, verbs (inspect/manipulate/…)
   exhibits/     ExhibitHost, registry, 35 modules by wing
   assets/       AssetManager, manifest, ResourceScope, procedural generators
-  audio/        AudioManager, zones, synthesised ambience
+  audio/        AudioManager silent façade (playback disabled)
   content/      generated collection (64 projects, 35 exhibits)
   state/        preferences, journal, versioned persistence
   ui/           HUD, Map, Journal, DeepPanel, Settings — all DOM
@@ -77,7 +77,7 @@ scope.dispose();          // disposes everything tracked, asserts count === 0
 |---|---|---|
 | 1 — Museum proxy | Rotunda, wing shells, silhouettes, major lighting, arches, exterior | always resident |
 | 2 — Wing detail | current wing + neighbours + visible entrances | proximity |
-| 3 — Exhibit payload | hero objects, exhibit-specific geometry and audio | activation radius |
+| 3 — Exhibit payload | hero objects and exhibit-specific geometry | activation radius |
 
 `StreamingManager` evaluates residency once per frame from player position, enqueues work with
 cancellation tokens, and budgets how much construction may happen per frame so streaming never

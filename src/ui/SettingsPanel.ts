@@ -44,13 +44,6 @@ export class SettingsPanel extends Panel {
         (v) => this.handlers.update({ mouseSensitivity: v })),
       this.check('Invert vertical look', '', p.invertY, (v) => this.handlers.update({ invertY: v })),
 
-      el('h3', { text: 'Sound' }),
-      this.range('Overall volume', '', p.masterVolume, 0, 1, 0.05, (v) => this.handlers.update({ masterVolume: v })),
-      this.range('Ambience', 'Each wing has its own quiet room tone.', p.ambienceVolume, 0, 1, 0.05,
-        (v) => this.handlers.update({ ambienceVolume: v })),
-      this.check('Subtitles', 'Shows a text line for anything the museum says or plays.', p.subtitles,
-        (v) => this.handlers.update({ subtitles: v })),
-
       el('h3', { text: 'Source comfort' }),
       this.range('HUD opacity', 'Dims the overlay without hiding required museum text.', p.hudOpacity, 0.5, 1, 0.02,
         (v) => this.handlers.update({ hudOpacity: v })),

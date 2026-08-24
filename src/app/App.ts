@@ -182,7 +182,6 @@ export class App implements LoopCallbacks {
       if (this.interaction.activate()) {
         const focus = this.interaction.currentFocus;
         if (focus) this.journal.markVisited(focus.exhibitId);
-        this.audio.tick();
       }
     });
 

@@ -51,7 +51,7 @@ The plan's §39 gate, checked against the current `release/v1.0.0` release candi
 | Real production-browser boot + semantic visitor path | ✅ automated contract | The committed Chromium suite boots the production WebGL app, proves keyboard input reaches the real controller, exercises map/focus/reduced-motion behavior, and reaches the complete accessible collection. The exact release head must have its browser job green before publication. |
 | Human QA evidence recorder | ✅ automated tool contract | `?qa=1` exposes read-only diagnostics plus a session-only manual recorder for Pass/Needs work judgments, telemetry snapshots, notes, and Markdown report generation. Browser CI proves the tool operates; it does not satisfy the human judgments it records. |
 | Production dependency surface | ✅ automated contract | The browser job runs `npm audit --omit=dev --audit-level=high`. Development-tool audit findings are not represented as deployed dependency findings; the exact release head must pass this job before publication. |
-| Audio graph and preferences | 🟨 human check required | Static/unit behavior is covered, but audible output and subtitle agreement require a real browser/device. |
+| Audio disabled | 🟨 human check required | Playback primitives are disabled and Sound controls are hidden; a real browser/device must still confirm silent operation. |
 | Pointer-lock capture/look/release/recapture feel | 🟨 human check required | Runtime implementation is present; actual device capture, Escape/loss recovery and recapture remain a human acceptance check. |
 | Representative-device FPS | 🟨 human check required | Draw-call/light/residency/lifecycle/bundle budgets are automated. CI software rendering is not representative hardware performance. |
 

@@ -21,30 +21,30 @@ export class Lighting {
 
     // Night exterior: cool sky fill leaves the garden legible without turning
     // the whole interior dark. The Rotunda has its own architectural lighting.
-    const hemi = new THREE.HemisphereLight(0x10284c, 0x07100d, 0.54);
+    const hemi = new THREE.HemisphereLight(0x294f78, 0x101a22, 0.72);
     this.group.add(hemi);
 
-    const ambient = new THREE.AmbientLight(0x8bb9dc, 0.24);
+    const ambient = new THREE.AmbientLight(0xb9d2e8, 0.34);
     this.group.add(ambient);
 
-    const sun = new THREE.DirectionalLight(0xb8d9ff, 1.25);
-    sun.position.set(-58, 96, 76);
-    sun.target.position.set(0, 0, 0);
+    const moonlight = new THREE.DirectionalLight(0xc9e2ff, 1.55);
+    moonlight.position.set(-58, 96, 76);
+    moonlight.target.position.set(0, 0, 0);
     if (quality.shadows) {
-      sun.castShadow = true;
-      sun.shadow.mapSize.set(quality.shadowMapSize, quality.shadowMapSize);
-      sun.shadow.camera.near = 20;
-      sun.shadow.camera.far = 320;
+      moonlight.castShadow = true;
+      moonlight.shadow.mapSize.set(quality.shadowMapSize, quality.shadowMapSize);
+      moonlight.shadow.camera.near = 20;
+      moonlight.shadow.camera.far = 320;
       const extent = 70;
-      sun.shadow.camera.left = -extent;
-      sun.shadow.camera.right = extent;
-      sun.shadow.camera.top = extent;
-      sun.shadow.camera.bottom = -extent;
-      sun.shadow.bias = -0.0008;
+      moonlight.shadow.camera.left = -extent;
+      moonlight.shadow.camera.right = extent;
+      moonlight.shadow.camera.top = extent;
+      moonlight.shadow.camera.bottom = -extent;
+      moonlight.shadow.bias = -0.0008;
     }
-    this.group.add(sun, sun.target);
+    this.group.add(moonlight, moonlight.target);
 
-    const bounce = new THREE.DirectionalLight(0x2c6f9f, 0.34);
+    const bounce = new THREE.DirectionalLight(0x4d82a6, 0.46);
     bounce.position.set(70, 32, -90);
     bounce.target.position.set(0, 6, 0);
     this.group.add(bounce, bounce.target);
@@ -52,13 +52,13 @@ export class Lighting {
     // Three real exterior lights are justified: one holds the entrance under
     // the canopy and two wash the facade. Searchlight cones elsewhere are
     // emissive geometry, not additional scene lights.
-    const arrival = new THREE.PointLight(0x9ddcff, 220, 78, 2);
+    const arrival = new THREE.PointLight(0xb9e4ff, 300, 90, 2);
     arrival.position.set(0, 10, 132);
     this.group.add(arrival);
     this.managed.push(arrival);
 
     for (const x of [-20, 20]) {
-      const flood = new THREE.PointLight(0x47b9ff, 180, 58, 2);
+      const flood = new THREE.PointLight(0x6fcaff, 250, 68, 2);
       flood.name = 'night-exterior-floodlight';
       flood.position.set(x, 7, 117);
       this.group.add(flood);
