@@ -34,7 +34,7 @@
       "localPersistence": true,
       "guide": "local deterministic Collection and Journal lookup with existing floor-line wayfinding; no provider or teleport",
       "authoring": "Museum Workshop: development-only ?edit=1 editor over the real Three.js scene; safe non-colliding placement manifest is consumed by normal builds",
-      "authoringWriteBoundary": "Vite serve-only localhost POST to one fixed validated placement file; no production write endpoint",
+      "authoringWriteBoundary": "Vite serve-only loopback and same-origin POST to one fixed validated placement file; no production write endpoint",
       "networkRequiredForBaseline": false
     }
   },
@@ -74,13 +74,16 @@
     "recordedAt": "2026-08-27",
     "baseCommit": "a87710b3b4c4403306ac322419faa6f9b153eedf",
     "creativeExpansionBaseline": "80a18d9e437b584f8adabccd9b34065e57c05d57",
-    "workshopBrowserEvidenceCommit": "4010e51a22c2d16b3b745f8592380a678a331874",
+    "verifiedWorkshopImplementationCommit": "de54b56f1baab046fcc7b1eb4277d58f21370649",
+    "verifiedWorkflowRun": 33036887926,
     "checks": [
-      "npm run gate on Workshop branch: PASS",
-      "npm run test:workshop: PASS in real Chromium after real museum WebGL boot",
-      "Workshop browser journey proved add, numeric transform, duplicate, undo, redo, F8 control handback, localhost source save, reload, and source-authoritative persistence",
-      "release dist verifier rejects leaked Workshop editor/write markers",
-      "fresh Workshop-branch standalone verification is wired in CI and remains pending until its job completes"
+      "canonical npm run gate: PASS",
+      "production dependency audit, production build, and real Chromium visitor-path job: PASS",
+      "dedicated Museum Workshop Chromium journey: PASS after real museum WebGL boot",
+      "Workshop journey proved add, numeric transform, duplicate, undo, redo, F8 control handback, foreign-Origin HTTP 403 rejection, localhost source save, reload, and source-authoritative persistence",
+      "release dist verifier rejects leaked Workshop editor/write markers and styles",
+      "fresh offline standalone build and verification: PASS",
+      "existing standalone runtime source QA remains 14/14 source installations, 17/17 authored visitor conversations, zero remote requests"
     ]
   }
 }
