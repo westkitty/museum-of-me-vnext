@@ -2,7 +2,7 @@
 /**
  * Runs the real Workshop authoring journey, builds from the authored source,
  * proves the saved objects in the offline standalone runtime, and restores the
- * developer's original manifest bytes before returning.
+ * developer's original manifest and conservation-ledger bytes before returning.
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
@@ -12,12 +12,28 @@ import { chromium } from '@playwright/test';
 
 const root = join(import.meta.dirname, '..');
 const source = join(root, 'data', 'workshop-placements.json');
+const ledgerSource = join(root, 'data', 'workshop-conservation-ledger.json');
 const release = join(root, 'release', 'The_Reliquary_of_Iterative_Becoming.html');
 const original = await readFile(source);
+const originalLedger = await readFile(ledgerSource);
+const originalLedgerCount = JSON.parse(originalLedger.toString('utf8')).checkpoints?.length ?? 0;
 
 function run(command, args) {
   const result = spawnSync(command, args, { cwd: root, stdio: 'inherit', env: process.env });
   if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} failed with status ${result.status}`);
+}
+
+async function verifyConservationLedger() {
+  const ledger = JSON.parse(await readFile(ledgerSource, 'utf8'));
+  const checkpoints = Array.isArray(ledger.checkpoints) ? ledger.checkpoints : [];
+  if (checkpoints.length <= originalLedgerCount) {
+    throw new Error(`Workshop proof did not append a conservation checkpoint (${checkpoints.length} <= ${originalLedgerCount})`);
+  }
+  const latest = checkpoints.at(-1);
+  if (latest?.conservation !== 'PASS' || typeof latest?.afterHash !== 'string' || latest.afterHash.length !== 64) {
+    throw new Error(`Workshop proof produced an invalid conservation checkpoint: ${JSON.stringify(latest)}`);
+  }
+  console.log(`workshop conservation ledger: PASS checkpoints +${checkpoints.length - originalLedgerCount}`);
 }
 
 async function verifyAuthoredStandalone() {
@@ -59,8 +75,12 @@ async function verifyAuthoredStandalone() {
 
 try {
   run('npx', ['playwright', 'test', '--config', 'playwright.workshop.config.ts']);
+  await verifyConservationLedger();
   run('npm', ['run', 'build:standalone']);
   await verifyAuthoredStandalone();
 } finally {
-  await writeFile(source, original);
+  await Promise.all([
+    writeFile(source, original),
+    writeFile(ledgerSource, originalLedger),
+  ]);
 }
