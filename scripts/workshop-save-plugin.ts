@@ -13,6 +13,24 @@ function isLoopback(address: string | undefined): boolean {
     || address === '::ffff:127.0.0.1';
 }
 
+/**
+ * Refuse browser-originated cross-site writes even though the socket itself is
+ * local. This prevents an unrelated web page from treating a running Vite dev
+ * server as a write primitive. Non-browser tools without Origin remain subject
+ * to the loopback, method, content-type, schema, size, and fixed-path gates.
+ */
+function isSameOriginRequest(req: IncomingMessage): boolean {
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  const host = req.headers.host;
+  if (!host) return false;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
 async function readBody(req: IncomingMessage): Promise<string> {
   return await new Promise((resolveBody, reject) => {
     let bytes = 0;
@@ -56,6 +74,10 @@ export function museumWorkshopSavePlugin(): Plugin {
         }
         if (!isLoopback(req.socket.remoteAddress)) {
           json(res, 403, { ok: false, error: 'Workshop writes are allowed only from localhost.' });
+          return;
+        }
+        if (!isSameOriginRequest(req)) {
+          json(res, 403, { ok: false, error: 'Workshop browser writes must be same-origin.' });
           return;
         }
         if (!String(req.headers['content-type'] ?? '').toLowerCase().startsWith('application/json')) {
