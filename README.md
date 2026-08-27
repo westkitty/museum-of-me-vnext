@@ -17,10 +17,36 @@ Then walk in. `WASD` or `arrows` move · mouse look · `Q/E` rotate · `Shift` s
 `F` or `Enter` interact · `M` map · `J` journal · `Esc` release pointer. Keyboard-only vertical look
 uses `Page Up/Page Down`.
 
+## Museum Workshop — development authoring
+
+Museum Workshop is a development-only authoring layer over the real museum scene. Start the normal
+Vite dev server, then open `http://127.0.0.1:5173/?edit=1`. Workshop opens automatically; `F8`
+toggles it afterward.
+
+Workshop Core deliberately edits only safe, non-colliding placement objects. It supports direct
+Three.js transform gizmos, exact transform fields, world/local mode, floor snapping, add/duplicate/
+delete, an outliner, and command-style undo/redo. `Save to build` writes the validated, deterministic
+source manifest at `data/workshop-placements.json`; normal development, production, and standalone
+museum builds all consume that same placement source.
+
+The save bridge is a Vite `serve`-only localhost endpoint with a fixed target and shared schema
+validation. Production builds contain the saved placement runtime but must not contain Workshop UI,
+styles, transform controls, or the filesystem write endpoint; `npm run verify:dist` enforces that
+boundary.
+
+Structural/collision-authoritative museum systems remain locked in Workshop Core: walls, floors,
+stairs, ramps, the flight pad, Dexter Sanctuary route geometry, source installations, authored
+visitor routes, and other verified spatial invariants are not editable through this first slice.
+
+Useful shortcuts while Workshop is open: `W/E/R` move/rotate/scale · `G` snap to supporting floor ·
+`Cmd/Ctrl+D` duplicate · `Delete` remove · `Cmd/Ctrl+Z` undo · `Shift+Cmd/Ctrl+Z` redo ·
+`Cmd/Ctrl+S` save.
+
 ## Validate it
 
 ```bash
-npm run gate     # canonical automated release gate: checks, QA report, build, budgets
+npm run gate          # canonical automated release gate: checks, QA report, build, budgets
+npm run test:workshop # real Chromium Workshop authoring + source-save/reload journey
 ```
 
 ## Structure
@@ -35,6 +61,8 @@ npm run gate     # canonical automated release gate: checks, QA report, build, b
 | `docs/PRIVACY_POLICY.md` | what may never appear in visitor-facing space |
 | `data/exhibit-mapping.json` | the frozen 64 → 35 mapping |
 | `data/projects/*.json` | museum copy for all 64 projects |
+| `data/workshop-placements.json` | versioned authoring source written by the dev-only Museum Workshop |
+| `src/workshop/` | placement runtime, schema/history, safe-prefab catalog, and dev editor |
 | `docs/DEPLOYMENT.md` | how to host it, and the one decision that remains |
 | `docs/RELEASE_CHECKLIST.md` | the release gate, item by item, with the evidence for each |
 | `validation/reports/QA_REPORT.md` | per-exhibit QA checklist and coverage |
