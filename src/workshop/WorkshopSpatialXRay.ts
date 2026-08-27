@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GROUND_Y, LEVEL_1_Y, SANCTUARY_FLOOR_Y } from '../world/layout';
 import { validateWorkshopConservation } from './conservation';
-import type { WorkshopPlacementManifest, WorkshopPlacementRecord } from './schema';
+import { WORKSHOP_SCHEMA_VERSION, type WorkshopPlacementManifest, type WorkshopPlacementRecord } from './schema';
 
 const SAMPLE_STEP = 3;
 const SAMPLE_LIMIT = 72;
@@ -20,7 +20,7 @@ function probeRecord(x: number, y: number, z: number): WorkshopPlacementRecord {
 }
 
 function probeManifest(record: WorkshopPlacementRecord): WorkshopPlacementManifest {
-  return { version: 1, objects: [record] };
+  return { schemaVersion: WORKSHOP_SCHEMA_VERSION, objects: [record] };
 }
 
 function pointsGeometry(points: readonly THREE.Vector3[]): THREE.BufferGeometry {
