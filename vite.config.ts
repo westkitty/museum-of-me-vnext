@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite';
 import { fileURLToPath, URL } from 'node:url';
+import { museumWorkshopSavePlugin } from './scripts/workshop-save-plugin';
 
 export default defineConfig({
   base: './',
   assetsInclude: ['**/*.glb'],
+  plugins: [museumWorkshopSavePlugin()],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

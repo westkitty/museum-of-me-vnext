@@ -48,7 +48,30 @@ for (const required of [
 }
 
 const jsChunks = rel.filter((name) => /^assets\/.+\.js$/.test(name));
+const cssChunks = rel.filter((name) => /^assets\/.+\.css$/.test(name));
 if (jsChunks.length < 2) errors.push(`expected multiple production JavaScript chunks, found ${jsChunks.length}`);
+
+// Museum Workshop is a local development authoring tool. The declarative
+// placement runtime belongs in production; editor UI and the filesystem write
+// endpoint absolutely do not. Build-time dead-code elimination must prove that
+// separation on every release build.
+const workshopRuntimeMarkers = [
+  '/__museum-workshop/save',
+  'Museum Workshop development editor',
+  'museum-workshop-transform-controls',
+];
+for (const chunk of jsChunks) {
+  const text = readFileSync(join(root, chunk), 'utf8');
+  for (const marker of workshopRuntimeMarkers) {
+    if (text.includes(marker)) errors.push(`development-only Workshop marker leaked into ${chunk}: ${marker}`);
+  }
+}
+for (const chunk of cssChunks) {
+  const text = readFileSync(join(root, chunk), 'utf8');
+  if (text.includes('.museum-workshop')) {
+    errors.push(`development-only Workshop styles leaked into ${chunk}`);
+  }
+}
 
 if (errors.length) {
   console.error('release dist: FAIL');
@@ -62,3 +85,4 @@ console.log(`  - ${rel.length} files`);
 console.log(`  - ${(bytes / 1024 / 1024).toFixed(2)} MB uncompressed build output`);
 console.log(`  - ${jsChunks.length} JavaScript chunks`);
 console.log('  - hashed assets, cache policy, CSP and secret-file denylist verified');
+console.log('  - development-only Museum Workshop editor/write path excluded from production');
