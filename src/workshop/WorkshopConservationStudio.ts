@@ -42,6 +42,8 @@ export class Workshop {
   private readonly list = document.createElement('ol');
   private readonly xrayButton = document.createElement('button');
   private readonly ledgerButton = document.createElement('button');
+  private readonly baseObserver: MutationObserver;
+  private ledgerCount: number | null = null;
 
   constructor(app: App, placements: MuseumPlacements) {
     this.base = new BaseWorkshop(app, placements);
@@ -67,6 +69,13 @@ export class Workshop {
     actions.append(this.xrayButton, this.ledgerButton);
     this.root.append(title, actions, this.status, this.list);
     document.body.append(this.root);
+
+    // Base Workshop owns F8, Escape and its own Exit button. Observe its hidden
+    // state so this additive shell follows every existing open/close path.
+    const baseRoot = document.querySelector<HTMLElement>('.museum-workshop');
+    this.baseObserver = new MutationObserver(() => this.syncOpenState());
+    if (baseRoot) this.baseObserver.observe(baseRoot, { attributes: true, attributeFilter: ['hidden'] });
+    this.syncOpenState();
   }
 
   get isOpen(): boolean { return this.base.isOpen; }
@@ -74,43 +83,44 @@ export class Workshop {
   open(): void {
     this.base.open();
     this.syncOpenState();
-    if (this.base.isOpen) void this.refreshLedger();
   }
 
   close(): void {
-    this.xray.setEnabled(false);
     this.base.close();
     this.syncOpenState();
   }
 
   toggle(): void {
-    if (this.base.isOpen) this.close();
-    else this.open();
+    this.base.toggle();
+    this.syncOpenState();
   }
 
   dispose(): void {
+    this.baseObserver.disconnect();
     this.xray.dispose();
     this.base.dispose();
     this.root.remove();
   }
 
   private syncOpenState(): void {
+    const wasHidden = this.root.hidden;
     this.root.hidden = !this.base.isOpen;
     if (!this.base.isOpen) this.xray.setEnabled(false);
-    this.renderXRayState();
+    if (wasHidden && this.base.isOpen) void this.refreshLedger();
+    this.renderStatus();
   }
 
   private toggleXRay(): void {
     const enabled = this.xray.toggle();
     this.xrayButton.textContent = enabled ? 'Hide Spatial X-Ray' : 'Spatial X-Ray';
-    this.renderXRayState();
+    this.renderStatus();
   }
 
-  private renderXRayState(): void {
+  private renderStatus(): void {
     const xray = this.xray.isEnabled ? `X-Ray ON — ${this.xray.summary}` : 'X-Ray off';
-    const ledger = this.list.childElementCount > 0
-      ? `${this.list.childElementCount} recent checkpoints shown`
-      : 'Ledger not loaded';
+    const ledger = this.ledgerCount === null
+      ? 'Ledger not loaded'
+      : `${this.ledgerCount} conservation checkpoint${this.ledgerCount === 1 ? '' : 's'}`;
     this.status.textContent = `${xray}. ${ledger}. Cyan = open sampled space; red = protected sampled space.`;
   }
 
@@ -120,15 +130,17 @@ export class Workshop {
       const response = await fetch(LEDGER_ENDPOINT, { cache: 'no-store' });
       if (!response.ok) throw new Error(`Ledger HTTP ${response.status}`);
       const ledger = await response.json() as LedgerDocument;
+      this.ledgerCount = ledger.checkpoints.length;
       this.renderLedger(ledger);
     } catch (error) {
+      this.ledgerCount = null;
       this.list.replaceChildren();
       const item = document.createElement('li');
       item.textContent = error instanceof Error ? error.message : 'Ledger unavailable.';
       this.list.append(item);
     } finally {
       this.ledgerButton.disabled = false;
-      this.renderXRayState();
+      this.renderStatus();
     }
   }
 
