@@ -105,7 +105,10 @@ export class Workshop {
   private syncOpenState(): void {
     const wasHidden = this.root.hidden;
     this.root.hidden = !this.base.isOpen;
-    if (!this.base.isOpen) this.xray.setEnabled(false);
+    if (!this.base.isOpen) {
+      this.xray.setEnabled(false);
+      this.xrayButton.textContent = 'Spatial X-Ray';
+    }
     if (wasHidden && this.base.isOpen) void this.refreshLedger();
     this.renderStatus();
   }
