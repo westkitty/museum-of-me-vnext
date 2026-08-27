@@ -12,8 +12,15 @@ import {
   validateWorkshopManifest,
   type WorkshopPlacementManifest,
 } from '../src/workshop/schema';
+import {
+  appendWorkshopCheckpoint,
+  createWorkshopCheckpoint,
+  readWorkshopLedger,
+  readWorkshopManifestOrEmpty,
+} from './workshop-conservation-ledger';
 
-const ENDPOINT = '/__museum-workshop/save';
+const SAVE_ENDPOINT = '/__museum-workshop/save';
+const LEDGER_ENDPOINT = '/__museum-workshop/ledger';
 const MAX_BODY_BYTES = 256 * 1024;
 
 function isLoopback(address: string | undefined): boolean {
@@ -103,20 +110,41 @@ export function museumWorkshopSavePlugin(): Plugin {
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const url = req.url?.split('?')[0] ?? '';
-        if (url !== ENDPOINT) {
+        if (url !== SAVE_ENDPOINT && url !== LEDGER_ENDPOINT) {
           next();
           return;
         }
-        if (req.method !== 'POST') {
-          json(res, 405, { ok: false, error: 'POST required' });
-          return;
-        }
         if (!isLoopback(req.socket.remoteAddress)) {
-          json(res, 403, { ok: false, error: 'Workshop writes are allowed only from localhost.' });
+          json(res, 403, { ok: false, error: 'Workshop tools are allowed only from localhost.' });
           return;
         }
         if (!isSameOriginRequest(req)) {
-          json(res, 403, { ok: false, error: 'Workshop browser writes must be same-origin.' });
+          json(res, 403, { ok: false, error: 'Workshop browser tools must be same-origin.' });
+          return;
+        }
+
+        const target = resolve(process.cwd(), 'data/workshop-placements.json');
+        const ledgerPath = resolve(process.cwd(), 'data/workshop-conservation-ledger.json');
+
+        if (url === LEDGER_ENDPOINT) {
+          if (req.method !== 'GET') {
+            json(res, 405, { ok: false, error: 'GET required' });
+            return;
+          }
+          try {
+            const ledger = await readWorkshopLedger(ledgerPath);
+            json(res, 200, { ...ledger });
+          } catch (error) {
+            json(res, 500, {
+              ok: false,
+              error: error instanceof Error ? error.message : 'Workshop ledger read failed.',
+            });
+          }
+          return;
+        }
+
+        if (req.method !== 'POST') {
+          json(res, 405, { ok: false, error: 'POST required' });
           return;
         }
         if (!String(req.headers['content-type'] ?? '').toLowerCase().startsWith('application/json')) {
@@ -126,7 +154,7 @@ export function museumWorkshopSavePlugin(): Plugin {
 
         try {
           const raw = JSON.parse(await readBody(req)) as unknown;
-          const target = resolve(process.cwd(), 'data/workshop-placements.json');
+          const before = await readWorkshopManifestOrEmpty(target);
           const result = await writeWorkshopManifest(raw, target);
           if (!result.ok || !result.manifest) {
             json(res, result.status, {
@@ -138,10 +166,23 @@ export function museumWorkshopSavePlugin(): Plugin {
             return;
           }
 
+          const checkpoint = createWorkshopCheckpoint(before, result.manifest);
+          try {
+            await appendWorkshopCheckpoint(ledgerPath, checkpoint);
+          } catch (ledgerError) {
+            const rollback = await writeWorkshopManifest(before, target);
+            if (!rollback.ok) {
+              throw new Error('Conservation ledger failed and placement rollback was rejected.');
+            }
+            throw ledgerError;
+          }
+
           json(res, 200, {
             ok: true,
             path: 'data/workshop-placements.json',
             objects: result.manifest.objects.length,
+            checkpoint: checkpoint.id,
+            conservation: checkpoint.conservation,
           });
         } catch (error) {
           json(res, 500, {
