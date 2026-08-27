@@ -3,9 +3,9 @@
 ## TodoCheckpointDraft
 
 - Completed: live branch/source readback; exact CI failure adjudication; browser stop-order repair; shared conservation validator; runtime and save-bridge enforcement; focused fixtures; ordinary five-journey browser suite; two-placement authoring proof; standalone/offline verification; canonical gate; production dependency audit; append-only truth-spine reconciliation.
-- Active slice: scoped Git closeout and exact-head CI verification.
-- Pending: commit/push and the exact-head GitHub Actions result. Merge, main/release mutation, and external Bible update remain out of scope.
-- Next step: inspect the final diff, stage only task-owned paths, commit, push the feature branch, and inspect the resulting exact-head workflow.
+- Active slice: documentation-only truth-record closeout after exact-head CI.
+- Pending: none within the authorized implementation slice. Merge, main/release mutation, and external Bible update remain out of scope.
+- Next step: commit the truth-record update, verify the final repository state, and stop.
 
 ## Evidence
 
@@ -25,9 +25,9 @@
 - Scope: aligned; all implementation remains inside the owner-authorized Workshop, browser-harness and truth-spine boundary.
 - Compatibility: safe prefab whitelist/schema and Museum structural authority are unchanged.
 - New owner/fallback/branch: one conservation owner at `src/workshop/conservation.ts`; no fallback, duplicate geometry authority or new production write path.
-- Truth records: active branch and current hardening status are reconciled; exact pushed head and CI result are intentionally not asserted until observed.
-- Decision: continue to Git closeout and exact-head CI inspection.
+- Truth records: active branch, verified implementation commit and exact CI run are reconciled; the remaining follow-up is documentation-only.
+- Decision: close after the truth-record commit and final repository readback.
 
 ## Risk / Unknown
 
-The current local evidence is strong but exact-head CI remains unverified until push. Human visual/audio/pointer-lock/device-performance acceptance remains governed by the existing human-QA boundary and is not inferred from automation.
+The implementation commit has exact-head CI coverage. Human visual/audio/pointer-lock/device-performance acceptance remains governed by the existing human-QA boundary and is not inferred from automation.
