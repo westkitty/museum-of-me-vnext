@@ -2,7 +2,7 @@
 
 ## Stack
 
-TypeScript · Vite 6 · vanilla Three.js 0.185.0 · semantic DOM UI · Vitest · Playwright.
+TypeScript · Vite 6 · vanilla Three.js 0.185.1 · semantic DOM UI · Vitest · Playwright.
 
 No React, no R3F, no physics engine, no state library. Plan §18.2: the museum needs explicit
 lifecycle ownership and aggressive disposal across 35 independent modules, which a retained-mode
@@ -51,11 +51,38 @@ src/
   state/        preferences, journal, versioned persistence
   ui/           HUD, Map, Journal, DeepPanel, Settings — all DOM
   accessibility/ reduced motion, focus, DOM mirrors of world text
+  workshop/     authored placement runtime + development-only authoring surface
 ```
 
 Dependency direction is strictly downward: `exhibits` may import from `assets`, `interaction`,
 `content`, `audio`. Nothing imports from `exhibits` except the registry. Nothing outside `app`
 imports `Loop`.
+
+## Museum Workshop authoring boundary
+
+Museum Workshop does not create a second engine or scene model. The normal museum runtime always
+loads the versioned declarative source `data/workshop-placements.json` through
+`MuseumPlacements`. Those authored placement objects are deliberately non-colliding in Workshop
+Core and own a bounded `ResourceScope`.
+
+The editing surface itself is development-only. `src/main.ts` dynamically imports `Workshop` only
+when both `import.meta.env.DEV` and `?edit=1` are true. Workshop attaches Three.js
+`TransformControls` to the real museum camera/canvas, freezes visitor movement while authoring, and
+uses semantic DOM for the inspector, object palette, outliner, commands, and save feedback.
+
+Saving does not mutate TypeScript or expose arbitrary filesystem access. A Vite `apply: 'serve'`
+plugin exposes one localhost-only POST endpoint with a 256 KiB body limit, shared schema validation,
+a fixed target (`data/workshop-placements.json`), and atomic replacement. Production and standalone
+builds consume the resulting manifest but do not contain that write endpoint or editor UI.
+`scripts/verify-release-dist.mjs` rejects a release build if Workshop editor/write markers or styles
+leak into production output.
+
+Workshop Core may author only explicitly whitelisted safe placement prefabs. Structural and
+collision-authoritative systems — walls, floors, stairs, ramps, the rotunda flight pad, Sanctuary
+route geometry, source installations, authored visitor routes, and other verified spatial contracts —
+remain outside its mutation surface. A later structural-authoring phase must derive render geometry,
+collision, and dependent interaction/navigation data from one authoritative record before those
+systems can be made editable.
 
 ## Resource ownership — `ResourceScope`
 
