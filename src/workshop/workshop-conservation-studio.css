@@ -1,0 +1,9 @@
+.museum-conservation-studio{position:fixed;right:18px;bottom:18px;z-index:46;width:min(380px,calc(100vw - 36px));padding:12px;border:1px solid rgba(130,210,230,.42);background:rgba(8,16,22,.94);color:#e7f7fb;font:12px/1.4 system-ui,sans-serif;box-shadow:0 10px 35px rgba(0,0,0,.42)}
+.museum-conservation-studio[hidden]{display:none}
+.museum-conservation-studio strong{display:block;letter-spacing:.16em;font-size:11px;margin-bottom:8px}
+.museum-conservation-actions{display:flex;gap:8px;flex-wrap:wrap}
+.museum-conservation-actions button{border:1px solid rgba(130,210,230,.45);background:#14242d;color:#e7f7fb;padding:6px 9px;cursor:pointer}
+.museum-conservation-actions button:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.museum-conservation-status{margin:9px 0;color:#b8d9e2}
+.museum-conservation-ledger{max-height:160px;overflow:auto;margin:0;padding-left:20px}
+.museum-conservation-ledger li{margin:4px 0;color:#dcebf0}
