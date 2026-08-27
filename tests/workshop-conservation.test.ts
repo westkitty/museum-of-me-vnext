@@ -24,13 +24,13 @@ afterEach(async () => {
   await Promise.all(tempRoots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-function record(id: string, x: number): WorkshopPlacementRecord {
+function record(id: string, x: number, z = 200): WorkshopPlacementRecord {
   return {
     id,
     label: id,
     prefab: 'museum-bench',
     anchor: 'floor',
-    position: [x, 0, 40],
+    position: [x, 0, z],
     rotation: [0, 0, 0],
     scale: [1, 1, 1],
   };
@@ -61,6 +61,11 @@ describe('Workshop conservation ledger', () => {
     expect(checkpoint.afterHash).toMatch(/^[a-f0-9]{64}$/);
     expect(checkpoint.beforeHash).not.toBe(checkpoint.afterHash);
     expect(checkpoint.id).toContain(checkpoint.afterHash.slice(0, 10));
+  });
+
+  it('refuses to stamp PASS onto a conservation violation', () => {
+    const violating = manifest([record('bad-bench', 0, 0)]);
+    expect(() => createWorkshopCheckpoint(manifest([]), violating)).toThrow('Cannot checkpoint a conservation-violating manifest');
   });
 
   it('persists and rereads bounded checkpoints without mutating the placement source', async () => {
