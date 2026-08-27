@@ -16,11 +16,30 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   });
   await page.goto('/?edit=1');
 
+  const buildMode = page.getByRole('button', { name: 'Enter Build Mode' });
+  const lockPrompt = page.getByRole('button', { name: 'Enter the museum and capture mouse look' });
   const workshop = page.locator('.museum-workshop');
+  await expect(buildMode).toBeVisible({ timeout: 60_000 });
+  await expect(lockPrompt).toBeVisible();
+  await expect(workshop).toBeHidden();
+  await stopSoftwareRenderLoop(page);
+  await expect(workshop).toBeAttached({ timeout: 60_000 });
+  await expect.poll(() => page.evaluate(() => ({
+    captured: Boolean(window.__museum?.input.uiCaptured),
+    frozen: Boolean(window.__museum?.player.isFrozen),
+  }))).toEqual({ captured: false, frozen: false });
+
+  await buildMode.click();
   await expect(workshop).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('button', { name: 'Exit Build Mode' })).toBeVisible();
+  await expect(lockPrompt).toBeHidden();
+  await expect.poll(() => page.evaluate(() => ({
+    captured: Boolean(window.__museum?.input.uiCaptured),
+    frozen: Boolean(window.__museum?.player.isFrozen),
+    transformEnabled: Boolean((window.__museumWorkshop as unknown as { transform?: { enabled?: boolean } } | undefined)?.transform?.enabled),
+  }))).toEqual({ captured: true, frozen: true, transformEnabled: true });
   await expect(workshop.getByRole('heading', { name: 'Museum Workshop' })).toBeVisible();
   await expect(workshop.getByText('DEVELOPMENT ONLY')).toBeVisible();
-  await stopSoftwareRenderLoop(page);
 
   const keymap = workshop.locator('[data-workshop="keymap"]');
   await expect(keymap).toBeVisible();
@@ -63,8 +82,13 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   await expect(workshop).toBeHidden();
   const frozenAfterClose = await page.evaluate(() => Boolean(window.__museum?.player.isFrozen));
   expect(frozenAfterClose).toBe(false);
+  await expect(page.getByRole('button', { name: 'Enter Build Mode' })).toBeVisible();
+  await expect(lockPrompt).toBeVisible();
+  await lockPrompt.focus();
+  await page.keyboard.press('Enter');
   await page.keyboard.press('F8');
   await expect(workshop).toBeVisible();
+  await expect(lockPrompt).toBeHidden();
 
   // A foreign browser origin must not be able to use a locally running Vite
   // server as a repository write primitive, even though the TCP peer is local.
@@ -90,6 +114,12 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   await page.reload();
   const reloadedWorkshop = page.locator('.museum-workshop');
   try {
+    const reloadedBuildMode = page.getByRole('button', { name: 'Enter Build Mode' });
+    await expect(reloadedBuildMode).toBeVisible({ timeout: 60_000 });
+    await expect(reloadedWorkshop).toBeHidden();
+    await stopSoftwareRenderLoop(page);
+    await expect(reloadedWorkshop).toBeAttached({ timeout: 60_000 });
+    await reloadedBuildMode.click();
     await expect(reloadedWorkshop).toBeVisible({ timeout: 30_000 });
   } catch (error) {
     throw new Error(`${error instanceof Error ? error.message : error}\nBrowser errors: ${browserErrors.join(' | ')}`);

@@ -66,9 +66,12 @@ loads the versioned declarative source `data/workshop-placements.json` through
 Core and own a bounded `ResourceScope`.
 
 The editing surface itself is development-only. `src/main.ts` dynamically imports `Workshop` only
-when both `import.meta.env.DEV` and `?edit=1` are true. Workshop attaches Three.js
-`TransformControls` to the real museum camera/canvas, freezes visitor movement while authoring, and
-uses semantic DOM for the inspector, object palette, outliner, commands, and save feedback.
+when both `import.meta.env.DEV` and `?edit=1` are true. That query exposes a visible `BUILD MODE`
+control but leaves Workshop closed; `F8` is the secondary toggle. Workshop attaches Three.js
+`TransformControls` to the real museum camera/canvas, releases pointer lock, captures UI ownership,
+and freezes visitor movement only while active. The ordinary capture prompt is suppressed for that
+interval and returns when Workshop closes. Semantic DOM owns the inspector, object palette, outliner,
+commands, and save feedback.
 
 Saving does not mutate TypeScript or expose arbitrary filesystem access. A Vite `apply: 'serve'`
 plugin exposes one localhost-only POST endpoint with a 256 KiB body limit, shared schema and
@@ -86,6 +89,13 @@ route geometry, source installations, authored visitor routes, and other verifie
 remain outside its mutation surface. A later structural-authoring phase must derive render geometry,
 collision, and dependent interaction/navigation data from one authoritative record before those
 systems can be made editable.
+
+The canonical night exterior keeps separate visual and spatial authorities. `Sky` owns the
+camera-following star dome, while its complete crystalline Blood Ring is a tracked, world-relative
+physical torus added directly to the scene; it does not follow the camera and does not paint a second
+sky stripe. `ArrivalGarden` owns a visual-only water shader updated from the existing application
+loop, with low-frequency organic motion and a reduced-motion freeze. Neither system adds collision or
+another frame loop.
 
 ## Resource ownership — `ResourceScope`
 

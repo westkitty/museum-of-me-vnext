@@ -7,7 +7,7 @@ async function bootMuseum(page: Page, path = '/'): Promise<string[]> {
     if (message.type() === 'error') errors.push(`console: ${message.text()}`);
   });
 
-  await page.goto(path, { waitUntil: 'domcontentloaded' });
+  await page.goto(path, { waitUntil: 'commit' });
   await page.waitForFunction(() => Boolean(window.__museum));
   await expect(page.locator('#museum-canvas')).toBeVisible();
 

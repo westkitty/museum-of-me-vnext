@@ -174,14 +174,24 @@ describe('museum environment coherence', () => {
     scope.dispose();
   });
 
-  it('uses a readable procedural night sky with layered stars and a Blood Band', () => {
+  it('uses a readable procedural night sky with a world-relative physical Blood Ring', () => {
     const scope = new ResourceScope('environment-test');
     const sky = new Sky(scope);
-    expect(sky.mesh.name).toBe('night-sky-layered-stars-blood-band');
+    expect(sky.mesh.name).toBe('night-sky-layered-stars');
     const material = sky.mesh.material as THREE.ShaderMaterial;
     expect(material.fragmentShader).toContain('starLayer');
-    expect(material.fragmentShader).toContain('bloodBand');
+    expect(material.fragmentShader).not.toContain('bloodBand');
     expect(material.fragmentShader).not.toContain('ringAngle');
+    expect(sky.bloodRing.name).toBe('blood-ring-complete-orbital-structure');
+    expect(sky.bloodRing.geometry).toBeInstanceOf(THREE.TorusGeometry);
+    expect(sky.bloodRing.position.y).toBe(Sky.BLOOD_RING_HEIGHT);
+    expect(sky.bloodRing.position.x).toBe(0);
+    expect(sky.bloodRing.position.z).toBe(0);
+    expect(sky.bloodRing.material).toBeInstanceOf(THREE.MeshPhysicalMaterial);
+    const ringMaterial = sky.bloodRing.material as THREE.MeshPhysicalMaterial;
+    expect(ringMaterial.transmission).toBeGreaterThan(0);
+    expect(ringMaterial.thickness).toBeGreaterThan(0);
+    expect(ringMaterial.flatShading).toBe(true);
     expect(sky.horizon.getHSL({ h: 0, s: 0, l: 0 }).l).toBeGreaterThan(0.03);
     expect(sky.horizon.getHSL({ h: 0, s: 0, l: 0 }).l).toBeLessThan(0.07);
     scope.dispose();
@@ -190,10 +200,21 @@ describe('museum environment coherence', () => {
   it('adds visual-only island terrain, shoreline, and water without altering collision ownership', () => {
     const scope = new ResourceScope('environment-test');
     const collision = new CollisionWorld();
-    const garden = new ArrivalGarden(scope, collision).build();
-    expect(garden.getObjectByName('night-island-terrain')).toBeTruthy();
-    expect(garden.getObjectByName('night-island-shoreline')).toBeTruthy();
-    expect(garden.getObjectByName('night-island-water')).toBeTruthy();
+    const garden = new ArrivalGarden(scope, collision);
+    const gardenRoot = garden.build();
+    expect(gardenRoot.getObjectByName('night-island-terrain')).toBeTruthy();
+    expect(gardenRoot.getObjectByName('night-island-shoreline')).toBeTruthy();
+    const water = gardenRoot.getObjectByName('night-island-water');
+    expect(water).toBeTruthy();
+    const waterMaterial = (water as THREE.Mesh).material as THREE.ShaderMaterial;
+    expect(waterMaterial.fragmentShader).toContain('fbm');
+    expect(waterMaterial.fragmentShader).not.toContain('* 160.0');
+    const initialWaterTime = waterMaterial.uniforms.time.value as number;
+    garden.update(1, false);
+    expect(waterMaterial.uniforms.time.value).toBeGreaterThan(initialWaterTime);
+    const animatedWaterTime = waterMaterial.uniforms.time.value as number;
+    garden.update(1, true);
+    expect(waterMaterial.uniforms.time.value).toBe(animatedWaterTime);
     expect(collision.size).toBeGreaterThan(0); // garden trees/benches retain their own proven blockers
     scope.dispose();
   });

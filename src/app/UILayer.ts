@@ -182,6 +182,15 @@ export class UILayer {
     this.fullWeasel.open();
   }
 
+  /** Wire the development-only Workshop affordance through the HUD. */
+  setBuildModeControl(onToggle: (() => void) | null): void {
+    this.hud.setBuildModeControl(onToggle);
+  }
+
+  setBuildModeActive(active: boolean): void {
+    this.hud.setBuildModeActive(active);
+  }
+
   openDexGPTGuide(): void {
     if (this.app.currentZone === 'plaza') {
       this.hud.announce('DexGPT becomes available once you enter the museum.');

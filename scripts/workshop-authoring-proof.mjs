@@ -35,7 +35,10 @@ async function verifyAuthoredStandalone() {
     if (message.type() === 'error') errors.push(`console: ${message.text()}`);
   });
   try {
-    await page.goto(pathToFileURL(release).href, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    // The standalone module is a large inline data URL. Under software WebGL,
+    // waiting for DOMContentLoaded can outlive the useful runtime boot signal;
+    // commit is sufficient because the next assertion waits for the real App.
+    await page.goto(pathToFileURL(release).href, { waitUntil: 'commit', timeout: 60_000 });
     await page.waitForFunction(() => Boolean(window.__museum), null, { timeout: 60_000 });
     await page.evaluate(() => window.__museum?.stop());
     const proof = await page.evaluate(() => ({

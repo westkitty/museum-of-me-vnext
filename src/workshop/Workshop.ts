@@ -76,7 +76,6 @@ export class Workshop {
     app.renderer.canvas.addEventListener('pointerdown', this.onCanvasPointerDown);
     document.addEventListener('keydown', this.onKeyDown, true);
     this.refresh();
-    this.open();
   }
 
   get isOpen(): boolean { return this.openState; }
@@ -92,6 +91,7 @@ export class Workshop {
     this.app.input.releasePointerLock();
     this.app.input.uiCaptured = true;
     this.app.player.setFrozen(true);
+    this.app.ui.setBuildModeActive(true);
     this.transform.enabled = true;
     this.helper.visible = this.selectedId !== null;
     if (this.selectionBox) this.selectionBox.visible = true;
@@ -108,6 +108,7 @@ export class Workshop {
     if (this.selectionBox) this.selectionBox.visible = false;
     this.app.input.uiCaptured = false;
     this.app.player.setFrozen(false);
+    this.app.ui.setBuildModeActive(false);
   }
 
   toggle(): void {

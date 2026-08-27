@@ -53,22 +53,61 @@ export class ArrivalGarden {
       vertexShader: /* glsl */ `
         varying vec2 vUv;
         uniform float time;
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+        }
+        float noise(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = smoothstep(0.0, 1.0, fract(p));
+          float a = hash(i);
+          float b = hash(i + vec2(1.0, 0.0));
+          float c = hash(i + vec2(0.0, 1.0));
+          float d = hash(i + vec2(1.0, 1.0));
+          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
         void main() {
           vUv = uv;
           vec3 p = position;
-          p.z += sin((p.x + time * 2.0) * 0.09) * 0.10 + cos((p.y - time * 1.4) * 0.12) * 0.06;
+          float broad = noise(p.xy * 0.038 + vec2(time * 0.012, -time * 0.009));
+          float cross = noise(p.xy * 0.081 + vec2(-time * 0.016, time * 0.013));
+          p.z += (broad - 0.5) * 0.18 + (cross - 0.5) * 0.045;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
         }
       `,
       fragmentShader: /* glsl */ `
         varying vec2 vUv;
         uniform float time;
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(41.7, 289.3))) * 19341.173);
+        }
+        float noise(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = smoothstep(0.0, 1.0, fract(p));
+          float a = hash(i);
+          float b = hash(i + vec2(1.0, 0.0));
+          float c = hash(i + vec2(0.0, 1.0));
+          float d = hash(i + vec2(1.0, 1.0));
+          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+        float fbm(vec2 p) {
+          float value = 0.0;
+          value += noise(p) * 0.58;
+          value += noise(p * 2.03 + 17.0) * 0.27;
+          value += noise(p * 4.11 - 9.0) * 0.15;
+          return value;
+        }
         void main() {
-          float ripples = sin((vUv.x + vUv.y) * 160.0 + time * 2.4) * 0.5 + 0.5;
-          float moon = pow(max(0.0, 1.0 - distance(vUv, vec2(0.58, 0.64)) * 1.8), 4.0);
-          vec3 colour = mix(vec3(0.008, 0.035, 0.09), vec3(0.025, 0.17, 0.32), ripples * 0.32);
-          colour += vec3(0.10, 0.31, 0.52) * moon;
-          gl_FragColor = vec4(colour, 0.92);
+          vec2 flow = vUv * vec2(5.2, 3.4) + vec2(time * 0.012, -time * 0.009);
+          float broad = fbm(flow);
+          float cross = fbm(vUv * vec2(11.0, 7.0) + vec2(-time * 0.018, time * 0.014));
+          float field = broad * 0.78 + cross * 0.22;
+          float sheen = smoothstep(0.66, 0.86, field);
+          vec3 deep = vec3(0.006, 0.018, 0.032);
+          vec3 reflectedSky = vec3(0.022, 0.075, 0.108);
+          vec3 colour = mix(deep, reflectedSky, broad * 0.52);
+          colour += vec3(0.026, 0.082, 0.12) * sheen;
+          colour += vec3(0.018, 0.052, 0.074) * smoothstep(0.76, 0.96, cross) * 0.35;
+          gl_FragColor = vec4(colour, 0.94);
         }
       `,
     }));

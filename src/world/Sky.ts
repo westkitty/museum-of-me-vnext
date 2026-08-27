@@ -2,12 +2,17 @@ import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 
 /**
- * Procedural night sky for the museum grounds. The starfield and Blood Band
- * share one dome, avoiding texture seams and extra renderer work.
+ * Procedural night sky for the museum grounds. Stars live in a camera-following
+ * dome; the Blood Ring is a separate world-relative orbital structure.
  */
 export class Sky {
   readonly mesh: THREE.Mesh;
+  readonly bloodRing: THREE.Mesh;
   readonly horizon = new THREE.Color(0x17304b);
+
+  static readonly BLOOD_RING_ORBIT_RADIUS = 480;
+  static readonly BLOOD_RING_TUBE_RADIUS = 22;
+  static readonly BLOOD_RING_HEIGHT = 170;
 
   constructor(scope: ResourceScope) {
     const geometry = scope.track(new THREE.SphereGeometry(420, 32, 20));
@@ -78,15 +83,6 @@ export class Sky {
             colour += vec3(0.96, 0.88, 0.72) * middle * 0.68 * visibleSky;
             colour += vec3(1.0, 0.79, 0.63) * near * 0.90 * visibleSky;
 
-            // A broad, subtly uneven, horizon-to-horizon celestial band —
-            // never an angular-distance ring or circular halo.
-            vec3 bandNormal = normalize(vec3(0.78, 0.045, 0.62));
-            float bandWaver = sin(atan(ray.z, ray.x) * 3.0 + ray.y * 5.0) * 0.028;
-            float bandDistance = abs(dot(ray, bandNormal));
-            float bloodBand = 1.0 - smoothstep(0.105 + bandWaver, 0.285 + bandWaver, bandDistance);
-            bloodBand *= smoothstep(-0.10, 0.08, h);
-            colour = mix(colour, vec3(0.38, 0.018, 0.026), bloodBand * 0.48);
-            colour += vec3(0.18, 0.005, 0.010) * bloodBand;
             gl_FragColor = vec4(colour, 1.0);
           }
         `,
@@ -94,9 +90,42 @@ export class Sky {
     );
 
     this.mesh = new THREE.Mesh(geometry, material);
-    this.mesh.name = 'night-sky-layered-stars-blood-band';
+    this.mesh.name = 'night-sky-layered-stars';
     this.mesh.renderOrder = -1;
     this.mesh.frustumCulled = false;
+
+    const ringGeometry = scope.track(new THREE.TorusGeometry(
+      Sky.BLOOD_RING_ORBIT_RADIUS,
+      Sky.BLOOD_RING_TUBE_RADIUS,
+      16,
+      128,
+    ));
+    const ringMaterial = scope.track(new THREE.MeshPhysicalMaterial({
+      color: 0x3c0711,
+      roughness: 0.34,
+      metalness: 0.08,
+      transmission: 0.18,
+      thickness: 18,
+      ior: 1.46,
+      clearcoat: 0.42,
+      clearcoatRoughness: 0.22,
+      attenuationColor: new THREE.Color(0x180107),
+      attenuationDistance: 36,
+      flatShading: true,
+      transparent: true,
+      opacity: 0.94,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }));
+    this.bloodRing = new THREE.Mesh(ringGeometry, ringMaterial);
+    this.bloodRing.name = 'blood-ring-complete-orbital-structure';
+    this.bloodRing.position.y = Sky.BLOOD_RING_HEIGHT;
+    this.bloodRing.rotation.set(
+      THREE.MathUtils.degToRad(17),
+      THREE.MathUtils.degToRad(-8),
+      THREE.MathUtils.degToRad(11),
+    );
+    this.bloodRing.frustumCulled = false;
   }
 
   /** Keep the dome centred on the visitor so it never has an edge. */

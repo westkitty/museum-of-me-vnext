@@ -18,6 +18,9 @@ export class HUD {
   private readonly subtitle: HTMLElement;
   private readonly hints: HTMLElement;
   private readonly lockPrompt: HTMLElement;
+  private buildModeButton: HTMLButtonElement | null = null;
+  private pointerLocked = false;
+  private buildModeActive = false;
 
   private subtitleTimer = 0;
   private lastZone: ZoneId | null = null;
@@ -72,8 +75,37 @@ export class HUD {
   }
 
   setPointerLocked(locked: boolean): void {
-    this.lockPrompt.hidden = locked || this.touchMode;
+    this.pointerLocked = locked;
+    this.lockPrompt.hidden = locked || this.touchMode || this.buildModeActive;
     this.reticle.style.display = locked || this.touchMode ? '' : 'none';
+  }
+
+  /** Add the development-only Build Mode affordance after the editor loads. */
+  setBuildModeControl(onToggle: (() => void) | null): void {
+    this.buildModeButton?.remove();
+    this.buildModeButton = null;
+    if (!onToggle) return;
+    const button = el('button', {
+      class: 'hud__build-mode',
+      type: 'button',
+      'aria-pressed': 'false',
+      'aria-label': 'Enter Build Mode',
+      text: 'BUILD MODE',
+    });
+    button.addEventListener('click', onToggle);
+    this.root.append(button);
+    this.buildModeButton = button;
+  }
+
+  /** Workshop owns this state; the ordinary capture prompt never overlays it. */
+  setBuildModeActive(active: boolean): void {
+    this.buildModeActive = active;
+    if (this.buildModeButton) {
+      this.buildModeButton.textContent = active ? 'EXIT BUILD MODE' : 'BUILD MODE';
+      this.buildModeButton.setAttribute('aria-label', active ? 'Exit Build Mode' : 'Enter Build Mode');
+      this.buildModeButton.setAttribute('aria-pressed', String(active));
+    }
+    this.lockPrompt.hidden = active || this.pointerLocked || this.touchMode;
   }
 
   private touchMode = false;
@@ -82,7 +114,10 @@ export class HUD {
   setTouchMode(on: boolean): void {
     if (this.touchMode === on) return;
     this.touchMode = on;
-    if (!on) return;
+    if (!on) {
+      this.setPointerLocked(this.pointerLocked);
+      return;
+    }
     this.lockPrompt.hidden = true;
     this.reticle.style.display = '';
     this.hints.innerHTML =

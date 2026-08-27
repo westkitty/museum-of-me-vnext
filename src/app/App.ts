@@ -130,7 +130,7 @@ export class App implements LoopCallbacks {
     this.renderer.scene.add(this.sanctuary.group);
 
     this.sky = new Sky(this.scope);
-    this.renderer.scene.add(this.sky.mesh);
+    this.renderer.scene.add(this.sky.mesh, this.sky.bloodRing);
 
     this.wayfinding = new Wayfinding(this.scope);
     this.renderer.scene.add(this.wayfinding.group);

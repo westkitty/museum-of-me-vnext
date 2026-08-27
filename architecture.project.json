@@ -33,7 +33,7 @@
       "semanticDomUi": true,
       "localPersistence": true,
       "guide": "local deterministic Collection and Journal lookup with existing floor-line wayfinding; no provider or teleport",
-      "authoring": "Museum Workshop: development-only ?edit=1 editor over the real Three.js scene; safe non-colliding placement manifest is consumed by normal builds",
+      "authoring": "Museum Workshop: development-only ?edit=1 editor over the real Three.js scene; visible BUILD MODE control starts closed, F8 is secondary, and active mode owns UI capture/freeze; safe non-colliding placement manifest is consumed by normal builds",
       "authoringWriteBoundary": "Vite serve-only loopback and same-origin POST to one fixed validated placement file; no production write endpoint",
       "networkRequiredForBaseline": false
     }

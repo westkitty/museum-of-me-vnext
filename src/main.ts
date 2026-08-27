@@ -43,12 +43,21 @@ try {
   );
 }
 
+// Expose the constructed app before starting the continuous render loop. Browser
+// proofs can now observe and stop the real runtime at its first stable boundary.
+window.__museum = app;
 app.start();
 
 if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('edit') === '1') {
+  let toggleWorkshop: (() => void) | null = null;
+  app.ui.setBuildModeControl(() => {
+    if (toggleWorkshop) toggleWorkshop();
+    else app.ui.hud.announce('Museum Workshop is still loading.');
+  });
   void import('./workshop/Workshop')
     .then(({ Workshop }) => {
       const workshop = new Workshop(app, placements);
+      toggleWorkshop = () => workshop.toggle();
       window.__museumWorkshop = workshop;
     })
     .catch((error) => {
@@ -65,4 +74,3 @@ declare global {
     __museumWorkshop?: { dispose(): void };
   }
 }
-window.__museum = app;

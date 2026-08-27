@@ -20,8 +20,9 @@ uses `Page Up/Page Down`.
 ## Museum Workshop — development authoring
 
 Museum Workshop is a development-only authoring layer over the real museum scene. Start the normal
-Vite dev server, then open `http://127.0.0.1:5173/?edit=1`. Workshop opens automatically; `F8`
-toggles it afterward.
+Vite dev server, then open `http://127.0.0.1:5173/?edit=1`. The normal museum remains active and
+Workshop starts closed; use the visible `BUILD MODE` control or `F8` to open it. Build Mode releases
+pointer lock, pauses visitor movement, and suppresses the ordinary entry prompt until it closes.
 
 Workshop Core deliberately edits only safe, non-colliding placement objects. It supports direct
 Three.js transform gizmos, exact transform fields, world/local mode, floor snapping, add/duplicate/
@@ -43,6 +44,10 @@ visitor routes, and other verified spatial invariants are not editable through t
 Useful shortcuts while Workshop is open: `W/E/R` move/rotate/scale · `G` snap to supporting floor ·
 `Cmd/Ctrl+D` duplicate · `Delete` remove · `Cmd/Ctrl+Z` undo · `Shift+Cmd/Ctrl+Z` redo ·
 `Cmd/Ctrl+S` save.
+
+The canonical exterior includes a complete world-relative crystalline Blood Ring orbit and a
+visual-only night-island water surface with slow organic motion. Neither changes collision ownership;
+reduced motion freezes the water.
 
 ## Validate it
 

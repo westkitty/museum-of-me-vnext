@@ -166,11 +166,11 @@ describe('sky', () => {
     camera.position.set(120, 3, -240);
     sky.follow(camera);
     expect(sky.mesh.position.toArray()).toEqual([120, 3, -240]);
-    expect(sky.mesh.name).toBe('night-sky-layered-stars-blood-band');
+    expect(sky.mesh.name).toBe('night-sky-layered-stars');
     expect(sky.mesh.frustumCulled).toBe(false);
     const material = sky.mesh.material as THREE.ShaderMaterial;
     expect(material.fragmentShader).toContain('starLayer');
-    expect(material.fragmentShader).toContain('bandNormal');
+    expect(material.fragmentShader).not.toContain('bloodBand');
     expect(material.fragmentShader).not.toContain('ringAngle');
     expect(material.uniforms.parallax.value.toArray()).toEqual([0.09, -0.18]);
     scope.dispose();
