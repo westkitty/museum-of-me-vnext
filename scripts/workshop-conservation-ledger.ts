@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import {
+  EMPTY_WORKSHOP_MANIFEST,
   serializeWorkshopManifest,
   validateWorkshopManifest,
   type WorkshopPlacementManifest,
@@ -90,13 +91,19 @@ export function createWorkshopCheckpoint(
 }
 
 export async function readWorkshopManifestOrEmpty(path: string): Promise<WorkshopPlacementManifest> {
+  let text: string;
   try {
-    const parsed = validateWorkshopManifest(JSON.parse(await readFile(path, 'utf8')) as unknown);
-    if (parsed.ok && parsed.value) return parsed.value;
+    text = await readFile(path, 'utf8');
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return EMPTY_WORKSHOP_MANIFEST;
+    throw error;
   }
-  return { version: 1, objects: [] };
+
+  const parsed = validateWorkshopManifest(JSON.parse(text) as unknown);
+  if (!parsed.ok || !parsed.value) {
+    throw new Error(`Existing Workshop placement source is invalid: ${parsed.errors.join('; ')}`);
+  }
+  return parsed.value;
 }
 
 export async function readWorkshopLedger(path: string): Promise<WorkshopConservationLedger> {
@@ -105,10 +112,11 @@ export async function readWorkshopLedger(path: string): Promise<WorkshopConserva
     if (raw.version === 1 && Array.isArray(raw.checkpoints)) {
       return { version: 1, checkpoints: raw.checkpoints } as WorkshopConservationLedger;
     }
+    throw new Error('Workshop conservation ledger has an unsupported shape.');
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return EMPTY_LEDGER;
+    throw error;
   }
-  return EMPTY_LEDGER;
 }
 
 export async function appendWorkshopCheckpoint(
