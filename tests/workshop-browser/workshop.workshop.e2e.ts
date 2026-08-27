@@ -17,6 +17,18 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   await expect(workshop.getByText('DEVELOPMENT ONLY')).toBeVisible();
   await stopSoftwareRenderLoop(page);
 
+  const keymap = workshop.locator('[data-workshop="keymap"]');
+  await expect(keymap).toBeVisible();
+  await expect(keymap.locator('kbd')).toHaveCount(11);
+  await expect(keymap).toContainText('duplicate');
+  await expect(keymap).toContainText('save');
+  const keymapBox = await keymap.boundingBox();
+  expect(keymapBox).not.toBeNull();
+  expect(keymapBox!.x).toBeGreaterThanOrEqual(0);
+  expect(keymapBox!.y).toBeGreaterThanOrEqual(0);
+  expect(keymapBox!.x + keymapBox!.width).toBeLessThanOrEqual(1280);
+  expect(keymapBox!.y + keymapBox!.height).toBeLessThanOrEqual(720);
+
   await workshop.getByRole('button', { name: 'Display plinth' }).click();
   const outliner = workshop.locator('[data-workshop="outliner"]');
   await expect(outliner.getByRole('button', { name: /Display plinth/ })).toHaveCount(1);
