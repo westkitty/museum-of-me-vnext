@@ -34,6 +34,16 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   await workshop.getByRole('button', { name: 'Redo' }).click();
   await expect(outliner.getByRole('button')).toHaveCount(2);
 
+  // Prove the editor hands control ownership back to the museum before the
+  // reload proof. Keeping the software render loop stopped makes this a bounded
+  // semantic/input test rather than a fake performance benchmark.
+  await page.keyboard.press('F8');
+  await expect(workshop).toBeHidden();
+  const frozenAfterClose = await page.evaluate(() => Boolean(window.__museum?.player.isFrozen));
+  expect(frozenAfterClose).toBe(false);
+  await page.keyboard.press('F8');
+  await expect(workshop).toBeVisible();
+
   const saveResponse = page.waitForResponse((response) =>
     response.url().endsWith('/__museum-workshop/save') && response.request().method() === 'POST');
   await workshop.getByRole('button', { name: 'Save to build' }).click();
@@ -41,18 +51,11 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
 
   // The source JSON is imported by the dev runtime, so Vite may refresh after
   // the atomic write. A reload is deliberate proof that the saved source is
-  // now authoritative rather than merely live mutable scene state.
+  // now authoritative rather than merely live mutable scene state. Do not run
+  // another protocol-heavy page.evaluate after reload: software WebGL on CI is
+  // already proven above and can starve the protocol while the scene rebuilds.
   await page.reload();
   const reloadedWorkshop = page.locator('.museum-workshop');
   await expect(reloadedWorkshop).toBeVisible({ timeout: 30_000 });
   await expect(reloadedWorkshop.locator('[data-workshop="outliner"]').getByRole('button')).toHaveCount(2);
-  await stopSoftwareRenderLoop(page);
-
-  await page.keyboard.press('F8');
-  await expect(reloadedWorkshop).toBeHidden();
-  const frozenAfterClose = await page.evaluate(() => Boolean(window.__museum?.player.isFrozen));
-  expect(frozenAfterClose).toBe(false);
-
-  await page.keyboard.press('F8');
-  await expect(reloadedWorkshop).toBeVisible();
 });
