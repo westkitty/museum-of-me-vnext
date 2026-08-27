@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test';
 
+async function stopSoftwareRenderLoop(page: import('@playwright/test').Page): Promise<void> {
+  // The CI runner has no representative GPU. As with the production browser
+  // suite, prove the real WebGL scene and Workshop have booted, then stop the
+  // continuous renderer so Playwright DOM/protocol commands are not starved by
+  // software WebGL. Workshop authoring commands themselves are event-driven.
+  await page.evaluate(() => window.__museum?.stop());
+}
+
 test('Museum Workshop authors safe objects and persists through the dev-only save bridge', async ({ page }) => {
   await page.goto('/?edit=1');
 
@@ -7,6 +15,7 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   await expect(workshop).toBeVisible({ timeout: 30_000 });
   await expect(workshop.getByRole('heading', { name: 'Museum Workshop' })).toBeVisible();
   await expect(workshop.getByText('DEVELOPMENT ONLY')).toBeVisible();
+  await stopSoftwareRenderLoop(page);
 
   await workshop.getByRole('button', { name: 'Display plinth' }).click();
   const outliner = workshop.locator('[data-workshop="outliner"]');
@@ -37,6 +46,7 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   const reloadedWorkshop = page.locator('.museum-workshop');
   await expect(reloadedWorkshop).toBeVisible({ timeout: 30_000 });
   await expect(reloadedWorkshop.locator('[data-workshop="outliner"]').getByRole('button')).toHaveCount(2);
+  await stopSoftwareRenderLoop(page);
 
   await page.keyboard.press('F8');
   await expect(reloadedWorkshop).toBeHidden();
