@@ -13,7 +13,7 @@ No second pointer-lock manager, structural authoring path, collision edit, remot
 - Budget status: within-budget.
 - Governed now: HUD/UILayer/Workshop lifecycle remains bounded; Sky owns the dome plus one tracked ring; ArrivalGarden owns the existing water shader/update path; tests remain in existing suites; proof timing uses the existing runtime stop boundary.
 - Deferred follow-up: human visual/device QA for ring and water; exact-head CI inspection after push.
-- Completion impact: needs-verification until CI and human inspection are separately recorded.
+- Completion impact: needs-verification for human visual acceptance; automated implementation and exact-head CI evidence are complete.
 
 ## Baseline alignment
 

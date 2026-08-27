@@ -80,7 +80,9 @@
     "verifiedWorkflowRun": 33042038232,
     "currentBrowserBaselineRun": 33038039499,
     "currentBrowserBaselineStatus": "failed: software-WebGL render-loop starvation during the first QA telemetry click; four later journeys passed",
-    "currentHardeningStatus": "implementation commit verified by exact-head CI; truth-record follow-up is documentation-only",
+    "currentHead": "c711b9177752a0c7bd8be3c67548998b743695fb",
+    "currentWorkflowRun": 33049517878,
+    "currentHardeningStatus": "Build Mode, physical Blood Ring and smooth water verified locally and by exact-head CI; human visual acceptance remains pending",
     "checks": [
       "canonical npm run gate: PASS (565 tests)",
       "local production dependency audit and production build: PASS; exact-head CI run 33042038232: PASS",

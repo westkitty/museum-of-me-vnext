@@ -5,8 +5,9 @@
 - Completed: task-start snapshot; required UI/world source readback; root-cause identification for automatic Workshop activation and camera-following painted Blood Band/single-frequency water.
 - Active slice: final verification and closeout.
 - Completed: explicit inactive Build Mode toggle and shared input ownership; physical orbital ring; smooth reduced-motion-aware water; focused regression coverage; browser, gate, standalone and audit validation.
-- Pending: final scoped staging, commit/push and exact-head CI; post-CI truth-record hash update if needed.
-- Next step: stage only task-owned paths, commit, push the exact branch, and inspect the resulting CI head.
+- Completed: scoped commit/push and exact-head CI across gate, browser, standalone and Workshop jobs.
+- Pending: human visual/device QA only; no automated evidence promotes that acceptance.
+- Next step: retain the pushed exact head and hand off the bounded human-QA gap.
 
 ## Evidence
 
