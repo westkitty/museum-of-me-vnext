@@ -19,9 +19,11 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   const buildMode = page.getByRole('button', { name: 'Enter Build Mode' });
   const lockPrompt = page.getByRole('button', { name: 'Enter the museum and capture mouse look' });
   const workshop = page.locator('.museum-workshop');
+  const conservation = page.locator('.museum-conservation-studio');
   await expect(buildMode).toBeVisible({ timeout: 60_000 });
   await expect(lockPrompt).toBeVisible();
   await expect(workshop).toBeHidden();
+  await expect(conservation).toBeHidden();
   await stopSoftwareRenderLoop(page);
   await expect(workshop).toBeAttached({ timeout: 60_000 });
   await expect.poll(() => page.evaluate(() => ({
@@ -31,6 +33,7 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
 
   await buildMode.click();
   await expect(workshop).toBeVisible({ timeout: 30_000 });
+  await expect(conservation).toBeVisible();
   await expect(page.getByRole('button', { name: 'Exit Build Mode' })).toBeVisible();
   await expect(lockPrompt).toBeHidden();
   await expect.poll(() => page.evaluate(() => ({
@@ -40,6 +43,22 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   }))).toEqual({ captured: true, frozen: true, transformEnabled: true });
   await expect(workshop.getByRole('heading', { name: 'Museum Workshop' })).toBeVisible();
   await expect(workshop.getByText('DEVELOPMENT ONLY')).toBeVisible();
+
+  const xrayButton = conservation.getByRole('button', { name: 'Spatial X-Ray' });
+  await expect(xrayButton).toBeVisible();
+  await xrayButton.click();
+  await expect(conservation).toContainText('X-Ray ON');
+  const xrayProof = await page.evaluate(() => {
+    const xray = window.__museum?.scene.getObjectByName('museum-workshop-spatial-xray');
+    return {
+      visible: Boolean(xray?.visible),
+      protected: Boolean(xray?.getObjectByName('workshop-xray-protected-space')),
+      open: Boolean(xray?.getObjectByName('workshop-xray-open-space')),
+    };
+  });
+  expect(xrayProof).toEqual({ visible: true, protected: true, open: true });
+  await conservation.getByRole('button', { name: 'Hide Spatial X-Ray' }).click();
+  await expect(conservation).toContainText('X-Ray off');
 
   const keymap = workshop.locator('[data-workshop="keymap"]');
   await expect(keymap).toBeVisible();
@@ -80,6 +99,7 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   // semantic/input test rather than a fake performance benchmark.
   await page.keyboard.press('F8');
   await expect(workshop).toBeHidden();
+  await expect(conservation).toBeHidden();
   const frozenAfterClose = await page.evaluate(() => Boolean(window.__museum?.player.isFrozen));
   expect(frozenAfterClose).toBe(false);
   await expect(page.getByRole('button', { name: 'Enter Build Mode' })).toBeVisible();
@@ -88,6 +108,7 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   await page.keyboard.press('Enter');
   await page.keyboard.press('F8');
   await expect(workshop).toBeVisible();
+  await expect(conservation).toBeVisible();
   await expect(lockPrompt).toBeHidden();
 
   // A foreign browser origin must not be able to use a locally running Vite
@@ -104,7 +125,16 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   const saveResponse = page.waitForResponse((response) =>
     response.url().endsWith('/__museum-workshop/save') && response.request().method() === 'POST');
   await workshop.getByRole('button', { name: 'Save to build' }).click();
-  expect((await saveResponse).status()).toBe(200);
+  const saved = await saveResponse;
+  expect(saved.status()).toBe(200);
+  const savedPayload = await saved.json() as { checkpoint?: string; conservation?: string };
+  expect(savedPayload.checkpoint).toMatch(/^[0-9TZ]+-[a-f0-9]{10}$/);
+  expect(savedPayload.conservation).toBe('PASS');
+
+  const ledgerResponse = await request.get('/__museum-workshop/ledger');
+  expect(ledgerResponse.status()).toBe(200);
+  const ledger = await ledgerResponse.json() as { checkpoints?: Array<{ id?: string; conservation?: string }> };
+  expect(ledger.checkpoints?.at(-1)).toMatchObject({ id: savedPayload.checkpoint, conservation: 'PASS' });
 
   // The source JSON is imported by the dev runtime, so Vite may refresh after
   // the atomic write. A reload is deliberate proof that the saved source is
@@ -113,18 +143,22 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   // already proven above and can starve the protocol while the scene rebuilds.
   await page.reload();
   const reloadedWorkshop = page.locator('.museum-workshop');
+  const reloadedConservation = page.locator('.museum-conservation-studio');
   try {
     const reloadedBuildMode = page.getByRole('button', { name: 'Enter Build Mode' });
     await expect(reloadedBuildMode).toBeVisible({ timeout: 60_000 });
     await expect(reloadedWorkshop).toBeHidden();
+    await expect(reloadedConservation).toBeHidden();
     await stopSoftwareRenderLoop(page);
     await expect(reloadedWorkshop).toBeAttached({ timeout: 60_000 });
     await reloadedBuildMode.click();
     await expect(reloadedWorkshop).toBeVisible({ timeout: 30_000 });
+    await expect(reloadedConservation).toBeVisible();
   } catch (error) {
     throw new Error(`${error instanceof Error ? error.message : error}\nBrowser errors: ${browserErrors.join(' | ')}`);
   }
   await expect(reloadedWorkshop.locator('[data-workshop="outliner"]').getByRole('button')).toHaveCount(2);
+  await expect(reloadedConservation).toContainText('conservation checkpoint');
   // Keep the post-reload assertion DOM-only: the standalone proof below owns
   // the runtime scene inspection after building from this authored source.
   await reloadedWorkshop.locator('[data-workshop="outliner"]').getByRole('button', { name: /Display plinth/ }).first().click();
