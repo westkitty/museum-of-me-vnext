@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { validateWorkshopConservation } from '../src/workshop/conservation';
 import {
   EMPTY_WORKSHOP_MANIFEST,
   serializeWorkshopManifest,
@@ -75,6 +76,10 @@ export function createWorkshopCheckpoint(
   after: WorkshopPlacementManifest,
   createdAt = new Date().toISOString(),
 ): WorkshopConservationCheckpoint {
+  const conservation = validateWorkshopConservation(after);
+  if (!conservation.ok) {
+    throw new Error(`Cannot checkpoint a conservation-violating manifest: ${conservation.violations[0]?.reason ?? 'unknown violation'}`);
+  }
   const diff = diffWorkshopManifests(before, after);
   const afterHash = hashManifest(after);
   return {
