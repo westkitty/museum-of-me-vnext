@@ -23,7 +23,7 @@ function probeManifest(record: WorkshopPlacementRecord): WorkshopPlacementManife
   return { schemaVersion: WORKSHOP_SCHEMA_VERSION, objects: [record] };
 }
 
-function pointsGeometry(points: readonly THREE.Vector3[]): THREE.BufferGeometry {
+function pointsGeometry(points: THREE.Vector3[]): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry();
   geometry.setFromPoints(points);
   return geometry;
@@ -99,7 +99,7 @@ export class WorkshopSpatialXRay {
 
   private makePoints(
     name: string,
-    points: readonly THREE.Vector3[],
+    points: THREE.Vector3[],
     color: number,
     size: number,
     opacity: number,
