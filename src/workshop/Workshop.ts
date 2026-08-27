@@ -489,6 +489,10 @@ const WORKSHOP_HTML = `
   <button type="button" data-workshop="undo">Undo</button><button type="button" data-workshop="redo">Redo</button>
   <button type="button" data-workshop="save">Save to build</button><button type="button" data-workshop="exit">Exit F8</button>
 </div>
+<nav class="workshop-keymap" data-workshop="keymap" aria-label="Museum Workshop keyboard commands">
+  <span><kbd>F8</kbd>toggle</span><span><kbd>Esc</kbd>exit</span><span><kbd>W</kbd>move</span><span><kbd>E</kbd>rotate</span><span><kbd>R</kbd>scale</span><span><kbd>G</kbd>floor</span>
+  <span><kbd>⌘/Ctrl+D</kbd>duplicate</span><span><kbd>Delete</kbd>remove</span><span><kbd>⌘/Ctrl+Z</kbd>undo</span><span><kbd>⇧⌘/Ctrl+Z</kbd>redo</span><span><kbd>⌘/Ctrl+S</kbd>save</span>
+</nav>
 <aside class="workshop-panel" data-workshop="panel" tabindex="-1" aria-label="Museum Workshop development editor">
   <header><div><span>DEVELOPMENT ONLY</span><h2>Museum Workshop</h2></div><b>safe objects</b></header>
   <section><h3>Selection</h3><strong data-workshop="selection-title"></strong><p class="workshop-muted" data-workshop="selection-meta"></p>
@@ -503,6 +507,5 @@ const WORKSHOP_HTML = `
   </section>
   <section><h3>Add safe object</h3><div class="workshop-palette" data-workshop="palette"></div></section>
   <section><h3>Placed objects</h3><div class="workshop-outliner" data-workshop="outliner"></div></section>
-  <section><h3>Shortcuts</h3><p class="workshop-muted">F8 editor · W/E/R transform · G floor · ⌘/Ctrl+D duplicate · Delete remove · ⌘/Ctrl+Z undo · ⇧⌘/Ctrl+Z redo · ⌘/Ctrl+S save</p></section>
   <div class="workshop-status" data-workshop="status" role="status" aria-live="polite"></div>
 </aside>`;
