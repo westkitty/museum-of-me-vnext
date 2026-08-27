@@ -27,6 +27,10 @@ interface LedgerDocument {
   readonly checkpoints: readonly LedgerCheckpoint[];
 }
 
+interface TransformDiagnostic {
+  readonly enabled?: boolean;
+}
+
 const LEDGER_ENDPOINT = '/__museum-workshop/ledger';
 
 /**
@@ -79,6 +83,11 @@ export class Workshop {
   }
 
   get isOpen(): boolean { return this.base.isOpen; }
+
+  // Preserve the existing development diagnostic used by Workshop browser QA.
+  get transform(): TransformDiagnostic | undefined {
+    return (this.base as unknown as { transform?: TransformDiagnostic }).transform;
+  }
 
   open(): void {
     this.base.open();
