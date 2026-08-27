@@ -3,6 +3,7 @@ import { TransformControls, type TransformControlsMode } from 'three/examples/js
 import type { App } from '../app/App';
 import type { MuseumPlacements } from './MuseumPlacements';
 import { WORKSHOP_PREFABS, type WorkshopPrefabId } from './catalog';
+import { conservationErrors, validateWorkshopConservation } from './conservation';
 import { WorkshopHistory } from './history';
 import {
   type WorkshopAnchor,
@@ -290,10 +291,16 @@ export class Workshop {
     this.saveButton.disabled = true;
     this.note('Writing validated placement source…', 'ok');
     try {
+      const manifest = this.placements.captureManifest();
+      const conservation = validateWorkshopConservation(manifest);
+      if (!conservation.ok) {
+        this.note(conservationErrors(conservation.violations).slice(0, 2).join('; '), 'error');
+        return;
+      }
       const response = await fetch(SAVE_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(this.placements.captureManifest()),
+        body: JSON.stringify(manifest),
       });
       const payload = await response.json() as { ok?: boolean; path?: string; objects?: number; error?: string; details?: string[] };
       if (!response.ok || !payload.ok) throw new Error(payload.details?.join('; ') || payload.error || `HTTP ${response.status}`);

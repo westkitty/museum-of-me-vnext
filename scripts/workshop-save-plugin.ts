@@ -2,7 +2,16 @@ import { mkdir, rename, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
-import { serializeWorkshopManifest, validateWorkshopManifest } from '../src/workshop/schema';
+import {
+  conservationErrors,
+  validateWorkshopConservation,
+  type WorkshopConservationViolation,
+} from '../src/workshop/conservation';
+import {
+  serializeWorkshopManifest,
+  validateWorkshopManifest,
+  type WorkshopPlacementManifest,
+} from '../src/workshop/schema';
 
 const ENDPOINT = '/__museum-workshop/save';
 const MAX_BODY_BYTES = 256 * 1024;
@@ -57,6 +66,36 @@ function json(res: ServerResponse, status: number, body: Record<string, unknown>
   res.end(JSON.stringify(body));
 }
 
+export interface WorkshopSaveResult {
+  readonly ok: boolean;
+  readonly status: number;
+  readonly manifest?: WorkshopPlacementManifest;
+  readonly errors?: readonly string[];
+  readonly violations?: readonly WorkshopConservationViolation[];
+}
+
+/** Validate before opening the target and atomically replace it only on success. */
+export async function writeWorkshopManifest(raw: unknown, target: string): Promise<WorkshopSaveResult> {
+  const parsed = validateWorkshopManifest(raw);
+  if (!parsed.ok || !parsed.value) {
+    return { ok: false, status: 400, errors: parsed.errors };
+  }
+  const conservation = validateWorkshopConservation(parsed.value);
+  if (!conservation.ok) {
+    return {
+      ok: false,
+      status: 400,
+      errors: conservationErrors(conservation.violations),
+      violations: conservation.violations,
+    };
+  }
+  const temp = `${target}.tmp-${process.pid}`;
+  await mkdir(dirname(target), { recursive: true });
+  await writeFile(temp, serializeWorkshopManifest(parsed.value), 'utf8');
+  await rename(temp, target);
+  return { ok: true, status: 200, manifest: parsed.value };
+}
+
 export function museumWorkshopSavePlugin(): Plugin {
   return {
     name: 'museum-workshop-save',
@@ -87,21 +126,22 @@ export function museumWorkshopSavePlugin(): Plugin {
 
         try {
           const raw = JSON.parse(await readBody(req)) as unknown;
-          const parsed = validateWorkshopManifest(raw);
-          if (!parsed.ok || !parsed.value) {
-            json(res, 400, { ok: false, error: 'Invalid placement manifest.', details: parsed.errors });
+          const target = resolve(process.cwd(), 'data/workshop-placements.json');
+          const result = await writeWorkshopManifest(raw, target);
+          if (!result.ok || !result.manifest) {
+            json(res, result.status, {
+              ok: false,
+              error: 'Invalid placement manifest.',
+              details: result.errors ?? [],
+              violations: result.violations ?? [],
+            });
             return;
           }
 
-          const target = resolve(process.cwd(), 'data/workshop-placements.json');
-          const temp = `${target}.tmp-${process.pid}`;
-          await mkdir(dirname(target), { recursive: true });
-          await writeFile(temp, serializeWorkshopManifest(parsed.value), 'utf8');
-          await rename(temp, target);
           json(res, 200, {
             ok: true,
             path: 'data/workshop-placements.json',
-            objects: parsed.value.objects.length,
+            objects: result.manifest.objects.length,
           });
         } catch (error) {
           json(res, 500, {

@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { ResourceScope } from '../assets/ResourceScope';
 import { type WorkshopPrefabId } from './catalog';
+import { validateWorkshopManifestForMuseum } from './conservation';
 import {
   canonicalizeWorkshopManifest,
-  validateWorkshopManifest,
   WORKSHOP_SCHEMA_VERSION,
   type WorkshopPlacementManifest,
   type WorkshopPlacementRecord,
@@ -25,7 +25,7 @@ export class MuseumPlacements {
 
   constructor(rawManifest: unknown) {
     this.group.name = 'museum-authored-placements';
-    const parsed = validateWorkshopManifest(rawManifest);
+    const parsed = validateWorkshopManifestForMuseum(rawManifest);
     if (!parsed.ok || !parsed.value) {
       throw new Error(`Museum Workshop placement manifest is invalid: ${parsed.errors.join('; ')}`);
     }
@@ -58,7 +58,7 @@ export class MuseumPlacements {
   }
 
   replaceManifest(rawManifest: unknown): WorkshopPlacementManifest {
-    const parsed = validateWorkshopManifest(rawManifest);
+    const parsed = validateWorkshopManifestForMuseum(rawManifest);
     if (!parsed.ok || !parsed.value) {
       throw new Error(`Museum Workshop placement manifest is invalid: ${parsed.errors.join('; ')}`);
     }

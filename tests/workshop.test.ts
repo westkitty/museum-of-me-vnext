@@ -1,5 +1,12 @@
 import placementManifest from '../data/workshop-placements.json';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
+import { INSTALLATION_PLACEMENTS } from '../src/world/installationPlacement';
+import { PLACEMENT_BY_EXHIBIT, SANCTUARY_DIR, SANCTUARY_RAMP_FROM, place } from '../src/world/layout';
+import { writeWorkshopManifest } from '../scripts/workshop-save-plugin';
+import { validateWorkshopManifestForMuseum, validateWorkshopConservation } from '../src/workshop/conservation';
 import { MuseumPlacements } from '../src/workshop/MuseumPlacements';
 import { WorkshopHistory } from '../src/workshop/history';
 import {
@@ -17,7 +24,7 @@ const sample: WorkshopPlacementManifest = {
       label: 'Bench 01',
       prefab: 'museum-bench',
       anchor: 'floor',
-      position: [1.234567, 0, -2],
+      position: [30.234567, 0, 42],
       rotation: [0, 0.5, 0],
       scale: [1, 1, 1],
     },
@@ -62,6 +69,92 @@ describe('Museum Workshop schema', () => {
   });
 });
 
+describe('Museum Workshop conservation', () => {
+  const at = (position: readonly [number, number, number]): WorkshopPlacementManifest => ({
+    schemaVersion: 1,
+    objects: [{ ...sample.objects[0]!, position: [...position] as [number, number, number] }],
+  });
+
+  it('accepts an ordinary safe placement outside authoritative paths', () => {
+    const result = validateWorkshopManifestForMuseum(at([30, 0, 42]));
+    expect(result.ok).toBe(true);
+  });
+
+  it('accepts the browser journey safe placement after its position edit', () => {
+    const result = validateWorkshopManifestForMuseum(at([12.5, 0, 134]));
+    expect(result.ok).toBe(true);
+  });
+
+  it('constructs the two-object browser-authored manifest', () => {
+    const first = { ...sample.objects[0]!, id: 'display-plinth-01', prefab: 'display-plinth' as const, label: 'Display plinth', position: [12.5, 0, 134] as [number, number, number] };
+    const second = { ...first, id: 'display-plinth-02', label: 'Display plinth copy', position: [13.3, 0, 134.8] as [number, number, number] };
+    const placements = new MuseumPlacements({ schemaVersion: 1, objects: [first, second] });
+    expect(placements.objectCount).toBe(2);
+    placements.dispose();
+  });
+
+  it('rejects the protected Rotunda circulation and names the rule', () => {
+    const result = validateWorkshopConservation(at([10, 0, 0]));
+    expect(result.ok).toBe(false);
+    expect(result.violations[0]).toMatchObject({
+      placementId: 'bench-01',
+      placementLabel: 'Bench 01',
+      protectedArea: 'Rotunda circulation floor',
+      rule: 'rotunda-circulation',
+    });
+  });
+
+  it('rejects the Dexter Sanctuary access geometry', () => {
+    const point = place(SANCTUARY_DIR, SANCTUARY_RAMP_FROM + 10, 0, 0);
+    const result = validateWorkshopConservation(at(point));
+    expect(result.ok).toBe(false);
+    expect(result.violations[0]?.rule).toBe('sanctuary-access');
+  });
+
+  it('rejects an exhibit interaction/read zone from authoritative placement data', () => {
+    const spot = PLACEMENT_BY_EXHIBIT.get('E24')!.visitorSpot;
+    const result = validateWorkshopConservation(at(spot));
+    expect(result.ok).toBe(false);
+    expect(result.violations[0]?.rule).toBe('exhibit-read-zone:E24');
+  });
+
+  it('rejects a source installation interaction/read zone from authoritative placement data', () => {
+    const spot = INSTALLATION_PLACEMENTS[0]!.interactionPoint;
+    const result = validateWorkshopConservation(at(spot));
+    expect(result.ok).toBe(false);
+    expect(result.violations[0]?.rule).toMatch(/^source-installation-/);
+  });
+
+  it('rejects a manually corrupted source before constructing runtime objects', () => {
+    const raw = at([10, 0, 0]);
+    expect(validateWorkshopManifestForMuseum(raw).ok).toBe(false);
+    expect(() => new MuseumPlacements(raw)).toThrow(/Rotunda circulation floor/);
+  });
+
+  it('rejects invalid saves without changing the target bytes and accepts a valid save', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'museum-workshop-'));
+    const target = join(directory, 'workshop-placements.json');
+    const original = '{"schemaVersion":1,"objects":[]}\n';
+    try {
+      await writeFile(target, original, 'utf8');
+      const rejected = await writeWorkshopManifest(at([10, 0, 0]), target);
+      expect(rejected.ok).toBe(false);
+      expect(rejected.violations?.[0]).toMatchObject({
+        placementId: 'bench-01',
+        protectedArea: 'Rotunda circulation floor',
+        rule: 'rotunda-circulation',
+      });
+      expect(await readFile(target, 'utf8')).toBe(original);
+
+      const accepted = await writeWorkshopManifest(at([30, 0, 42]), target);
+      expect(accepted.ok).toBe(true);
+      expect(await readFile(target, 'utf8')).toBe(serializeWorkshopManifest(at([30, 0, 42])));
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('MuseumPlacements', () => {
   it('builds authorable roots and captures transformed values', () => {
     const placements = new MuseumPlacements(sample);
@@ -92,7 +185,7 @@ describe('WorkshopHistory', () => {
       objects: [{ ...sample.objects[0], position: [5, 0, 0] }],
     };
     expect(history.push('Move Bench 01', sample, after)).toBe(true);
-    expect(history.undo()?.manifest.objects[0]?.position[0]).toBeCloseTo(1.2346);
+    expect(history.undo()?.manifest.objects[0]?.position[0]).toBeCloseTo(30.2346);
     expect(history.redo()?.manifest.objects[0]?.position[0]).toBe(5);
   });
 });

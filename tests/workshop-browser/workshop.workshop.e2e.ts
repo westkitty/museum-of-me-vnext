@@ -9,6 +9,11 @@ async function stopSoftwareRenderLoop(page: import('@playwright/test').Page): Pr
 }
 
 test('Museum Workshop authors safe objects and persists through the dev-only save bridge', async ({ page, request }) => {
+  const browserErrors: string[] = [];
+  page.on('pageerror', (error) => browserErrors.push(`pageerror: ${error.message}`));
+  page.on('console', (message) => {
+    if (message.type() === 'error') browserErrors.push(`console: ${message.text()}`);
+  });
   await page.goto('/?edit=1');
 
   const workshop = page.locator('.museum-workshop');
@@ -37,6 +42,11 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   await px.fill('12.5');
   await px.blur();
   await expect(px).toHaveValue('12.500');
+
+  const ry = workshop.locator('[data-workshop="ry"]');
+  await ry.fill('30');
+  await ry.blur();
+  await expect(ry).toHaveValue('30.00');
 
   await workshop.getByRole('button', { name: 'Duplicate' }).click();
   await expect(outliner.getByRole('button')).toHaveCount(2);
@@ -79,6 +89,14 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   // already proven above and can starve the protocol while the scene rebuilds.
   await page.reload();
   const reloadedWorkshop = page.locator('.museum-workshop');
-  await expect(reloadedWorkshop).toBeVisible({ timeout: 30_000 });
+  try {
+    await expect(reloadedWorkshop).toBeVisible({ timeout: 30_000 });
+  } catch (error) {
+    throw new Error(`${error instanceof Error ? error.message : error}\nBrowser errors: ${browserErrors.join(' | ')}`);
+  }
   await expect(reloadedWorkshop.locator('[data-workshop="outliner"]').getByRole('button')).toHaveCount(2);
+  // Keep the post-reload assertion DOM-only: the standalone proof below owns
+  // the runtime scene inspection after building from this authored source.
+  await reloadedWorkshop.locator('[data-workshop="outliner"]').getByRole('button', { name: /Display plinth/ }).first().click();
+  await expect(reloadedWorkshop.locator('[data-workshop="ry"]')).toHaveValue('30.00');
 });

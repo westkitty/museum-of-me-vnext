@@ -11,6 +11,11 @@ async function bootMuseum(page: Page, path = '/'): Promise<string[]> {
   await page.waitForFunction(() => Boolean(window.__museum));
   await expect(page.locator('#museum-canvas')).toBeVisible();
 
+  // The CI runner has no real GPU. Prove that the real WebGL application boots,
+  // then stop its render loop before any browser-semantic assertions so software
+  // rendering cannot starve Playwright's protocol commands.
+  await page.evaluate(() => window.__museum?.stop());
+
   if (path.includes('qa=1')) {
     const diagnostics = page.locator('.diag');
     await expect(diagnostics).toBeVisible();
@@ -19,10 +24,6 @@ async function bootMuseum(page: Page, path = '/'): Promise<string[]> {
     await expect(page.getByRole('complementary', { name: 'Human QA evidence recorder' })).toBeVisible();
   }
 
-  // The CI runner has no real GPU. Prove that the real WebGL application boots,
-  // then stop its render loop so browser semantics can be tested without making
-  // software rendering compete with Playwright's own protocol commands.
-  await page.evaluate(() => window.__museum?.stop());
   return errors;
 }
 

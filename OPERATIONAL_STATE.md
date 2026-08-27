@@ -6,8 +6,8 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 43,
-  "last_updated": "2026-08-23",
+  "state_revision": 47,
+  "last_updated": "2026-08-27",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
 -->
@@ -15,7 +15,7 @@
 ## 1. Identity and scope
 
 - **Implementation root:** `/Users/andrew/museum of me/museum-of-me-vnext`
-- **Active branch:** `feature/creative-expansion-2026-08-23`
+- **Active branch:** `feature/museum-workshop-core-2026-08-26`
 - **Governed scope:** this repository only; preserved legacy Reliquary artifacts remain read-only.
 - **Official plan boundary:** `docs/MUSEUM_VNEXT_BUILD_PLAN.md` ends at Phase 14 — Deployment and Release. There are no official Phase 15/16 entries. Additional work is therefore bounded Phase-14 release-readiness work, not invented numbered construction phases.
 
@@ -304,3 +304,11 @@ Phase-14 release-readiness only: protect the hand-maintained human QA contract f
 **r45 addendum:** The owner corrected r44's audio direction: audio is restored, not removed. `AudioManager` again owns gesture-gated ambient beds and interaction ticks; Settings again exposes Sound controls. Preferences move to v3 so new and legacy v2 profiles start with both Overall volume and Ambience at `0`; an explicit later visitor adjustment is retained. Human QA now checks muted default behavior plus deliberate opted-in playback/subtitle behavior rather than permanent silence. This addendum supersedes only r44's audio-disablement statements; its exterior/sky repair evidence and draft-PR status remain unchanged.
 
 **r46 addendum:** The muted-by-default audio correction passed focused typecheck/lint and `npm test` (25 files / 549 tests), canonical `npm run gate`, and `npm run verify:standalone` (static closure, offline browser boot with 55 local requests, 14/14 installation paths, 17/17 visitor conversations, zero remote requests). The earlier local Chromium software-WebGL browser-session closure remains unresolved; it was not rerun as a product pass here.
+
+**r47 addendum — Museum Workshop hardening, current working state (2026-08-27):** The active branch is `feature/museum-workshop-core-2026-08-26`, received at handoff head `57abceb7b3d2d4e61667232ccdbd893342e5b81c`, with no pre-existing dirty files or active Git operation. This bounded change preserves the existing source, layout, collision, installation, visitor-route, exhibit and production-release authorities. The Workshop remains development-only (`?edit=1`), writes only through the loopback/same-origin Vite save bridge to `data/workshop-placements.json`, and consumes a safe manifest in ordinary builds.
+
+The conservation authority is now shared by client validation, runtime manifest construction and the save bridge. It derives protected areas from `src/world/layout.ts`, `src/world/installationPlacement.ts`, source visitor routes and the shared interaction reach: the flight pad, Rotunda circulation, Sanctuary access/chamber, wing thresholds and mandatory halls, grand-stair paths, source-installation read/lectern/footprint zones, exhibit interaction/read zones, authored visitor routes, and the balcony inner edge. Violations are deterministic and structured (`placementId`, `placementLabel`, `protectedArea`, `rule`, `reason`). Invalid saves are rejected before the target is opened; valid saves use a temporary file followed by atomic rename. Direct runtime construction rejects the same corrupted manifest, so source corruption cannot bypass the gate.
+
+The ordinary Chromium gate failure was diagnosed from exact prior run `33038039499`: the first `?qa=1` test timed out during the telemetry-capture click while the WebGL render loop was still running under software rendering; the four later tests passed. The repair stops the real Museum loop immediately after boot and before semantic assertions. Local proof after the repair: the five-test `npm run test:e2e` suite passed; focused Workshop tests passed 16/16; `npm run typecheck`, `npm run gate`, production dependency audit, and standalone static/offline verification passed; the Workshop authoring proof passed two authored placements through save, rebuild and standalone runtime inspection, with 14/14 source installations, 17/17 authored visitor conversations and zero remote requests. The checked-in placement source was restored byte-for-byte to the empty manifest after the proof. Exact-head GitHub Actions verification is still pending after commit and push; the prior red run is not treated as current success.
+
+Current authority statement: Workshop placements may add only removable, non-colliding decoration in safe open areas; they may not mutate structural/collision geometry, source installations or their authored semantics, exhibit interaction/read access, mandatory player/visitor routes, authored visitor routes, the flight-pad operating area, or the balcony/atrium boundary. The authoritative layout, installation-placement, exhibit-placement and visitor-route sources remain the sole geometry/semantics authorities; no parallel coordinate model is introduced.

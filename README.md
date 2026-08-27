@@ -29,8 +29,10 @@ delete, an outliner, and command-style undo/redo. `Save to build` writes the val
 source manifest at `data/workshop-placements.json`; normal development, production, and standalone
 museum builds all consume that same placement source.
 
-The save bridge is a Vite `serve`-only localhost endpoint with a fixed target and shared schema
-validation. Production builds contain the saved placement runtime but must not contain Workshop UI,
+The save bridge is a Vite `serve`-only localhost endpoint with a fixed target and shared schema plus
+conservation validation. Protected routes, interaction/read zones, source installations and
+structural geometry are rejected with deterministic diagnostics before the target is opened.
+Production builds contain the saved placement runtime but must not contain Workshop UI,
 styles, transform controls, or the filesystem write endpoint; `npm run verify:dist` enforces that
 boundary.
 

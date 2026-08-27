@@ -71,9 +71,12 @@ when both `import.meta.env.DEV` and `?edit=1` are true. Workshop attaches Three.
 uses semantic DOM for the inspector, object palette, outliner, commands, and save feedback.
 
 Saving does not mutate TypeScript or expose arbitrary filesystem access. A Vite `apply: 'serve'`
-plugin exposes one localhost-only POST endpoint with a 256 KiB body limit, shared schema validation,
-a fixed target (`data/workshop-placements.json`), and atomic replacement. Production and standalone
-builds consume the resulting manifest but do not contain that write endpoint or editor UI.
+plugin exposes one localhost-only POST endpoint with a 256 KiB body limit, shared schema and
+conservation validation, a fixed target (`data/workshop-placements.json`), and atomic replacement.
+`src/workshop/conservation.ts` derives deterministic protected areas from the authoritative layout,
+installation, exhibit and visitor-route sources; rejected saves return placement ID/label, protected
+area, rule and reason diagnostics before the target is opened. Production and standalone builds
+consume the resulting manifest but do not contain that write endpoint or editor UI.
 `scripts/verify-release-dist.mjs` rejects a release build if Workshop editor/write markers or styles
 leak into production output.
 

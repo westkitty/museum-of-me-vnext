@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:workshop": "playwright test --config playwright.workshop.config.ts",
+    "test:workshop": "node scripts/workshop-authoring-proof.mjs",
     "test:release-tools": "node --test scripts/hosted-verifier.test.mjs scripts/human-evidence-verifier.test.mjs",
     "validate:assets": "node scripts/validate-assets.mjs",
     "validate:mapping": "node scripts/validate-mapping.mjs",
