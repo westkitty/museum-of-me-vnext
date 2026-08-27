@@ -8,7 +8,7 @@ async function stopSoftwareRenderLoop(page: import('@playwright/test').Page): Pr
   await page.evaluate(() => window.__museum?.stop());
 }
 
-test('Museum Workshop authors safe objects and persists through the dev-only save bridge', async ({ page }) => {
+test('Museum Workshop authors safe objects and persists through the dev-only save bridge', async ({ page, request }) => {
   await page.goto('/?edit=1');
 
   const workshop = page.locator('.museum-workshop');
@@ -43,6 +43,17 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   expect(frozenAfterClose).toBe(false);
   await page.keyboard.press('F8');
   await expect(workshop).toBeVisible();
+
+  // A foreign browser origin must not be able to use a locally running Vite
+  // server as a repository write primitive, even though the TCP peer is local.
+  const rejectedWrite = await request.post('/__museum-workshop/save', {
+    headers: {
+      Origin: 'https://not-the-museum.invalid',
+      'Content-Type': 'application/json',
+    },
+    data: { schemaVersion: 1, objects: [] },
+  });
+  expect(rejectedWrite.status()).toBe(403);
 
   const saveResponse = page.waitForResponse((response) =>
     response.url().endsWith('/__museum-workshop/save') && response.request().method() === 'POST');
