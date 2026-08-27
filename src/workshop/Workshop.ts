@@ -109,7 +109,10 @@ export class Workshop {
     this.app.player.setFrozen(false);
   }
 
-  toggle(): void { this.openState ? this.close() : this.open(); }
+  toggle(): void {
+    if (this.openState) this.close();
+    else this.open();
+  }
 
   dispose(): void {
     this.close();
@@ -378,7 +381,11 @@ export class Workshop {
     const editing = /^(INPUT|TEXTAREA|SELECT)$/.test(target?.tagName ?? '') || Boolean(target?.isContentEditable);
     const mod = event.metaKey || event.ctrlKey;
     if (mod && event.code === 'KeyS') { event.preventDefault(); void this.save(); }
-    else if (!editing && mod && event.code === 'KeyZ') { event.preventDefault(); event.shiftKey ? this.redo() : this.undo(); }
+    else if (!editing && mod && event.code === 'KeyZ') {
+      event.preventDefault();
+      if (event.shiftKey) this.redo();
+      else this.undo();
+    }
     else if (!editing && mod && event.code === 'KeyD') { event.preventDefault(); this.duplicate(); }
     else if (!editing && event.code === 'Delete') { event.preventDefault(); this.remove(); }
     else if (!editing && event.code === 'KeyG') { event.preventDefault(); this.snapFloor(); }
