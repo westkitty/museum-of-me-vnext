@@ -36,5 +36,18 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: real browser visitor-path gate
         run: npm run test:e2e
+
+  workshop:
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: install Chromium
+        run: npx playwright install --with-deps chromium
       - name: development-only Museum Workshop authoring gate
         run: npm run test:workshop
