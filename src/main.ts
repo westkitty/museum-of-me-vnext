@@ -54,7 +54,7 @@ if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('edit
     if (toggleWorkshop) toggleWorkshop();
     else app.ui.hud.announce('Museum Workshop is still loading.');
   });
-  void import('./workshop/Workshop')
+  void import('./workshop/WorkshopConservationStudio')
     .then(({ Workshop }) => {
       const workshop = new Workshop(app, placements);
       toggleWorkshop = () => workshop.toggle();
