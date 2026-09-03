@@ -151,3 +151,25 @@ Because this documentation update itself changes the branch head, the authoritat
 **UNKNOWN / UNVERIFIED** for the new collection revision's final visual composition, room readability, interaction feel, representative-device performance, and subjective quality.
 
 Automated success does not promote those states.
+
+## Living collection omission repair — 2D Game Factory
+
+**Evidence state: IMPLEMENTED; EXACT-HEAD AUTOMATION PENDING AT TIME OF THIS WRITE**
+
+A further collection-coherence sweep compared the Museum's living project inventory against current Project Bible records rather than checking only whether the already-authored Museum identities were mapped once. That exposed a different class of error: an active substantial project could be missing from the Museum entirely and the exact-once invariant would still pass.
+
+`2D Game Factory` is such a project. Its current continuity record describes an established local-first visual browser-game workbench and generator with a 74-preset catalogue, Asset Lab, semantic role mapping, Scene Composer, preview through the actual generated Phaser runtime, and Validate / Build / Pack paths. Its starter-kit catalogue is still expanding, but the project itself is materially implemented and therefore belongs in the permanent collection rather than being reduced to a NOW BUILDING teaser.
+
+Repair:
+
+- **P073 2D Game Factory** was added as a current project identity with source repository `westkitty/2d_Game_Factory`;
+- P073 is mapped exactly once to **E22 Creative Tools Studio**;
+- E22 now preserves the existing DexDraw shared-surface and DexCraft prompt-target interactions and adds a museum-scale Factory station that advances through **Import → Asset Lab → Role Map → Scene → Preview → Validate → Build → Pack**;
+- the Factory station explicitly explains that the real project's preview uses the actual generated Phaser game rather than an editor-side mock, while the Museum itself only represents that workflow and does not execute or embed the external project;
+- E22 interpretive copy now explains the shared design principle across its projects: creative state and user-owned assets remain governed as they move from editing surfaces toward durable output;
+- `tests/collection.test.ts` now locks P073 into E22;
+- the tracked QA report now states **73 / 73** current project identities.
+
+The earlier 72-project counts in this addendum remain true historical evidence for the previously verified Revision 2 head. This section supersedes them for the current living collection. The physical museum remains 35 exhibit slots across six wings; Dexter remains outside project mapping.
+
+A new exact-head four-job workflow is required after this addition before P073/E22 may be called automation-verified. Human readability and interaction feel for the new Factory station remain UNKNOWN/UNVERIFIED regardless of automation outcome.
