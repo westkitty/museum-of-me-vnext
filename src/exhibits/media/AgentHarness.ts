@@ -41,7 +41,6 @@ export class AgentHarness extends ExhibitBase {
     const metal = this.standard(0x43444d, { roughness: 0.45, metalness: 0.55 });
     const authorityMat = this.standard(0x725f36, { roughness: 0.6, metalness: 0.45 });
 
-    // Repository scanner and evidence-backed capability cards.
     const scanner = new THREE.Mesh(scope.track(new THREE.BoxGeometry(1.2, 1.6, 1.0)), metal);
     scanner.position.set(-3.1, 0.8, -4.1); this.group.add(scanner);
     const scannerLabel = buildLabel(scope, 'READ-ONLY SCAN', 1.2); scannerLabel.position.set(-3.1, 1.9, -4.1); this.group.add(scannerLabel); scope.track(scannerLabel.geometry);
@@ -72,7 +71,6 @@ export class AgentHarness extends ExhibitBase {
       },
     });
 
-    // Physical flow rail.
     const flowPositions = FLOW.map((_, i) => new THREE.Vector3(-3.2 + i * 1.25, 3.15, -5.3));
     FLOW.forEach((name, i) => {
       const lamp = new THREE.Mesh(scope.track(new THREE.SphereGeometry(0.075, 10, 8)), this.emissive(0xe8c65a, 0.08));
@@ -124,7 +122,9 @@ export class AgentHarness extends ExhibitBase {
     }
     for (let i = 0; i < this.candidates.length; i++) {
       const target = i === this.selected ? 1.08 : 1;
-      this.candidates[i].scale.lerp(new THREE.Vector3(target, target, target), this.reducedMotion ? 1 : Math.min(1, dt * 5));
+      const amount = this.reducedMotion ? 1 : Math.min(1, dt * 5);
+      const current = this.candidates[i].scale.x;
+      this.candidates[i].scale.setScalar(current + (target - current) * amount);
     }
   }
 
