@@ -1,245 +1,164 @@
 import * as THREE from 'three';
 import { ExhibitBase } from '../ExhibitBase';
 import { buildPlaque, buildLectern, buildLabel } from '../Furniture';
-import { buildConsole, Filament } from '../parts';
+import { buildConsole } from '../parts';
 import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
 
-/**
- * E11 — Continuity Systems. Tier C.
- *
- * A documentation chain: evidence blocks feed a claim stage, an approval gate,
- * and finally an append-only record. The gate physically refuses a claim with
- * no evidence attached, because an automated summary that is ninety per cent
- * right is worse than useless — the wrong ten per cent is indistinguishable
- * from the rest.
- */
+/** E11 — Selfsame: Continuity & Authority Systems. */
 
-interface Block {
-  readonly claim: string;
-  readonly evidence: string | null;
-  readonly note: string;
+type EvidenceState = 'claimed' | 'observed' | 'verified' | 'superseded';
+interface RecordCard {
+  readonly text: string;
+  readonly state: EvidenceState;
+  readonly source: string;
 }
 
-const BLOCKS: readonly Block[] = [
-  { claim: 'The build script signs and installs in one step', evidence: 'build.sh, lines 12–34',
-    note: 'A checkable claim. The link makes review take seconds instead of minutes.' },
-  { claim: 'The audio race condition is resolved', evidence: 'the serial queue and actor isolation',
-    note: 'Checkable, and worth checking — this one was wrong for months before it was right.' },
-  { claim: 'The project is roughly eighty per cent complete', evidence: null,
-    note: 'Plausible, unsupported, and exactly the kind of claim that quietly poisons a handoff.' },
-  { claim: 'Two repositories exist and neither is canonical', evidence: 'both repository URLs',
-    note: 'An uncomfortable fact with evidence. It belongs in the record precisely because it is unresolved.' },
+const RECORDS: readonly RecordCard[] = [
+  { text: 'The museum is release-ready.', state: 'superseded', source: 'older milestone claim' },
+  { text: 'The browser journey completed.', state: 'verified', source: 'named automated evidence' },
+  { text: 'The water looks finished.', state: 'claimed', source: 'no human visual evidence' },
+  { text: 'The project is in active development.', state: 'observed', source: 'current owner direction' },
 ];
 
-const STAGES = ['Evidence', 'Claim', 'Approval', 'Record'] as const;
+const CAPSULES = [
+  { name: 'LOCAL ONLY', blocks: 'remote operation', note: 'A local-only constraint is active. Remote execution is not a clever fallback.' },
+  { name: 'PRESERVE THE BOUNDARY', blocks: 'authority expansion', note: 'The system may not widen an operation merely because the wider path is convenient.' },
+  { name: 'DO NOT OMIT', blocks: 'unsupported summary', note: 'Known contradictions remain visible instead of being smoothed into one confident answer.' },
+] as const;
 
 export class ContinuitySystems extends ExhibitBase {
-  private blocks = this.tracked<THREE.Group>();
-  private homes = this.tracked<THREE.Vector3>();
-  private stage = this.tracked<number>();
-  private stageAnchors = this.tracked<THREE.Vector3>();
-  private rejected = this.tracked<boolean>();
-  private chain!: Filament;
+  private cards = this.tracked<THREE.Mesh>();
+  private cardHomes = this.tracked<THREE.Vector3>();
+  private authorityIndex = 3;
+  private capsule = -1;
+  private stopped = false;
+  private gate!: THREE.Mesh;
 
-  /** Reused every frame; allocating these per element churned the heap. */
-  private readonly scratchTarget = new THREE.Vector3();
-
-  constructor(def: ExhibitDefinition) {
-    super(def);
-  }
+  constructor(def: ExhibitDefinition) { super(def); }
 
   protected override build(): void {
     const scope = this.ctx.scope;
-
     const plaque = buildPlaque(scope, this.ctx.record);
     plaque.position.set(0, 2.2, -7.2);
-    this.group.add(plaque);
-    scope.trackObject(plaque);
+    this.group.add(plaque); scope.trackObject(plaque);
 
     const lectern = buildLectern(scope, this.ctx.record, this.ctx.projects);
-    lectern.position.set(3.2, 0, -4.6);
-    lectern.rotation.y = -0.6;
-    this.group.add(lectern);
-    scope.trackObject(lectern);
+    lectern.position.set(3.3, 0, -4.7); lectern.rotation.y = -0.6;
+    this.group.add(lectern); scope.trackObject(lectern);
 
     const bronze = this.standard(0x8a6a42, { roughness: 0.4, metalness: 0.6 });
-    const violet = this.standard(0x5d4d70, { roughness: 0.8 });
+    const violet = this.standard(0x4b3f62, { roughness: 0.75 });
 
-    // ── the four stages, left to right ──
-    STAGES.forEach((name, i) => {
-      const x = -3.0 + i * 2.0;
-      const anchor = new THREE.Vector3(x, 1.2, -4.0);
-      this.stageAnchors.push(anchor);
+    // Authority desk: contradictory records remain simultaneously visible.
+    const desk = new THREE.Mesh(scope.track(new THREE.BoxGeometry(5.0, 0.12, 2.0)), violet);
+    desk.position.set(0, 0.92, -4.2); this.group.add(desk);
 
-      const station = new THREE.Mesh(scope.track(new THREE.BoxGeometry(1.1, 1.0, 0.8)), violet);
-      station.position.set(x, 0.5, -4.0);
-      this.group.add(station);
-
-      const head = new THREE.Mesh(
-        scope.track(i === 2 ? new THREE.TorusGeometry(0.3, 0.07, 8, 20) : new THREE.BoxGeometry(0.8, 0.14, 0.6)),
-        bronze,
+    RECORDS.forEach((record, i) => {
+      const card = new THREE.Mesh(
+        scope.track(new THREE.BoxGeometry(1.02, 0.05, 0.72)),
+        this.standard(record.state === 'verified' ? 0x87b986 : record.state === 'superseded' ? 0x9b695f : 0xd8cfb7, { roughness: 0.85 }),
       );
-      head.position.set(x, 1.06, -4.0);
-      if (i === 2) head.rotation.x = Math.PI / 2;
-      this.group.add(head);
+      const home = new THREE.Vector3(-1.8 + i * 1.2, 1.03, -4.2);
+      card.position.copy(home); this.group.add(card);
+      this.cards.push(card); this.cardHomes.push(home);
 
-      const label = buildLabel(scope, name, 0.9);
-      label.position.set(x, 1.55, -4.0);
-      this.group.add(label);
-      scope.track(label.geometry);
-    });
-
-    // ── the conveying chain ──
-    this.chain = new Filament(scope, this.scaled(24), 0.02, bronze);
-    this.chain.follow(new THREE.CatmullRomCurve3(this.stageAnchors.map((a) => a.clone().setY(0.98))));
-    this.group.add(this.chain.group);
-
-    // ── the claim blocks ──
-    BLOCKS.forEach((block, i) => {
-      const g = new THREE.Group();
-      const home = new THREE.Vector3(-3.0 + i * 0.42, 1.28, -3.2);
-      g.position.copy(home);
-      this.group.add(g);
-      this.blocks.push(g);
-      this.homes.push(home);
-      this.stage.push(0);
-      this.rejected.push(false);
-
-      const body = new THREE.Mesh(
-        scope.track(new THREE.BoxGeometry(0.34, 0.12, 0.26)),
-        this.standard(0xd6c9ab, { roughness: 0.9 }),
-      );
-      g.add(body);
-
-      // The evidence tag: present or visibly absent.
-      const tag = new THREE.Mesh(
-        scope.track(new THREE.BoxGeometry(0.1, 0.02, 0.14)),
-        this.emissive(block.evidence ? 0x7fd67f : 0xd9543a, block.evidence ? 1.1 : 0.9),
-      );
-      tag.position.set(0.2, 0, 0);
-      g.add(tag);
+      const label = buildLabel(scope, `${record.state.toUpperCase()}\n${record.text}`, 0.9);
+      label.position.set(home.x, 1.1, home.z); label.rotation.x = -Math.PI / 2;
+      this.group.add(label); scope.track(label.geometry);
 
       this.control({
-        object: g,
-        label: `Advance: ${block.claim.slice(0, 34)}…`,
-        description: `${block.note} ${block.evidence ? `Evidence: ${block.evidence}.` : 'This claim has no evidence attached and the approval gate will refuse it.'}`,
-        activate: () => this.advance(i),
+        object: card,
+        label: `Use as governing record: ${record.text}`,
+        description: `Source: ${record.source}. Selecting a record does not change its evidence state; it only asks whether it should govern this decision.`,
+        activate: () => {
+          this.authorityIndex = i;
+          const warning = record.state === 'superseded' || record.state === 'claimed'
+            ? ' That is not strong enough to govern current state.'
+            : ' This record may govern within its stated scope.';
+          this.ctx.announce(`${record.state}: ${record.text} Source: ${record.source}.${warning}`);
+        },
       });
     });
 
-    // ── the record ──
-    const record = new THREE.Mesh(scope.track(new THREE.BoxGeometry(1.0, 1.6, 0.7)), violet);
-    record.position.set(3.0, 0.8, -5.0);
-    this.group.add(record);
+    // Hard-stop gate.
+    this.gate = new THREE.Mesh(
+      scope.track(new THREE.BoxGeometry(2.2, 2.0, 0.14)),
+      this.emissive(0x7fd67f, 0.25),
+    );
+    this.gate.position.set(0, 1.6, -6.1); this.group.add(this.gate);
+    const gateLabel = buildLabel(scope, 'PREFLIGHT / HARD STOP', 1.7);
+    gateLabel.position.set(0, 2.85, -6.0); this.group.add(gateLabel); scope.track(gateLabel.geometry);
 
-    const recordLabel = buildLabel(scope, 'Append-only. Corrections are added, never overwritten.', 2.4);
-    recordLabel.position.set(3.0, 1.95, -5.0);
-    this.group.add(recordLabel);
-    scope.track(recordLabel.geometry);
-
-    const consoleGroup = buildConsole(scope, 0.6, 0.44, 1.0, violet);
-    consoleGroup.position.set(-3.6, 0, -2.0);
-    consoleGroup.rotation.y = 0.5;
-    this.group.add(consoleGroup);
-
-    const consoleLabel = buildLabel(scope, 'Run the whole chain', 0.62);
-    consoleLabel.position.set(0, 1.02, 0.2);
-    consoleLabel.rotation.x = -Math.PI / 2.1;
-    consoleGroup.add(consoleLabel);
-    scope.track(consoleLabel.geometry);
-
-    this.control({
-      object: consoleGroup,
-      label: 'Run the whole chain at once',
-      description:
-        'Advances every block as far as it can legitimately go. The claim with no evidence stops at the approval gate while the others pass — which is the entire reason the gate exists.',
-      activate: () => {
-        let passed = 0;
-        let stopped = 0;
-        for (let i = 0; i < this.stage.length; i++) {
-          if (!BLOCKS[i].evidence) {
-            this.stage[i] = Math.max(this.stage[i], 1);
-            this.rejected[i] = true;
-            stopped++;
-            continue;
-          }
-          this.stage[i] = STAGES.length - 1;
-          this.rejected[i] = false;
-          passed++;
-        }
-        this.ctx.announce(
-          `${passed} claim${passed === 1 ? '' : 's'} reached the record. ${stopped} stopped at the gate for having no evidence — a plausible wrong claim is more expensive than no claim.`,
-        );
-      },
+    CAPSULES.forEach((capsule, i) => {
+      const c = buildConsole(scope, 0.62, 0.44, 1.0, violet);
+      c.position.set(-2.2 + i * 2.2, 0, -1.9); this.group.add(c);
+      const label = buildLabel(scope, capsule.name, 0.64);
+      label.position.set(0, 1.02, 0.2); label.rotation.x = -Math.PI / 2.1;
+      c.add(label); scope.track(label.geometry);
+      this.control({
+        object: c,
+        label: `Activate ${capsule.name}`,
+        description: capsule.note,
+        activate: () => {
+          this.capsule = this.capsule === i ? -1 : i;
+          this.stopped = false;
+          this.ctx.announce(this.capsule === i ? `${capsule.name} active. ${capsule.note}` : `${capsule.name} cleared.`);
+        },
+      });
     });
+
+    const attempt = buildConsole(scope, 0.78, 0.5, 1.0, bronze);
+    attempt.position.set(0, 0, -0.55); this.group.add(attempt);
+    const attemptLabel = buildLabel(scope, 'TRY OPERATION', 0.72);
+    attemptLabel.position.set(0, 1.02, 0.2); attemptLabel.rotation.x = -Math.PI / 2.1;
+    attempt.add(attemptLabel); scope.track(attemptLabel.geometry);
+    this.control({
+      object: attempt,
+      label: 'Run the preflight',
+      description: 'Tests a fictional remote mutation against the selected authority record and any active temporary constraint.',
+      activate: () => this.preflight(),
+    });
+
+    const lineage = buildLabel(scope, 'KinDex → Bible Repo → Selfsame    Project Sentinel → recovery packet', 3.8);
+    lineage.position.set(0, 4.25, -6.4); this.group.add(lineage); scope.track(lineage.geometry);
   }
 
-  private advance(index: number): void {
-    const block = BLOCKS[index];
-    const at = this.stage[index];
-
-    if (at >= STAGES.length - 1) {
-      this.ctx.announce(`“${block.claim}” is already in the record.`);
+  private preflight(): void {
+    const record = RECORDS[this.authorityIndex];
+    const capsule = this.capsule >= 0 ? CAPSULES[this.capsule] : null;
+    const weakAuthority = record.state === 'claimed' || record.state === 'superseded';
+    this.stopped = weakAuthority || capsule !== null;
+    if (weakAuthority) {
+      this.ctx.announce(`HARD STOP. “${record.text}” is ${record.state} and cannot authorize a consequential current-state operation.`);
       return;
     }
-    // The approval gate is where an unsupported claim stops.
-    if (at === 1 && !block.evidence) {
-      this.rejected[index] = true;
-      this.ctx.announce(
-        `The gate refuses “${block.claim}”. ${block.note} Nothing enters the record without evidence a person can check.`,
-      );
+    if (capsule) {
+      this.ctx.announce(`HARD STOP. ${capsule.name} blocks ${capsule.blocks}. One required next action: choose a route that preserves the active constraint.`);
       return;
     }
-    this.stage[index] = at + 1;
-    this.rejected[index] = false;
-    const name = STAGES[this.stage[index]];
-    this.ctx.announce(
-      this.stage[index] === STAGES.length - 1
-        ? `“${block.claim}” is written to the record, with ${block.evidence} attached.`
-        : `“${block.claim}” advances to ${name}.`,
-    );
+    this.ctx.announce(`PROCEED within scope. Authority: “${record.text}” (${record.state}). No active constraint blocks this fictional operation.`);
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    const rate = this.reducedMotion ? 1 : Math.min(1, dt * 4);
-    for (let i = 0; i < this.blocks.length; i++) {
-      const anchor = this.stageAnchors[this.stage[i]];
-      const target = this.scratchTarget.copy(anchor);
-      target.x += (i - 1.5) * 0.24;
-      target.y += 0.1;
-      this.blocks[i].position.lerp(target, rate);
-      // A rejected block visibly recoils at the gate.
-      if (this.rejected[i] && !this.reducedMotion) {
-        this.blocks[i].position.x -= Math.sin(this.elapsed * 18) * 0.02;
-        this.blocks[i].rotation.z = Math.sin(this.elapsed * 14) * 0.12;
-      } else {
-        this.blocks[i].rotation.z += (0 - this.blocks[i].rotation.z) * rate;
-      }
+    const target = this.stopped ? 0xd9543a : 0x7fd67f;
+    const mat = this.gate.material as THREE.MeshStandardMaterial;
+    mat.emissive.lerp(new THREE.Color(target), Math.min(1, dt * 5));
+    mat.emissiveIntensity += ((this.stopped ? 1.5 : 0.25) - mat.emissiveIntensity) * Math.min(1, dt * 5);
+    for (let i = 0; i < this.cards.length; i++) {
+      const lift = i === this.authorityIndex ? 0.13 : 0;
+      this.cards[i].position.y += ((this.cardHomes[i].y + lift) - this.cards[i].position.y) * (this.reducedMotion ? 1 : Math.min(1, dt * 6));
     }
   }
 
   protected override onReset(): void {
-    for (let i = 0; i < this.stage.length; i++) {
-      this.stage[i] = 0;
-      this.rejected[i] = false;
-      if (this.blocks[i]) {
-        this.blocks[i].position.copy(this.homes[i]);
-        this.blocks[i].rotation.set(0, 0, 0);
-      }
-    }
+    this.authorityIndex = 3; this.capsule = -1; this.stopped = false;
+    for (let i = 0; i < this.cards.length; i++) this.cards[i].position.copy(this.cardHomes[i]);
   }
 
   protected override describeState(): string {
-    // Report where each block actually is, not just how many finished — a
-    // handoff that has moved but not landed is exactly the state worth seeing.
-    const positions = STAGES.map((name, s) => {
-      const n = this.stage.filter((v) => v === s).length;
-      return n > 0 ? `${n} at ${name}` : null;
-    }).filter(Boolean);
-    const refused = this.rejected.filter(Boolean).length;
-    const note = refused > 0
-      ? ` ${refused} claim${refused === 1 ? ' is' : 's are'} being refused at the approval gate for having no evidence a person can check.`
-      : '';
-    return `Chain: ${positions.join(', ')}.${note}`;
+    const record = RECORDS[this.authorityIndex];
+    const capsule = this.capsule >= 0 ? ` Active constraint: ${CAPSULES[this.capsule].name}.` : ' No temporary constraint is active.';
+    const stop = this.stopped ? ' The most recent preflight stopped.' : '';
+    return `Authority desk currently selects a ${record.state} record: “${record.text}”.${capsule}${stop}`;
   }
 }
