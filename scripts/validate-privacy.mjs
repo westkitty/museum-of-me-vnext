@@ -18,10 +18,17 @@ const PATTERNS = [
 
 // Personal identifiers that must not appear in visitor content.
 // The creator's own public handle is permitted (it names public repositories).
-const DENY_NAMES = [/\bBryan\b/];
+const DENY_NAMES = [/\bBryan\b/i];
 
 const errors = [];
-const files = [...walk('data', ['.json']), ...walk('src/content', ['.ts', '.json']), ...walk('src/exhibits', ['.ts'])];
+// Previously only data/, src/content/ and src/exhibits/ were scanned. A debug
+// string or absolute path left in src/ui, src/world, src/state, src/app,
+// src/accessibility or src/assets shipped to production undetected by this
+// gate (validate-content.mjs scans some of those directories too, but for a
+// different, disjoint set of patterns -- placeholder text, not credentials/
+// paths/personal identifiers).
+const SCAN_DIRS = ['data', 'src/content', 'src/exhibits', 'src/ui', 'src/world', 'src/state', 'src/app', 'src/accessibility', 'src/assets'];
+const files = SCAN_DIRS.flatMap((dir) => walk(dir, ['.ts', '.json']));
 
 for (const f of files) {
   const text = readFileSync(f, 'utf8');

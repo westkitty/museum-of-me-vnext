@@ -1,0 +1,586 @@
+[
+  {
+    "id": "starsilk-atlas",
+    "title": "Starsilk Atlas",
+    "wing": "Central Canon Observatory",
+    "position": [
+      0,
+      0,
+      18
+    ],
+    "radius": 6.2,
+    "accent": [
+      0.23,
+      0.65,
+      0.74
+    ],
+    "build": "atlas",
+    "stage": "CANON-MAPPING ENGINE",
+    "summary": "A continuity instrument for examining Starsilk across eras. It maps worlds, sectors, factions, incidents, Administration containment, Drakken transformations, Shard-God edicts, Starbinding consequences, evidence confidence, and contradictions without reducing the universe to a strategy game.",
+    "truth": "The Atlas exists to preserve changing world-state and source authority. It does not invent missing canon to make the map look complete.",
+    "controls": [
+      [
+        "Previous era",
+        "ArrowLeft"
+      ],
+      [
+        "Next era",
+        "ArrowRight"
+      ],
+      [
+        "Administration",
+        "Digit1"
+      ],
+      [
+        "Drakken",
+        "Digit2"
+      ],
+      [
+        "Starbinding",
+        "Digit3"
+      ],
+      [
+        "Contradictions",
+        "Digit4"
+      ]
+    ]
+  },
+  {
+    "id": "drakken-sandbox",
+    "title": "Drakken Terraforming Sandbox",
+    "wing": "Central Canon Observatory",
+    "position": [
+      0,
+      0,
+      3
+    ],
+    "radius": 6.2,
+    "accent": [
+      0.54,
+      0.19,
+      0.18
+    ],
+    "build": "drakken",
+    "stage": "WORKING INTERACTIVE PROTOTYPE",
+    "summary": "A recovered Administration catastrophe-analysis globe for the Blood Eclipse War. It models regional rewriting by Drakken strain families, countermeasure pressure, rare Starsilk events, and the deliberate split between the official report and the planet that is actually dying.",
+    "truth": "A Blood Ring is an uneven vitrified orbital band made from processed planetary matter. It is not a decorative halo.",
+    "controls": [
+      [
+        "Pyric / Solar",
+        "Digit1"
+      ],
+      [
+        "Seismic / Stone",
+        "Digit2"
+      ],
+      [
+        "Oceanic / Cloud",
+        "Digit3"
+      ],
+      [
+        "Air / Vacuum",
+        "Digit4"
+      ],
+      [
+        "Bio / Soil",
+        "Digit5"
+      ],
+      [
+        "Advance assault",
+        "Space"
+      ],
+      [
+        "Official / actual",
+        "KeyO"
+      ],
+      [
+        "Reset",
+        "KeyR"
+      ]
+    ]
+  },
+  {
+    "id": "orbital-tomb",
+    "title": "Orbital Tomb Visual Timeline",
+    "wing": "Central Canon Observatory",
+    "position": [
+      0,
+      0,
+      -14
+    ],
+    "radius": 6.3,
+    "accent": [
+      0.4,
+      0.34,
+      0.56
+    ],
+    "build": "tomb",
+    "stage": "CANON-SENSITIVE TIMELINE PROJECT",
+    "summary": "An interactive account of Shard-God Tiger slowly and surgically dismantling Meridian Station in high orbit over the cold gas giant Virgil. Across six months, habitat, dead, wreckage, light, silence, and communication failure become persistent orbital landmarks: corpse geography composed before the station understands the design.",
+    "truth": "The horror is controlled authorship, delayed comprehension, and inevitability. Meridian is not destroyed in one noisy explosion.",
+    "controls": [
+      [
+        "Earlier month",
+        "ArrowLeft"
+      ],
+      [
+        "Later month",
+        "ArrowRight"
+      ],
+      [
+        "Reset timeline",
+        "KeyR"
+      ]
+    ]
+  },
+  {
+    "id": "smores-katamari",
+    "title": "S'mores Katamari",
+    "wing": "West Gameworks",
+    "position": [
+      -21,
+      0,
+      25
+    ],
+    "radius": 5.6,
+    "accent": [
+      0.52,
+      0.45,
+      0.6
+    ],
+    "build": "katamari",
+    "stage": "ACTIVE FUNCTIONAL PROTOTYPE",
+    "summary": "An offline-capable React, Three.js, and React Three Fiber game in which Smudge rolls a Katamari through a compressed, stylized Duncan and North Cowichan. Local clutter welds onto the ball, scale changes what can be collected, and geographic triggers govern progression. The Yellow Footprint Trail and Farmers Market Tent Maze are real implemented vertical slices.",
+    "truth": "Smudge remains a lilac-point, blue-eyed, quadrupedal cat. Duncan is a playable system, not municipal wallpaper.",
+    "controls": [
+      [
+        "Forward",
+        "KeyW",
+        true
+      ],
+      [
+        "Left",
+        "KeyA",
+        true
+      ],
+      [
+        "Brake / reverse",
+        "KeyS",
+        true
+      ],
+      [
+        "Right",
+        "KeyD",
+        true
+      ],
+      [
+        "Reset miniature",
+        "KeyR"
+      ]
+    ]
+  },
+  {
+    "id": "westcat-east",
+    "title": "WestCat Goes East",
+    "wing": "West Gameworks",
+    "position": [
+      -21,
+      0,
+      13
+    ],
+    "radius": 5.5,
+    "accent": [
+      0.27,
+      0.5,
+      0.36
+    ],
+    "build": "east",
+    "stage": "SNES-STYLE GAME CONCEPT",
+    "summary": "A Vancouver Island journey whose rules come from place: rain changes traction, streets demand climbing, ferries impose rhythms and waiting, forests alter perception, and Duncan town life shapes movement and social encounters. The project remains a concept and systems-design effort rather than a falsely finished game.",
+    "truth": "Geography must change play before it becomes scenery.",
+    "controls": [
+      [
+        "Dry streets",
+        "Digit1"
+      ],
+      [
+        "Rain traction",
+        "Digit2"
+      ],
+      [
+        "Ferry rhythm",
+        "Digit3"
+      ],
+      [
+        "Advance route",
+        "Space"
+      ],
+      [
+        "Reset route",
+        "KeyR"
+      ]
+    ]
+  },
+  {
+    "id": "parable",
+    "title": "Parable",
+    "wing": "West Gameworks",
+    "position": [
+      -21,
+      0,
+      1
+    ],
+    "radius": 5.5,
+    "accent": [
+      0.67,
+      0.38,
+      0.2
+    ],
+    "build": "parable",
+    "stage": "PHASER 3 PROJECT / EARLY DEVELOPMENT",
+    "summary": "A browser-playable Three.js god-game prototype about ruling a living island through ritual gesture. The player draws a clockwise spiral to arm the ritual, then a finishing glyph: a vertical zigzag casts Fireball. Villages, shrines, villagers, a rival citadel, mutable terrain, worship, corruption, and sacred, rival, or contested ownership persist as world state.",
+    "truth": "The spellbook cards are informational; they do not cast. The protected core is clockwise spiral, then vertical zigzag, equals Fireball.",
+    "controls": [
+      [
+        "Arm clockwise spiral",
+        "KeyC"
+      ],
+      [
+        "Vertical zigzag / Fireball",
+        "KeyF"
+      ],
+      [
+        "Downward line / Rain",
+        "KeyN"
+      ],
+      [
+        "Restart world",
+        "KeyX"
+      ]
+    ]
+  },
+  {
+    "id": "vibe-nexus",
+    "title": "Vibe Coding Nexus",
+    "wing": "West Systems Workshop",
+    "position": [
+      -21,
+      0,
+      -11
+    ],
+    "radius": 5.5,
+    "accent": [
+      0.23,
+      0.65,
+      0.74
+    ],
+    "build": "nexus",
+    "stage": "CREATIVE-TECHNICAL METHOD",
+    "summary": "A system for translating atmosphere, ethics, metaphor, and experiential intent into buildable product structure. It moves from vibe to protected purpose, requirements, interface anatomy, implementation slices, and validation without stripping away the reason the project mattered in the first place.",
+    "truth": "The specification must preserve the purpose. A technically neat build that murders the premise is a failure.",
+    "controls": [
+      [
+        "Preserve purpose",
+        "Digit1"
+      ],
+      [
+        "Generic shortcut",
+        "Digit2"
+      ],
+      [
+        "Advance compiler",
+        "Space"
+      ],
+      [
+        "Reset",
+        "KeyR"
+      ]
+    ]
+  },
+  {
+    "id": "westcat-familiar",
+    "title": "WESTCAT Familiar",
+    "wing": "West Systems Workshop",
+    "position": [
+      -21,
+      0,
+      -22
+    ],
+    "radius": 5.8,
+    "accent": [
+      0.71,
+      0.59,
+      0.34
+    ],
+    "build": "familiar",
+    "stage": "LOCAL-FIRST DESKTOP APPLICATION",
+    "summary": "An Electron, React, TypeScript, Vite, and Zustand desktop familiar in which the familiar itself is the operating surface. Its posture, motion, attention, mode, evidence language, summoned tools, self-audit, project rituals, and earned memory communicate operational state. It is not a mascot glued onto a dashboard.",
+    "truth": "Familiar first. Motion means state. Attention must be earned. No false certainty. Local first means local first. The project must be auditable.",
+    "controls": [
+      [
+        "Focus mode",
+        "Digit1"
+      ],
+      [
+        "Check-in mode",
+        "Digit2"
+      ],
+      [
+        "Explore mode",
+        "Digit3"
+      ],
+      [
+        "Inspect mode",
+        "Digit4"
+      ],
+      [
+        "Advance state",
+        "Space"
+      ],
+      [
+        "Reset",
+        "KeyR"
+      ]
+    ]
+  },
+  {
+    "id": "heliocide",
+    "title": "Heliocide Control Room",
+    "wing": "West Systems Workshop",
+    "position": [
+      -21,
+      0,
+      -37
+    ],
+    "radius": 5.7,
+    "accent": [
+      0.54,
+      0.19,
+      0.18
+    ],
+    "build": "heliocide",
+    "stage": "VOICE-COMMAND SIMULATION CONCEPT",
+    "summary": "A command-room simulation built around pressure, alarms, orbital consequence, and the discipline of issuing decisions that the room records rather than flatters. The museum installation demonstrates its operational rhythm without pretending that unbuilt commands or canon outcomes already exist.",
+    "truth": "The operator is observed by the system. Authority is not the same thing as reassurance.",
+    "controls": [
+      [
+        "Begin sequence",
+        "KeyB"
+      ],
+      [
+        "Next command state",
+        "Space"
+      ],
+      [
+        "Hold",
+        "KeyH"
+      ],
+      [
+        "Authorize",
+        "KeyA"
+      ],
+      [
+        "Reset",
+        "KeyR"
+      ]
+    ]
+  },
+  {
+    "id": "dexdictate",
+    "title": "DexDictate",
+    "wing": "East Local Systems Lab",
+    "position": [
+      21,
+      0,
+      25
+    ],
+    "radius": 5.7,
+    "accent": [
+      0.23,
+      0.65,
+      0.74
+    ],
+    "build": "dictate",
+    "stage": "MATURE NATIVE MACOS PRODUCT",
+    "summary": "A native Swift and SwiftUI menu-bar application for offline speech-to-text. A global mouse or keyboard trigger starts capture, AVFoundation and CoreAudio feed a local SwiftWhisper model, the output coordinator inserts text into the active application, and history, vocabulary, voice commands, profiles, benchmarking, safe mode, and diagnostics remain available locally.",
+    "truth": "No cloud and no telemetry. Audio remains on the Mac. This exhibit simulates the pipeline; it does not request microphone access.",
+    "controls": [
+      [
+        "Hold-to-talk mode",
+        "KeyH"
+      ],
+      [
+        "Toggle mode",
+        "KeyT"
+      ],
+      [
+        "Start / stop capture",
+        "Space"
+      ],
+      [
+        "Clear demonstration",
+        "KeyR"
+      ]
+    ]
+  },
+  {
+    "id": "tablet-link",
+    "title": "Relay Link / TabletLink",
+    "wing": "East Local Systems Lab",
+    "position": [
+      21,
+      0,
+      13
+    ],
+    "radius": 5.6,
+    "accent": [
+      0.18,
+      0.35,
+      0.68
+    ],
+    "build": "link",
+    "stage": "UNRESOLVED DISPLAY-LINK EXPERIMENT",
+    "summary": "A local Mac-to-Android handoff system developed through the TabletLink experiments and the Relay Link repository. It uses a WebSocket relay on port 8765 for clipboard text, PNG data, pointer packets, bounded queue inspection, connection recovery, and a native Android client rather than pretending a fragile mirroring route is solved.",
+    "truth": "The handoff must expose discovery, trust, connection, queue, failure, and recovery states. Convenience never justifies hiding whether the bridge is actually connected.",
+    "controls": [
+      [
+        "Advance connection",
+        "Space"
+      ],
+      [
+        "Reset connection",
+        "KeyR"
+      ]
+    ]
+  },
+  {
+    "id": "osint-box",
+    "title": "OSINT Box",
+    "wing": "East Local Systems Lab",
+    "position": [
+      21,
+      0,
+      1
+    ],
+    "radius": 5.8,
+    "accent": [
+      0.18,
+      0.47,
+      0.5
+    ],
+    "build": "osint",
+    "stage": "ACTIVE LOCAL MACOS PLATFORM",
+    "summary": "A local-only investigative platform served by Flask and wrapped in a native Swift, AppKit, and WebKit application. It combines a 119-tool matrix, case JSON, logs, a SQLite cache, streamed local-model assistance, and evidence-preserving workflows while keeping investigation data, credentials, and secrets out of the repository.",
+    "truth": "Authorized scope, provenance, manual proof, and privacy gates come before tool volume. This exhibit routes examples; it performs no reconnaissance.",
+    "controls": [
+      [
+        "URL seed",
+        "Digit1"
+      ],
+      [
+        "Domain seed",
+        "Digit2"
+      ],
+      [
+        "Username seed",
+        "Digit3"
+      ],
+      [
+        "Local file seed",
+        "Digit4"
+      ],
+      [
+        "Advance safe route",
+        "Space"
+      ],
+      [
+        "Reset",
+        "KeyR"
+      ]
+    ]
+  },
+  {
+    "id": "dexvault",
+    "title": "DexVault / Vault Architect",
+    "wing": "East Local Systems Lab",
+    "position": [
+      21,
+      0,
+      -11
+    ],
+    "radius": 5.7,
+    "accent": [
+      0.71,
+      0.59,
+      0.34
+    ],
+    "build": "vault",
+    "stage": "LOCAL ARCHIVE / RETRIEVAL ARCHITECTURE",
+    "summary": "A local knowledge structure for keeping long-running work available across Inbox, Sources, Canon, Concepts, and Analysis. The retrieval path is meant to return source-grounded chunks, preserve contradictory evidence, and stop project memory from collapsing into whatever was most recently said.",
+    "truth": "Memory is infrastructure. Retrieval without provenance is merely confident forgetting.",
+    "controls": [
+      [
+        "Canon query",
+        "Digit1"
+      ],
+      [
+        "Project query",
+        "Digit2"
+      ],
+      [
+        "Contradiction query",
+        "Digit3"
+      ],
+      [
+        "Run retrieval step",
+        "Space"
+      ],
+      [
+        "Reset",
+        "KeyR"
+      ]
+    ]
+  },
+  {
+    "id": "dexgpt",
+    "title": "DexGPT / Dexter's Sanctuary",
+    "wing": "Rear Sanctuary",
+    "position": [
+      0,
+      0,
+      -39
+    ],
+    "radius": 6.5,
+    "accent": [
+      0.71,
+      0.59,
+      0.34
+    ],
+    "build": "dexter",
+    "stage": "LIVING PERSONA AND QUALITY GATE",
+    "summary": "DexGPT is the digital simulacrum of Dexter: the sacred tricolor Phal\u00e8ne / Papillon mix with floppy feathered ears, black-white-tan coat, blind navigation, furious judgment, and no interest in sentimental mascot work. The system is a voice, a behavioral constitution, a local-assistant direction, and an inspection lens for evidence, continuity, and false claims.",
+    "truth": "Dexter is sacred, not cute. Dexter does not reward polish that conceals incorrect structure.",
+    "controls": [
+      [
+        "Dex mode",
+        "Digit1"
+      ],
+      [
+        "Work mode",
+        "Digit2"
+      ],
+      [
+        "Plain mode",
+        "Digit3"
+      ],
+      [
+        "Inspect evidence",
+        "Space"
+      ],
+      [
+        "Reset",
+        "KeyR"
+      ]
+    ]
+  }
+]

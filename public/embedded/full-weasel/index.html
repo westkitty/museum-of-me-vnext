@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"
+    />
+
+    <!-- Museum embed: this remains a local experience, not an installable PWA. -->
+    <meta name="theme-color" content="#ff6f61" />
+
+    <!-- Favicon and Apple touch icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+
+    <!-- Preload critical assets -->
+    <link rel="preload" as="image" href="./assets/sprites/dance/dexter_dance_01.png" />
+    <link rel="preload" as="image" href="./assets/sprites/dance/dexter_dance_02.png" />
+    <link rel="preload" as="image" href="./assets/sprites/dance/dexter_dance_03.png" />
+
+    <title>The Full Weasel</title>
+
+    <!-- Prevent flash of unstyled content -->
+    <style>
+      html, body { background: #ffd9c8; }
+    </style>
+    <script type="module" crossorigin src="./assets/index-CRhSaq9Q.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-FE7YHZNB.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

@@ -13,16 +13,29 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:workshop": "node scripts/workshop-authoring-proof.mjs",
+    "test:release-tools": "node --test scripts/hosted-verifier.test.mjs scripts/human-evidence-verifier.test.mjs",
     "validate:assets": "node scripts/validate-assets.mjs",
     "validate:mapping": "node scripts/validate-mapping.mjs",
     "validate:content": "node scripts/validate-content.mjs",
     "validate:privacy": "node scripts/validate-privacy.mjs",
     "check:budgets": "node scripts/check-budgets.mjs",
-    "gate": "npm run typecheck && npm run lint && npm test && npm run validate:mapping && npm run validate:content && npm run validate:privacy && npm run validate:frameloop && npm run build",
-    "validate:frameloop": "node scripts/validate-frameloop.mjs"
+    "verify:dist": "node scripts/verify-release-dist.mjs",
+    "verify:hosted": "node scripts/verify-hosted.mjs",
+    "verify:human-evidence": "node scripts/verify-human-evidence.mjs",
+    "validate:source-parity": "node scripts/validate-source-parity.mjs",
+    "build:standalone": "vite build --config vite.standalone.config.ts && node scripts/build-standalone.mjs",
+    "verify:standalone": "node scripts/verify-standalone-offline.mjs && node scripts/standalone-offline-browser.mjs && node scripts/runtime-source-qa.mjs",
+    "gate": "npm run typecheck && npm run lint && npm test && npm run test:release-tools && npm run validate:mapping && npm run validate:content && npm run validate:privacy && npm run validate:frameloop && npm run validate:hotpaths && npm run validate:assets && npm run validate:exhibits && npm run validate:source-parity && npm run qa && npm run build && npm run check:budgets && npm run verify:dist",
+    "validate:frameloop": "node scripts/validate-frameloop.mjs",
+    "validate:hotpaths": "node scripts/validate-hotpaths.mjs",
+    "build:collection": "node scripts/build-collection.mjs",
+    "validate:exhibits": "node scripts/validate-exhibits.mjs",
+    "qa": "node scripts/qa-report-runner.mjs",
+    "qa:runtime-source": "node scripts/runtime-source-qa.mjs"
   },
   "dependencies": {
-    "three": "0.185.0"
+    "three": "0.185.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",

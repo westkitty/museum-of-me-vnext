@@ -1,0 +1,71 @@
+{
+  "authority": {
+    "countContract": "SUPERSEDED",
+    "countEvidence": "Museum of Me vNext actualization handoff 2026-08-19 froze a 64-project/35-exhibit mapping. Current user instruction forbids deleting that corpus. Historical 14+15+29 count is count-only superseded; identities, relationships, installations, assets, visitor contracts, and systems remain mandatory.",
+    "identities": "RESTORE",
+    "artwork": "RESTORE from curated HTML exact bytes",
+    "systems": "RESTORE from curated HTML, with Version B original-data/canon filling structured records",
+    "vNextArchitecture": "PRESERVE"
+  },
+  "threejs": {
+    "curated": "0.185.1",
+    "revision": "185",
+    "vnextWas": "0.185.0",
+    "action": "pin to 0.185.1 to match curated runtime identity",
+    "canonicalDelivery": "embed; zero runtime network"
+  },
+  "primaryToVNext": {
+    "starsilk-atlas": "E01",
+    "drakken-sandbox": "E07",
+    "orbital-tomb": "E03",
+    "smores-katamari": "E32",
+    "westcat-east": "E26",
+    "parable": "E31",
+    "vibe-nexus": "E14",
+    "westcat-familiar": "E26",
+    "heliocide": "E08",
+    "dexdictate": "E17",
+    "tablet-link": "E18",
+    "osint-box": "E23",
+    "dexvault": "E20",
+    "dexgpt": "sanctuary"
+  },
+  "supplementaryToVNext": {
+    "drakken-compendium": "E02",
+    "starsilk-maker": "E05",
+    "sky-built-film": "E16",
+    "dexdictate-android": "E17",
+    "ftl-research": "E35",
+    "bigmac-stack": "E34",
+    "blood-archive": "E16",
+    "heliocide-rush": "E08",
+    "friend-cats-newsroom": "E31",
+    "westcat-overlay": "E26",
+    "dexstitch": "E22",
+    "handoff-necromancer": "E11",
+    "dexkeeper": "E18",
+    "quarrymind-study": "E23",
+    "dexcast": "E17"
+  },
+  "counts": {
+    "historicalPrimary": 14,
+    "historicalSupplementary": 15,
+    "historicalProjects": 29,
+    "historicalVisitors": 17,
+    "historicalWitnessable": 46,
+    "vNextProjects": 64,
+    "vNextExhibits": 35,
+    "curatedRasters": 9
+  },
+  "missingSources": [
+    "Reliquary_Restoration_Validation_Report.md",
+    "Reliquary_200_Observation_Closure_Ledger.md",
+    "Reliquary_Restoration_SHA256SUMS.txt"
+  ],
+  "presentSources": {
+    "The_Reliquary_of_Iterative_Becoming_THREEJS_CURATED.html": "60b5ef74116b01301ddc7fd89e8b983023b17677fcf698c427107e51e19c4534",
+    "The_Reliquary_of_Iterative_Becoming_RESTORED.html": "f6a4f81cb94516631968a3aa0b686851b7c4a43b140c2763f7f786a0c3a7fa35",
+    "The_Reliquary_ThreeJS_Cycle7_50Plus_Polish_Adversarial_Final_Source.zip": "868ee5401149088387ad548c3eb1ff1ae161c7773491facffaafbb6ae8945f9b",
+    "The_Reliquary_ThreeJS_Cycle7_50Plus_Polish_Adversarial_Final_Static_Build.zip": "13d338b32e00256c8aac14e225a104d87b1ef76d73704e73044a700236a5b65a"
+  }
+}

@@ -1,0 +1,2035 @@
+{
+  "generatedFrom": "release/The_Reliquary_of_Iterative_Becoming.html (file://, browser context offline)",
+  "bootZone": "plaza",
+  "traversal": {
+    "start": [
+      1.6900125828233476e-14,
+      0,
+      138
+    ],
+    "end": [
+      1.6900125828233476e-14,
+      0,
+      -95.25
+    ],
+    "zones": [
+      "plaza",
+      "south",
+      "rotunda",
+      "north"
+    ]
+  },
+  "sanctuary": {
+    "zones": [
+      "north",
+      "rotunda",
+      "sanctuary"
+    ],
+    "reachedAll": true,
+    "steps": 1089,
+    "reached": true,
+    "finalZone": "sanctuary",
+    "position": [
+      -35.046926219675925,
+      -5,
+      -42.26719016924055
+    ],
+    "descended": true,
+    "focusAtSanctuary": "installation:dexgpt"
+  },
+  "requestCount": 1,
+  "remoteRequestCount": 0,
+  "pageErrors": [],
+  "installations": [
+    {
+      "id": "starsilk-atlas",
+      "title": "Starsilk Atlas",
+      "host": "E01",
+      "steps": {
+        "reached": true,
+        "objectPresent": true,
+        "thesisPartsComplete": true,
+        "lecternPresent": true,
+        "focusAcquired": true,
+        "interactionInvoked": true,
+        "engaged": true,
+        "controlsDriven": true,
+        "stateTransitioned": true,
+        "persisted": true,
+        "examined": true,
+        "movedOffDefault": true,
+        "restoredAfterReload": true,
+        "journalRecorded": true,
+        "guideTargetable": true,
+        "studyKnown": true,
+        "touchControlTable": true,
+        "resetWorks": true
+      },
+      "controls": [
+        {
+          "label": "Previous era",
+          "code": "ArrowLeft",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Fringe Strikes — Y0 · Administration containment"
+        },
+        {
+          "label": "Next era",
+          "code": "ArrowRight",
+          "moved": true,
+          "lineChanged": true,
+          "status": "First Blood Rings — Y3 · Administration containment"
+        },
+        {
+          "label": "Administration",
+          "code": "Digit1",
+          "moved": false,
+          "lineChanged": false,
+          "status": "First Blood Rings — Y3 · Administration containment"
+        },
+        {
+          "label": "Drakken",
+          "code": "Digit2",
+          "moved": true,
+          "lineChanged": true,
+          "status": "First Blood Rings — Y3 · Drakken transformation"
+        },
+        {
+          "label": "Starbinding",
+          "code": "Digit3",
+          "moved": true,
+          "lineChanged": true,
+          "status": "First Blood Rings — Y3 · Starbinding consequence"
+        },
+        {
+          "label": "Contradictions",
+          "code": "Digit4",
+          "moved": true,
+          "lineChanged": true,
+          "status": "First Blood Rings — Y3 · Contradictions and confidence"
+        }
+      ],
+      "errors": [],
+      "interactionPoint": [
+        -16.3,
+        0,
+        -37.6
+      ],
+      "requiredParts": [
+        "loom-frame",
+        "starsilk-core",
+        "thread-ribbon",
+        "witness-node",
+        "era-spool"
+      ],
+      "presentParts": [
+        "loom-frame",
+        "starsilk-core",
+        "thread-ribbon",
+        "era-spool",
+        "witness-node"
+      ],
+      "meshCount": 24,
+      "focusLabel": "Engage Starsilk Atlas",
+      "status": "First Blood Rings — Y3 · Contradictions and confidence",
+      "drivenBy": "ArrowLeft",
+      "resetStatus": "First Blood Rings — Y3 · Administration containment",
+      "defaultStatus": "First Blood Rings — Y3 · Administration containment"
+    },
+    {
+      "id": "drakken-sandbox",
+      "title": "Drakken Terraforming Sandbox",
+      "host": "E07",
+      "steps": {
+        "reached": true,
+        "objectPresent": true,
+        "thesisPartsComplete": true,
+        "lecternPresent": true,
+        "focusAcquired": true,
+        "interactionInvoked": true,
+        "engaged": true,
+        "controlsDriven": true,
+        "stateTransitioned": true,
+        "persisted": true,
+        "examined": true,
+        "movedOffDefault": true,
+        "restoredAfterReload": true,
+        "journalRecorded": true,
+        "guideTargetable": true,
+        "studyKnown": true,
+        "touchControlTable": true,
+        "resetWorks": true
+      },
+      "controls": [
+        {
+          "label": "Pyric / Solar",
+          "code": "Digit1",
+          "moved": false,
+          "lineChanged": false,
+          "status": "Pyric / Solar · assault step 0/5 · actual condition"
+        },
+        {
+          "label": "Seismic / Stone",
+          "code": "Digit2",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Seismic / Stone · assault step 0/5 · actual condition"
+        },
+        {
+          "label": "Oceanic / Cloud",
+          "code": "Digit3",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Oceanic / Cloud · assault step 0/5 · actual condition"
+        },
+        {
+          "label": "Air / Vacuum",
+          "code": "Digit4",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Air / Vacuum · assault step 0/5 · actual condition"
+        },
+        {
+          "label": "Bio / Soil",
+          "code": "Digit5",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Bio / Soil · assault step 0/5 · actual condition"
+        },
+        {
+          "label": "Advance assault",
+          "code": "Space",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Bio / Soil · assault step 1/5 · actual condition"
+        },
+        {
+          "label": "Official / actual",
+          "code": "KeyO",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Bio / Soil · assault step 1/5 · official report"
+        },
+        {
+          "label": "Reset",
+          "code": "KeyR",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Pyric / Solar · assault step 0/5 · actual condition"
+        }
+      ],
+      "errors": [],
+      "interactionPoint": [
+        -16.3,
+        0,
+        -91.6
+      ],
+      "requiredParts": [
+        "planet-core",
+        "blood-ring",
+        "strain-pylon",
+        "extraction-spine",
+        "official-mask"
+      ],
+      "presentParts": [
+        "planet-core",
+        "blood-ring",
+        "strain-pylon",
+        "extraction-spine",
+        "official-mask"
+      ],
+      "meshCount": 28,
+      "focusLabel": "Engage Drakken Terraforming Sandbox",
+      "status": "Pyric / Solar · assault step 0/5 · actual condition",
+      "drivenBy": "Digit2",
+      "resetStatus": "Pyric / Solar · assault step 0/5 · actual condition",
+      "defaultStatus": "Pyric / Solar · assault step 0/5 · actual condition"
+    },
+    {
+      "id": "orbital-tomb",
+      "title": "Orbital Tomb Visual Timeline",
+      "host": "E03",
+      "steps": {
+        "reached": true,
+        "objectPresent": true,
+        "thesisPartsComplete": true,
+        "lecternPresent": true,
+        "focusAcquired": true,
+        "interactionInvoked": true,
+        "engaged": true,
+        "controlsDriven": true,
+        "stateTransitioned": true,
+        "persisted": true,
+        "examined": true,
+        "movedOffDefault": true,
+        "restoredAfterReload": true,
+        "journalRecorded": true,
+        "guideTargetable": true,
+        "studyKnown": true,
+        "touchControlTable": true,
+        "resetWorks": true
+      },
+      "controls": [
+        {
+          "label": "Earlier month",
+          "code": "ArrowLeft",
+          "moved": false,
+          "lineChanged": false,
+          "status": "Meridian month 0/6"
+        },
+        {
+          "label": "Later month",
+          "code": "ArrowRight",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Meridian month 1/6"
+        },
+        {
+          "label": "Reset timeline",
+          "code": "KeyR",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Meridian month 0/6"
+        }
+      ],
+      "errors": [],
+      "interactionPoint": [
+        -16.3,
+        0,
+        -55.6
+      ],
+      "requiredParts": [
+        "gas-giant",
+        "month-orbit",
+        "meridian-module",
+        "dismantled-fragment",
+        "witness-beacon"
+      ],
+      "presentParts": [
+        "gas-giant",
+        "month-orbit",
+        "meridian-module",
+        "dismantled-fragment",
+        "witness-beacon"
+      ],
+      "meshCount": 24,
+      "focusLabel": "Engage Orbital Tomb Visual Timeline",
+      "status": "Meridian month 0/6",
+      "drivenBy": "ArrowRight",
+      "resetStatus": "Meridian month 0/6",
+      "defaultStatus": "Meridian month 0/6"
+    },
+    {
+      "id": "smores-katamari",
+      "title": "S'mores Katamari",
+      "host": "E32",
+      "steps": {
+        "reached": true,
+        "objectPresent": true,
+        "thesisPartsComplete": true,
+        "lecternPresent": true,
+        "focusAcquired": true,
+        "interactionInvoked": true,
+        "engaged": true,
+        "controlsDriven": true,
+        "stateTransitioned": true,
+        "persisted": true,
+        "examined": true,
+        "movedOffDefault": true,
+        "restoredAfterReload": true,
+        "journalRecorded": true,
+        "guideTargetable": true,
+        "studyKnown": true,
+        "touchControlTable": true,
+        "resetWorks": true
+      },
+      "controls": [
+        {
+          "label": "Forward",
+          "code": "KeyW",
+          "moved": true,
+          "lineChanged": false,
+          "status": "0/15 objects collected · scale 0.34"
+        },
+        {
+          "label": "Left",
+          "code": "KeyA",
+          "moved": true,
+          "lineChanged": false,
+          "status": "0/15 objects collected · scale 0.34"
+        },
+        {
+          "label": "Brake / reverse",
+          "code": "KeyS",
+          "moved": true,
+          "lineChanged": false,
+          "status": "0/15 objects collected · scale 0.34"
+        },
+        {
+          "label": "Right",
+          "code": "KeyD",
+          "moved": true,
+          "lineChanged": false,
+          "status": "0/15 objects collected · scale 0.34"
+        },
+        {
+          "label": "Reset miniature",
+          "code": "KeyR",
+          "moved": false,
+          "lineChanged": false,
+          "status": "0/15 objects collected · scale 0.34"
+        }
+      ],
+      "errors": [],
+      "interactionPoint": [
+        17.300000000000015,
+        0,
+        109.6
+      ],
+      "requiredParts": [
+        "katamari-ball",
+        "collection-item",
+        "duncan-landmark",
+        "smudge-figure",
+        "scale-gate"
+      ],
+      "presentParts": [
+        "duncan-landmark",
+        "katamari-ball",
+        "collection-item",
+        "scale-gate",
+        "smudge-figure"
+      ],
+      "meshCount": 36,
+      "focusLabel": "Engage S'mores Katamari",
+      "status": "0/15 objects collected · scale 0.34",
+      "drivenBy": "KeyW",
+      "resetStatus": "0/15 objects collected · scale 0.34",
+      "defaultStatus": "0/15 objects collected · scale 0.34"
+    },
+    {
+      "id": "westcat-east",
+      "title": "WestCat Goes East",
+      "host": "E26",
+      "steps": {
+        "reached": true,
+        "objectPresent": true,
+        "thesisPartsComplete": true,
+        "lecternPresent": true,
+        "focusAcquired": true,
+        "interactionInvoked": true,
+        "engaged": true,
+        "controlsDriven": true,
+        "stateTransitioned": true,
+        "persisted": true,
+        "examined": true,
+        "movedOffDefault": true,
+        "restoredAfterReload": true,
+        "journalRecorded": true,
+        "guideTargetable": true,
+        "studyKnown": true,
+        "touchControlTable": true,
+        "resetWorks": true
+      },
+      "controls": [
+        {
+          "label": "Dry streets",
+          "code": "Digit1",
+          "moved": false,
+          "lineChanged": false,
+          "status": "Dry streets · route 0.00/10"
+        },
+        {
+          "label": "Rain traction",
+          "code": "Digit2",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Rain traction · route 0.00/10"
+        },
+        {
+          "label": "Ferry rhythm",
+          "code": "Digit3",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Ferry rhythm · route 0.00/10"
+        },
+        {
+          "label": "Advance route",
+          "code": "Space",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Ferry rhythm · route 0.80/10"
+        },
+        {
+          "label": "Reset route",
+          "code": "KeyR",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Dry streets · route 0.00/10"
+        }
+      ],
+      "errors": [],
+      "interactionPoint": [
+        17.300000000000008,
+        0,
+        55.6
+      ],
+      "requiredParts": [
+        "steep-road",
+        "forest-band",
+        "ferry-dock",
+        "weather-field",
+        "route-token"
+      ],
+      "presentParts": [
+        "steep-road",
+        "forest-band",
+        "ferry-dock",
+        "route-token",
+        "weather-field"
+      ],
+      "meshCount": 49,
+      "focusLabel": "Engage WestCat Goes East",
+      "status": "Dry streets · route 0.00/10",
+      "drivenBy": "Digit2",
+      "resetStatus": "Dry streets · route 0.00/10",
+      "defaultStatus": "Dry streets · route 0.00/10"
+    },
+    {
+      "id": "parable",
+      "title": "Parable",
+      "host": "E31",
+      "steps": {
+        "reached": true,
+        "objectPresent": true,
+        "thesisPartsComplete": true,
+        "lecternPresent": true,
+        "focusAcquired": true,
+        "interactionInvoked": true,
+        "engaged": true,
+        "controlsDriven": true,
+        "stateTransitioned": true,
+        "persisted": true,
+        "examined": true,
+        "movedOffDefault": true,
+        "restoredAfterReload": true,
+        "journalRecorded": true,
+        "guideTargetable": true,
+        "studyKnown": true,
+        "touchControlTable": true,
+        "resetWorks": true
+      },
+      "controls": [
+        {
+          "label": "Arm clockwise spiral",
+          "code": "KeyC",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Ritual armed · None · 0 casts"
+        },
+        {
+          "label": "Vertical zigzag / Fireball",
+          "code": "KeyF",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Ritual unarmed · Fireball · 1 casts"
+        },
+        {
+          "label": "Downward line / Rain",
+          "code": "KeyN",
+          "moved": false,
+          "lineChanged": false,
+          "status": "Ritual unarmed · Fireball · 1 casts"
+        },
+        {
+          "label": "Restart world",
+          "code": "KeyX",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Ritual unarmed · None · 0 casts"
+        }
+      ],
+      "errors": [],
+      "interactionPoint": [
+        -17.29999999999999,
+        0,
+        82.4
+      ],
+      "requiredParts": [
+        "living-island",
+        "ritual-spiral",
+        "village",
+        "shrine",
+        "rival-citadel"
+      ],
+      "presentParts": [
+        "living-island",
+        "ritual-spiral",
+        "village",
+        "shrine",
+        "rival-citadel"
+      ],
+      "meshCount": 14,
+      "focusLabel": "Engage Parable",
+      "status": "Ritual unarmed · None · 0 casts",
+      "drivenBy": "KeyC",
+      "resetStatus": "Ritual unarmed · None · 0 casts",
+      "defaultStatus": "Ritual unarmed · None · 0 casts"
+    },
+    {
+      "id": "vibe-nexus",
+      "title": "Vibe Coding Nexus",
+      "host": "E14",
+      "steps": {
+        "reached": true,
+        "objectPresent": true,
+        "thesisPartsComplete": true,
+        "lecternPresent": true,
+        "focusAcquired": true,
+        "interactionInvoked": true,
+        "engaged": true,
+        "controlsDriven": true,
+        "stateTransitioned": true,
+        "persisted": true,
+        "examined": true,
+        "movedOffDefault": true,
+        "restoredAfterReload": true,
+        "journalRecorded": true,
+        "guideTargetable": true,
+        "studyKnown": true,
+        "touchControlTable": true,
+        "resetWorks": true
+      },
+      "controls": [
+        {
+          "label": "Preserve purpose",
+          "code": "Digit1",
+          "moved": false,
+          "lineChanged": false,
+          "status": "Purpose preserved · phase 0/4 · 0 failures"
+        },
+        {
+          "label": "Generic shortcut",
+          "code": "Digit2",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Generic shortcut · phase 0/4 · 1 failures"
+        },
+        {
+          "label": "Advance compiler",
+          "code": "Space",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Generic shortcut · phase 1/4 · 1 failures"
+        },
+        {
+          "label": "Reset",
+          "code": "KeyR",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Purpose preserved · phase 0/4 · 0 failures"
+        }
+      ],
+      "errors": [],
+      "interactionPoint": [
+        -12.869343417595173,
+        10,
+        -31.254119728445392
+      ],
+      "requiredParts": [
+        "vibe-reservoir",
+        "purpose-core",
+        "translation-gate",
+        "spec-stack",
+        "failure-chute"
+      ],
+      "presentParts": [
+        "vibe-reservoir",
+        "purpose-core",
+        "translation-gate",
+        "spec-stack",
+        "failure-chute"
+      ],
+      "meshCount": 17,
+      "focusLabel": "Engage Vibe Coding Nexus",
+      "status": "Purpose preserved · phase 0/4 · 0 failures",
+      "drivenBy": "Digit2",
+      "resetStatus": "Purpose preserved · phase 0/4 · 0 failures",
+      "defaultStatus": "Purpose preserved · phase 0/4 · 0 failures"
+    },
+    {
+      "id": "westcat-familiar",
+      "title": "WESTCAT Familiar",
+      "host": "E26",
+      "steps": {
+        "reached": true,
+        "objectPresent": true,
+        "thesisPartsComplete": true,
+        "lecternPresent": true,
+        "focusAcquired": true,
+        "interactionInvoked": true,
+        "engaged": true,
+        "controlsDriven": true,
+        "stateTransitioned": true,
+        "persisted": true,
+        "examined": true,
+        "movedOffDefault": true,
+        "restoredAfterReload": true,
+        "journalRecorded": true,
+        "guideTargetable": true,
+        "studyKnown": true,
+        "touchControlTable": true,
+        "resetWorks": true
+      },
+      "controls": [
+        {
+          "label": "Focus mode",
+          "code": "Digit1",
+          "moved": false,
+          "lineChanged": false,
+          "status": "Focus · watching"
+        },
+        {
+          "label": "Check-in mode",
+          "code": "Digit2",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Check-in · idle"
+        },
+        {
+          "label": "Explore mode",
+          "code": "Digit3",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Explore · watching"
+        },
+        {
+          "label": "Inspect mode",
+          "code": "Digit4",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Inspect · judging"
+        },
+        {
+          "label": "Advance state",
+          "code": "Space",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Inspect · alert"
+        },
+        {
+          "label": "Reset",
+          "code": "KeyR",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Focus · watching"
+        }
+      ],
+      "errors": [],
+      "interactionPoint": [
+        17.300000000000008,
+        0,
+        46.4
+      ],
+      "requiredParts": [
+        "familiar-body",
+        "state-ear",
+        "attention-eye",
+        "tool-orbit",
+        "evidence-drawer"
+      ],
+      "presentParts": [
+        "familiar-body",
+        "state-ear",
+        "attention-eye",
+        "tool-orbit",
+        "evidence-drawer"
+      ],
+      "meshCount": 21,
+      "focusLabel": "Engage WESTCAT Familiar",
+      "status": "Focus · watching",
+      "drivenBy": "Digit2",
+      "resetStatus": "Focus · watching",
+      "defaultStatus": "Focus · watching"
+    },
+    {
+      "id": "heliocide",
+      "title": "Heliocide Control Room",
+      "host": "E08",
+      "steps": {
+        "reached": true,
+        "objectPresent": true,
+        "thesisPartsComplete": true,
+        "lecternPresent": true,
+        "focusAcquired": true,
+        "interactionInvoked": true,
+        "engaged": true,
+        "controlsDriven": true,
+        "stateTransitioned": true,
+        "persisted": true,
+        "examined": true,
+        "movedOffDefault": true,
+        "restoredAfterReload": true,
+        "journalRecorded": true,
+        "guideTargetable": true,
+        "studyKnown": true,
+        "touchControlTable": true,
+        "resetWorks": true
+      },
+      "controls": [
+        {
+          "label": "Begin sequence",
+          "code": "KeyB",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Phase 1/5 · awaiting command · BEGIN"
+        },
+        {
+          "label": "Next command state",
+          "code": "Space",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Phase 2/5 · awaiting command · BEGIN / STATUS"
+        },
+        {
+          "label": "Hold",
+          "code": "KeyH",
+          "moved": false,
+          "lineChanged": false,
+          "status": "Phase 2/5 · awaiting command · BEGIN / STATUS"
+        },
+        {
+          "label": "Authorize",
+          "code": "KeyA",
+          "moved": false,
+          "lineChanged": false,
+          "status": "Phase 2/5 · awaiting command · BEGIN / STATUS"
+        },
+        {
+          "label": "Reset",
+          "code": "KeyR",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Phase 0/5 · awaiting command · no record"
+        }
+      ],
+      "errors": [],
+      "interactionPoint": [
+        16.3,
+        0,
+        -82.4
+      ],
+      "requiredParts": [
+        "solar-core",
+        "orbit-cage",
+        "command-spindle",
+        "record-rail",
+        "authority-key"
+      ],
+      "presentParts": [
+        "solar-core",
+        "orbit-cage",
+        "command-spindle",
+        "authority-key",
+        "record-rail"
+      ],
+      "meshCount": 18,
+      "focusLabel": "Engage Heliocide Control Room",
+      "status": "Phase 0/5 · awaiting command · no record",
+      "drivenBy": "KeyB",
+      "resetStatus": "Phase 0/5 · awaiting command · no record",
+      "defaultStatus": "Phase 0/5 · awaiting command · no record"
+    },
+    {
+      "id": "dexdictate",
+      "title": "DexDictate",
+      "host": "E17",
+      "steps": {
+        "reached": true,
+        "objectPresent": true,
+        "thesisPartsComplete": true,
+        "lecternPresent": true,
+        "focusAcquired": true,
+        "interactionInvoked": true,
+        "engaged": true,
+        "controlsDriven": true,
+        "stateTransitioned": true,
+        "persisted": true,
+        "examined": true,
+        "movedOffDefault": true,
+        "restoredAfterReload": true,
+        "journalRecorded": true,
+        "guideTargetable": true,
+        "studyKnown": true,
+        "touchControlTable": true,
+        "resetWorks": true
+      },
+      "controls": [
+        {
+          "label": "Hold-to-talk mode",
+          "code": "KeyH",
+          "moved": false,
+          "lineChanged": false,
+          "status": "hold mode · Idle · 0 local insertions"
+        },
+        {
+          "label": "Toggle mode",
+          "code": "KeyT",
+          "moved": true,
+          "lineChanged": true,
+          "status": "toggle mode · Idle · 0 local insertions"
+        },
+        {
+          "label": "Start / stop capture",
+          "code": "Space",
+          "moved": true,
+          "lineChanged": true,
+          "status": "toggle mode · Capturing · 0 local insertions"
+        },
+        {
+          "label": "Clear demonstration",
+          "code": "KeyR",
+          "moved": true,
+          "lineChanged": true,
+          "status": "hold mode · Idle · 0 local insertions"
+        }
+      ],
+      "errors": [],
+      "interactionPoint": [
+        37.6,
+        0,
+        -15.300000000000002
+      ],
+      "requiredParts": [
+        "microphone-capsule",
+        "wave-tunnel",
+        "local-model",
+        "text-ribbon",
+        "privacy-shell"
+      ],
+      "presentParts": [
+        "microphone-capsule",
+        "wave-tunnel",
+        "local-model",
+        "text-ribbon",
+        "privacy-shell"
+      ],
+      "meshCount": 17,
+      "focusLabel": "Engage DexDictate",
+      "status": "hold mode · Idle · 0 local insertions",
+      "drivenBy": "KeyT",
+      "resetStatus": "hold mode · Idle · 0 local insertions",
+      "defaultStatus": "hold mode · Idle · 0 local insertions"
+    },
+    {
+      "id": "tablet-link",
+      "title": "Relay Link / TabletLink",
+      "host": "E18",
+      "steps": {
+        "reached": true,
+        "objectPresent": true,
+        "thesisPartsComplete": true,
+        "lecternPresent": true,
+        "focusAcquired": true,
+        "interactionInvoked": true,
+        "engaged": true,
+        "controlsDriven": true,
+        "stateTransitioned": true,
+        "persisted": true,
+        "examined": true,
+        "movedOffDefault": true,
+        "restoredAfterReload": true,
+        "journalRecorded": true,
+        "guideTargetable": true,
+        "studyKnown": true,
+        "touchControlTable": true,
+        "resetWorks": true
+      },
+      "controls": [
+        {
+          "label": "Advance connection",
+          "code": "Space",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Discovery"
+        },
+        {
+          "label": "Reset connection",
+          "code": "KeyR",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Disconnected"
+        }
+      ],
+      "errors": [],
+      "interactionPoint": [
+        28.4,
+        0,
+        15.299999999999999
+      ],
+      "requiredParts": [
+        "mac-terminal",
+        "android-terminal",
+        "trust-gate",
+        "data-bridge",
+        "queue-token"
+      ],
+      "presentParts": [
+        "mac-terminal",
+        "android-terminal",
+        "trust-gate",
+        "data-bridge",
+        "queue-token"
+      ],
+      "meshCount": 15,
+      "focusLabel": "Engage Relay Link / TabletLink",
+      "status": "Disconnected",
+      "drivenBy": "Space",
+      "resetStatus": "Disconnected",
+      "defaultStatus": "Disconnected"
+    },
+    {
+      "id": "osint-box",
+      "title": "OSINT Box",
+      "host": "E23",
+      "steps": {
+        "reached": true,
+        "objectPresent": true,
+        "thesisPartsComplete": true,
+        "lecternPresent": true,
+        "focusAcquired": true,
+        "interactionInvoked": true,
+        "engaged": true,
+        "controlsDriven": true,
+        "stateTransitioned": true,
+        "persisted": true,
+        "examined": true,
+        "movedOffDefault": true,
+        "restoredAfterReload": true,
+        "journalRecorded": true,
+        "guideTargetable": true,
+        "studyKnown": true,
+        "touchControlTable": true,
+        "resetWorks": true
+      },
+      "controls": [
+        {
+          "label": "URL seed",
+          "code": "Digit1",
+          "moved": false,
+          "lineChanged": false,
+          "status": "URL · ArchiveBox · step 0"
+        },
+        {
+          "label": "Domain seed",
+          "code": "Digit2",
+          "moved": true,
+          "lineChanged": true,
+          "status": "authorized domain · theHarvester · step 0"
+        },
+        {
+          "label": "Username seed",
+          "code": "Digit3",
+          "moved": true,
+          "lineChanged": true,
+          "status": "authorized username · Maigret · step 0"
+        },
+        {
+          "label": "Local file seed",
+          "code": "Digit4",
+          "moved": true,
+          "lineChanged": true,
+          "status": "local file · ExifTool · step 0"
+        },
+        {
+          "label": "Advance safe route",
+          "code": "Space",
+          "moved": true,
+          "lineChanged": true,
+          "status": "local file · ExifTool · step 1"
+        },
+        {
+          "label": "Reset",
+          "code": "KeyR",
+          "moved": true,
+          "lineChanged": true,
+          "status": "URL · ArchiveBox · step 0"
+        }
+      ],
+      "errors": [],
+      "interactionPoint": [
+        91.6,
+        0,
+        -15.300000000000006
+      ],
+      "requiredParts": [
+        "source-root",
+        "provenance-branch",
+        "verification-lens",
+        "evidence-tray",
+        "manual-proof"
+      ],
+      "presentParts": [
+        "source-root",
+        "provenance-branch",
+        "evidence-tray",
+        "verification-lens",
+        "manual-proof"
+      ],
+      "meshCount": 15,
+      "focusLabel": "Engage OSINT Box",
+      "status": "URL · ArchiveBox · step 0",
+      "drivenBy": "Digit2",
+      "resetStatus": "URL · ArchiveBox · step 0",
+      "defaultStatus": "URL · ArchiveBox · step 0"
+    },
+    {
+      "id": "dexvault",
+      "title": "DexVault / Vault Architect",
+      "host": "E20",
+      "steps": {
+        "reached": true,
+        "objectPresent": true,
+        "thesisPartsComplete": true,
+        "lecternPresent": true,
+        "focusAcquired": true,
+        "interactionInvoked": true,
+        "engaged": true,
+        "controlsDriven": true,
+        "stateTransitioned": true,
+        "persisted": true,
+        "examined": true,
+        "movedOffDefault": true,
+        "restoredAfterReload": true,
+        "journalRecorded": true,
+        "guideTargetable": true,
+        "studyKnown": true,
+        "touchControlTable": true,
+        "resetWorks": true
+      },
+      "controls": [
+        {
+          "label": "Canon query",
+          "code": "Digit1",
+          "moved": false,
+          "lineChanged": false,
+          "status": "Canon constraint · retrieval step 0/3"
+        },
+        {
+          "label": "Project query",
+          "code": "Digit2",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Project state · retrieval step 0/3"
+        },
+        {
+          "label": "Contradiction query",
+          "code": "Digit3",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Contradiction check · retrieval step 0/3"
+        },
+        {
+          "label": "Run retrieval step",
+          "code": "Space",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Contradiction check · retrieval step 1/3"
+        },
+        {
+          "label": "Reset",
+          "code": "KeyR",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Canon constraint · retrieval step 0/3"
+        }
+      ],
+      "errors": [],
+      "interactionPoint": [
+        46.4,
+        0,
+        15.299999999999995
+      ],
+      "requiredParts": [
+        "vault-ring",
+        "source-reliquary",
+        "retrieval-lantern",
+        "query-key",
+        "evidence-folio"
+      ],
+      "presentParts": [
+        "vault-ring",
+        "source-reliquary",
+        "retrieval-lantern",
+        "query-key",
+        "evidence-folio"
+      ],
+      "meshCount": 17,
+      "focusLabel": "Engage DexVault / Vault Architect",
+      "status": "Canon constraint · retrieval step 0/3",
+      "drivenBy": "Digit2",
+      "resetStatus": "Canon constraint · retrieval step 0/3",
+      "defaultStatus": "Canon constraint · retrieval step 0/3"
+    },
+    {
+      "id": "dexgpt",
+      "title": "DexGPT / Dexter's Sanctuary",
+      "host": "sanctuary",
+      "steps": {
+        "reached": true,
+        "objectPresent": true,
+        "thesisPartsComplete": true,
+        "lecternPresent": true,
+        "focusAcquired": true,
+        "interactionInvoked": true,
+        "engaged": true,
+        "controlsDriven": true,
+        "stateTransitioned": true,
+        "persisted": true,
+        "examined": true,
+        "movedOffDefault": true,
+        "restoredAfterReload": true,
+        "journalRecorded": true,
+        "guideTargetable": true,
+        "studyKnown": true,
+        "touchControlTable": true,
+        "resetWorks": true
+      },
+      "controls": [
+        {
+          "label": "Dex mode",
+          "code": "Digit1",
+          "moved": false,
+          "lineChanged": false,
+          "status": "Dex mode · watching"
+        },
+        {
+          "label": "Work mode",
+          "code": "Digit2",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Work mode · watching"
+        },
+        {
+          "label": "Plain mode",
+          "code": "Digit3",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Plain mode · watching"
+        },
+        {
+          "label": "Inspect evidence",
+          "code": "Space",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Plain mode · evidence under inspection"
+        },
+        {
+          "label": "Reset",
+          "code": "KeyR",
+          "moved": true,
+          "lineChanged": true,
+          "status": "Dex mode · watching"
+        }
+      ],
+      "errors": [],
+      "interactionPoint": [
+        -33.304729393886404,
+        -5,
+        -43.20422433049804
+      ],
+      "requiredParts": [
+        "dexter-model"
+      ],
+      "presentParts": [
+        "dexter-model"
+      ],
+      "meshCount": 49,
+      "focusLabel": "Engage DexGPT / Dexter's Sanctuary",
+      "status": "Dex mode · watching",
+      "drivenBy": "Digit2",
+      "resetStatus": "Dex mode · watching",
+      "defaultStatus": "Dex mode · watching"
+    }
+  ],
+  "visitors": [
+    {
+      "id": "curator-archive",
+      "title": "Archive Curator",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "Archive Curator · Central Canon Observatory",
+      "staff": true,
+      "seated": false,
+      "group": null,
+      "prop": "notebook",
+      "focusIds": [
+        "starsilk-atlas",
+        "drakken-sandbox",
+        "orbital-tomb",
+        "drakken-compendium",
+        "starsilk-maker"
+      ],
+      "reactsTo": [
+        "starsilk-atlas",
+        "orbital-tomb"
+      ],
+      "meshCount": 21,
+      "routePoints": 4,
+      "approach": {
+        "radius": 1.8,
+        "angle": 0
+      },
+      "focusLabel": "Speak with Archive Curator",
+      "lines": [
+        "The Atlas earns its scale by refusing to fill silence with invention.",
+        "Meridian becomes legible only after the people inside it can no longer interrupt the composition.",
+        "The chronology is not decoration. Every gap marks an unresolved authority problem."
+      ],
+      "repeated": "The Atlas earns its scale by refusing to fill silence with invention."
+    },
+    {
+      "id": "visitor-katamari",
+      "title": "Game Visitor",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "Game Visitor · West Gameworks",
+      "staff": false,
+      "seated": false,
+      "group": null,
+      "prop": "camera",
+      "focusIds": [
+        "smores-katamari",
+        "westcat-east",
+        "parable",
+        "friend-cats-newsroom",
+        "westcat-overlay"
+      ],
+      "reactsTo": [
+        "smores-katamari",
+        "westcat-east"
+      ],
+      "meshCount": 20,
+      "routePoints": 4,
+      "approach": {
+        "radius": 1.8,
+        "angle": 0
+      },
+      "focusLabel": "Speak with Game Visitor",
+      "lines": [
+        "The tiny town is convincing because the rules are local before the scenery is local.",
+        "Smudge collects scale itself, not merely clutter.",
+        "This wing understands that place has mechanics. Duncan is not wallpaper."
+      ],
+      "repeated": "The tiny town is convincing because the rules are local before the scenery is local."
+    },
+    {
+      "id": "visitor-myth",
+      "title": "Myth Systems Researcher",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "Myth Systems Researcher · West Systems Workshop",
+      "staff": false,
+      "seated": false,
+      "group": null,
+      "prop": "tablet",
+      "focusIds": [
+        "vibe-nexus",
+        "westcat-familiar",
+        "heliocide",
+        "handoff-necromancer",
+        "dexkeeper",
+        "quarrymind-study"
+      ],
+      "reactsTo": [
+        "westcat-familiar",
+        "heliocide"
+      ],
+      "meshCount": 20,
+      "routePoints": 4,
+      "approach": {
+        "radius": 1.8,
+        "angle": 90
+      },
+      "focusLabel": "Speak with Myth Systems Researcher",
+      "lines": [
+        "The control room is frightening because it records authority instead of flattering it.",
+        "The familiar is not a mascot. It is a visible state machine with opinions.",
+        "He builds myth the way other people build databases, and somehow both remain true."
+      ],
+      "repeated": "The control room is frightening because it records authority instead of flattering it."
+    },
+    {
+      "id": "visitor-local",
+      "title": "Local-first Engineer",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "Local-first Engineer · East Local Systems Lab",
+      "staff": false,
+      "seated": false,
+      "group": null,
+      "prop": "laptop",
+      "focusIds": [
+        "dexdictate",
+        "tablet-link",
+        "osint-box",
+        "dexvault",
+        "dexdictate-android",
+        "bigmac-stack",
+        "ftl-research"
+      ],
+      "reactsTo": [
+        "dexdictate",
+        "tablet-link"
+      ],
+      "meshCount": 20,
+      "routePoints": 4,
+      "approach": {
+        "radius": 1.8,
+        "angle": 0
+      },
+      "focusLabel": "Speak with Local-first Engineer",
+      "lines": [
+        "Relay Link does not pretend a dropped bridge is still connected. That is rarer than it should be.",
+        "DexDictate treats privacy as architecture, not a footer promise.",
+        "The discipline is the point: local, inspectable, recoverable, and honest about failure states."
+      ],
+      "repeated": "Relay Link does not pretend a dropped bridge is still connected. That is rarer than it should be."
+    },
+    {
+      "id": "visitor-analyst",
+      "title": "Forensic Analyst",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "Forensic Analyst · East Local Systems Lab",
+      "staff": false,
+      "seated": false,
+      "group": null,
+      "prop": "file",
+      "focusIds": [
+        "osint-box",
+        "dexvault",
+        "blood-archive"
+      ],
+      "reactsTo": [
+        "osint-box"
+      ],
+      "meshCount": 20,
+      "routePoints": 4,
+      "approach": {
+        "radius": 1.8,
+        "angle": 90
+      },
+      "focusLabel": "Speak with Forensic Analyst",
+      "lines": [
+        "The evidence trays are more important than the tool count.",
+        "A local model is useful here only if the chain of custody remains visible.",
+        "Even the investigative tools are shaped by consent, scope, provenance, and restraint."
+      ],
+      "repeated": "The evidence trays are more important than the tool count."
+    },
+    {
+      "id": "visitor-memory",
+      "title": "Memory Architect",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "Memory Architect · East Local Systems Lab",
+      "staff": false,
+      "seated": false,
+      "group": null,
+      "prop": "lantern",
+      "focusIds": [
+        "dexvault"
+      ],
+      "reactsTo": [
+        "dexvault"
+      ],
+      "meshCount": 20,
+      "routePoints": 4,
+      "approach": {
+        "radius": 1.8,
+        "angle": 90
+      },
+      "focusLabel": "Speak with Memory Architect",
+      "lines": [
+        "The archive does not resolve contradictions just because retrieval found both of them.",
+        "A source-grounded answer is a path through rooms, not a sentence from nowhere.",
+        "DexVault makes the underlying fear explicit: losing the thread is a form of damage."
+      ],
+      "repeated": "The archive does not resolve contradictions just because retrieval found both of them."
+    },
+    {
+      "id": "visitor-access",
+      "title": "Accessibility Visitor",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "Accessibility Visitor · Rear Sanctuary",
+      "staff": false,
+      "seated": false,
+      "group": null,
+      "prop": "cane",
+      "focusIds": [
+        "dexgpt"
+      ],
+      "reactsTo": [
+        "dexgpt"
+      ],
+      "meshCount": 20,
+      "routePoints": 5,
+      "approach": {
+        "radius": 1.8,
+        "angle": 135
+      },
+      "focusLabel": "Speak with Accessibility Visitor",
+      "lines": [
+        "The scent markers are care translated into spatial design.",
+        "The dog is allowed to remain difficult, specific, and real.",
+        "Dexter is sacred here, but not sentimentalized. Blindness changes the route, and the room honors that."
+      ],
+      "repeated": "The scent markers are care translated into spatial design."
+    },
+    {
+      "id": "docent",
+      "title": "Floor Docent",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "Floor Docent · Museum Staff",
+      "staff": true,
+      "seated": false,
+      "group": null,
+      "prop": "notebook",
+      "focusIds": [
+        "starsilk-atlas",
+        "drakken-sandbox",
+        "orbital-tomb"
+      ],
+      "reactsTo": [
+        "starsilk-atlas",
+        "drakken-sandbox",
+        "orbital-tomb"
+      ],
+      "meshCount": 21,
+      "routePoints": 8,
+      "approach": {
+        "radius": 1.8,
+        "angle": 0
+      },
+      "focusLabel": "Speak with Floor Docent",
+      "lines": [
+        "The museum is organized by governing problem, not by date.",
+        "You are allowed to disagree with the labels. The artifacts are the stronger evidence.",
+        "Please notice that the installations change in place. Nothing is a slideshow pretending to be a room."
+      ],
+      "repeated": "The museum is organized by governing problem, not by date."
+    },
+    {
+      "id": "guard",
+      "title": "Gallery Attendant",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "Gallery Attendant · Museum Staff",
+      "staff": true,
+      "seated": false,
+      "group": null,
+      "prop": "radio",
+      "focusIds": [
+        "smores-katamari",
+        "dexdictate"
+      ],
+      "reactsTo": [],
+      "meshCount": 21,
+      "routePoints": 8,
+      "approach": {
+        "radius": 1.8,
+        "angle": 45
+      },
+      "focusLabel": "Speak with Gallery Attendant",
+      "lines": [
+        "Please keep the path clear around the floor-plan kiosk.",
+        "No, the dog does not speak. The room is still listening.",
+        "The central installations are interactive. The walls are not touchscreens."
+      ],
+      "repeated": "Please keep the path clear around the floor-plan kiosk."
+    },
+    {
+      "id": "conservator",
+      "title": "Installation Conservator",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "Installation Conservator · Museum Staff",
+      "staff": true,
+      "seated": false,
+      "group": null,
+      "prop": "toolkit",
+      "focusIds": [
+        "heliocide",
+        "westcat-familiar",
+        "vibe-nexus",
+        "heliocide-rush",
+        "dexcast"
+      ],
+      "reactsTo": [],
+      "meshCount": 21,
+      "routePoints": 4,
+      "approach": {
+        "radius": 1.8,
+        "angle": 0
+      },
+      "focusLabel": "Speak with Installation Conservator",
+      "lines": [
+        "This installation has more moving state than most museums would permit.",
+        "Maintenance is part of the interpretation when failure states are the subject.",
+        "The wall reliefs are intentionally fixed. Their orientation belongs to the building."
+      ],
+      "repeated": "This installation has more moving state than most museums would permit."
+    },
+    {
+      "id": "student-a",
+      "title": "Design Student",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "Design Student · Visiting Pair",
+      "staff": false,
+      "seated": false,
+      "group": "students",
+      "prop": "sketchbook",
+      "focusIds": [
+        "drakken-sandbox",
+        "orbital-tomb"
+      ],
+      "reactsTo": [
+        "drakken-sandbox"
+      ],
+      "meshCount": 20,
+      "routePoints": 4,
+      "approach": {
+        "radius": 1.8,
+        "angle": 0
+      },
+      "focusLabel": "Speak with Design Student",
+      "lines": [
+        "Look at the ring: it is material, not symbolic anatomy.",
+        "The museum keeps refusing the easiest visual metaphor.",
+        "The official-versus-actual switch is doing more narrative work than a whole cutscene."
+      ],
+      "repeated": "Look at the ring: it is material, not symbolic anatomy."
+    },
+    {
+      "id": "student-b",
+      "title": "Systems Student",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "Systems Student · Visiting Pair",
+      "staff": false,
+      "seated": false,
+      "group": "students",
+      "prop": "tablet",
+      "focusIds": [
+        "drakken-sandbox",
+        "orbital-tomb"
+      ],
+      "reactsTo": [
+        "orbital-tomb"
+      ],
+      "meshCount": 20,
+      "routePoints": 4,
+      "approach": {
+        "radius": 1.8,
+        "angle": 0
+      },
+      "focusLabel": "Speak with Systems Student",
+      "lines": [
+        "The six-month pacing is the exhibit. The station model is only the evidence.",
+        "The strongest interaction here is being forced to wait.",
+        "The system is teaching canon through state transitions instead of a lore dump."
+      ],
+      "repeated": "The six-month pacing is the exhibit. The station model is only the evidence."
+    },
+    {
+      "id": "sketcher",
+      "title": "Seated Sketcher",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "Seated Sketcher · West Gameworks",
+      "staff": false,
+      "seated": true,
+      "group": null,
+      "prop": "sketchbook",
+      "focusIds": [
+        "westcat-east"
+      ],
+      "reactsTo": [],
+      "meshCount": 20,
+      "routePoints": 4,
+      "approach": {
+        "radius": 1.8,
+        "angle": 0
+      },
+      "focusLabel": "Speak with Seated Sketcher",
+      "lines": [
+        "The ferry is a clock that the player has to inhabit.",
+        "Rain should change the hand before it changes the color palette.",
+        "I am drawing the grade of the street, not the skyline. The grade is the mechanic."
+      ],
+      "repeated": "The ferry is a clock that the player has to inhabit."
+    },
+    {
+      "id": "architect",
+      "title": "Visiting Architect",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "Visiting Architect · Threshold Hall",
+      "staff": false,
+      "seated": false,
+      "group": null,
+      "prop": "folio",
+      "focusIds": [
+        "starsilk-atlas",
+        "dexgpt"
+      ],
+      "reactsTo": [],
+      "meshCount": 20,
+      "routePoints": 8,
+      "approach": {
+        "radius": 1.8,
+        "angle": 0
+      },
+      "focusLabel": "Speak with Visiting Architect",
+      "lines": [
+        "The portal frames make the canon wing feel earned.",
+        "This building finally behaves like a place that expects return visits.",
+        "The good choice was turning the introduction into a vestibule rather than a menu."
+      ],
+      "repeated": "The portal frames make the canon wing feel earned."
+    },
+    {
+      "id": "pilgrim",
+      "title": "System Pilgrim",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "System Pilgrim · Rear Sanctuary",
+      "staff": false,
+      "seated": false,
+      "group": null,
+      "prop": "lantern",
+      "focusIds": [
+        "dexgpt"
+      ],
+      "reactsTo": [
+        "dexgpt"
+      ],
+      "meshCount": 20,
+      "routePoints": 5,
+      "approach": {
+        "radius": 1.8,
+        "angle": 0
+      },
+      "focusLabel": "Speak with System Pilgrim",
+      "lines": [
+        "The sacred part is not the glow. The sacred part is the accommodation.",
+        "Dexter is treated as a governing presence, not a mascot.",
+        "The sanctuary is convincing because it is specific: blindness, scent, route, rest."
+      ],
+      "repeated": "The sacred part is not the glow. The sacred part is the accommodation."
+    },
+    {
+      "id": "research-pair-a",
+      "title": "Continuity Researcher",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "Continuity Researcher · Central Canon Observatory",
+      "staff": false,
+      "seated": false,
+      "group": "researchpair",
+      "prop": "tablet",
+      "focusIds": [
+        "starsilk-atlas",
+        "drakken-sandbox",
+        "orbital-tomb"
+      ],
+      "reactsTo": [],
+      "meshCount": 20,
+      "routePoints": 4,
+      "approach": {
+        "radius": 1.8,
+        "angle": 0
+      },
+      "focusLabel": "Speak with Continuity Researcher",
+      "lines": [
+        "The most interesting thing here is that the labels do not overpromise.",
+        "The museum reads like a self-portrait made of methodologies.",
+        "He keeps building systems that admit contradictions into the room."
+      ],
+      "repeated": "The most interesting thing here is that the labels do not overpromise."
+    },
+    {
+      "id": "research-pair-b",
+      "title": "Media Researcher",
+      "steps": {
+        "identity": true,
+        "appearance": true,
+        "staffBadge": true,
+        "routeExists": true,
+        "inScene": true,
+        "focusAcquired": true,
+        "conversationStartedByInteraction": true,
+        "allLinesSpoken": true,
+        "linesNonEmpty": true,
+        "reEntryReturnsToStart": true,
+        "journalHeard": true,
+        "journalHistory": true,
+        "collisionSafe": true
+      },
+      "errors": [],
+      "role": "Media Researcher · Central Canon Observatory",
+      "staff": false,
+      "seated": false,
+      "group": "researchpair",
+      "prop": "camera",
+      "focusIds": [
+        "drakken-sandbox",
+        "orbital-tomb"
+      ],
+      "reactsTo": [],
+      "meshCount": 20,
+      "routePoints": 4,
+      "approach": {
+        "radius": 1.8,
+        "angle": 0
+      },
+      "focusLabel": "Speak with Media Researcher",
+      "lines": [
+        "There is something refreshing about a museum that lets the artifact stay a little ugly.",
+        "The more specific the canon gets, the less decorative it feels.",
+        "The outreach film folio on the wall reframes the whole war section."
+      ],
+      "repeated": "There is something refreshing about a museum that lets the artifact stay a little ugly."
+    }
+  ],
+  "failures": [],
+  "verdict": "PASS"
+}

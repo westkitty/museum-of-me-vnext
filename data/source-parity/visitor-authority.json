@@ -1,0 +1,985 @@
+{
+  "provenance": "CURATED The_Reliquary_of_Iterative_Becoming_THREEJS_CURATED.html visitorSpecs[] (sha256 60b5ef74116b01301ddc7fd89e8b983023b17677fcf698c427107e51e19c4534). Governing conversation/identity fields only; old-hall route and position are deliberately excluded because the vNext building remaps them.",
+  "visitors": [
+    {
+      "id": "curator-archive",
+      "title": "Archive Curator",
+      "subtitle": "Central Canon Observatory",
+      "speed": 0.42,
+      "height": 1.02,
+      "width": 0.98,
+      "prop": "notebook",
+      "staff": true,
+      "seated": false,
+      "group": null,
+      "gesture": null,
+      "dialogueMode": null,
+      "focusIds": [
+        "starsilk-atlas",
+        "drakken-sandbox",
+        "orbital-tomb",
+        "drakken-compendium",
+        "starsilk-maker"
+      ],
+      "reactsTo": [
+        "starsilk-atlas",
+        "orbital-tomb"
+      ],
+      "lines": [
+        "The chronology is not decoration. Every gap marks an unresolved authority problem.",
+        "The Atlas earns its scale by refusing to fill silence with invention.",
+        "Meridian becomes legible only after the people inside it can no longer interrupt the composition."
+      ],
+      "thoughts": [
+        "Every room here is an argument against amnesia.",
+        "He keeps turning memory into architecture because ordinary memory has failed him before."
+      ],
+      "palette": {
+        "coat": [
+          0.28,
+          0.29,
+          0.32
+        ],
+        "shirt": [
+          0.77,
+          0.75,
+          0.69
+        ],
+        "trousers": [
+          0.16,
+          0.16,
+          0.17
+        ],
+        "skin": [
+          0.61,
+          0.49,
+          0.39
+        ],
+        "hair": [
+          0.1,
+          0.08,
+          0.07
+        ]
+      }
+    },
+    {
+      "id": "visitor-katamari",
+      "title": "Game Visitor",
+      "subtitle": "West Gameworks",
+      "speed": 0.5,
+      "height": 0.96,
+      "width": 1.02,
+      "prop": "camera",
+      "staff": false,
+      "seated": false,
+      "group": null,
+      "gesture": null,
+      "dialogueMode": null,
+      "focusIds": [
+        "smores-katamari",
+        "westcat-east",
+        "parable",
+        "friend-cats-newsroom",
+        "westcat-overlay"
+      ],
+      "reactsTo": [
+        "smores-katamari",
+        "westcat-east"
+      ],
+      "lines": [
+        "This wing understands that place has mechanics. Duncan is not wallpaper.",
+        "The tiny town is convincing because the rules are local before the scenery is local.",
+        "Smudge collects scale itself, not merely clutter."
+      ],
+      "thoughts": [
+        "Even the cat game is secretly urban phenomenology.",
+        "I expected whimsy. I did not expect systems theory."
+      ],
+      "palette": {
+        "coat": [
+          0.24,
+          0.34,
+          0.3
+        ],
+        "shirt": [
+          0.69,
+          0.72,
+          0.67
+        ],
+        "trousers": [
+          0.14,
+          0.15,
+          0.16
+        ],
+        "skin": [
+          0.72,
+          0.59,
+          0.49
+        ],
+        "hair": [
+          0.22,
+          0.14,
+          0.08
+        ]
+      }
+    },
+    {
+      "id": "visitor-myth",
+      "title": "Myth Systems Researcher",
+      "subtitle": "West Systems Workshop",
+      "speed": 0.4,
+      "height": 1.05,
+      "width": 1.05,
+      "prop": "tablet",
+      "staff": false,
+      "seated": false,
+      "group": null,
+      "gesture": null,
+      "dialogueMode": null,
+      "focusIds": [
+        "vibe-nexus",
+        "westcat-familiar",
+        "heliocide",
+        "handoff-necromancer",
+        "dexkeeper",
+        "quarrymind-study"
+      ],
+      "reactsTo": [
+        "westcat-familiar",
+        "heliocide"
+      ],
+      "lines": [
+        "He builds myth the way other people build databases, and somehow both remain true.",
+        "The control room is frightening because it records authority instead of flattering it.",
+        "The familiar is not a mascot. It is a visible state machine with opinions."
+      ],
+      "thoughts": [
+        "No wonder the projects keep circling ethics, witness, and record.",
+        "The mythic scale is carrying extremely practical anxieties."
+      ],
+      "palette": {
+        "coat": [
+          0.33,
+          0.24,
+          0.27
+        ],
+        "shirt": [
+          0.73,
+          0.7,
+          0.67
+        ],
+        "trousers": [
+          0.15,
+          0.14,
+          0.15
+        ],
+        "skin": [
+          0.56,
+          0.45,
+          0.35
+        ],
+        "hair": [
+          0.08,
+          0.06,
+          0.05
+        ]
+      }
+    },
+    {
+      "id": "visitor-local",
+      "title": "Local-first Engineer",
+      "subtitle": "East Local Systems Lab",
+      "speed": 0.46,
+      "height": 1,
+      "width": 0.95,
+      "prop": "laptop",
+      "staff": false,
+      "seated": false,
+      "group": null,
+      "gesture": null,
+      "dialogueMode": null,
+      "focusIds": [
+        "dexdictate",
+        "tablet-link",
+        "osint-box",
+        "dexvault",
+        "dexdictate-android",
+        "bigmac-stack",
+        "ftl-research"
+      ],
+      "reactsTo": [
+        "dexdictate",
+        "tablet-link"
+      ],
+      "lines": [
+        "The discipline is the point: local, inspectable, recoverable, and honest about failure states.",
+        "Relay Link does not pretend a dropped bridge is still connected. That is rarer than it should be.",
+        "DexDictate treats privacy as architecture, not a footer promise."
+      ],
+      "thoughts": [
+        "He distrusts invisible systems, so he keeps making visible ones.",
+        "Every convenience here has to survive an audit."
+      ],
+      "palette": {
+        "coat": [
+          0.21,
+          0.25,
+          0.33
+        ],
+        "shirt": [
+          0.7,
+          0.73,
+          0.77
+        ],
+        "trousers": [
+          0.13,
+          0.13,
+          0.15
+        ],
+        "skin": [
+          0.64,
+          0.54,
+          0.46
+        ],
+        "hair": [
+          0.13,
+          0.1,
+          0.07
+        ]
+      }
+    },
+    {
+      "id": "visitor-analyst",
+      "title": "Forensic Analyst",
+      "subtitle": "East Local Systems Lab",
+      "speed": 0.34,
+      "height": 0.98,
+      "width": 1,
+      "prop": "file",
+      "staff": false,
+      "seated": false,
+      "group": null,
+      "gesture": null,
+      "dialogueMode": null,
+      "focusIds": [
+        "osint-box",
+        "dexvault",
+        "blood-archive"
+      ],
+      "reactsTo": [
+        "osint-box"
+      ],
+      "lines": [
+        "Even the investigative tools are shaped by consent, scope, provenance, and restraint.",
+        "The evidence trays are more important than the tool count.",
+        "A local model is useful here only if the chain of custody remains visible."
+      ],
+      "thoughts": [
+        "The paranoia is moral architecture, not merely mood.",
+        "This person has been taught, repeatedly, that undocumented authority is dangerous."
+      ],
+      "palette": {
+        "coat": [
+          0.29,
+          0.28,
+          0.23
+        ],
+        "shirt": [
+          0.76,
+          0.74,
+          0.68
+        ],
+        "trousers": [
+          0.15,
+          0.15,
+          0.14
+        ],
+        "skin": [
+          0.48,
+          0.38,
+          0.3
+        ],
+        "hair": [
+          0.05,
+          0.05,
+          0.05
+        ]
+      }
+    },
+    {
+      "id": "visitor-memory",
+      "title": "Memory Architect",
+      "subtitle": "East Local Systems Lab",
+      "speed": 0.31,
+      "height": 1.03,
+      "width": 0.92,
+      "prop": "lantern",
+      "staff": false,
+      "seated": false,
+      "group": null,
+      "gesture": null,
+      "dialogueMode": null,
+      "focusIds": [
+        "dexvault"
+      ],
+      "reactsTo": [
+        "dexvault"
+      ],
+      "lines": [
+        "DexVault makes the underlying fear explicit: losing the thread is a form of damage.",
+        "The archive does not resolve contradictions just because retrieval found both of them.",
+        "A source-grounded answer is a path through rooms, not a sentence from nowhere."
+      ],
+      "thoughts": [
+        "Of course the archive itself becomes sacred furniture.",
+        "The retrieval system is trying to make continuity less fragile than a human nervous system."
+      ],
+      "palette": {
+        "coat": [
+          0.2,
+          0.23,
+          0.22
+        ],
+        "shirt": [
+          0.72,
+          0.75,
+          0.72
+        ],
+        "trousers": [
+          0.12,
+          0.13,
+          0.13
+        ],
+        "skin": [
+          0.67,
+          0.55,
+          0.44
+        ],
+        "hair": [
+          0.17,
+          0.12,
+          0.09
+        ]
+      }
+    },
+    {
+      "id": "visitor-access",
+      "title": "Accessibility Visitor",
+      "subtitle": "Rear Sanctuary",
+      "speed": 0.25,
+      "height": 0.95,
+      "width": 0.96,
+      "prop": "cane",
+      "staff": false,
+      "seated": false,
+      "group": null,
+      "gesture": null,
+      "dialogueMode": "screen",
+      "focusIds": [
+        "dexgpt"
+      ],
+      "reactsTo": [
+        "dexgpt"
+      ],
+      "lines": [
+        "Dexter is sacred here, but not sentimentalized. Blindness changes the route, and the room honors that.",
+        "The scent markers are care translated into spatial design.",
+        "The dog is allowed to remain difficult, specific, and real."
+      ],
+      "thoughts": [
+        "The tenderness is all in the structure, never in the performance.",
+        "This sanctuary understands that access changes the world rather than merely adding instructions."
+      ],
+      "palette": {
+        "coat": [
+          0.34,
+          0.27,
+          0.2
+        ],
+        "shirt": [
+          0.76,
+          0.73,
+          0.68
+        ],
+        "trousers": [
+          0.14,
+          0.13,
+          0.12
+        ],
+        "skin": [
+          0.58,
+          0.47,
+          0.39
+        ],
+        "hair": [
+          0.12,
+          0.09,
+          0.07
+        ]
+      }
+    },
+    {
+      "id": "docent",
+      "title": "Floor Docent",
+      "subtitle": "Museum Staff",
+      "speed": 0.38,
+      "height": 1.04,
+      "width": 0.94,
+      "prop": "notebook",
+      "staff": true,
+      "seated": false,
+      "group": null,
+      "gesture": "point",
+      "dialogueMode": null,
+      "focusIds": [
+        "starsilk-atlas",
+        "drakken-sandbox",
+        "orbital-tomb"
+      ],
+      "reactsTo": [
+        "starsilk-atlas",
+        "drakken-sandbox",
+        "orbital-tomb"
+      ],
+      "lines": [
+        "Please notice that the installations change in place. Nothing is a slideshow pretending to be a room.",
+        "The museum is organized by governing problem, not by date.",
+        "You are allowed to disagree with the labels. The artifacts are the stronger evidence."
+      ],
+      "thoughts": [
+        "A good tour should leave the visitor with sharper questions, not a flattened biography.",
+        "The building is finally beginning to behave like a building."
+      ],
+      "palette": {
+        "coat": [
+          0.24,
+          0.22,
+          0.2
+        ],
+        "shirt": [
+          0.8,
+          0.77,
+          0.7
+        ],
+        "trousers": [
+          0.16,
+          0.15,
+          0.14
+        ],
+        "skin": [
+          0.7,
+          0.57,
+          0.46
+        ],
+        "hair": [
+          0.2,
+          0.16,
+          0.11
+        ]
+      }
+    },
+    {
+      "id": "guard",
+      "title": "Gallery Attendant",
+      "subtitle": "Museum Staff",
+      "speed": 0.22,
+      "height": 1.08,
+      "width": 1.08,
+      "prop": "radio",
+      "staff": true,
+      "seated": false,
+      "group": null,
+      "gesture": null,
+      "dialogueMode": null,
+      "focusIds": [
+        "smores-katamari",
+        "dexdictate"
+      ],
+      "reactsTo": [],
+      "lines": [
+        "The central installations are interactive. The walls are not touchscreens.",
+        "Please keep the path clear around the floor-plan kiosk.",
+        "No, the dog does not speak. The room is still listening."
+      ],
+      "thoughts": [
+        "I have stopped counting how many people try to pet Dexter’s figure.",
+        "At least this museum admits when a system is unavailable."
+      ],
+      "palette": {
+        "coat": [
+          0.18,
+          0.19,
+          0.22
+        ],
+        "shirt": [
+          0.65,
+          0.67,
+          0.7
+        ],
+        "trousers": [
+          0.1,
+          0.11,
+          0.12
+        ],
+        "skin": [
+          0.52,
+          0.42,
+          0.34
+        ],
+        "hair": [
+          0.06,
+          0.05,
+          0.04
+        ]
+      }
+    },
+    {
+      "id": "conservator",
+      "title": "Installation Conservator",
+      "subtitle": "Museum Staff",
+      "speed": 0.33,
+      "height": 0.92,
+      "width": 0.9,
+      "prop": "toolkit",
+      "staff": true,
+      "seated": false,
+      "group": null,
+      "gesture": null,
+      "dialogueMode": null,
+      "focusIds": [
+        "heliocide",
+        "westcat-familiar",
+        "vibe-nexus",
+        "heliocide-rush",
+        "dexcast"
+      ],
+      "reactsTo": [],
+      "lines": [
+        "The wall reliefs are intentionally fixed. Their orientation belongs to the building.",
+        "This installation has more moving state than most museums would permit.",
+        "Maintenance is part of the interpretation when failure states are the subject."
+      ],
+      "thoughts": [
+        "I appreciate an artist who labels the dangerous assumptions.",
+        "The difficult part is preserving a system that is supposed to remain unfinished."
+      ],
+      "palette": {
+        "coat": [
+          0.31,
+          0.31,
+          0.29
+        ],
+        "shirt": [
+          0.78,
+          0.76,
+          0.72
+        ],
+        "trousers": [
+          0.16,
+          0.16,
+          0.15
+        ],
+        "skin": [
+          0.63,
+          0.5,
+          0.4
+        ],
+        "hair": [
+          0.18,
+          0.13,
+          0.09
+        ]
+      }
+    },
+    {
+      "id": "student-a",
+      "title": "Design Student",
+      "subtitle": "Visiting Pair",
+      "speed": 0.36,
+      "height": 0.93,
+      "width": 0.88,
+      "prop": "sketchbook",
+      "staff": false,
+      "seated": false,
+      "group": "students",
+      "gesture": null,
+      "dialogueMode": null,
+      "focusIds": [
+        "drakken-sandbox",
+        "orbital-tomb"
+      ],
+      "reactsTo": [
+        "drakken-sandbox"
+      ],
+      "lines": [
+        "The official-versus-actual switch is doing more narrative work than a whole cutscene.",
+        "Look at the ring: it is material, not symbolic anatomy.",
+        "The museum keeps refusing the easiest visual metaphor."
+      ],
+      "thoughts": [
+        "I need to steal the method, not the aesthetics.",
+        "The constraints are making the images stranger and more exact."
+      ],
+      "palette": {
+        "coat": [
+          0.32,
+          0.25,
+          0.36
+        ],
+        "shirt": [
+          0.74,
+          0.71,
+          0.76
+        ],
+        "trousers": [
+          0.14,
+          0.13,
+          0.15
+        ],
+        "skin": [
+          0.75,
+          0.62,
+          0.5
+        ],
+        "hair": [
+          0.2,
+          0.1,
+          0.07
+        ]
+      }
+    },
+    {
+      "id": "student-b",
+      "title": "Systems Student",
+      "subtitle": "Visiting Pair",
+      "speed": 0.35,
+      "height": 1.01,
+      "width": 0.93,
+      "prop": "tablet",
+      "staff": false,
+      "seated": false,
+      "group": "students",
+      "gesture": null,
+      "dialogueMode": null,
+      "focusIds": [
+        "drakken-sandbox",
+        "orbital-tomb"
+      ],
+      "reactsTo": [
+        "orbital-tomb"
+      ],
+      "lines": [
+        "The system is teaching canon through state transitions instead of a lore dump.",
+        "The six-month pacing is the exhibit. The station model is only the evidence.",
+        "The strongest interaction here is being forced to wait."
+      ],
+      "thoughts": [
+        "This is a continuity database disguised as horror.",
+        "I did not expect the timing model to feel accusatory."
+      ],
+      "palette": {
+        "coat": [
+          0.22,
+          0.31,
+          0.35
+        ],
+        "shirt": [
+          0.72,
+          0.75,
+          0.77
+        ],
+        "trousers": [
+          0.12,
+          0.14,
+          0.15
+        ],
+        "skin": [
+          0.54,
+          0.43,
+          0.34
+        ],
+        "hair": [
+          0.06,
+          0.05,
+          0.04
+        ]
+      }
+    },
+    {
+      "id": "sketcher",
+      "title": "Seated Sketcher",
+      "subtitle": "West Gameworks",
+      "speed": 0,
+      "height": 0.91,
+      "width": 0.9,
+      "prop": "sketchbook",
+      "staff": false,
+      "seated": true,
+      "group": null,
+      "gesture": null,
+      "dialogueMode": null,
+      "focusIds": [
+        "westcat-east"
+      ],
+      "reactsTo": [],
+      "lines": [
+        "I am drawing the grade of the street, not the skyline. The grade is the mechanic.",
+        "The ferry is a clock that the player has to inhabit.",
+        "Rain should change the hand before it changes the color palette."
+      ],
+      "thoughts": [
+        "The whole wing is a study of how geography disciplines bodies.",
+        "I should stop sketching the props and diagram the waiting."
+      ],
+      "palette": {
+        "coat": [
+          0.28,
+          0.24,
+          0.18
+        ],
+        "shirt": [
+          0.76,
+          0.72,
+          0.64
+        ],
+        "trousers": [
+          0.13,
+          0.12,
+          0.11
+        ],
+        "skin": [
+          0.69,
+          0.56,
+          0.45
+        ],
+        "hair": [
+          0.14,
+          0.09,
+          0.06
+        ]
+      }
+    },
+    {
+      "id": "architect",
+      "title": "Visiting Architect",
+      "subtitle": "Threshold Hall",
+      "speed": 0.34,
+      "height": 1.02,
+      "width": 0.97,
+      "prop": "folio",
+      "staff": false,
+      "seated": false,
+      "group": null,
+      "gesture": null,
+      "dialogueMode": null,
+      "focusIds": [
+        "starsilk-atlas",
+        "dexgpt"
+      ],
+      "reactsTo": [],
+      "lines": [
+        "The good choice was turning the introduction into a vestibule rather than a menu.",
+        "The portal frames make the canon wing feel earned.",
+        "This building finally behaves like a place that expects return visits."
+      ],
+      "thoughts": [
+        "Now the museum has sequence, not just content.",
+        "The architecture is helping the biography stay oblique."
+      ],
+      "palette": {
+        "coat": [
+          0.3,
+          0.29,
+          0.33
+        ],
+        "shirt": [
+          0.78,
+          0.77,
+          0.74
+        ],
+        "trousers": [
+          0.15,
+          0.15,
+          0.16
+        ],
+        "skin": [
+          0.63,
+          0.53,
+          0.45
+        ],
+        "hair": [
+          0.07,
+          0.07,
+          0.08
+        ]
+      }
+    },
+    {
+      "id": "pilgrim",
+      "title": "System Pilgrim",
+      "subtitle": "Rear Sanctuary",
+      "speed": 0.22,
+      "height": 0.98,
+      "width": 0.9,
+      "prop": "lantern",
+      "staff": false,
+      "seated": false,
+      "group": null,
+      "gesture": null,
+      "dialogueMode": "screen",
+      "focusIds": [
+        "dexgpt"
+      ],
+      "reactsTo": [
+        "dexgpt"
+      ],
+      "lines": [
+        "The sanctuary is convincing because it is specific: blindness, scent, route, rest.",
+        "The sacred part is not the glow. The sacred part is the accommodation.",
+        "Dexter is treated as a governing presence, not a mascot."
+      ],
+      "thoughts": [
+        "Care is more believable when it changes the floor plan.",
+        "I trust rooms that have learned from a single animal."
+      ],
+      "palette": {
+        "coat": [
+          0.24,
+          0.21,
+          0.18
+        ],
+        "shirt": [
+          0.74,
+          0.69,
+          0.62
+        ],
+        "trousers": [
+          0.13,
+          0.12,
+          0.11
+        ],
+        "skin": [
+          0.45,
+          0.36,
+          0.31
+        ],
+        "hair": [
+          0.1,
+          0.08,
+          0.07
+        ]
+      }
+    },
+    {
+      "id": "research-pair-a",
+      "title": "Continuity Researcher",
+      "subtitle": "Central Canon Observatory",
+      "speed": 0.3,
+      "height": 0.96,
+      "width": 0.9,
+      "prop": "tablet",
+      "staff": false,
+      "seated": false,
+      "group": "researchpair",
+      "gesture": null,
+      "dialogueMode": null,
+      "focusIds": [
+        "starsilk-atlas",
+        "drakken-sandbox",
+        "orbital-tomb"
+      ],
+      "reactsTo": [],
+      "lines": [
+        "He keeps building systems that admit contradictions into the room.",
+        "The most interesting thing here is that the labels do not overpromise.",
+        "The museum reads like a self-portrait made of methodologies."
+      ],
+      "thoughts": [
+        "This is autobiography disguised as infrastructure.",
+        "The projects rhyme through evidence discipline."
+      ],
+      "palette": {
+        "coat": [
+          0.26,
+          0.24,
+          0.2
+        ],
+        "shirt": [
+          0.79,
+          0.76,
+          0.71
+        ],
+        "trousers": [
+          0.14,
+          0.13,
+          0.12
+        ],
+        "skin": [
+          0.7,
+          0.58,
+          0.47
+        ],
+        "hair": [
+          0.19,
+          0.12,
+          0.08
+        ]
+      }
+    },
+    {
+      "id": "research-pair-b",
+      "title": "Media Researcher",
+      "subtitle": "Central Canon Observatory",
+      "speed": 0.31,
+      "height": 0.93,
+      "width": 0.88,
+      "prop": "camera",
+      "staff": false,
+      "seated": false,
+      "group": "researchpair",
+      "gesture": null,
+      "dialogueMode": null,
+      "focusIds": [
+        "drakken-sandbox",
+        "orbital-tomb"
+      ],
+      "reactsTo": [],
+      "lines": [
+        "The outreach film folio on the wall reframes the whole war section.",
+        "There is something refreshing about a museum that lets the artifact stay a little ugly.",
+        "The more specific the canon gets, the less decorative it feels."
+      ],
+      "thoughts": [
+        "Texture arrives through rule-following here, not random detail.",
+        "I like that even the mock ephemera has a doctrine behind it."
+      ],
+      "palette": {
+        "coat": [
+          0.2,
+          0.28,
+          0.31
+        ],
+        "shirt": [
+          0.72,
+          0.76,
+          0.77
+        ],
+        "trousers": [
+          0.12,
+          0.14,
+          0.15
+        ],
+        "skin": [
+          0.55,
+          0.45,
+          0.38
+        ],
+        "hair": [
+          0.08,
+          0.06,
+          0.05
+        ]
+      }
+    }
+  ]
+}

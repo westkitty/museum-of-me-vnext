@@ -1,0 +1,320 @@
+[
+  {
+    "id": "drakken-compendium",
+    "title": "Drakken Compendium",
+    "stage": "CANON REFERENCE / LIVING SOURCEBOOK",
+    "summary": "The controlling source for Blood Rings, Gorevaults, Ringthroats, planetary processing, biospheric harvest, vitrification, Fallenstar Prime, and the Administration response. It exists to prevent war-horror imagery from drifting into generic monster language.",
+    "accent": [
+      0.54,
+      0.19,
+      0.18
+    ],
+    "keywords": [
+      "RINGS",
+      "GOREVAULT",
+      "QUARRYMIND",
+      "HARVEST"
+    ],
+    "kind": "archive",
+    "wall": "east",
+    "z": 27.4,
+    "caseType": "archive",
+    "asset": "drakken"
+  },
+  {
+    "id": "starsilk-maker",
+    "title": "StarSilk Maker",
+    "stage": "VISUAL PRODUCTION SYSTEM / CANON TOOL",
+    "summary": "A production environment for turning Starsilk canon into repeatable visual material without surrendering character locks, cosmological symbolism, or the exact physical nature of objects such as Blood Rings.",
+    "accent": [
+      0.23,
+      0.65,
+      0.74
+    ],
+    "keywords": [
+      "CANON",
+      "PROMPTS",
+      "ASSETS",
+      "LOCKS"
+    ],
+    "kind": "network",
+    "wall": "east",
+    "z": 19.3,
+    "caseType": "loom",
+    "asset": "starsilk"
+  },
+  {
+    "id": "sky-built-film",
+    "title": "Your Sky Is Built from Your Dead",
+    "stage": "PUBLIC-INFORMATION FILM / OUTREACH RECONSTRUCTION",
+    "summary": "An Administration classroom film in which a family and outreach officer calmly examine a vitrified Blood Ring. The exhibit studies how institutional cheerfulness can make atrocity more disturbing rather than less.",
+    "accent": [
+      0.71,
+      0.59,
+      0.34
+    ],
+    "keywords": [
+      "FILM",
+      "RING",
+      "POINTER",
+      "CLASSROOM"
+    ],
+    "kind": "command",
+    "wall": "east",
+    "z": 11.2,
+    "caseType": "film"
+  },
+  {
+    "id": "dexdictate-android",
+    "title": "DexDictate Android Companion",
+    "stage": "FRESH MOBILE CLIENT / LOCAL DICTATION BRIDGE",
+    "summary": "The Android-side continuation of DexDictate: a clean client intended to receive local transcription without importing the accumulated failures of earlier attempts. The point is recovery through a bounded restart.",
+    "accent": [
+      0.18,
+      0.35,
+      0.68
+    ],
+    "keywords": [
+      "ANDROID",
+      "LOCAL",
+      "DICTATE",
+      "FRESH"
+    ],
+    "kind": "wave",
+    "wall": "east",
+    "z": 3.5,
+    "caseType": "phone"
+  },
+  {
+    "id": "ftl-research",
+    "title": "FTL Research Table",
+    "stage": "MECHANICS DOSSIER / REPLICATION STUDY",
+    "summary": "A research and reverse-engineering project aimed at understanding FTL deeply enough to reproduce its art logic, pacing, encounter economy, ship systems, and strategic pressure rather than merely imitate its surface.",
+    "accent": [
+      0.23,
+      0.65,
+      0.74
+    ],
+    "keywords": [
+      "ART",
+      "SYSTEM",
+      "TIMING",
+      "MODEL"
+    ],
+    "kind": "network",
+    "wall": "east",
+    "z": -4.3,
+    "caseType": "research"
+  },
+  {
+    "id": "bigmac-stack",
+    "title": "Big Mac Local AI Stack",
+    "stage": "OLLAMA / HERMES / TUNNEL INFRASTRUCTURE",
+    "summary": "A local-only MacBook-to-Mac-mini inference stack built around SSH tunnels, Ollama, Hermes, Open WebUI, model IDs, launch agents, and strict refusal of public exposure. Its exhibit is an infrastructure diagram with failure paths made visible.",
+    "accent": [
+      0.18,
+      0.47,
+      0.5
+    ],
+    "keywords": [
+      "OLLAMA",
+      "SSH",
+      "HERMES",
+      "LOCAL"
+    ],
+    "kind": "network",
+    "wall": "east",
+    "z": -12.2,
+    "caseType": "server"
+  },
+  {
+    "id": "blood-archive",
+    "title": "Blood Eclipse Outreach Archive",
+    "stage": "MID-CENTURY EPHEMERA / VISUAL RESEARCH",
+    "summary": "A cabinet of imagined Administration outreach films, civic posters, classroom diagrams, and civil-defence language. The project uses authentic mid-century institutional grammar rather than a generic vintage filter.",
+    "accent": [
+      0.4,
+      0.34,
+      0.56
+    ],
+    "keywords": [
+      "POSTER",
+      "CIVIC",
+      "RING",
+      "OUTREACH"
+    ],
+    "kind": "archive",
+    "wall": "east",
+    "z": -20.2,
+    "caseType": "archive"
+  },
+  {
+    "id": "heliocide-rush",
+    "title": "Heliocide Rush",
+    "stage": "MECHANIC VARIANT / INPUT PRESSURE",
+    "summary": "A pressure-focused offshoot of the Heliocide control-room simulation. It compresses time, forces decisions under incomplete knowledge, and reveals whether the interface records authority or merely flatters the operator.",
+    "accent": [
+      0.54,
+      0.19,
+      0.18
+    ],
+    "keywords": [
+      "BEGIN",
+      "RUSH",
+      "DECIDE",
+      "FALLOUT"
+    ],
+    "kind": "command",
+    "wall": "east",
+    "z": -36.1,
+    "caseType": "command"
+  },
+  {
+    "id": "friend-cats-newsroom",
+    "title": "Friend Cats Newsroom",
+    "stage": "SCENE STUDY / FRIDAY AND HENRY",
+    "summary": "A cel-shaded newsroom reunion for Friday the serval and Henry the older grey cat. The project turns reconnection into a staged broadcast scene while preserving each animal rather than costuming them into interchangeable mascots.",
+    "accent": [
+      0.52,
+      0.45,
+      0.6
+    ],
+    "keywords": [
+      "NEWSROOM",
+      "FRIDAY",
+      "HENRY",
+      "CEL"
+    ],
+    "kind": "schematic",
+    "wall": "west",
+    "z": 27.4,
+    "caseType": "newsroom"
+  },
+  {
+    "id": "westcat-overlay",
+    "title": "WESTCAT Overlay for macOS",
+    "stage": "DESKTOP LINEAGE / VISIBLE COMPANION",
+    "summary": "The earlier overlay lineage behind WESTCAT Familiar: a desktop presence that makes attention, state, and judgment visible at the edge of ordinary work instead of hiding agency behind a conventional app window.",
+    "accent": [
+      0.71,
+      0.59,
+      0.34
+    ],
+    "keywords": [
+      "OVERLAY",
+      "STATE",
+      "DESKTOP",
+      "DEXTER"
+    ],
+    "kind": "command",
+    "wall": "west",
+    "z": 19.3,
+    "caseType": "overlay",
+    "asset": "westcat"
+  },
+  {
+    "id": "dexstitch",
+    "title": "DexStitch",
+    "stage": "PWA / THREADING AND MEMORY REPAIR",
+    "summary": "A progressive web application about stitching fragments back into a usable whole. It belongs to the same family as the vault and handoff systems: tools designed around the cost of losing the thread.",
+    "accent": [
+      0.27,
+      0.5,
+      0.36
+    ],
+    "keywords": [
+      "PWA",
+      "PATCH",
+      "THREAD",
+      "QUEUE"
+    ],
+    "kind": "network",
+    "wall": "west",
+    "z": 11.2,
+    "caseType": "network"
+  },
+  {
+    "id": "handoff-necromancer",
+    "title": "Handoff Necromancer",
+    "stage": "PROJECT RECOVERY / SUCCESSOR-AI DOSSIER",
+    "summary": "A recovery system for abandoned repositories and half-remembered work. It reconstructs architecture, last known state, fragile files, contradictions, do-not-touch warnings, and a bounded next-step queue.",
+    "accent": [
+      0.4,
+      0.34,
+      0.56
+    ],
+    "keywords": [
+      "RECOVER",
+      "STATE",
+      "FRAGILE",
+      "HANDOFF"
+    ],
+    "kind": "archive",
+    "wall": "west",
+    "z": 3.5,
+    "caseType": "tombbook"
+  },
+  {
+    "id": "dexkeeper",
+    "title": "DexKeeper_Bot",
+    "stage": "AUTOMATION / MEMORY STEWARD",
+    "summary": "A bot-shaped memory steward for reminders, continuity, and small obligations that should not disappear merely because attention moved elsewhere. Its ethic is persistence without surveillance.",
+    "accent": [
+      0.71,
+      0.59,
+      0.34
+    ],
+    "keywords": [
+      "BOT",
+      "REMIND",
+      "THREAD",
+      "CARE"
+    ],
+    "kind": "command",
+    "wall": "west",
+    "z": -4.3,
+    "caseType": "bot"
+  },
+  {
+    "id": "quarrymind-study",
+    "title": "Quarrymind Study",
+    "stage": "WORLD DETAIL / MACHINE ECOLOGY",
+    "summary": "A Drakken machine-ecology study deliberately emptied of humans, aliens, and signage. It asks what extraction looks like when the process itself is the only population the image is allowed to contain.",
+    "accent": [
+      0.67,
+      0.38,
+      0.2
+    ],
+    "keywords": [
+      "FIELD",
+      "EXTRACTION",
+      "NO HUMAN",
+      "PROCESS"
+    ],
+    "kind": "archive",
+    "wall": "west",
+    "z": -12.2,
+    "caseType": "quarry"
+  },
+  {
+    "id": "dexcast",
+    "title": "DexCast / Fire Relay",
+    "stage": "FIRE TV DISPLAY EXPERIMENT / PAUSED LINE",
+    "summary": "A local display and casting experiment aimed at making a television or tablet behave as a dependable extension of the Mac. The exhibit preserves the unresolved state instead of presenting a failed prototype as solved.",
+    "accent": [
+      0.18,
+      0.35,
+      0.68
+    ],
+    "keywords": [
+      "CAST",
+      "ROOM",
+      "RECOVERY",
+      "PAUSE"
+    ],
+    "kind": "wave",
+    "wall": "west",
+    "z": -20.2,
+    "caseType": "display"
+  }
+]
