@@ -7,9 +7,6 @@ import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
 /**
  * E07 — The Drakken Terraforming Laboratory.
  * Museum-scale summary of the current six-station deterministic application.
- * It does not claim to embed the full Python laboratory; it preserves the
- * station structure, shared-state idea, hard collapse/nullification boundaries,
- * and ordered telemetry that make the application distinct.
  */
 
 interface Station {
@@ -88,7 +85,7 @@ export class TerraformingLaboratory extends ExhibitBase {
     const nullLabel = buildLabel(scope, 'SYRIN CONTACT', 0.72); nullLabel.position.set(0, 1.02, 0.2); nullLabel.rotation.x = -Math.PI / 2.1; nullify.add(nullLabel); scope.track(nullLabel.geometry);
     this.control({ object: nullify, label: 'Inject positive Syrin contact', description: 'Any positive contact nullifies the active Starsilk runtime. This is a hard exception, not a resistance roll.', activate: () => {
       if (this.nullified) { this.ctx.announce('Starsilk is already nullified. Only a full laboratory reset restores the runtime.'); return; }
-      this.nullified = true; this.telemetry.push('SYRIN_CONTACT → STARsilk runtime inert');
+      this.nullified = true; this.telemetry.push('SYRIN_CONTACT → Starsilk runtime inert');
       this.ctx.announce('NULLIFIED. Active Starsilk colour drains from the laboratory. Macro and Starbinding controls remain inert until full reset; ordinary planet physics may still step.');
     }});
 
@@ -133,8 +130,11 @@ export class TerraformingLaboratory extends ExhibitBase {
       mat.emissiveIntensity += ((i === this.activeStation ? 1.35 : 0.12) - mat.emissiveIntensity) * Math.min(1, dt * 5);
     }
     const wm = this.world.material as THREE.MeshStandardMaterial;
-    const targetColour = this.collapsed ? new THREE.Color(0x09090d) : this.nullified ? new THREE.Color(0x4b4448) : new THREE.Color(0x6b4a3a).lerp(new THREE.Color(0x3f7a52), Math.min(1, this.mutationCount / 8));
-    wm.color.lerp(targetColour, Math.min(1, dt * 2));
+    if (this.collapsed) wm.color.setHex(0x09090d);
+    else if (this.nullified) wm.color.setHex(0x4b4448);
+    else if (this.mutationCount >= 6) wm.color.setHex(0x3f7a52);
+    else if (this.mutationCount >= 3) wm.color.setHex(0x536647);
+    else wm.color.setHex(0x6b4a3a);
     const am = this.atmosphere.material as THREE.MeshStandardMaterial;
     am.opacity += ((this.mutationCount > 0 ? 0.08 + Math.min(0.22, this.mutationCount * 0.025) : 0.06) - am.opacity) * Math.min(1, dt * 2);
     if (!this.reducedMotion) { this.world.rotation.y += dt * 0.08; this.atmosphere.rotation.y -= dt * 0.04; }
