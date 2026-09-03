@@ -1,11 +1,19 @@
 #!/usr/bin/env node
-// Generates src/content/collection.generated.ts from the frozen data layer.
-// Run after editing anything in data/. The output is committed.
-import { writeFileSync } from 'node:fs';
+// Generates src/content/collection.generated.ts from the current versioned data layer.
+// The 2026-08-19 mapping remains preserved as historical evidence; current collection
+// revisions live beside it and may add project identities without changing the 35-slot building.
+import { existsSync, writeFileSync } from 'node:fs';
 import { readJson, walk } from './_lib.mjs';
 
-const map = readJson('data/exhibit-mapping.json');
-const copy = readJson('data/exhibit-content.json');
+const mappingPath = existsSync('data/exhibit-mapping.current.json')
+  ? 'data/exhibit-mapping.current.json'
+  : 'data/exhibit-mapping.json';
+const map = readJson(mappingPath);
+const baseCopy = readJson('data/exhibit-content.json');
+const revisionCopy = existsSync('data/exhibit-content.revision2.json')
+  ? readJson('data/exhibit-content.revision2.json')
+  : {};
+const copy = { ...baseCopy, ...revisionCopy };
 
 const projects = [];
 for (const f of walk('data/projects', ['.json'])) projects.push(...readJson(f));
@@ -25,19 +33,19 @@ const wings = [
   { id: 'north', name: 'Starsilk & Drakken', subtitle: 'North Wing', level: 0,
     blurb: 'A programmable universe and the creatures built to terraform it. Obsidian, indigo, star-metal; the tallest volume in the building.' },
   { id: 'east', name: 'Dex Systems', subtitle: 'East Wing', level: 0,
-    blurb: 'Nineteen tools built to run on your own machine. White stone, steel, dark teal — a laboratory, not a showroom.' },
+    blurb: 'Local tools, device bridges, creative systems and assistants. White stone, steel, dark teal — a laboratory, not a showroom.' },
   { id: 'south', name: 'Games & Play', subtitle: 'South Wing', level: 0,
-    blurb: 'Twelve games and playable systems, from a finished birthday gift to a browser 4X. Warm rust, wood, theatrical light.' },
+    blurb: 'Games and playable systems, from finished small works to simulations and long-running experiments. Warm rust, wood, theatrical light.' },
   { id: 'west', name: 'Archive & Canon', subtitle: 'West Wing', level: 0,
-    blurb: 'How work remembers itself. Violet, parchment and bronze; the quietest and most scholarly wing.' },
+    blurb: 'How work remembers itself, resolves authority and preserves contradictions. Violet, parchment and bronze; the quietest wing.' },
   { id: 'media', name: 'Music, Promptcraft & Media', subtitle: 'Northwest Mezzanine', level: 1,
-    blurb: 'Craft applied to generative tools — songwriting doctrine, prompt systems, orchestration, media lineages.' },
+    blurb: 'Craft applied to generative tools, performance, orchestration and media transformation.' },
   { id: 'infra', name: 'Local Systems', subtitle: 'Northeast Mezzanine', level: 1,
-    blurb: 'The machinery behind everything else. Which machine does the work, and where nothing is permitted to go.' },
+    blurb: 'The machinery and control planes behind everything else: which machine may do the work, under what authority, and where data is not permitted to go.' },
 ];
 
 const header = `// GENERATED FILE — do not edit by hand.
-// Source: data/exhibit-mapping.json, data/exhibit-content.json, data/projects/*.json
+// Source: ${mappingPath}, data/exhibit-content.json + revision overlays, data/projects/*.json
 // Regenerate: npm run build:collection
 // prettier-ignore
 import type { Collection } from './types';
@@ -65,4 +73,4 @@ export function exhibitsForWing(wing: string) {
 `;
 
 writeFileSync('src/content/collection.generated.ts', header + body + footer);
-console.log(`✓ collection: ${projects.length} projects, ${exhibits.length} exhibits, ${wings.length} wings`);
+console.log(`✓ collection: ${projects.length} projects, ${exhibits.length} exhibits, ${wings.length} wings from ${mappingPath}`);
