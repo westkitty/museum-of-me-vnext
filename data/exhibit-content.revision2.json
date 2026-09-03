@@ -34,10 +34,10 @@
   "E11": {
     "subtitle": "Fluency Never Outranks Evidence",
     "plaque": "Continuity is not remembering more. It is knowing which source governs, what remains uncertain, and when the system must stop rather than improvise around a boundary.",
-    "problem": "How can a project or personal knowledge system survive sessions, conflicting records, corrections, temporary constraints, and confident summaries without silently promoting the wrong state?",
-    "made": "A lineage from evidence-linked handoffs and append-only project Bibles to Selfsame's authority resolutions, contradiction tracking, constraint capsules, hard stops, and Project Sentinel recovery packets.",
-    "interaction": "Feed conflicting records into the authority desk, choose the evidence that actually governs, then activate a temporary constraint. Operations that lack authority or violate the active boundary stop visibly instead of producing a convenient workaround.",
-    "explore": "Older handoff and Bible systems remain connected around the room as lineage. Selfsame is the current control surface; Project Sentinel shows how a dormant repository can leave enough evidence to be reconstructed later."
+    "problem": "How can a project or personal knowledge system survive sessions, conflicting records, corrections, temporary constraints, and damaged or incomplete project evidence without silently promoting the wrong state?",
+    "made": "A lineage from evidence-linked handoffs and append-only project Bibles to Selfsame's authority resolutions, contradiction tracking, constraint capsules, hard stops, He-Maker's concrete repository recovery, and Project Sentinel recovery packets.",
+    "interaction": "Feed conflicting records into the authority desk, choose the evidence that actually governs, then activate a temporary constraint. Operations that lack authority or violate the active boundary stop visibly; the He-Maker station shows how files become resumable project evidence only after source, intent, history, and records are reconstructed.",
+    "explore": "Older handoff and Bible systems remain connected around the room as lineage. Selfsame is the current control surface; He-Maker and Project Sentinel show two sides of recovery — reconstructing a real damaged project and preserving enough evidence to make future reconstruction possible."
   },
   "E12": {
     "subtitle": "Move the Lens, Not the Verdict",
@@ -46,6 +46,14 @@
     "made": "A self-contained offline experience with a movable rhetoric lens, passage-level multi-tag findings, pressure and confidence kept separate, filters, Pattern Mode, comparison, and event-record views.",
     "interaction": "Move the lens across an invented article. The inspected passage reveals overlapping rhetorical moves, their pressure, and their confidence without pretending to perform live fact checking.",
     "explore": "Pin passages, compare patterns, and move between the local article and event-record views. Every example remains fictional museum data."
+  },
+  "E14": {
+    "subtitle": "Constraints Survive; Interfaces Need Boundaries",
+    "plaque": "Reusable AI workflow design has two recurring problems: preserving the constraints that actually shape an output, and keeping helper interfaces independent from host applications that constantly change underneath them.",
+    "problem": "How can prompt structures and browser workflow tools remain reusable when models, target environments, and host-page interfaces keep changing?",
+    "made": "A prompt-template and learning lineage built around reusable constraint structure, paired with DexEnhance's local-first browser-extension architecture and Shadow DOM interface isolation.",
+    "interaction": "Assemble a deterministic prompt from subject, style, and constraint blocks, then redesign the synthetic host interface beside it. The isolated DexEnhance layer remains independently controlled and does not inherit the host layout change.",
+    "explore": "The prompt machine demonstrates what should travel with an instruction; the browser panel demonstrates what should not leak across an interface boundary. Both are local museum simulations with no external generation or account dependency."
   },
   "E15": {
     "subtitle": "Capability Is Not Authority",
@@ -59,9 +67,9 @@
     "subtitle": "Performance Becomes Data, Then Media",
     "plaque": "A captured performance can outlive the camera image that produced it, and a finished composite is not trustworthy until the exported artifact is checked.",
     "problem": "How can local media tools preserve movement, identity boundaries, transparency, audio, and repeatability while allowing the renderer and final background to change?",
-    "made": "A local performance-capture pipeline that records portable performer state and drives character rigs, paired with a local soft-alpha video system for temporal matting, background replacement, and verified transparent export. Earlier casting and media utilities remain as lineage.",
+    "made": "A local performance-capture pipeline that records portable performer state and drives character rigs, paired with a local soft-alpha video system for temporal matting, background replacement, and verified transparent export. Casting and media-utility generations remain as lineage around the transformation stage.",
     "interaction": "Step a safe prerecorded performance through source motion, abstract performance state, character-rig output, alpha matte, and final composite. Change the character or background without changing the captured performance.",
-    "explore": "The old media-application lineage runs along the rear bench. The centre stage is about transformation between representations rather than another row of app screenshots."
+    "explore": "Guy_Cast, Gay_Cast, and Media Getter remain on the rear lineage bench. The centre stage is about transformation between representations rather than repository recovery or another row of app screenshots."
   },
   "E19": {
     "subtitle": "Motion Through an Allowlist",
@@ -70,6 +78,14 @@
     "made": "A local Android-to-Mac bridge with QR pairing, trainable motion recognition, authenticated command identifiers, a fixed allowlist, and a manual equivalent for every gesture path.",
     "interaction": "Tilt the phone model and watch the gesture trace become a command identifier, pass through the allowlist, and reach the desktop. The manual control sends the same allowed command without gesture recognition.",
     "explore": "The visible trail explains the motion shape while the desk explains the security boundary: no gesture can create a command that was not registered first."
+  },
+  "E21": {
+    "subtitle": "Build the Artifact the Institution Actually Needs",
+    "plaque": "Crisis-support software is useful when it can turn a confusing sequence of notices, calls, submissions, and silence into a dated chronology with evidence and one defensible next action.",
+    "problem": "How can a local casefile help someone navigate an institution without replacing evidence with a generic checklist or exposing the underlying material to a remote service?",
+    "made": "DexAid: a local casefile system that attaches evidence directly to events, builds chronology as the governing structure, and derives the next action from what the record actually establishes.",
+    "interaction": "Work through an entirely fictional case. Attach evidence to each event, lock supported events into the chronology, and produce the next-action packet only when the timeline is complete enough to justify it.",
+    "explore": "Nothing in this room is a real case record. The mechanics make the central rule physical: unsupported events do not lock, and a partial chronology does not get promoted into a confident institutional action."
   },
   "E22": {
     "subtitle": "A Shared Surface Is a Synchronisation Problem",
