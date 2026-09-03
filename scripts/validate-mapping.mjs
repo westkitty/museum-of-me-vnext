@@ -1,12 +1,17 @@
 #!/usr/bin/env node
-// Gate: every project maps to exactly one exhibit. No missing project, no duplicate mapping.
+// Gate: every current project maps to exactly one of the 35 stable physical exhibit slots.
+// Project count is deliberately not frozen: the collection is a living autobiography.
+import { existsSync } from 'node:fs';
 import { readJson, walk, report } from './_lib.mjs';
 
 const errors = [];
-const map = readJson('data/exhibit-mapping.json');
+const mappingPath = existsSync('data/exhibit-mapping.current.json')
+  ? 'data/exhibit-mapping.current.json'
+  : 'data/exhibit-mapping.json';
+const map = readJson(mappingPath);
 const exhibits = map.exhibits;
 
-if (exhibits.length !== 35) errors.push(`expected 35 exhibits, found ${exhibits.length}`);
+if (exhibits.length !== 35) errors.push(`expected 35 physical exhibit slots, found ${exhibits.length}`);
 
 const seenId = new Set();
 const seenSlug = new Set();
@@ -23,14 +28,11 @@ for (const e of exhibits) {
   if (!TIERS.has(e.tier)) errors.push(`${e.id}: unknown tier "${e.tier}"`);
   if (!e.projects?.length) errors.push(`${e.id}: represents no project`);
   for (const p of e.projects) {
-    if (projectOwner.has(p)) {
-      errors.push(`project ${p} mapped twice: ${projectOwner.get(p)} and ${e.id}`);
-    }
+    if (projectOwner.has(p)) errors.push(`project ${p} mapped twice: ${projectOwner.get(p)} and ${e.id}`);
     projectOwner.set(p, e.id);
   }
 }
 
-// Every project with authored museum copy must be mapped, and vice versa.
 const copy = new Map();
 for (const f of walk('data/projects', ['.json'])) {
   for (const p of readJson(f)) {
@@ -38,32 +40,29 @@ for (const f of walk('data/projects', ['.json'])) {
     copy.set(p.id, p);
   }
 }
-if (copy.size !== 64) errors.push(`expected 64 project records, found ${copy.size}`);
 
 for (const id of projectOwner.keys()) {
   if (!copy.has(id)) errors.push(`exhibit ${projectOwner.get(id)} references unknown project ${id}`);
 }
 for (const id of copy.keys()) {
-  if (!projectOwner.has(id)) errors.push(`project ${id} has copy but is not represented by any exhibit`);
+  if (!projectOwner.has(id)) errors.push(`project ${id} has copy but is not represented by any current exhibit`);
+}
+if (projectOwner.size !== copy.size) {
+  errors.push(`mapping represents ${projectOwner.size} identities but ${copy.size} authored current project records exist`);
 }
 
-// Required copy fields.
 const REQUIRED = ['id', 'name', 'family', 'kind', 'status', 'summary', 'brief', 'deep', 'capabilities', 'lesson'];
 for (const [id, p] of copy) {
   for (const k of REQUIRED) {
     if (p[k] === undefined || p[k] === null || p[k] === '') errors.push(`${id}: missing field "${k}"`);
   }
-  // The Array.isArray guard used to skip this check entirely for a non-array
-  // "deep" (e.g. a single string): the field-presence check above only
-  // rejects undefined/null/'', so a malformed shape passed silently here and
-  // was only ever caught downstream by TypeScript compiling against the
-  // typed Collection -- not by this gate, despite its stated purpose.
   if (!Array.isArray(p.deep)) errors.push(`${id}: deep must be an array of paragraphs, got ${typeof p.deep}`);
   else if (p.deep.length < 2) errors.push(`${id}: deep needs at least 2 paragraphs`);
 }
 
-// Exhibit interpretive copy.
-const ec = readJson('data/exhibit-content.json');
+const base = readJson('data/exhibit-content.json');
+const overlays = existsSync('data/exhibit-content.revision2.json') ? readJson('data/exhibit-content.revision2.json') : {};
+const ec = { ...base, ...overlays };
 for (const e of exhibits) {
   const c = ec[e.id];
   if (!c) { errors.push(`${e.id}: no interpretive content`); continue; }
@@ -72,10 +71,9 @@ for (const e of exhibits) {
   }
 }
 
-process.exit(
-  report('mapping', errors, [
-    `${exhibits.length} exhibits`,
-    `${projectOwner.size} project identities represented`,
-    `${copy.size} authored project records`,
-  ]),
-);
+process.exit(report('mapping', errors, [
+  `${exhibits.length} stable exhibit slots`,
+  `${projectOwner.size} current project identities represented`,
+  `${copy.size} authored current project records`,
+  `mapping source: ${mappingPath}`,
+]));
