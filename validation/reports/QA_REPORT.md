@@ -44,7 +44,7 @@ Passing this report is development evidence, not a declaration that the museum i
 | E19 | DexTilt — Motion Through an Allowlist | B | P023 | bespoke |
 | E20 | Utility & Privacy Bench — What the Tool Declines to Do | C | P024, P032, P061 | bespoke |
 | E21 | Civic Support Studio — Build the Artifact the Institution Actually Needs | B | P025 | bespoke |
-| E22 | Creative Tools Studio — A Shared Surface Is a Synchronisation Problem | B | P026, P028, P030 | bespoke |
+| E22 | Creative Tools Studio — From Shared Canvas to Game Factory | B | P026, P028, P030, P073 | bespoke |
 | E23 | Sensemaking Lab — Composition and Boundary | B | P027, P031 | bespoke |
 
 ### Games & Play — 10 exhibits
@@ -99,7 +99,7 @@ Passing this report is development evidence, not a declaration that the museum i
 ## Coverage
 
 - **35 / 35** physical exhibit slots
-- **72 / 72** current project identities represented, each exactly once
+- **73 / 73** current project identities represented, each exactly once
 - **35 / 35** implemented bespoke
 - **1** Dexter Sanctuary, deliberately outside the exhibit count
 
