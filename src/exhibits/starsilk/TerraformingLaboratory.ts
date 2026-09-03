@@ -2,253 +2,150 @@ import * as THREE from 'three';
 import { ExhibitBase } from '../ExhibitBase';
 import { buildPlaque, buildLectern, buildLabel } from '../Furniture';
 import { buildConsole, Pulse, Filament } from '../parts';
-import { fibonacciSphere, rng } from '../../assets/generators';
 import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
 
 /**
- * E07 — The Drakken Terraforming Laboratory. Tier A.
- *
- * A planetary sphere suspended over an engineering floor. The visitor deploys
- * strains in order and the world visibly changes. The process lock is enforced
- * by the exhibit, not merely described by it: Ringthroat will not run until
- * Gorevault has produced feedstock, and pressing it early says so.
- *
- * That refusal is the exhibit's argument. Writing the process down proves it is
- * describable; running it proves it is coherent, and only the second test found
- * the ordering constraint.
+ * E07 — The Drakken Terraforming Laboratory.
+ * Museum-scale summary of the current six-station deterministic application.
+ * It does not claim to embed the full Python laboratory; it preserves the
+ * station structure, shared-state idea, hard collapse/nullification boundaries,
+ * and ordered telemetry that make the application distinct.
  */
 
-interface Stage {
-  readonly key: string;
+interface Station {
   readonly name: string;
-  readonly by: string;
-  readonly produces: string;
   readonly colour: number;
   readonly note: string;
 }
 
-const CHAIN: readonly Stage[] = [
-  { key: 'collection', name: 'Collection', by: 'Gorevault', produces: 'raw mass', colour: 0x8a3a3a,
-    note: 'The world is taken apart and what is taken is held.' },
-  { key: 'gathering', name: 'Gathering', by: 'Gorevault', produces: 'concentrated mass', colour: 0xa04a3a,
-    note: 'Still Gorevault. Gathering is a distinct function from collection.' },
-  { key: 'rendering', name: 'Rendering', by: 'Gorevault', produces: 'refined stock', colour: 0xb5643a,
-    note: 'Refinement. This is where the compendium is most often misread.' },
-  { key: 'feedstock', name: 'Feedstock', by: 'Gorevault', produces: 'feedstock', colour: 0xc98a4a,
-    note: 'The end of the Gorevault chain. Feedstock is not sky.' },
-  { key: 'sky', name: 'SKY', by: 'Ringthroat', produces: 'atmosphere', colour: 0x5f9bd6,
-    note: 'Only Ringthroat makes sky, and only from feedstock. Collapsing this with the Gorevault chain is the canonical error.' },
-];
+const STATIONS: readonly Station[] = [
+  { name: 'Planet', colour: 0x63b06f, note: 'Commit Heat, Cool, Uplift, Fracture, Pressure, or CO₂ against one shared simulated planet.' },
+  { name: 'Macro', colour: 0x63bde0, note: 'Compile and step bounded Starsilk Macro instructions; emitted operations mutate the same planet.' },
+  { name: 'Starbinding', colour: 0xe8c65a, note: 'Aim a star-dive vector. A hit may withdraw Starsilk; total depletion collapses the modeled core immediately.' },
+  { name: 'Siege Wall', colour: 0x9269bb, note: 'Use heliocide events as sources in a containment solve and expose capacity fracture rather than hiding it.' },
+  { name: 'Incubator', colour: 0xd56862, note: 'Hatch deterministic laboratory specimens or an explicitly labeled non-canon Experimental Egg.' },
+  { name: 'Telemetry', colour: 0xc7d2d4, note: 'Inspect the ordered mutation ledger without smuggling wall-clock time into deterministic state.' },
+] as const;
+
+const PLANET_ACTIONS = ['Heat', 'Cool', 'Uplift', 'Fracture', 'Pressure', 'CO₂'] as const;
 
 export class TerraformingLaboratory extends ExhibitBase {
   private world!: THREE.Mesh;
   private atmosphere!: THREE.Mesh;
-  private surface = this.tracked<THREE.Mesh>();
-  private stagePulses = this.tracked<Pulse>();
-  private stageCurves = this.tracked<THREE.CatmullRomCurve3>();
-  private consoles = this.tracked<THREE.Group>();
-  private lamps = this.tracked<THREE.Mesh>();
-  private completed = 0;
-  private refusals = 0;
+  private stationMeshes = this.tracked<THREE.Group>();
+  private stationLamps = this.tracked<THREE.Mesh>();
+  private pulse!: Pulse;
+  private sharedCurves = this.tracked<THREE.CatmullRomCurve3>();
+  private activeStation = 0;
+  private planetAction = 0;
+  private mutationCount = 0;
+  private macroStep = 0;
+  private stellarStarsilk = 1;
+  private collapsed = false;
+  private nullified = false;
+  private latticeFractured = false;
+  private specimen = 0;
+  private telemetry = this.tracked<string>();
 
-  /** Reused every frame; allocating these per element churned the heap. */
-  private readonly scratchScale = new THREE.Vector3();
-  private static readonly BARREN = new THREE.Color(0x6b4a3a);
-  private static readonly VERDANT = new THREE.Color(0x3f7a52);
-
-  constructor(def: ExhibitDefinition) {
-    super(def);
-  }
+  constructor(def: ExhibitDefinition) { super(def); }
 
   protected override build(): void {
     const scope = this.ctx.scope;
+    const plaque = buildPlaque(scope, this.ctx.record); plaque.position.set(0, 2.3, -7.3); this.group.add(plaque); scope.trackObject(plaque);
+    const lectern = buildLectern(scope, this.ctx.record, this.ctx.projects); lectern.position.set(3.6, 0, -5.1); lectern.rotation.y = -0.6; this.group.add(lectern); scope.trackObject(lectern);
 
-    const plaque = buildPlaque(scope, this.ctx.record);
-    plaque.position.set(0, 2.3, -7.3);
-    this.group.add(plaque);
-    scope.trackObject(plaque);
+    this.world = new THREE.Mesh(scope.track(new THREE.IcosahedronGeometry(2.0, 3)), this.standard(0x6b4a3a, { roughness: 0.9 }));
+    this.world.position.set(0, 5.0, -4.0); this.group.add(this.world);
+    this.atmosphere = new THREE.Mesh(scope.track(new THREE.SphereGeometry(2.28, 28, 20)), scope.track(new THREE.MeshStandardMaterial({ color: 0x7fb8e0, transparent: true, opacity: 0.08, roughness: 0.1, side: THREE.DoubleSide })));
+    this.atmosphere.position.copy(this.world.position); this.group.add(this.atmosphere);
 
-    const lectern = buildLectern(scope, this.ctx.record, this.ctx.projects);
-    lectern.position.set(3.6, 0, -5.0);
-    lectern.rotation.y = -0.6;
-    this.group.add(lectern);
-    scope.trackObject(lectern);
+    const deck = new THREE.Mesh(scope.track(new THREE.RingGeometry(2.1, 5.4, 42)), this.standard(0x29283a, { roughness: 0.88 }));
+    deck.rotation.x = -Math.PI / 2; deck.position.set(0, 0.04, -4.0); this.group.add(deck);
 
-    // ── the world ──
-    this.world = new THREE.Mesh(
-      scope.track(new THREE.IcosahedronGeometry(2.3, 3)),
-      this.standard(0x6b4a3a, { roughness: 0.95 }),
-    );
-    this.world.position.set(0, 5.4, -3.8);
-    this.group.add(this.world);
+    STATIONS.forEach((station, i) => {
+      const a = (i / STATIONS.length) * Math.PI * 2 - Math.PI / 2;
+      const x = Math.cos(a) * 4.35;
+      const z = -4.0 + Math.sin(a) * 3.45;
+      const c = buildConsole(scope, 0.7, 0.5, 1.0, this.standard(0x343247, { roughness: 0.65 }));
+      c.position.set(x, 0, z); c.rotation.y = -a + Math.PI / 2; this.group.add(c); this.stationMeshes.push(c);
+      const lamp = new THREE.Mesh(scope.track(new THREE.SphereGeometry(0.075, 10, 8)), this.emissive(station.colour, i === 0 ? 1.2 : 0.12));
+      lamp.position.set(0, 1.22, 0); c.add(lamp); this.stationLamps.push(lamp);
+      const label = buildLabel(scope, `${i + 1}. ${station.name}`, 0.76); label.position.set(0, 1.03, 0.24); label.rotation.x = -Math.PI / 2.1; c.add(label); scope.track(label.geometry);
 
-    this.atmosphere = new THREE.Mesh(
-      scope.track(new THREE.SphereGeometry(2.62, 28, 20)),
-      scope.track(new THREE.MeshStandardMaterial({
-        color: 0x7fb8e0, transparent: true, opacity: 0, roughness: 0.1, side: THREE.DoubleSide,
-      })),
-    );
-    this.atmosphere.position.copy(this.world.position);
-    this.group.add(this.atmosphere);
+      const from = new THREE.Vector3(x, 1.15, z);
+      const to = this.world.position.clone();
+      const curve = new THREE.CatmullRomCurve3([from, from.clone().lerp(to, 0.5).add(new THREE.Vector3(0, 0.8, 0)), to]);
+      this.sharedCurves.push(curve);
+      const line = new Filament(scope, this.scaled(14), 0.018, this.standard(0x3a3950, { roughness: 0.8 })); line.follow(curve); this.group.add(line.group);
 
-    // Surface features that change as the chain runs.
-    const random = rng(7070);
-    const featureGeo = scope.track(new THREE.IcosahedronGeometry(0.16, 0));
-    const featureMat = this.standard(0x8a6a4a, { roughness: 0.9 });
-    for (const p of fibonacciSphere(this.scaled(70), 2.3)) {
-      const feature = new THREE.Mesh(featureGeo, featureMat);
-      feature.position.copy(p).multiplyScalar(1.02);
-      feature.scale.setScalar(0.6 + random() * 0.8);
-      feature.lookAt(0, 0, 0);
-      this.world.add(feature);
-      this.surface.push(feature);
-    }
-
-    // ── the engineering floor: five stations in a line the visitor walks ──
-    const floor = new THREE.Mesh(
-      scope.track(new THREE.RingGeometry(2.0, 5.4, 40)),
-      this.standard(0x2f2840, { roughness: 0.9 }),
-    );
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.set(0, 0.04, -3.8);
-    this.group.add(floor);
-
-    CHAIN.forEach((stage, i) => {
-      const a = -0.9 + (i / (CHAIN.length - 1)) * 1.8;
-      const consoleGroup = buildConsole(scope, 0.6, 0.46, 1.0, this.standard(0x322b4d, { roughness: 0.7 }));
-      consoleGroup.position.set(Math.sin(a) * 4.6, 0, Math.cos(a) * 4.6 - 3.8);
-      consoleGroup.rotation.y = a + Math.PI;
-      this.group.add(consoleGroup);
-      this.consoles.push(consoleGroup);
-
-      const lamp = new THREE.Mesh(
-        scope.track(new THREE.CylinderGeometry(0.1, 0.1, 0.06, 14)),
-        this.emissive(stage.colour, 0.08),
-      );
-      lamp.position.set(0, 1.03, -0.1);
-      consoleGroup.add(lamp);
-      this.lamps.push(lamp);
-
-      const label = buildLabel(scope, `${i + 1}. ${stage.name}`, 0.58);
-      label.position.set(0, 1.02, 0.22);
-      label.rotation.x = -Math.PI / 2.1;
-      consoleGroup.add(label);
-      scope.track(label.geometry);
-
-      const byLabel = buildLabel(scope, stage.by, 0.44);
-      byLabel.position.set(0, 1.55, 0);
-      consoleGroup.add(byLabel);
-      scope.track(byLabel.geometry);
-
-      // A conduit from each console up to the world.
-      const from = new THREE.Vector3(Math.sin(a) * 4.6, 1.1, Math.cos(a) * 4.6 - 3.8);
-      const to = new THREE.Vector3(0, 5.4, -3.8);
-      const curve = new THREE.CatmullRomCurve3([
-        from,
-        from.clone().lerp(to, 0.5).add(new THREE.Vector3(0, 0.7, 0)),
-        to,
-      ]);
-      this.stageCurves.push(curve);
-
-      const conduit = new Filament(scope, this.scaled(14), 0.024, this.standard(0x3a3358, { roughness: 0.8 }));
-      conduit.follow(curve);
-      this.group.add(conduit.group);
-
-      const pulse = new Pulse(scope, 0.11, this.emissive(stage.colour, 1.6));
-      this.group.add(pulse.mesh);
-      this.stagePulses.push(pulse);
-
-      this.control({
-        object: consoleGroup,
-        label: `Deploy: ${stage.name} (${stage.by})`,
-        description: `${stage.note} Produces ${stage.produces}.`,
-        activate: () => this.deploy(i),
-      });
+      this.control({ object: c, label: `Operate ${station.name} station`, description: station.note, activate: () => this.operate(i) });
     });
+
+    this.pulse = new Pulse(scope, 0.1, this.emissive(0xffffff, 1.9)); this.group.add(this.pulse.mesh);
+
+    const nullify = buildConsole(scope, 0.76, 0.5, 1.0, this.standard(0x4f252c, { roughness: 0.6 }));
+    nullify.position.set(0, 0, -0.35); this.group.add(nullify);
+    const nullLabel = buildLabel(scope, 'SYRIN CONTACT', 0.72); nullLabel.position.set(0, 1.02, 0.2); nullLabel.rotation.x = -Math.PI / 2.1; nullify.add(nullLabel); scope.track(nullLabel.geometry);
+    this.control({ object: nullify, label: 'Inject positive Syrin contact', description: 'Any positive contact nullifies the active Starsilk runtime. This is a hard exception, not a resistance roll.', activate: () => {
+      if (this.nullified) { this.ctx.announce('Starsilk is already nullified. Only a full laboratory reset restores the runtime.'); return; }
+      this.nullified = true; this.telemetry.push('SYRIN_CONTACT → STARsilk runtime inert');
+      this.ctx.announce('NULLIFIED. Active Starsilk colour drains from the laboratory. Macro and Starbinding controls remain inert until full reset; ordinary planet physics may still step.');
+    }});
+
+    const status = buildLabel(scope, 'ONE SHARED STATE · HARD ZERO-STARSILK COLLAPSE · POSITIVE SYRIN CONTACT NULLIFIES', 4.35);
+    status.position.set(0, 4.55, -6.4); this.group.add(status); scope.track(status.geometry);
   }
 
-  private deploy(index: number): void {
-    if (index === this.completed) {
-      this.stagePulses[index].start();
-      return;
+  private operate(index: number): void {
+    this.activeStation = index;
+    const station = STATIONS[index];
+    if (index === 0) {
+      const action = PLANET_ACTIONS[this.planetAction]; this.planetAction = (this.planetAction + 1) % PLANET_ACTIONS.length;
+      this.mutationCount++; this.telemetry.push(`PLANET ${action}`); this.pulse.start();
+      this.ctx.announce(`${station.name}: committed ${action} at a bounded target cell. Mutation ${this.mutationCount}. Shared planet state changed.`);
+    } else if (index === 1) {
+      if (this.nullified) { this.ctx.announce('Macro refused. Syrin contact left the Starsilk runtime inert.'); return; }
+      this.macroStep++; this.mutationCount++; this.telemetry.push(`MACRO step ${this.macroStep} → EMIT`); this.pulse.start();
+      this.ctx.announce(`Macro: deterministic instruction ${this.macroStep} committed. Its EMIT operation changed the same planet visible at the Planet station.`);
+    } else if (index === 2) {
+      if (this.nullified) { this.ctx.announce('Starbinding refused. The Starsilk runtime is inert after Syrin contact.'); return; }
+      if (this.collapsed) { this.ctx.announce('The modeled stellar core has already collapsed. Reset the laboratory before another Starbinding run.'); return; }
+      this.stellarStarsilk = Math.max(0, this.stellarStarsilk - 0.5); this.telemetry.push(`STARBINDING withdraw 0.5 → remaining ${this.stellarStarsilk}`); this.pulse.start();
+      if (this.stellarStarsilk === 0) { this.collapsed = true; this.ctx.announce('Starbinding HIT. Remaining Starsilk reached exactly zero: immediate heliocide state transition to collapse. There is no warning threshold.'); }
+      else this.ctx.announce(`Starbinding HIT. Half the modeled core Starsilk remains: ${this.stellarStarsilk.toFixed(1)}. No collapse occurs above zero.`);
+    } else if (index === 3) {
+      this.latticeFractured = !this.latticeFractured; this.telemetry.push(`SIEGE_WALL ${this.latticeFractured ? 'capacity fracture' : 'stable solve'}`); this.pulse.start();
+      this.ctx.announce(this.latticeFractured ? 'Siege Wall laboratory solve exceeds declared anchoring capacity: persistent FRACTURED state.' : 'Siege Wall laboratory solve is within the declared node-capacity model: stable containment state.');
+    } else if (index === 4) {
+      const names = ['Fault-Tongue', 'Obsidian Gul', 'Tremorhound', 'Vortenbray', 'Experimental Egg — NON-CANON'];
+      this.specimen = (this.specimen + 1) % names.length; this.telemetry.push(`INCUBATOR ${names[this.specimen]}`); this.pulse.start();
+      this.ctx.announce(`Incubator: ${names[this.specimen]}. ${this.specimen === names.length - 1 ? 'This specimen is explicitly non-canon.' : 'A deterministic laboratory phenotype path begins against the shared planet.'}`);
+    } else {
+      const recent = this.telemetry.slice(-4);
+      this.ctx.announce(recent.length ? `Telemetry ledger, most recent first: ${recent.reverse().join(' | ')}` : 'Telemetry ledger is empty. No mutation has been committed yet.');
     }
-    if (index < this.completed) {
-      this.ctx.announce(`${CHAIN[index].name} has already run. The chain does not repeat a stage.`);
-      return;
-    }
-    // The refusal. This is the exhibit's argument, so it says why.
-    this.refusals++;
-    const needed = CHAIN[this.completed];
-    this.ctx.announce(
-      `${CHAIN[index].name} will not run yet. ${CHAIN[index].by} needs ${needed.produces === 'feedstock' ? 'feedstock' : `the output of ${needed.name}`} first. Run ${needed.name} (${needed.by}).`,
-    );
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    for (let i = 0; i < this.stagePulses.length; i++) {
-      const pulse = this.stagePulses[i];
-      if (!pulse.isRunning) continue;
-      if (pulse.update(dt, this.stageCurves[i], this.reducedMotion ? 4 : 0.8)) {
-        this.completed = Math.min(CHAIN.length, i + 1);
-        const stage = CHAIN[i];
-        (this.lamps[i].material as THREE.MeshStandardMaterial).emissiveIntensity = 1.4;
-        this.ctx.announce(
-          this.completed === CHAIN.length
-            ? `${stage.name} complete. The world has sky. ${stage.note}`
-            : `${stage.name} complete — ${stage.produces}. ${stage.note}`,
-        );
-      }
+    if (this.pulse.isRunning) this.pulse.update(dt, this.sharedCurves[this.activeStation], this.reducedMotion ? 5 : 0.85);
+    for (let i = 0; i < this.stationLamps.length; i++) {
+      const mat = this.stationLamps[i].material as THREE.MeshStandardMaterial;
+      mat.emissiveIntensity += ((i === this.activeStation ? 1.35 : 0.12) - mat.emissiveIntensity) * Math.min(1, dt * 5);
     }
-
-    // The world answers the chain's progress.
-    const progress = this.completed / CHAIN.length;
-    const worldMat = this.world.material as THREE.MeshStandardMaterial;
-    worldMat.color.lerpColors(TerraformingLaboratory.BARREN, TerraformingLaboratory.VERDANT, progress);
-    (this.atmosphere.material as THREE.MeshStandardMaterial).opacity =
-      this.completed >= CHAIN.length ? 0.28 : progress * 0.08;
-
-    for (let i = 0; i < this.surface.length; i++) {
-      const target = 0.6 + progress * 0.9;
-      this.surface[i].scale.lerp(
-        this.scratchScale.setScalar(target),
-        this.reducedMotion ? 1 : Math.min(1, dt * 2),
-      );
-    }
-
-    if (!this.reducedMotion) {
-      this.world.rotation.y += dt * 0.09;
-      this.atmosphere.rotation.y -= dt * 0.05;
-    }
+    const wm = this.world.material as THREE.MeshStandardMaterial;
+    const targetColour = this.collapsed ? new THREE.Color(0x09090d) : this.nullified ? new THREE.Color(0x4b4448) : new THREE.Color(0x6b4a3a).lerp(new THREE.Color(0x3f7a52), Math.min(1, this.mutationCount / 8));
+    wm.color.lerp(targetColour, Math.min(1, dt * 2));
+    const am = this.atmosphere.material as THREE.MeshStandardMaterial;
+    am.opacity += (((this.mutationCount > 0 ? 0.08 + Math.min(0.22, this.mutationCount * 0.025) : 0.06)) - am.opacity) * Math.min(1, dt * 2));
+    if (!this.reducedMotion) { this.world.rotation.y += dt * 0.08; this.atmosphere.rotation.y -= dt * 0.04; }
   }
 
   protected override onReset(): void {
-    this.completed = 0;
-    this.refusals = 0;
-    for (const pulse of this.stagePulses) pulse.stop();
-    for (const lamp of this.lamps) {
-      (lamp.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.08;
-    }
-    if (this.world) {
-      this.world.rotation.set(0, 0, 0);
-      (this.world.material as THREE.MeshStandardMaterial).color.setHex(0x6b4a3a);
-    }
-    if (this.atmosphere) {
-      this.atmosphere.rotation.set(0, 0, 0);
-      (this.atmosphere.material as THREE.MeshStandardMaterial).opacity = 0;
-    }
-    for (const feature of this.surface) feature.scale.setScalar(0.6);
+    this.activeStation = 0; this.planetAction = 0; this.mutationCount = 0; this.macroStep = 0; this.stellarStarsilk = 1; this.collapsed = false; this.nullified = false; this.latticeFractured = false; this.specimen = 0; this.telemetry.length = 0; this.pulse.stop();
+    if (this.world) { this.world.rotation.set(0,0,0); (this.world.material as THREE.MeshStandardMaterial).color.setHex(0x6b4a3a); }
   }
 
   protected override describeState(): string {
-    if (this.completed === 0) {
-      return 'The world is untouched. Five stations stand ready, and the chain must be run in order: collection, gathering, rendering, feedstock, then SKY.';
-    }
-    if (this.completed >= CHAIN.length) {
-      return 'The chain is complete. Gorevault collected, gathered, rendered and produced feedstock; Ringthroat turned it into sky. The world is habitable.';
-    }
-    const done = CHAIN.slice(0, this.completed).map((s) => s.name).join(', ');
-    const next = CHAIN[this.completed];
-    const refused = this.refusals > 0 ? ` The process lock has refused an out-of-order deployment ${this.refusals} time${this.refusals === 1 ? '' : 's'}.` : '';
-    return `Completed: ${done}. Next: ${next.name}, performed by ${next.by}.${refused}`;
+    return `Active station: ${STATIONS[this.activeStation].name}. Shared planet mutations: ${this.mutationCount}. Stellar Starsilk: ${this.stellarStarsilk.toFixed(1)}${this.collapsed ? ' — collapsed' : ''}. Starsilk runtime: ${this.nullified ? 'NULLIFIED' : 'active'}. Siege Wall lab state: ${this.latticeFractured ? 'fractured' : 'stable/not driven'}. Telemetry entries: ${this.telemetry.length}.`;
   }
 }
