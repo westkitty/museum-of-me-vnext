@@ -5,7 +5,7 @@ export type WingId = 'north' | 'south' | 'east' | 'west' | 'media' | 'infra';
 export type Tier = 'A' | 'B' | 'C';
 
 /**
- * A project identity in the collection.
+ * A project identity in the current collection.
  * All copy is project-first: it describes the work, never praises its author.
  */
 export interface ProjectRecord {
@@ -43,7 +43,7 @@ export interface ExhibitCopy {
   readonly explore: string;
 }
 
-/** An entry in the frozen 64 -> 35 mapping, joined with its copy and projects. */
+/** An entry in the stable 35-slot building, joined with current collection copy and projects. */
 export interface ExhibitRecord {
   readonly id: string;
   readonly slug: string;
