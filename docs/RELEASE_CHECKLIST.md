@@ -1,10 +1,10 @@
 # Release Gate
 
-The plan's §39 gate, applied to the current implementation candidate. Automated evidence and human/device evidence are deliberately kept separate.
+The plan's §39 gate, applied to the current release candidate. Automated evidence and human/device evidence are deliberately kept separate.
 
-Current candidate: `feature/museum-workshop-core-2026-08-26` at committed HEAD `bf2fe0611c5c06e69316ec1bbc3cbf81bfac41e2`, with additional uncommitted working-tree changes present at the time of this reconciliation. Exact-head CI evidence applies only to the committed head; rerun the gate on any release candidate after the working tree is integrated.
+Current release/implementation line: `release/v1.0.0`. PR #3 integrated `feature/museum-workshop-core-2026-08-26` after exact pre-merge head `f6751de8e83017ec3a3a085d2b8d1f02d9b2cac7` passed pull-request workflow run #321 in all four jobs: `gate`, `browser`, `standalone`, and `workshop`. The integration merge commit was `65142465336ee4603a07dd56333813f4f55befb0`.
 
-`release/v1.0.0` is an older release baseline, 32 commits behind this candidate and not yet promoted. `main` is the older default-branch baseline, not the current implementation.
+The post-merge truth-layer reconciliation changes only release/state documentation. Its resulting release head must receive its own exact-head automated proof before publication consideration. `main` remains the older unpublished default-branch baseline.
 
 ## Architecture
 
@@ -52,7 +52,9 @@ Current candidate: `feature/museum-workshop-core-2026-08-26` at committed HEAD `
 | Load/unload lifecycle stable | ✅ | Repeated traversal/lifecycle tests require bounded residency and balanced disposal. |
 | Persistent environment bounded | ✅ | Always-resident refinement systems are measured by explicit mesh/triangle/material/light/resource budgets and dispose to zero tracked resources. |
 | Quality tiers work | ✅ | Auto-detection, settings override, DPR limits, shadow/crowd reductions, and budget contracts are covered. |
-| Real production-browser boot + semantic visitor path | ✅ automated contract | The committed Chromium suite boots the production WebGL app, proves keyboard input reaches the real controller, exercises map/focus/reduced-motion behavior, and reaches the complete accessible collection. The exact release head must have its browser job green before publication. |
+| Real production-browser boot + semantic visitor path | ✅ automated contract | Pull-request workflow run #321 passed the production browser job on the integrated feature head; the final post-reconciliation release head must also be green before publication. |
+| Museum Workshop authoring path | ✅ automated contract | Pull-request workflow run #321 passed the dedicated development-only Workshop job after correcting a stale test assertion so X/Z edits explicitly preserve the registered shrub's original Y. Runtime authoring behavior was not weakened. |
+| Offline standalone path | ✅ automated contract | Pull-request workflow run #321 passed the fresh standalone build and offline verification on the integrated feature head. |
 | Human QA evidence recorder | ✅ automated tool contract | `?qa=1` exposes read-only diagnostics plus a session-only manual recorder for Pass/Needs work judgments, telemetry snapshots, notes, and Markdown report generation. Browser CI proves the tool operates; it does not satisfy the human judgments it records. |
 | Production dependency surface | ✅ automated contract | The browser job runs `npm audit --omit=dev --audit-level=high`. Development-tool audit findings are not represented as deployed dependency findings; the exact release head must pass this job before publication. |
 | Audio muted by default | 🟨 human check required | Sound controls begin at zero; a real browser/device must confirm deliberate opt-in playback and subtitle agreement. |
@@ -76,18 +78,18 @@ Current candidate: `feature/museum-workshop-core-2026-08-26` at committed HEAD `
 
 | Branch | Role |
 |---|---|
-| `main` | remote default branch and PR #1 base; intentionally not treated as the current implementation baseline before merge. |
+| `main` | remote default branch and PR #1 base; older unpublished baseline, not current implementation truth. |
 | `feat/foundation` | historical implementation lineage. |
-| `release/v1.0.0` | older release baseline and PR #1 head; not the current implementation candidate. |
-| `feature/museum-workshop-core-2026-08-26` | current implementation candidate; Workshop branch, 32 commits ahead of `release/v1.0.0`. |
+| `release/v1.0.0` | current release and implementation line after PR #3 integration. |
+| `feature/museum-workshop-core-2026-08-26` | integrated feature lineage; no longer the separate release candidate. |
 
-PR #1 remains open from `release/v1.0.0` to `main`. No merge, auto-merge, release tag, or publication is implied by a green automated gate.
+PR #1 remains open from `release/v1.0.0` to `main` and now tracks the caught-up release line. No merge, auto-merge, release tag, or publication is implied by a green automated gate.
 
 ## Remaining actions, exactly
 
-1. Reconcile and freeze the intended candidate, then complete the representative-device pass in `validation/reports/HUMAN_QA_CHECKLIST.md` and preserve a completed Markdown evidence record using the in-museum `?qa=1` recorder or `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md`. No acceptance item may remain accidentally Pending.
-2. Repair only concrete **Needs work** observations from that pass, then rerun the exact-head automated gates if code changes.
-3. Promote/review the accepted current implementation into `release/v1.0.0`; require exact-head CI on that release candidate.
-4. Make an explicit owner decision to merge the reviewed release into `main` and authorize publication.
+1. Require the final post-reconciliation `release/v1.0.0` head to pass the exact-head automated jobs (`gate`, `browser`, `standalone`, and `workshop`).
+2. Complete the representative-device pass in `validation/reports/HUMAN_QA_CHECKLIST.md` and preserve a completed Markdown evidence record using the in-museum `?qa=1` recorder or `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md`. No acceptance item may remain accidentally Pending.
+3. Run `npm run verify:human-evidence -- <completed-human-qa.md>`; repair only concrete **Needs work** observations and rerun exact-head automated gates if code changes.
+4. Make an explicit owner decision to merge reviewed PR #1 into `main` and authorize publication.
 5. Deploy the resulting reviewed `main` commit, run `npm run verify:hosted -- <production-url>`, and verify the real browser/device path.
 6. Tag the verified deployed commit as `v1.0.0`; do not tag a known-bad or merely pre-deploy commit.
