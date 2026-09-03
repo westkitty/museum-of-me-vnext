@@ -41,7 +41,7 @@ const KEY = 'museum-of-me:preferences';
 const KEY_V2 = 'museum-of-me:preferences:v2';
 const BACKUP_KEY = 'museum-of-me:preferences:backup';
 const QUARANTINE_KEY = 'museum-of-me:preferences:quarantine';
-export const PREFERENCES_VERSION = 2;
+export const PREFERENCES_VERSION = 3;
 
 export const DEFAULT_PREFERENCES: VisitorPreferences = {
   version: PREFERENCES_VERSION,
@@ -51,8 +51,8 @@ export const DEFAULT_PREFERENCES: VisitorPreferences = {
   highContrast: false,
   uiScale: 1,
   subtitles: true,
-  masterVolume: 0.7,
-  ambienceVolume: 0.5,
+  masterVolume: 0,
+  ambienceVolume: 0,
   mouseSensitivity: 1,
   touchSensitivity: 1,
   invertY: false,
@@ -103,8 +103,8 @@ export function sanitizePreferences(value: unknown): VisitorPreferences {
     highContrast: raw.highContrast === true,
     uiScale: finite(raw.uiScale, 1, 0.85, 1.6),
     subtitles: raw.subtitles !== false,
-    masterVolume: finite(raw.masterVolume, 0.7, 0, 1),
-    ambienceVolume: finite(raw.ambienceVolume, 0.5, 0, 1),
+    masterVolume: finite(raw.masterVolume, 0, 0, 1),
+    ambienceVolume: finite(raw.ambienceVolume, 0, 0, 1),
     mouseSensitivity: finite(raw.mouseSensitivity, 1, 0.45, 2.25),
     touchSensitivity: finite(raw.touchSensitivity, 1, 0.45, 2.25),
     invertY: raw.invertY === true,
@@ -176,7 +176,12 @@ export function loadPreferencesResult(storage: Storage | null = safeStorage()): 
       return { preferences: applySafeModeOverlay(base), migrated: false, quarantined: true, notice: 'A newer preference format was rejected. Your previous file is quarantined.' };
     }
     const migrated = version !== PREFERENCES_VERSION || storage.getItem(KEY_V2) === null;
-    const sanitized = sanitizePreferences({ ...base, ...(parsed as object) });
+    // v3 intentionally mutes legacy defaults once. Visitors who subsequently
+    // opt in retain their chosen values under the new version.
+    const audioDefaults = !Number.isFinite(version) || version < 3
+      ? { masterVolume: 0, ambienceVolume: 0 }
+      : {};
+    const sanitized = sanitizePreferences({ ...base, ...(parsed as object), ...audioDefaults });
     if (migrated) {
       try { storage.setItem(BACKUP_KEY, current); } catch { /* quota */ }
       savePreferences(sanitized, storage);

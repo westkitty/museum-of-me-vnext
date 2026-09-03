@@ -2,7 +2,7 @@
 
 ## Stack
 
-TypeScript · Vite 6 · vanilla Three.js 0.185.0 · semantic DOM UI · Vitest · Playwright.
+TypeScript · Vite 6 · vanilla Three.js 0.185.1 · semantic DOM UI · Vitest · Playwright.
 
 No React, no R3F, no physics engine, no state library. Plan §18.2: the museum needs explicit
 lifecycle ownership and aggressive disposal across 35 independent modules, which a retained-mode
@@ -24,7 +24,7 @@ requestAnimationFrame
   │     └─ active exhibits: update(dt)
   │
   ├─ VARIABLE STEP (once per frame)
-  │     ├─ audio zones: crossfade by listener position
+  │     ├─ audio zones: crossfade by listener position (muted by default)
   │     ├─ streaming: evaluate zone residency, enqueue/cancel loads
   │     ├─ interaction: raycast focus, update cue
   │     └─ ui: HUD sync
@@ -46,16 +46,56 @@ src/
   interaction/  InteractionManager, focus raycast, verbs (inspect/manipulate/…)
   exhibits/     ExhibitHost, registry, 35 modules by wing
   assets/       AssetManager, manifest, ResourceScope, procedural generators
-  audio/        AudioManager, zones, synthesised ambience
+  audio/        AudioManager, zones, synthesised ambience (muted by default)
   content/      generated collection (64 projects, 35 exhibits)
   state/        preferences, journal, versioned persistence
   ui/           HUD, Map, Journal, DeepPanel, Settings — all DOM
   accessibility/ reduced motion, focus, DOM mirrors of world text
+  workshop/     authored placement runtime + development-only authoring surface
 ```
 
 Dependency direction is strictly downward: `exhibits` may import from `assets`, `interaction`,
 `content`, `audio`. Nothing imports from `exhibits` except the registry. Nothing outside `app`
 imports `Loop`.
+
+## Museum Workshop authoring boundary
+
+Museum Workshop does not create a second engine or scene model. The normal museum runtime always
+loads the versioned declarative source `data/workshop-placements.json` through
+`MuseumPlacements`. Those authored placement objects are deliberately non-colliding in Workshop
+Core and own a bounded `ResourceScope`.
+
+The editing surface itself is development-only. `src/main.ts` dynamically imports `Workshop` only
+when both `import.meta.env.DEV` and `?edit=1` are true. That query exposes a visible `BUILD MODE`
+control but leaves Workshop closed; `F8` is the secondary toggle. Workshop attaches Three.js
+`TransformControls` to the real museum camera/canvas, releases pointer lock, captures UI ownership,
+and freezes visitor movement only while active. The ordinary capture prompt is suppressed for that
+interval and returns when Workshop closes. Semantic DOM owns the inspector, object palette, outliner,
+commands, and save feedback.
+
+Saving does not mutate TypeScript or expose arbitrary filesystem access. A Vite `apply: 'serve'`
+plugin exposes one localhost-only POST endpoint with a 256 KiB body limit, shared schema and
+conservation validation, a fixed target (`data/workshop-placements.json`), and atomic replacement.
+`src/workshop/conservation.ts` derives deterministic protected areas from the authoritative layout,
+installation, exhibit and visitor-route sources; rejected saves return placement ID/label, protected
+area, rule and reason diagnostics before the target is opened. Production and standalone builds
+consume the resulting manifest but do not contain that write endpoint or editor UI.
+`scripts/verify-release-dist.mjs` rejects a release build if Workshop editor/write markers or styles
+leak into production output.
+
+Workshop Core may author only explicitly whitelisted safe placement prefabs. Structural and
+collision-authoritative systems — walls, floors, stairs, ramps, the rotunda flight pad, Sanctuary
+route geometry, source installations, authored visitor routes, and other verified spatial contracts —
+remain outside its mutation surface. A later structural-authoring phase must derive render geometry,
+collision, and dependent interaction/navigation data from one authoritative record before those
+systems can be made editable.
+
+The canonical night exterior keeps separate visual and spatial authorities. `Sky` owns the
+camera-following star dome, while its complete crystalline Blood Ring is a tracked, world-relative
+physical torus added directly to the scene; it does not follow the camera and does not paint a second
+sky stripe. `ArrivalGarden` owns a visual-only water shader updated from the existing application
+loop, with low-frequency organic motion and a reduced-motion freeze. Neither system adds collision or
+another frame loop.
 
 ## Resource ownership — `ResourceScope`
 
@@ -77,7 +117,7 @@ scope.dispose();          // disposes everything tracked, asserts count === 0
 |---|---|---|
 | 1 — Museum proxy | Rotunda, wing shells, silhouettes, major lighting, arches, exterior | always resident |
 | 2 — Wing detail | current wing + neighbours + visible entrances | proximity |
-| 3 — Exhibit payload | hero objects, exhibit-specific geometry and audio | activation radius |
+| 3 — Exhibit payload | hero objects and exhibit-specific geometry | activation radius |
 
 `StreamingManager` evaluates residency once per frame from player position, enqueues work with
 cancellation tokens, and budgets how much construction may happen per frame so streaming never

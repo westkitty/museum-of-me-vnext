@@ -6,8 +6,13 @@ import { createHash } from 'node:crypto';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const file = join(root, 'release', 'The_Reliquary_of_Iterative_Becoming.html');
+const fullWeasel = join(root, 'release', 'embedded', 'full-weasel', 'index.html');
 if (!existsSync(file)) {
   console.error('offline-standalone: missing release HTML');
+  process.exit(1);
+}
+if (!existsSync(fullWeasel)) {
+  console.error('offline-standalone: missing local Full Weasel artifact');
   process.exit(1);
 }
 const html = readFileSync(file, 'utf8');
@@ -31,6 +36,9 @@ if (!runtime.includes('data:image/webp') || !runtime.includes('data:image/avif')
 }
 if (!runtime.includes('curator-archive')) {
   errors.push('generated HTML is missing source visitor identities');
+}
+if (!runtime.includes('./embedded/full-weasel/index.html')) {
+  errors.push('generated HTML does not retain the local Full Weasel entry point');
 }
 const digest = createHash('sha256').update(html).digest('hex');
 if (errors.length) {

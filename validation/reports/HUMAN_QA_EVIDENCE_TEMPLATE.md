@@ -17,14 +17,14 @@
 ## Acceptance checks
 
 - [ ] **PENDING** — Garden and facade composition reads cleanly from the real spawn.
-- [ ] **PENDING** — Daylight is bright without looking washed out.
-- [ ] **PENDING** — Rotunda stays luminous and neutral while all six route threads remain legible.
-- [ ] **PENDING** — Wing furnishing and atmosphere add identity without clutter or blocked sightlines.
-- [ ] **PENDING** — Exhibit colour fields support rather than overpower representative hero objects.
+- [ ] **PENDING** — Intentional night exterior, Blood Ring, island/water, dark facade and azure lighting read as designed and remain readable.
+- [ ] **PENDING** — Rotunda, six wings, themed framing, Starsilk palette and representative exhibits remain coherent without visual failures.
+- [ ] **PENDING** — Quaternius ambient visitors, authored source visitors, Full Weasel and DexGPT integrations are visually usable and intentional.
+- [ ] **PENDING** — Sanctuary approach, threshold, `STINK WEASEL DEN` sign and Dexter presentation remain correct.
 - [ ] **PENDING** — Pointer lock captures, releases, recovers, and recaptures correctly on this device.
-- [ ] **PENDING** — Audible ambience/exhibit audio agrees with visible subtitles.
-- [ ] **PENDING** — Representative-device FPS and 1% low are acceptable at the required checkpoints.
-- [ ] **PENDING** — No visible voids, z-fighting, clipping, broken transparency, or obvious geometry failure.
+- [ ] **PENDING** — Normal movement, flight pad, curved stairs, E27 Escape handoff and keyboard/UI interaction feel correct.
+- [ ] **PENDING** — Audio begins muted at zero; opted-in playback and subtitles behave as expected, and representative-device FPS/1% low is acceptable.
+- [ ] **PENDING** — No visible voids, z-fighting, clipping, broken transparency, or obvious geometry failure remains at inspected locations.
 
 ## Required telemetry snapshots
 
@@ -43,7 +43,7 @@ Record observed pointer-lock capture/release/recapture behavior, mouse look, key
 
 ## Audio notes
 
-Record which wing ambience and exhibit audio were actually heard and whether each checked subtitle matched what was audible.
+Record initial zero-volume behavior, then deliberate Sound-control adjustment and the resulting ambience/reactive audio/subtitle behavior.
 
 ## Visual notes
 

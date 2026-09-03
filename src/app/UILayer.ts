@@ -10,6 +10,9 @@ import { savePreferences, isSafeMode, type VisitorPreferences } from '../state/P
 import { CuratorPanel } from '../ui/CuratorPanel';
 import { StudyPanel } from '../ui/StudyPanel';
 import { CommandPalette } from '../ui/CommandPalette';
+import { FullWeaselPanel } from '../ui/FullWeaselPanel';
+import { MuseumGuidePanel } from '../ui/MuseumGuidePanel';
+import { DeterministicMuseumGuide } from '../guide/DeterministicMuseumGuide';
 import { SOURCE_INSTALLATIONS, SOURCE_SUPPLEMENTARY, SOURCE_VISITORS } from '../content/sourceParity';
 import { EXHIBITS_BY_ID, COLLECTION } from '../content/collection.generated';
 import type { App } from './App';
@@ -31,6 +34,8 @@ export class UILayer {
   readonly curator: CuratorPanel;
   readonly study: StudyPanel;
   readonly command: CommandPalette;
+  readonly fullWeasel: FullWeaselPanel;
+  readonly dexgptGuide: MuseumGuidePanel;
 
   private readonly unbind: (() => void)[] = [];
 
@@ -84,6 +89,7 @@ export class UILayer {
     this.command = new CommandPalette(
       (id) => this.mapGuide(id),
       () => [
+        ...(app.currentZone === 'plaza' ? [] : [{ id: 'open-dexgpt-guide', label: 'Talk to DexGPT', detail: 'Local museum guide', keywords: 'guide project exhibit controls wings', run: () => this.openDexGPTGuide() }]),
         { id: 'open-map', label: 'Open map', detail: 'Wayfinding', keywords: 'guide walk', run: () => this.map.open() },
         { id: 'open-journal', label: 'Open journal', detail: 'Visit record', run: () => this.journal.open() },
         { id: 'open-curator', label: 'Open Curator Desk', detail: 'Records and recovery', run: () => this.curator.open() },
@@ -95,6 +101,8 @@ export class UILayer {
         { id: 'clear-guide', label: 'Clear guide', detail: 'Wayfinding', run: () => this.mapGuide(null) },
       ],
     );
+    this.fullWeasel = new FullWeaselPanel();
+    this.dexgptGuide = new MuseumGuidePanel(new DeterministicMuseumGuide(app.journal), (id) => this.mapGuide(id));
 
     uiRoot.append(
       this.hud.root,
@@ -106,6 +114,8 @@ export class UILayer {
       this.curator.root,
       this.study.root,
       this.command.root,
+      this.fullWeasel.root,
+      this.dexgptGuide.root,
     );
     if (this.qaCapture) uiRoot.append(this.qaCapture.root);
 
@@ -116,7 +126,7 @@ export class UILayer {
 
     // A panel takes over input while it is open; movement stops and the mouse
     // is released so the visitor can actually use it.
-    for (const panel of [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command]) {
+    for (const panel of [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.dexgptGuide]) {
       const originalOpen = panel.open.bind(panel);
       panel.open = () => {
         input.releasePointerLock();
@@ -163,8 +173,38 @@ export class UILayer {
 
     this.app.renderer.canvas.addEventListener('touchend', this.onTouchInteract);
     document.addEventListener('pointerlockchange', this.onPointerLock);
+    window.addEventListener('message', this.onEmbeddedMessage);
     this.applyPreferences({});
   }
+
+  /** Called only by the E27 control through its bounded ExhibitContext hook. */
+  openFullWeasel(): void {
+    this.fullWeasel.open();
+  }
+
+  /** Wire the development-only Workshop affordance through the HUD. */
+  setBuildModeControl(onToggle: (() => void) | null): void {
+    this.hud.setBuildModeControl(onToggle);
+  }
+
+  setBuildModeActive(active: boolean): void {
+    this.hud.setBuildModeActive(active);
+  }
+
+  openDexGPTGuide(): void {
+    if (this.app.currentZone === 'plaza') {
+      this.hud.announce('DexGPT becomes available once you enter the museum.');
+      return;
+    }
+    this.dexgptGuide.open();
+  }
+
+  private readonly onEmbeddedMessage = (event: MessageEvent<unknown>): void => {
+    if (event.source !== this.fullWeasel.frameWindow) return;
+    if ((event.data as { type?: unknown } | null)?.type === 'full-weasel:close') {
+      this.fullWeasel.close();
+    }
+  };
 
   private readonly onTouchInteract = (e: TouchEvent): void => {
     if (this.anyPanelOpen) return;
@@ -333,12 +373,13 @@ export class UILayer {
   }
 
   private get modalPanels(): { isOpen: boolean }[] {
-    return [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command];
+    return [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel];
   }
 
   dispose(): void {
     this.app.renderer.canvas.removeEventListener('touchend', this.onTouchInteract);
     document.removeEventListener('pointerlockchange', this.onPointerLock);
+    window.removeEventListener('message', this.onEmbeddedMessage);
     for (const off of this.unbind) off();
     this.hud.dispose();
     this.map.dispose();
@@ -351,5 +392,6 @@ export class UILayer {
     this.curator.dispose();
     this.study.dispose();
     this.command.dispose();
+    this.fullWeasel.dispose();
   }
 }

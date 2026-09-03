@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { InputManager, KEYBOARD_LOOK_SPEED } from '../src/player/Input';
-import { PlayerController } from '../src/player/PlayerController';
+import { FLIGHT_LAUNCH_SPEED, JUMP_SPEED, PlayerController } from '../src/player/PlayerController';
 import { CollisionWorld } from '../src/world/CollisionWorld';
 import { DEFAULT_PREFERENCES } from '../src/state/Preferences';
 import { QUALITY } from '../src/render/QualityTiers';
@@ -361,7 +361,8 @@ describe('rotunda flight pad (regression)', () => {
     player.fixedUpdate(1 / 60);
     expect(player.position.y, 'the launch pop lifts the visitor immediately').toBeGreaterThan(0);
 
-    for (let i = 0; i < 30; i++) player.fixedUpdate(1 / 60);
+    // The tuned 8.5 m/s launch decays over a little more than 0.7 seconds.
+    for (let i = 0; i < 60; i++) player.fixedUpdate(1 / 60);
     const settled = player.position.y;
     expect(settled, 'launch is finite, not sustained thrust').toBeGreaterThan(0);
 
@@ -370,6 +371,25 @@ describe('rotunda flight pad (regression)', () => {
     // launch pop has fully decayed, rather than drifting under gravity.
     expect(player.position.y).toBeCloseTo(settled, 1);
     expect(player.flightMode).toBe(true);
+  });
+
+  it('keeps the normal jump distinct from the higher, centralized pad launch', () => {
+    const walker = new PlayerController(flatWorld(), input);
+    walker.teleport([0, 0, 0]);
+    walker.fixedUpdate(1 / 60);
+    key('Space');
+    walker.fixedUpdate(1 / 60);
+    key('Space', false);
+    expect(walker.flightMode).toBe(false);
+    expect(walker.position.y).toBeGreaterThan(0);
+    expect(FLIGHT_LAUNCH_SPEED).toBeGreaterThan(JUMP_SPEED);
+
+    const flyer = new PlayerController(flatWorld(), input);
+    flyer.teleport([0, 0, 0]);
+    flyer.enterFlight();
+    for (let i = 0; i < 45; i++) flyer.fixedUpdate(1 / 60);
+    expect(flyer.flightMode).toBe(true);
+    expect(flyer.position.y).toBeGreaterThan(walker.position.y + 1);
   });
 
   it('ends flight and returns control once the visitor flies back down to a floor', () => {

@@ -26,6 +26,7 @@ export class DiagnosticsOverlay {
     const s = this.diagnostics.stats;
     const lines = [
       `fps      ${s.fps.toFixed(0).padStart(4)}   low1 ${this.diagnostics.fpsLow1.toFixed(0)}`,
+      `frame ms p50/p95/p99 ${this.diagnostics.frameTimeP50.toFixed(1)} / ${this.diagnostics.frameTimeP95.toFixed(1)} / ${this.diagnostics.frameTimeP99.toFixed(1)}`,
       `draws    ${String(s.drawCalls).padStart(4)}   tris ${s.triangles.toLocaleString()}`,
       `geo/tex  ${String(s.geometries).padStart(4)} / ${s.textures}`,
       `exhibits ${s.activeExhibits} active, ${s.streamingResident} resident`,

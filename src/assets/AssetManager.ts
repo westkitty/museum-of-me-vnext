@@ -16,6 +16,8 @@ export type ProceduralGenerator = (scope: ResourceScope, detail: number) => THRE
 export interface LoadedAsset {
   readonly id: string;
   readonly object: THREE.Object3D;
+  /** Verified glTF clips. Procedural assets intentionally return an empty list. */
+  readonly animations: readonly THREE.AnimationClip[];
   /** Bytes transferred. Zero for procedural assets. */
   readonly bytes: number;
   readonly loadMs: number;
@@ -97,23 +99,23 @@ export class AssetManager {
       const object = generator(scope, detail);
       scope.trackObject(object);
       object.name = object.name || id;
-      return { id, object, bytes: 0, loadMs: performance.now() - started };
+      return { id, object, animations: [], bytes: 0, loadMs: performance.now() - started };
     }
 
-    const object = await this.loadFile(record, scope, opts);
+    const loaded = await this.loadFile(record, scope, opts);
     const bytes = this.bytesById.get(id) ?? 0;
     this.checkBudget(record, bytes);
-    return { id, object, bytes, loadMs: performance.now() - started };
+    return { ...loaded, id, bytes, loadMs: performance.now() - started };
   }
 
-  private async loadFile(record: AssetRecord, scope: ResourceScope, opts: LoadOptions): Promise<THREE.Object3D> {
+  private async loadFile(record: AssetRecord, scope: ResourceScope, opts: LoadOptions): Promise<LoadedAsset> {
     if (!record.url) throw new Error(`Asset "${record.id}" is ${record.kind} but declares no url`);
     if (!this.gltf) throw new Error('AssetManager.attachRenderer must be called before loading files');
 
     const existing = this.inFlight.get(record.id);
     if (existing) {
       const done = await existing;
-      return done.object;
+      return done;
     }
 
     const promise = new Promise<LoadedAsset>((resolve, reject) => {
@@ -129,7 +131,13 @@ export class AssetManager {
             return;
           }
           scope.trackObject(gltf.scene);
-          resolve({ id: record.id, object: gltf.scene, bytes: this.bytesById.get(record.id) ?? 0, loadMs: 0 });
+          resolve({
+            id: record.id,
+            object: gltf.scene,
+            animations: gltf.animations,
+            bytes: this.bytesById.get(record.id) ?? 0,
+            loadMs: 0,
+          });
         },
         (event) => {
           if (event.total > 0) this.bytesById.set(record.id, event.loaded);
@@ -143,7 +151,7 @@ export class AssetManager {
 
     this.inFlight.set(record.id, promise);
     const done = await promise;
-    return done.object;
+    return done;
   }
 
   private checkBudget(record: AssetRecord, bytes: number): void {

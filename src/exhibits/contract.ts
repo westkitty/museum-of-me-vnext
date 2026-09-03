@@ -46,6 +46,8 @@ export interface ExhibitContext {
   readonly announce: (message: string) => void;
   /** Load a governed asset into this exhibit's scope. */
   readonly loadAsset: (assetId: string) => Promise<THREE.Object3D>;
+  /** Open a Museum-owned, locally bundled finished artifact when available. */
+  readonly openEmbeddedExperience?: (id: 'full-weasel') => void;
 }
 
 export interface ExhibitUpdateContext {

@@ -3,7 +3,7 @@
  * Generate The_Reliquary_of_Iterative_Becoming.html from the modular build.
  * Does not overwrite historical source artifacts in the parent directory.
  */
-import { mkdirSync, readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +12,8 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist-standalone');
 const outDir = join(root, 'release');
 const outFile = join(outDir, 'The_Reliquary_of_Iterative_Becoming.html');
+const embeddedSource = join(dist, 'embedded');
+const embeddedOutput = join(outDir, 'embedded');
 
 if (!existsSync(join(dist, 'index.html'))) {
   console.error('standalone: dist/index.html missing; run vite build first');
@@ -63,7 +65,13 @@ if (/src="https?:|href="https?:|import\(/.test(html) && /cdn\.|unpkg|jsdelivr/.t
 
 mkdirSync(outDir, { recursive: true });
 writeFileSync(outFile, html);
+// The Full Weasel is a complete first-party web application, not a texture we
+// can safely flatten into the parent document. Keep its locally-built tree
+// beside the standalone HTML so its relative URLs, media and iframe boundary
+// remain intact under file:// without a network host.
+if (existsSync(embeddedSource)) cpSync(embeddedSource, embeddedOutput, { recursive: true, force: true });
 const digest = createHash('sha256').update(html).digest('hex');
 writeFileSync(join(outDir, 'The_Reliquary_of_Iterative_Becoming.sha256'), `${digest}  The_Reliquary_of_Iterative_Becoming.html\n`);
 console.log(`standalone: wrote ${relative(root, outFile)} (${html.length} bytes)`);
+if (existsSync(embeddedSource)) console.log(`standalone: copied ${relative(root, embeddedOutput)} for local embedded artifacts`);
 console.log(`sha256 ${digest}`);

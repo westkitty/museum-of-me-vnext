@@ -5,13 +5,12 @@ import { buildConsole, Lever } from '../parts';
 import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
 
 /**
- * E13 — Suno Studio. Tier B, and the museum's audio exhibit.
+ * E13 — Suno Studio. Tier B, and the museum's visual mixing exhibit.
  *
- * A listening room with a mixing desk. Four arrangement layers can be raised or
- * lowered, and the waveform sculpture in front of the visitor answers — its
- * form is the mix. Nothing is streamed: every tone is synthesised in the browser
- * by the museum's own AudioManager path, which is why this room needs no cleared
- * recording and no external host.
+ * Four arrangement layers can be raised or lowered, and the waveform sculpture
+ * in front of the visitor answers — its form is the mix. Sound is deliberately
+ * disabled across the museum during the current repair pass, so this exhibit
+ * communicates through its controls, state text, and visual response alone.
  */
 
 interface Layer {
@@ -40,7 +39,7 @@ export class SunoStudio extends ExhibitBase {
   private waveGroup!: THREE.Group;
   private instruments = this.tracked<THREE.Mesh>();
   private excerptLabel!: THREE.Mesh;
-  private playing = false;
+  private mixChanged = false;
 
   /** Reused every frame; allocating these per element churned the heap. */
   private readonly scratchScale = new THREE.Vector3();
@@ -111,14 +110,14 @@ export class SunoStudio extends ExhibitBase {
       this.control({
         object: lever.group,
         label: `Raise ${layer.name}`,
-        description: `${layer.name} is ${layer.note}. Raising it changes the shape of the waveform in front of you and the tone you hear.`,
+        description: `${layer.name} is ${layer.note}. Raising it changes the shape of the waveform in front of you.`,
         activate: () => {
           this.levels[i] = (this.levels[i] + 1) % 3;
           lever.value = this.levels[i];
           this.ctx.announce(
             `${layer.name} ${['muted', 'held back', 'forward'][this.levels[i]]}. ${layer.note}.`,
           );
-          this.play();
+          this.mixChanged = true;
         },
       });
     });
@@ -175,15 +174,11 @@ export class SunoStudio extends ExhibitBase {
       activate: () => {
         this.excerpt = (this.excerpt + 1) % EXCERPTS.length;
         this.ctx.announce(`Excerpt: ${EXCERPTS[this.excerpt]}. The arrangement changes under the same four faders.`);
-        this.play();
+        this.mixChanged = true;
       },
     });
 
     this.applyLevers(true);
-  }
-
-  private play(): void {
-    this.playing = true;
   }
 
   private applyLevers(instant: boolean): void {
@@ -232,7 +227,7 @@ export class SunoStudio extends ExhibitBase {
   protected override onReset(): void {
     this.levels = [2, 1, 2, 1];
     this.excerpt = 0;
-    this.playing = false;
+    this.mixChanged = false;
     this.levers.forEach((lever, i) => {
       lever.value = this.levels[i];
       lever.update(0, true);
@@ -243,7 +238,7 @@ export class SunoStudio extends ExhibitBase {
   protected override describeState(): string {
     const names = ['muted', 'held back', 'forward'];
     const mix = LAYERS.map((l, i) => `${l.name} ${names[this.levels[i]]}`).join(', ');
-    const state = this.playing ? 'The mix has been changed since you arrived.' : 'The desk is at its default mix.';
+    const state = this.mixChanged ? 'The mix has been changed since you arrived.' : 'The desk is at its default mix.';
     return `Excerpt: ${EXCERPTS[this.excerpt]}. ${mix}. ${state}`;
   }
 }

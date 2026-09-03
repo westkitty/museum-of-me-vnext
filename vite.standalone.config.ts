@@ -3,6 +3,9 @@ import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
   base: './',
+  // Keep the offline bundle's asset handling aligned with the primary build:
+  // local Quaternius visitor GLBs are runtime assets, never JavaScript.
+  assetsInclude: ['**/*.glb'],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

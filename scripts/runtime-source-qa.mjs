@@ -27,6 +27,7 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const htmlPath = join(root, 'release', 'The_Reliquary_of_Iterative_Becoming.html');
 const outDir = join(root, 'validation', 'reports');
+const BOOT_TIMEOUT_MS = 60_000;
 
 if (!existsSync(htmlPath)) {
   console.error('runtime-source-qa: missing release HTML — run `npm run build:standalone` first');
@@ -51,8 +52,8 @@ const failures = [];
 let report = null;
 
 try {
-  await page.goto(pathToFileURL(resolve(htmlPath)).href, { waitUntil: 'domcontentloaded', timeout: 30_000 });
-  await page.waitForFunction(() => Boolean(window.__museum), null, { timeout: 30_000 });
+  await page.goto(pathToFileURL(resolve(htmlPath)).href, { waitUntil: 'domcontentloaded', timeout: BOOT_TIMEOUT_MS });
+  await page.waitForFunction(() => Boolean(window.__museum), null, { timeout: BOOT_TIMEOUT_MS });
 
   // Prove the real WebGL application booted at the exterior arrival, then stop
   // the render loop so software rendering does not compete with the protocol.

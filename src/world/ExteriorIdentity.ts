@@ -12,16 +12,22 @@ export class ExteriorIdentity {
 
   private readonly stone: THREE.MeshStandardMaterial;
   private readonly warmStone: THREE.MeshStandardMaterial;
-  private readonly brass: THREE.MeshStandardMaterial;
+  private readonly azure: THREE.MeshStandardMaterial;
+  private readonly beam: THREE.MeshBasicMaterial;
   private readonly glass: THREE.MeshStandardMaterial;
 
   constructor(private readonly scope: ResourceScope) {
     this.group.name = 'exterior-museum-identity';
-    this.stone = this.mat(0xf0eee8, 0.9);
-    this.warmStone = this.mat(0xd8d0c0, 0.86);
-    this.brass = this.mat(0xb49a64, 0.46, 0.28);
+    this.stone = this.mat(0x121820, 0.82, 0.16);
+    this.warmStone = this.mat(0x0b1016, 0.78, 0.22);
+    this.azure = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x56b8ed, emissive: 0x17658f, emissiveIntensity: 0.62, roughness: 0.34, metalness: 0.45,
+    }));
+    this.beam = this.scope.track(new THREE.MeshBasicMaterial({
+      color: 0x3bafff, transparent: true, opacity: 0.075, depthWrite: false, side: THREE.DoubleSide,
+    }));
     this.glass = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0xbfe0ec,
+      color: 0x75c9ff,
       roughness: 0.16,
       metalness: 0,
       transparent: true,
@@ -44,7 +50,7 @@ export class ExteriorIdentity {
       this.box('arrival-facade-pilaster', [x, 5.0, z], [0.36, 5.0, 0.34], this.warmStone);
       const cap = new THREE.Mesh(
         this.scope.track(new THREE.BoxGeometry(1.2, 0.28, 0.88)),
-        this.brass,
+        this.azure,
       );
       cap.position.set(x, 9.9, z + 0.04);
       this.group.add(cap);
@@ -55,7 +61,7 @@ export class ExteriorIdentity {
     for (const x of [-11.15, -7.2, 7.2, 11.15]) {
       const panel = this.box('arrival-facade-glazing', [x, 5.25, z + 0.38], [1.42, 3.05, 0.08], this.glass);
       panel.castShadow = false;
-      const top = this.box('arrival-window-header', [x, 8.65, z + 0.4], [1.58, 0.14, 0.12], this.brass);
+      const top = this.box('arrival-window-header', [x, 8.65, z + 0.4], [1.58, 0.14, 0.12], this.azure);
       top.castShadow = false;
     }
 
@@ -68,12 +74,12 @@ export class ExteriorIdentity {
 
     const ring = new THREE.Mesh(
       this.scope.track(new THREE.TorusGeometry(1.2, 0.12, 8, 36)),
-      this.brass,
+      this.azure,
     );
     ring.rotation.x = Math.PI / 2;
     crest.add(ring);
-    this.localBox(crest, [0, 0, 0], [0.08, 1.55, 0.08], this.brass);
-    this.localBox(crest, [0, 0, 0], [1.55, 0.08, 0.08], this.brass);
+    this.localBox(crest, [0, 0, 0], [0.08, 1.55, 0.08], this.azure);
+    this.localBox(crest, [0, 0, 0], [1.55, 0.08, 0.08], this.azure);
 
     // Low side plinths connect the architecture to the terrace and create a
     // finished edge without placing anything in the central approach corridor.
@@ -85,6 +91,21 @@ export class ExteriorIdentity {
       );
       urn.position.set(x, 1.85, z + 1.5);
       this.group.add(urn);
+    }
+
+    // Visible searchlight language is intentionally material-only. The two
+    // translucent upward cones reinforce the actual bounded floodlights
+    // without creating more shadow maps or point-light budget pressure.
+    for (const x of [-19, 19]) {
+      const base = new THREE.Mesh(this.scope.track(new THREE.CylinderGeometry(0.42, 0.58, 0.48, 12)), this.azure);
+      base.name = 'exterior-searchlight-emitter';
+      base.position.set(x, 0.28, z + 3.6);
+      this.group.add(base);
+      const shaft = new THREE.Mesh(this.scope.track(new THREE.ConeGeometry(4.4, 25, 20, 1, true)), this.beam);
+      shaft.name = 'exterior-searchlight-beam';
+      shaft.position.set(x, 12.8, z + 3.6);
+      shaft.rotation.x = Math.PI;
+      this.group.add(shaft);
     }
 
     return this.group;

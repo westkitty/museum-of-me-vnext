@@ -1,6 +1,10 @@
 # Release Gate
 
-The plan's §39 gate, checked against the current `release/v1.0.0` release candidate. Automated evidence and human/device evidence are deliberately kept separate.
+The plan's §39 gate, applied to the current implementation candidate. Automated evidence and human/device evidence are deliberately kept separate.
+
+Current candidate: `feature/museum-workshop-core-2026-08-26` at committed HEAD `bf2fe0611c5c06e69316ec1bbc3cbf81bfac41e2`, with additional uncommitted working-tree changes present at the time of this reconciliation. Exact-head CI evidence applies only to the committed head; rerun the gate on any release candidate after the working tree is integrated.
+
+`release/v1.0.0` is an older release baseline, 32 commits behind this candidate and not yet promoted. `main` is the older default-branch baseline, not the current implementation.
 
 ## Architecture
 
@@ -24,8 +28,8 @@ The plan's §39 gate, checked against the current `release/v1.0.0` release candi
 
 | Item | State | Evidence |
 |---|---|---|
-| No missing governed runtime assets | ✅ | Procedural assets are manifest-governed; `AssetManager.load` refuses unknown IDs and `npm run validate:assets` validates provenance/budgets. |
-| No runtime hotlinks | ✅ | Current release content is same-origin/procedural and the CSP forbids outbound connections. |
+| No missing governed runtime assets | ✅ automated contract | `AssetManager.load` refuses unknown IDs and `npm run validate:assets` validates provenance/budgets; current candidate includes governed local Quaternius GLBs and the deferred local Full Weasel artifact. |
+| No unnecessary runtime hotlinks | ✅ automated contract | Current local assets are provenance-governed and standalone verification records zero remote requests; the CSP forbids outbound connections. |
 | No secrets/private operational data | ✅ | `npm run validate:privacy` scans public content and exhibit source for credential/private-data signatures. |
 | Production artifact secret-file denylist | ✅ | `npm run verify:dist` rejects secret-like files in `dist/`. |
 
@@ -51,7 +55,7 @@ The plan's §39 gate, checked against the current `release/v1.0.0` release candi
 | Real production-browser boot + semantic visitor path | ✅ automated contract | The committed Chromium suite boots the production WebGL app, proves keyboard input reaches the real controller, exercises map/focus/reduced-motion behavior, and reaches the complete accessible collection. The exact release head must have its browser job green before publication. |
 | Human QA evidence recorder | ✅ automated tool contract | `?qa=1` exposes read-only diagnostics plus a session-only manual recorder for Pass/Needs work judgments, telemetry snapshots, notes, and Markdown report generation. Browser CI proves the tool operates; it does not satisfy the human judgments it records. |
 | Production dependency surface | ✅ automated contract | The browser job runs `npm audit --omit=dev --audit-level=high`. Development-tool audit findings are not represented as deployed dependency findings; the exact release head must pass this job before publication. |
-| Audio graph and preferences | 🟨 human check required | Static/unit behavior is covered, but audible output and subtitle agreement require a real browser/device. |
+| Audio muted by default | 🟨 human check required | Sound controls begin at zero; a real browser/device must confirm deliberate opt-in playback and subtitle agreement. |
 | Pointer-lock capture/look/release/recapture feel | 🟨 human check required | Runtime implementation is present; actual device capture, Escape/loss recovery and recapture remain a human acceptance check. |
 | Representative-device FPS | 🟨 human check required | Draw-call/light/residency/lifecycle/bundle budgets are automated. CI software rendering is not representative hardware performance. |
 
@@ -74,14 +78,16 @@ The plan's §39 gate, checked against the current `release/v1.0.0` release candi
 |---|---|
 | `main` | remote default branch and PR #1 base; intentionally not treated as the current implementation baseline before merge. |
 | `feat/foundation` | historical implementation lineage. |
-| `release/v1.0.0` | current release branch and PR #1 head. |
+| `release/v1.0.0` | older release baseline and PR #1 head; not the current implementation candidate. |
+| `feature/museum-workshop-core-2026-08-26` | current implementation candidate; Workshop branch, 32 commits ahead of `release/v1.0.0`. |
 
 PR #1 remains open from `release/v1.0.0` to `main`. No merge, auto-merge, release tag, or publication is implied by a green automated gate.
 
 ## Remaining actions, exactly
 
-1. Complete the representative-device pass in `validation/reports/HUMAN_QA_CHECKLIST.md` and preserve a completed Markdown evidence record using the in-museum `?qa=1` recorder or `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md`. No acceptance item may remain accidentally Pending.
+1. Reconcile and freeze the intended candidate, then complete the representative-device pass in `validation/reports/HUMAN_QA_CHECKLIST.md` and preserve a completed Markdown evidence record using the in-museum `?qa=1` recorder or `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md`. No acceptance item may remain accidentally Pending.
 2. Repair only concrete **Needs work** observations from that pass, then rerun the exact-head automated gates if code changes.
-3. Make an explicit owner decision to merge PR #1 and authorize the prepared hosting destination/publication.
-4. Deploy the resulting reviewed `main` commit, run `npm run verify:hosted -- <production-url>`, and verify the real browser/device path.
-5. Tag the verified deployed commit as `v1.0.0`; do not tag a known-bad or merely pre-deploy commit.
+3. Promote/review the accepted current implementation into `release/v1.0.0`; require exact-head CI on that release candidate.
+4. Make an explicit owner decision to merge the reviewed release into `main` and authorize publication.
+5. Deploy the resulting reviewed `main` commit, run `npm run verify:hosted -- <production-url>`, and verify the real browser/device path.
+6. Tag the verified deployed commit as `v1.0.0`; do not tag a known-bad or merely pre-deploy commit.

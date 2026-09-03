@@ -291,45 +291,53 @@ export const SANCTUARY_CENTER: Vec3 = place(
 
 export interface StairSpec {
   readonly id: string;
-  /** Octagon face the stair runs along the inside of. */
+  /** Octagon face whose inside wall the stair follows. */
   readonly face: OctagonFace;
   readonly fromY: number;
   readonly toY: number;
   readonly halfWidth: number;
-  /** Distance from centre at the foot and at the head. */
-  readonly footAlong: number;
-  readonly headAlong: number;
-  /** Lateral offset of the stair's centreline. */
-  readonly lateral: number;
-  /** Run length along the lateral axis. */
-  readonly run: number;
+  /** Radius of the centreline, between balcony void and rotunda wall. */
+  readonly radius: number;
+  /** Arc offsets about the face normal, in radians. */
+  readonly startAngle: number;
+  readonly endAngle: number;
+  readonly visibleSteps: number;
+  readonly collisionSegments: number;
 }
 
 /**
- * Two grand stairs rise along the inside of the south-west and south-east walls
- * to the balcony. Both carry ramp collision beneath the visible steps (plan §21),
- * so the capsule controller walks them without a jump and they double as the
- * accessible route.
+ * Two grand stairs wind along the inside of the south-west and south-east
+ * Rotunda walls to the balcony. Both carry sequential ramp collision beneath
+ * the visible steps, so the capsule controller walks them without a jump and
+ * they double as the accessible route.
  *
  * The SW/SE octagon faces are only `side(ROTUNDA_APOTHEM) ≈ 13.3 m` wide. A run
- * of 26 m centred 2 m off-axis used to swing each flight's ends past its own
- * face's corners and into the neighbouring wing's corridor — where the landing
- * sat behind the solid lintel above that wing's ground-floor archway (the
- * archway only opens up to `archHeight`, well short of the balcony floor). The
- * visitor could climb partway, hit that solid wall, and slide off the ramp's
- * edge. `run: 10` keeps the whole flight, and its landing, inboard of both
- * neighbouring faces' walls and clear of the corner piers.
+ * A previous 26 m straight run swung each landing into a neighbouring wing's
+ * solid lintel. The 13.8 m arc radius sits safely inside the 16 m wall and
+ * outside the 11 m balcony void; the +/-0.3 radian endpoints stay within each
+ * 45-degree face sector, clear of corner piers and neighbouring thresholds.
  */
 export const STAIRS: readonly StairSpec[] = [
   {
     id: 'grand-stair-sw', face: 'sw', fromY: GROUND_Y, toY: LEVEL_1_Y,
-    halfWidth: 3, footAlong: 13.5, headAlong: 13.5, lateral: 0, run: 10,
+    halfWidth: 1.6, radius: 13.8, startAngle: -0.3, endAngle: 0.3,
+    visibleSteps: 24, collisionSegments: 8,
   },
   {
     id: 'grand-stair-se', face: 'se', fromY: GROUND_Y, toY: LEVEL_1_Y,
-    halfWidth: 3, footAlong: 13.5, headAlong: 13.5, lateral: 0, run: 10,
+    halfWidth: 1.6, radius: 13.8, startAngle: 0.3, endAngle: -0.3,
+    visibleSteps: 24, collisionSegments: 8,
   },
 ];
+
+/** One point on a grand stair's authoritative centreline arc. */
+export function stairArcPoint(stair: StairSpec, t: number): Vec3 {
+  const direction = faceDirection(stair.face);
+  const baseAngle = Math.atan2(direction[2], direction[0]);
+  const angle = baseAngle + stair.startAngle + (stair.endAngle - stair.startAngle) * t;
+  const y = stair.fromY + (stair.toY - stair.fromY) * t;
+  return [Math.cos(angle) * stair.radius, y, Math.sin(angle) * stair.radius];
+}
 
 // ── Rotunda centre plinth / flight pad ─────────────────────────────────────
 

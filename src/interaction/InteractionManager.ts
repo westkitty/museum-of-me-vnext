@@ -5,6 +5,9 @@ interface RegisteredControl extends ExhibitControl {
   readonly exhibitId: string;
 }
 
+/** Shared visitor reach used by interaction and Workshop conservation. */
+export const INTERACTION_REACH = 4.2;
+
 export interface InteractionFocus {
   readonly exhibitId: string;
   readonly label: string;
@@ -21,7 +24,7 @@ export class InteractionManager {
   private readonly raycaster = new THREE.Raycaster();
   private focused: RegisteredControl | null = null;
   /** Maximum reach, metres. Beyond this the visitor must walk closer. */
-  reach = 4.2;
+  reach = INTERACTION_REACH;
 
   private readonly listeners = new Set<(focus: InteractionFocus | null) => void>();
 

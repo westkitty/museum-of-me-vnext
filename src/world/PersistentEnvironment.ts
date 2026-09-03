@@ -20,14 +20,16 @@ import { WingIdentity } from './WingIdentity';
  */
 export class PersistentEnvironment {
   readonly group = new THREE.Group();
+  private readonly dressing: EnvironmentDressing;
 
   constructor(private readonly scope: ResourceScope) {
     this.group.name = 'persistent-environment';
+    this.dressing = new EnvironmentDressing(scope);
   }
 
   build(): THREE.Group {
     this.group.add(
-      new EnvironmentDressing(this.scope).build(),
+      this.dressing.build(),
       new ExteriorIdentity(this.scope).build(),
       new RotundaWayfinding(this.scope).build(),
       new WingIdentity(this.scope).build(),
@@ -37,5 +39,9 @@ export class PersistentEnvironment {
       new ExhibitColorFields(this.scope).build(),
     );
     return this.group;
+  }
+
+  authorableSceneRoots(): readonly { readonly id: string; readonly root: THREE.Object3D }[] {
+    return this.dressing.authorableSceneRoots();
   }
 }

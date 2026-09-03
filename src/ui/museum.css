@@ -213,6 +213,7 @@ html[data-motion='reduced'] *::after {
 .hud__lock {
   position: absolute;
   inset: 0;
+  z-index: 1;
   display: grid;
   place-content: center;
   gap: 0.6rem;
@@ -230,6 +231,25 @@ html[data-motion='reduced'] *::after {
   letter-spacing: 0.02em;
 }
 .hud__lock p { margin: 0; color: var(--parchment-dim); font-size: 0.95rem; }
+
+.hud__build-mode {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.6rem;
+  z-index: 110;
+  padding: 0.62rem 0.9rem;
+  border: 1px solid rgba(127, 214, 255, 0.75);
+  border-radius: var(--radius);
+  background: rgba(8, 22, 30, 0.92);
+  color: var(--focus);
+  font: 600 0.74rem/1 var(--font-ui);
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.38);
+}
+.hud__build-mode:hover,
+.hud__build-mode[aria-pressed='true'] { background: rgba(22, 66, 82, 0.96); color: #fff; }
 
 /* ── panels ─────────────────────────────────────────────────────────────── */
 .panel {
@@ -344,6 +364,16 @@ html[data-motion='reduced'] *::after {
   border-left: 2px solid rgba(201, 162, 39, 0.4);
   padding-left: 0.8rem;
   margin-top: 1.4rem;
+}
+
+.full-weasel__frame {
+  display: block;
+  width: min(100%, 760px);
+  height: min(68vh, 620px);
+  margin: 0 auto;
+  border: 1px solid color-mix(in srgb, var(--accent, #6ce7ff) 65%, transparent);
+  border-radius: 10px;
+  background: #16111a;
 }
 
 /* ── map ────────────────────────────────────────────────────────────────── */

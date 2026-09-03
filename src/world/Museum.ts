@@ -8,7 +8,7 @@ import type { ResourceScope } from '../assets/ResourceScope';
 import {
   ROTUNDA_APOTHEM, ROTUNDA_WALL, LEVEL_1_Y, BALCONY_INNER_APOTHEM,
   DOME_SPRING_Y, DOME_APEX_Y, GROUND_Y,
-  OCTAGON_FACES, faceDirection, rightOf, place, add,
+  OCTAGON_FACES, faceDirection, rightOf, place, add, stairArcPoint,
   WINGS, type WingSpec, type OctagonFace, type Vec3,
   SOUTH, VESTIBULE_FROM, VESTIBULE_TO, PLAZA_DEPTH, PLAZA_HALF_WIDTH,
   SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_FLOOR_Y,
@@ -411,20 +411,24 @@ export class Museum {
     const kit = new GeometryKit(this.scope, this.collision, g);
 
     for (const s of STAIRS) {
-      const d = faceDirection(s.face);
-      const r = rightOf(d);
-      const from: Vec3 = [
-        d[0] * s.footAlong + r[0] * (s.lateral - s.run / 2), 0,
-        d[2] * s.footAlong + r[2] * (s.lateral - s.run / 2),
-      ];
-      const to: Vec3 = [
-        d[0] * s.headAlong + r[0] * (s.lateral + s.run / 2), 0,
-        d[2] * s.headAlong + r[2] * (s.lateral + s.run / 2),
-      ];
-      kit.stair(from, to, s.fromY, s.toY, s.halfWidth, 20, p.trim);
+      // Visible treads and collision both derive from the same short arc
+      // chords. CollisionWorld has no true helix primitive, so overlapping
+      // linear ramp segments approximate the curve without a separate path.
+      for (let segment = 0; segment < s.collisionSegments; segment++) {
+        const t0 = segment / s.collisionSegments;
+        const t1 = (segment + 1) / s.collisionSegments;
+        const from = stairArcPoint(s, t0);
+        const to = stairArcPoint(s, t1);
+        const steps = Math.max(1, Math.round(s.visibleSteps / s.collisionSegments));
+        kit.stair(from, to, from[1], to[1], s.halfWidth, steps, p.trim);
+      }
 
-      // Landing where the stair meets the balcony.
-      kit.orientedFloorCollision(to, add(to, [d[0], 0, d[2]], -3), s.halfWidth, s.toY);
+      const head = stairArcPoint(s, 1);
+      const d = faceDirection(s.face);
+      const tangent: Vec3 = [-Math.sin(Math.atan2(d[2], d[0]) + s.endAngle), 0, Math.cos(Math.atan2(d[2], d[0]) + s.endAngle)];
+      // A short tangential landing reaches the balcony ring without extending
+      // into either neighbouring wing threshold.
+      kit.orientedFloorCollision(add(head, tangent, -1.5), add(head, tangent, 1.5), s.halfWidth + 0.15, s.toY);
     }
   }
 

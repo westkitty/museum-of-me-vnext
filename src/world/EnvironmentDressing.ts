@@ -22,6 +22,9 @@ export class EnvironmentDressing {
   private readonly leafLight: THREE.MeshStandardMaterial;
   private readonly planter: THREE.MeshStandardMaterial;
   private readonly darkMetal: THREE.MeshStandardMaterial;
+  private readonly facadeDark: THREE.MeshStandardMaterial;
+  private readonly facadeAzure: THREE.MeshStandardMaterial;
+  private readonly authorableRoots: { id: string; root: THREE.Object3D }[] = [];
 
   constructor(private readonly scope: ResourceScope) {
     this.group.name = 'environment-dressing';
@@ -32,6 +35,10 @@ export class EnvironmentDressing {
     this.leafLight = this.mat(0x72945d, 0.96);
     this.planter = this.mat(0xd9d5cb, 0.94);
     this.darkMetal = this.mat(0x343c40, 0.52, 0.18);
+    this.facadeDark = this.mat(0x101923, 0.78, 0.22);
+    this.facadeAzure = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x3aa9ef, emissive: 0x176d9f, emissiveIntensity: 0.72, roughness: 0.34, metalness: 0.5,
+    }));
   }
 
   build(): THREE.Group {
@@ -42,21 +49,25 @@ export class EnvironmentDressing {
     return this.group;
   }
 
+  authorableSceneRoots(): readonly { readonly id: string; readonly root: THREE.Object3D }[] {
+    return this.authorableRoots;
+  }
+
   private buildFacade(): void {
     const d = faceDirection('s');
     const r = rightOf(d);
     const facade = place(d, VESTIBULE_TO + 0.3, 0, GROUND_Y);
 
-    // A pale entrance frame and canopy make the exterior legible as a museum
-    // from the garden without changing the actual doorway geometry.
-    this.box('facade-entablature', [facade[0], 9.4, facade[2]], [8.8, 0.7, 0.8], this.ivory);
-    this.box('facade-canopy', place(d, VESTIBULE_TO + 2.4, 0, 6.1), [7.2, 0.22, 2.3], this.white);
+    // Dark exterior frame with azure accents; the neutral vestibule and warm
+    // south wing remain independent interior systems.
+    this.box('facade-entablature', [facade[0], 9.4, facade[2]], [8.8, 0.7, 0.8], this.facadeDark);
+    this.box('facade-canopy', place(d, VESTIBULE_TO + 2.4, 0, 6.1), [7.2, 0.22, 2.3], this.facadeDark);
 
     for (const side of [-1, 1]) {
       const p = place(d, VESTIBULE_TO + 0.5, side * 5.7, GROUND_Y);
       const column = new THREE.Mesh(
         this.scope.track(new THREE.CylinderGeometry(0.62, 0.78, 8.5, 18)),
-        this.white,
+        this.facadeDark,
       );
       column.name = 'facade-column';
       column.position.set(p[0], 4.25, p[2]);
@@ -70,7 +81,7 @@ export class EnvironmentDressing {
       ];
       const lamp = new THREE.Mesh(
         this.scope.track(new THREE.SphereGeometry(0.24, 12, 8)),
-        this.brass,
+        this.facadeAzure,
       );
       lamp.position.set(lampAt[0], lampAt[1], lampAt[2]);
       this.group.add(lamp);
@@ -114,8 +125,8 @@ export class EnvironmentDressing {
     this.group.add(welcome);
     this.scope.track(welcome.geometry);
 
-    this.indoorPlant(place(d, VESTIBULE_FROM + 3.6, -3.8, GROUND_Y), 1.2);
-    this.indoorPlant(place(d, VESTIBULE_FROM + 3.6, 3.8, GROUND_Y), 1.2);
+    this.indoorPlant(place(d, VESTIBULE_FROM + 3.6, -3.8, GROUND_Y), 1.2, 'vestibule-plant-left');
+    this.indoorPlant(place(d, VESTIBULE_FROM + 3.6, 3.8, GROUND_Y), 1.2, 'vestibule-plant-right');
   }
 
   private buildRotundaWelcome(): void {
@@ -125,14 +136,17 @@ export class EnvironmentDressing {
     desk.name = 'welcome-information-desk';
     desk.position.set(-6.7, GROUND_Y, 5.2);
     this.group.add(desk);
+    this.authorableRoots.push({ id: 'rotunda-information-counter', root: desk });
     this.localBox(desk, [0, 0.72, 0], [2.4, 0.72, 0.8], this.ivory);
     this.localBox(desk, [0, 1.43, -0.48], [2.4, 0.08, 0.34], this.brass);
 
     const deskSign = buildWingSign(this.scope, 'Information', 'Map · orientation · museum guide');
     deskSign.scale.setScalar(0.34);
     deskSign.position.set(-6.7, 2.45, 5.2);
+    deskSign.name = 'rotunda-information-sign';
     this.group.add(deskSign);
     this.scope.track(deskSign.geometry);
+    this.authorableRoots.push({ id: 'rotunda-information-sign', root: deskSign });
 
     // Plants occupy diagonal blind zones, leaving all radial routes unobstructed.
     for (const [x, z, s] of [
@@ -184,12 +198,13 @@ export class EnvironmentDressing {
     }
   }
 
-  private indoorPlant([x, y, z]: Vec3, scale: number): void {
+  private indoorPlant([x, y, z]: Vec3, scale: number, authorableId?: string): void {
     const g = new THREE.Group();
     g.name = 'indoor-plant';
     g.position.set(x, y, z);
     g.scale.setScalar(scale);
     this.group.add(g);
+    if (authorableId) this.authorableRoots.push({ id: authorableId, root: g });
 
     const pot = new THREE.Mesh(
       this.scope.track(new THREE.CylinderGeometry(0.5, 0.66, 0.78, 12)),

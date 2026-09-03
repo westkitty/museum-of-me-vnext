@@ -1,24 +1,16 @@
 import type { ZoneId } from '../world/layout';
 
 interface ZoneBed {
-  /** Base frequency of the room tone, Hz. */
   readonly base: number;
-  /** Filter cutoff, Hz. Lower reads as a heavier, more enclosed room. */
   readonly cutoff: number;
-  /** Relative loudness within the museum's ambience mix. */
   readonly level: number;
-  /** Noise contribution — air, machinery, paper. */
   readonly noise: number;
   readonly label: string;
 }
 
 /**
- * Wing ambience (plan §32): one identity per wing, not one track per exhibit.
- *
- * Every sound in the museum is synthesised at runtime from oscillators and
- * filtered noise. There is no audio file to download, no external host to
- * depend on, and no licence to verify — which is the same reasoning that makes
- * the rest of the asset programme procedural.
+ * Wing ambience: one identity per wing, not one track per exhibit. Playback
+ * starts only after a visitor gesture and the default master gain is zero.
  */
 const BEDS: Record<ZoneId, ZoneBed> = {
   rotunda:   { base: 62,  cutoff: 520, level: 0.42, noise: 0.10, label: 'A wide stone room under glass' },
@@ -42,11 +34,11 @@ export class AudioManager {
   private readonly voices = new Map<ZoneId, { gain: GainNode; stop: () => void }>();
 
   private currentZone: ZoneId | null = null;
-  private masterVolume = 0.7;
-  private ambienceVolume = 0.5;
+  private masterVolume = 0;
+  private ambienceVolume = 0;
   private started = false;
 
-  /** Deferred until a real gesture: browsers refuse audio before one. */
+  /** Deferred until a real gesture; browsers refuse audio before one. */
   start(): void {
     if (this.started) return;
     try {
@@ -154,12 +146,6 @@ export class AudioManager {
       oscillators.push(osc);
     }
 
-    // Air: a short looping buffer of shaped noise. The leaky integrator below
-    // is itself bounded to [-1, 1] (0.97 + 0.03 == 1, a convex combination),
-    // but a fixed post-gain assumed a "typical" peak that an occasional long
-    // same-signed run of white noise could exceed -- silently hard-clipping
-    // into a harsh, crackling tone. Normalizing to the buffer's own measured
-    // peak instead guarantees headroom regardless of how the randomness falls.
     const seconds = 4;
     const buffer = ctx.createBuffer(1, ctx.sampleRate * seconds, ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -171,8 +157,7 @@ export class AudioManager {
       data[i] = last;
       if (Math.abs(last) > peak) peak = Math.abs(last);
     }
-    const targetPeak = 0.5;
-    const scale = peak > 0 ? targetPeak / peak : 0;
+    const scale = peak > 0 ? 0.5 / peak : 0;
     for (let i = 0; i < data.length; i++) data[i] *= scale;
     const noise = ctx.createBufferSource();
     noise.buffer = buffer;

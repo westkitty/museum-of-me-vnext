@@ -114,7 +114,7 @@ Human visual/device evidence is listed separately and is never promoted automati
 
 - Recorded visual walkthrough from garden through representative galleries and exhibit bays.
 - Pointer-lock capture, look, Escape/loss recovery and recapture on a real browser/device.
-- Audible ambience/exhibit audio and subtitle correspondence.
+- Muted-by-default audio check plus deliberate Sound-control playback/subtitle check.
 - Representative-device frame-rate measurement and subjective exposure/clipping/density review.
 
 See `validation/reports/HUMAN_QA_CHECKLIST.md` for the exact manual route.

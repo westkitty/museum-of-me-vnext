@@ -37,6 +37,8 @@ export class Loop {
   private frameCount = 0;
   private fpsWindowStart = 0;
   private measuredFps = 0;
+  /** Last wall-clock frame duration, exposed for the existing diagnostics path. */
+  frameTimeMs = 0;
 
   constructor(private readonly cb: LoopCallbacks) {}
 
@@ -80,6 +82,7 @@ export class Loop {
     this.lastTime = now;
     if (!Number.isFinite(delta) || delta < 0) delta = 0;
     if (delta > MAX_FRAME_DELTA) delta = MAX_FRAME_DELTA;
+    this.frameTimeMs = delta * 1000;
 
     this.accumulator += delta;
     let steps = 0;

@@ -25,7 +25,7 @@ export const FLIGHT_RUN_SPEED = 16;
 const FLIGHT_LEAVE_GROUND_MARGIN = 1.2;
 /** Initial upward pop on stepping onto the flight pad, so gravity release
  * reads as a launch rather than the visitor simply drifting off the floor. */
-const FLIGHT_LAUNCH_SPEED = 6;
+export const FLIGHT_LAUNCH_SPEED = 8.5;
 /** Decay rate for that launch pop, in m/s per second. */
 const FLIGHT_LAUNCH_DECAY = 12;
 

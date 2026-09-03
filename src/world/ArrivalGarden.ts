@@ -22,30 +22,102 @@ export class ArrivalGarden {
   private readonly bark: THREE.MeshStandardMaterial;
   private readonly flower: THREE.MeshStandardMaterial;
   private readonly metal: THREE.MeshStandardMaterial;
-  private readonly water: THREE.MeshStandardMaterial;
+  private readonly poolWater: THREE.MeshStandardMaterial;
+  private readonly island: THREE.MeshStandardMaterial;
+  private readonly shoreline: THREE.MeshStandardMaterial;
+  private readonly water: THREE.ShaderMaterial;
+  private readonly waterTime: { value: number };
+  private readonly authorableRoots: { id: string; root: THREE.Object3D }[] = [];
+  private shrubCount = 0;
 
   constructor(
     private readonly scope: ResourceScope,
     private readonly collision: CollisionWorld,
   ) {
     this.group.name = 'arrival-garden';
-    this.stone = this.mat(0xe5e0d3, 0.92);
-    this.lawn = this.mat(0x4f7b45, 1);
-    this.leaf = this.mat(0x315f36, 0.94);
-    this.leafLight = this.mat(0x6f954f, 0.96);
-    this.bark = this.mat(0x604733, 1);
-    this.flower = this.mat(0xd79870, 0.86);
-    this.metal = this.mat(0x3e4545, 0.5, 0.18);
-    this.water = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x80b7c7,
-      roughness: 0.18,
-      metalness: 0,
+    this.stone = this.mat(0x6d7880, 0.92);
+    this.lawn = this.mat(0x183a37, 1);
+    this.leaf = this.mat(0x183b3e, 0.94);
+    this.leafLight = this.mat(0x296461, 0.96);
+    this.bark = this.mat(0x263035, 1);
+    this.flower = this.mat(0x3b9fc7, 0.72, 0.12);
+    this.metal = this.mat(0x1c2b35, 0.5, 0.3);
+    this.poolWater = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x24799b, roughness: 0.18, metalness: 0.28, transparent: true, opacity: 0.68,
+    }));
+    this.island = this.mat(0x142d2f, 0.96);
+    // The shoreline is the distant water boundary, not a luminous outline.
+    this.shoreline = this.mat(0x183238, 0.98);
+    this.waterTime = { value: 0 };
+    this.water = this.scope.track(new THREE.ShaderMaterial({
       transparent: true,
-      opacity: 0.68,
+      depthWrite: false,
+      uniforms: { time: this.waterTime },
+      vertexShader: /* glsl */ `
+        varying vec2 vUv;
+        uniform float time;
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+        }
+        float noise(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = smoothstep(0.0, 1.0, fract(p));
+          float a = hash(i);
+          float b = hash(i + vec2(1.0, 0.0));
+          float c = hash(i + vec2(0.0, 1.0));
+          float d = hash(i + vec2(1.0, 1.0));
+          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+        void main() {
+          vUv = uv;
+          vec3 p = position;
+          float broad = noise(p.xy * 0.038 + vec2(time * 0.012, -time * 0.009));
+          float cross = noise(p.xy * 0.081 + vec2(-time * 0.016, time * 0.013));
+          p.z += (broad - 0.5) * 0.18 + (cross - 0.5) * 0.045;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        varying vec2 vUv;
+        uniform float time;
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(41.7, 289.3))) * 19341.173);
+        }
+        float noise(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = smoothstep(0.0, 1.0, fract(p));
+          float a = hash(i);
+          float b = hash(i + vec2(1.0, 0.0));
+          float c = hash(i + vec2(0.0, 1.0));
+          float d = hash(i + vec2(1.0, 1.0));
+          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+        float fbm(vec2 p) {
+          float value = 0.0;
+          value += noise(p) * 0.58;
+          value += noise(p * 2.03 + 17.0) * 0.27;
+          value += noise(p * 4.11 - 9.0) * 0.15;
+          return value;
+        }
+        void main() {
+          vec2 flow = vUv * vec2(5.2, 3.4) + vec2(time * 0.012, -time * 0.009);
+          float broad = fbm(flow);
+          float cross = fbm(vUv * vec2(11.0, 7.0) + vec2(-time * 0.018, time * 0.014));
+          float field = broad * 0.78 + cross * 0.22;
+          float sheen = smoothstep(0.66, 0.86, field);
+          vec3 deep = vec3(0.006, 0.018, 0.032);
+          vec3 reflectedSky = vec3(0.022, 0.075, 0.108);
+          vec3 colour = mix(deep, reflectedSky, broad * 0.52);
+          colour += vec3(0.026, 0.082, 0.12) * sheen;
+          colour += vec3(0.018, 0.052, 0.074) * smoothstep(0.76, 0.96, cross) * 0.35;
+          gl_FragColor = vec4(colour, 0.94);
+        }
+      `,
     }));
   }
 
   build(): THREE.Group {
+    this.buildIsland();
     const south = faceDirection('s');
     const nearZ = place(south, VESTIBULE_TO)[2];
     const farZ = place(south, VESTIBULE_TO + PLAZA_DEPTH)[2];
@@ -88,6 +160,58 @@ export class ArrivalGarden {
     this.arrivalMarker([7.5, GROUND_Y, z1 - 4]);
 
     return this.group;
+  }
+
+  authorableSceneRoots(): readonly { readonly id: string; readonly root: THREE.Object3D }[] {
+    return this.authorableRoots;
+  }
+
+  /** Water and shoreline are visual-only: the proven exterior ground and its
+   * Sanctuary-trench cut-out remain the sole collision authority. */
+  private buildIsland(): void {
+    const water = new THREE.Mesh(this.scope.track(new THREE.CircleGeometry(330, 96)), this.water);
+    water.name = 'night-island-water';
+    water.rotation.x = -Math.PI / 2;
+    water.position.y = GROUND_Y - 0.46;
+    water.receiveShadow = false;
+    this.group.add(water);
+
+    const shape = new THREE.Shape();
+    const radii = [126, 133, 121, 136, 127, 142, 132, 124, 138, 128, 143, 129, 137, 123, 132, 126];
+    radii.forEach((radius, i) => {
+      const angle = (i / radii.length) * Math.PI * 2;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius * 0.86;
+      if (i === 0) shape.moveTo(x, z);
+      else shape.lineTo(x, z);
+    });
+    shape.closePath();
+    const island = new THREE.Mesh(
+      this.scope.track(new THREE.ExtrudeGeometry(shape, { depth: 0.12, bevelEnabled: false })),
+      this.island,
+    );
+    island.name = 'night-island-terrain';
+    island.rotation.x = -Math.PI / 2;
+    island.position.y = GROUND_Y - 0.5;
+    island.receiveShadow = true;
+    this.group.add(island);
+
+    const shore = new THREE.Mesh(this.scope.track(new THREE.TubeGeometry(
+      new THREE.CatmullRomCurve3(radii.map((radius, i) => {
+        const angle = (i / radii.length) * Math.PI * 2;
+        return new THREE.Vector3(Math.cos(angle) * radius, GROUND_Y - 0.36, Math.sin(angle) * radius * 0.86);
+      }), true, 'catmullrom', 0.2),
+      96, 0.32, 6, true,
+    )), this.shoreline);
+    shore.name = 'night-island-shoreline';
+    shore.userData.visualRole = 'water-boundary';
+    this.group.add(shore);
+  }
+
+  /** Called from the existing variable-step loop. Reduced motion keeps the
+   * water still; this visual-only animation never owns a frame loop. */
+  update(dt: number, reducedMotion: boolean): void {
+    if (!reducedMotion) this.waterTime.value += Math.min(dt, 0.1);
   }
 
   private mat(color: number, roughness: number, metalness = 0): THREE.MeshStandardMaterial {
@@ -142,6 +266,13 @@ export class ArrivalGarden {
     shrub.position.set(x, y + radius * 0.62, z);
     shrub.castShadow = true;
     this.group.add(shrub);
+    this.shrubCount++;
+    if (this.shrubCount <= 6) {
+      this.authorableRoots.push({
+        id: `arrival-garden-shrub-${String(this.shrubCount).padStart(2, '0')}`,
+        root: shrub,
+      });
+    }
   }
 
   private flowerCluster([x, y, z]: Vec3): void {
@@ -191,7 +322,7 @@ export class ArrivalGarden {
 
     const pool = new THREE.Mesh(
       this.scope.track(new THREE.CylinderGeometry(2.55, 2.55, 0.08, 28)),
-      this.water,
+      this.poolWater,
     );
     pool.position.set(x, y + 0.59, z);
     this.group.add(pool);
@@ -204,7 +335,7 @@ export class ArrivalGarden {
     this.group.add(column);
     const bowl = new THREE.Mesh(
       this.scope.track(new THREE.CylinderGeometry(1.15, 0.85, 0.22, 18)),
-      this.water,
+      this.poolWater,
     );
     bowl.position.set(x, y + 2.6, z);
     this.group.add(bowl);

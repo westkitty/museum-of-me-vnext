@@ -9,6 +9,7 @@ release/
 playwright-report/
 test-results/
 .vite/
+.asset-sources/
 validation/reports/*.json
 # The runtime source-parity evidence is a deliverable, not scratch output.
 !validation/reports/runtime-source-qa.json

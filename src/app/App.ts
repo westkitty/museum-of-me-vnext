@@ -12,6 +12,8 @@ import { SupplementaryCases } from '../world/SupplementaryCases';
 import { SourceInstallations, INSTALLATION_HELD_CODES } from '../world/SourceInstallations';
 import { SourceArtwork } from '../world/SourceArtwork';
 import { registerCuratedAssets, shellUrl, entranceUrl } from '../assets/curatedAssets';
+import { registerQuaterniusAssets } from '../assets/quaterniusAssets';
+import { registerFullWeaselArtifact } from '../assets/fullWeaselArtifact';
 import {
   SOURCE_INSTALLATIONS, SOURCE_SUPPLEMENTARY, SOURCE_VISITORS,
 } from '../content/sourceParity';
@@ -33,6 +35,7 @@ import { DexterSanctuary } from '../exhibits/sanctuary/DexterSanctuary';
 import { Sky } from '../world/Sky';
 import { Wayfinding } from '../world/Wayfinding';
 import { AmbientVisitors } from '../world/AmbientVisitors';
+import { FlightPadAtmosphere } from '../world/FlightPadAtmosphere';
 import { UILayer } from './UILayer';
 
 export interface AppOptions {
@@ -65,6 +68,7 @@ export class App implements LoopCallbacks {
   readonly sky: Sky;
   readonly wayfinding: Wayfinding;
   readonly visitors: AmbientVisitors;
+  readonly flightPadAtmosphere: FlightPadAtmosphere;
   readonly sourceVisitors: SourceVisitors;
   readonly supplementary: SupplementaryCases;
   readonly sourceInstallations: SourceInstallations;
@@ -81,12 +85,15 @@ export class App implements LoopCallbacks {
   preferences: VisitorPreferences;
 
   private disposed = false;
+  private workshopUpdate: (() => void) | null = null;
 
   constructor(opts: AppOptions) {
     this.uiRoot = opts.uiRoot;
     this.a11yRoot = opts.a11yRoot;
 
     registerCuratedAssets();
+    registerQuaterniusAssets();
+    registerFullWeaselArtifact();
     if (typeof document !== 'undefined') {
       document.documentElement.style.setProperty('--reliquary-shell', `url(${shellUrl})`);
       document.documentElement.style.setProperty('--reliquary-entrance', `url(${entranceUrl})`);
@@ -94,6 +101,7 @@ export class App implements LoopCallbacks {
     }
     const loaded = loadPreferencesResult();
     this.preferences = loaded.preferences;
+    this.audio.setVolumes(this.preferences.masterVolume, this.preferences.ambienceVolume);
     this.journal = new Journal();
     this.study = new Study(() => new Set([
       ...SOURCE_INSTALLATIONS.map((i) => i.id),
@@ -123,13 +131,16 @@ export class App implements LoopCallbacks {
     this.renderer.scene.add(this.sanctuary.group);
 
     this.sky = new Sky(this.scope);
-    this.renderer.scene.add(this.sky.mesh);
+    this.renderer.scene.add(this.sky.mesh, this.sky.bloodRing);
 
     this.wayfinding = new Wayfinding(this.scope);
     this.renderer.scene.add(this.wayfinding.group);
 
-    this.visitors = new AmbientVisitors(this.scope, 0);
+    this.visitors = new AmbientVisitors(this.scope, this.renderer.quality.ambientVisitors);
     this.renderer.scene.add(this.visitors.group);
+
+    this.flightPadAtmosphere = new FlightPadAtmosphere(this.scope);
+    this.renderer.scene.add(this.flightPadAtmosphere.group);
 
     this.lighting = new Lighting(this.scope, this.renderer.quality);
     this.renderer.scene.add(this.lighting.group);
@@ -156,6 +167,9 @@ export class App implements LoopCallbacks {
         detailScale: () => this.renderer.quality.detailScale,
         loadAsset: async (assetId, scope, detail) =>
           (await this.assets.load(assetId, scope, { detail })).object,
+        openEmbeddedExperience: (id) => {
+          if (id === 'full-weasel') this.ui?.openFullWeasel();
+        },
       },
       {
         loadRadius: this.renderer.quality.exhibitStreamRadius + 14,
@@ -229,6 +243,10 @@ export class App implements LoopCallbacks {
     const cap = this.preferences.frameCap;
     this.loop.setFrameCap(cap === '30' ? 30 : cap === '60' ? 60 : 0);
     this.ui = new UILayer(this);
+    void this.visitors.setPopulation(this.assets, this.renderer.quality.ambientVisitors).catch((error) => {
+      console.error('Ambient visitors unavailable; no placeholder crowd was created.', error);
+      this.ui.hud.announce('Ambient visitors are unavailable on this device.');
+    });
     this.lifecycle = new Lifecycle(this.loop, this.input, this.renderer, () => this.preferences, (message) => {
       this.ui.hud.announce(message);
     });
@@ -267,6 +285,9 @@ export class App implements LoopCallbacks {
   setQuality(tier: QualityTier | 'auto'): void {
     this.preferences.quality = tier;
     this.renderer.setQuality(tier === 'auto' ? detectQualityTier() : tier);
+    void this.visitors.setPopulation(this.assets, this.renderer.quality.ambientVisitors).catch((error) => {
+      console.error('Ambient visitor quality update failed; no placeholder crowd was created.', error);
+    });
     savePreferences(this.preferences);
   }
 
@@ -276,6 +297,11 @@ export class App implements LoopCallbacks {
 
   stop(): void {
     this.loop.stop();
+  }
+
+  /** Development-only Workshop cue hook; the editor remains dynamically loaded. */
+  setWorkshopUpdate(update: (() => void) | null): void {
+    this.workshopUpdate = update;
   }
 
   // ── LoopCallbacks ─────────────────────────────────────────────────────────
@@ -312,6 +338,7 @@ export class App implements LoopCallbacks {
       this.sanctuary.update(dt, this.preferences.reducedMotion);
     }
     this.visitors.update(dt, this.preferences.reducedMotion);
+    this.flightPadAtmosphere.update(dt, this.renderer.quality.detailScale, this.preferences.reducedMotion);
     this.sourceVisitors.update(dt, this.preferences.reducedMotion);
     this.sourceInstallations.update(dt, this.preferences.reducedMotion);
   }
@@ -338,6 +365,7 @@ export class App implements LoopCallbacks {
 
     this.streaming.evaluate(eye, dt, zone);
     this.interaction.update(this.camera);
+    this.workshopUpdate?.();
 
     // Bay key lights follow exhibit residency, and the light director then
     // enables only the nearest few — so the shader cost of lighting does not
@@ -362,6 +390,7 @@ export class App implements LoopCallbacks {
       [this.player.position.x, this.player.position.y, this.player.position.z],
       this.preferences.reducedMotion,
     );
+    this.arrivalGarden.update(dt, this.preferences.reducedMotion);
     this.sky.follow(this.camera);
 
     this.ui?.update(dt);
@@ -371,19 +400,21 @@ export class App implements LoopCallbacks {
   render(alpha: number): void {
     this.player.applyToCamera(this.camera, alpha);
     this.renderer.render();
-    this.diagnostics.sample(this.renderer.renderer, this.loop.fps);
+    this.diagnostics.sample(this.renderer.renderer, this.loop.fps, this.loop.frameTimeMs);
   }
 
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
     this.loop.stop();
+    this.workshopUpdate = null;
     this.ui?.dispose();
     this.audio.dispose();
     this.assets.dispose();
     this.sanctuary.dispose();
     this.wayfinding.dispose();
     this.visitors.dispose();
+    this.flightPadAtmosphere.dispose();
     this.sourceVisitors.dispose();
     this.supplementary.dispose();
     this.sourceInstallations.dispose();

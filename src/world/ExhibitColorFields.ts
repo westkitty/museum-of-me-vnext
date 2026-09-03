@@ -1,24 +1,21 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { PLACEMENTS, WING_BY_ID, type ExhibitPlacement } from './layout';
-import { PaletteSet } from './palette';
+import { resolveExhibitTheme } from './ExhibitTheme';
 
 /**
  * Small persistent colour fields inside all 35 exhibit bays.
  *
  * Threshold accents already tell visitors which exhibit they are entering. This
  * layer carries that language behind the hero object itself: a low floor field
- * and a restrained backdrop derived from the containing wing palette. Variant
- * colours are deterministic and stay related to the parent wing rather than
- * becoming thirty-five independent palettes.
+ * and a real bay-back wall surface derived from the exhibit's existing project
+ * metadata. It never alters an exhibit's hero object or collision footprint.
  */
 export class ExhibitColorFields {
   readonly group = new THREE.Group();
-  private readonly palettes: PaletteSet;
 
   constructor(private readonly scope: ResourceScope) {
     this.group.name = 'exhibit-color-fields';
-    this.palettes = new PaletteSet(scope);
   }
 
   build(): THREE.Group {
@@ -28,25 +25,15 @@ export class ExhibitColorFields {
 
   private buildField(placement: ExhibitPlacement): void {
     const wing = WING_BY_ID.get(placement.wing)!;
-    const palette = this.palettes.get(placement.wing);
-    const seed = numericSeed(placement.exhibitId);
-    const primary = this.derivedMaterial(
-      palette.accent as THREE.MeshStandardMaterial,
-      palette.trim as THREE.MeshStandardMaterial,
-      seed,
-      false,
-      0.42,
-    );
-    const complement = this.derivedMaterial(
-      palette.accent as THREE.MeshStandardMaterial,
-      palette.trim as THREE.MeshStandardMaterial,
-      seed,
-      true,
-      0.68,
-    );
+    const theme = resolveExhibitTheme(placement.exhibitId, placement.wing);
+    const primary = this.material(theme.floor, 0.66, 0.08, 0.74);
+    const wall = this.material(theme.wall, 0.78, 0.02, 0.9);
+    const trim = this.material(theme.trim, 0.5, 0.16, 0.88);
 
     const field = new THREE.Group();
     field.name = `exhibit-color-field:${placement.exhibitId}`;
+    field.userData.theme = theme.id;
+    field.userData.themeSource = theme.source;
     this.group.add(field);
 
     const floor = new THREE.Mesh(
@@ -58,77 +45,66 @@ export class ExhibitColorFields {
     floor.receiveShadow = true;
     field.add(floor);
 
-    // `facing` points from the hero toward the hall, so the backdrop moves in
-    // the opposite direction until it sits near the bay's far wall.
-    const backDistance = wing.bayDepth / 2 - 0.72;
-    const bx = placement.anchor[0] - placement.facing[0] * backDistance;
-    const bz = placement.anchor[2] - placement.facing[2] * backDistance;
-    const width = Math.min(6.4, wing.bayHalfAlong * 0.88);
-    const height = Math.min(4.0, wing.bayHeight * 0.4);
-    const angle = Math.atan2(placement.facing[0], placement.facing[2]);
+    // The hall direction is perpendicular to the wing-facing hero orientation.
+    // It locates this colour surface against the actual closed back wall, not
+    // as a floating rectangle behind an installation.
+    const towardHallX = placement.doorway[0] - placement.anchor[0];
+    const towardHallZ = placement.doorway[2] - placement.anchor[2];
+    const towardHallLength = Math.hypot(towardHallX, towardHallZ);
+    const hallNormalX = towardHallX / towardHallLength;
+    const hallNormalZ = towardHallZ / towardHallLength;
+    const backDistance = wing.bayDepth / 2 - 0.12;
+    const bx = placement.anchor[0] - hallNormalX * backDistance;
+    const bz = placement.anchor[2] - hallNormalZ * backDistance;
+    const width = wing.bayHalfAlong * 2 - 0.28;
+    const height = wing.bayHeight - 0.5;
+    const angle = Math.atan2(hallNormalX, hallNormalZ);
 
     const backdrop = new THREE.Mesh(
       this.scope.track(new THREE.BoxGeometry(width, height, 0.09)),
-      complement,
+      wall,
     );
-    backdrop.name = `exhibit-backdrop-field:${placement.exhibitId}`;
-    backdrop.position.set(bx, wing.floorY + height / 2 + 0.6, bz);
+    backdrop.name = `exhibit-theme-wall:${placement.exhibitId}`;
+    backdrop.position.set(bx, wing.floorY + height / 2 + 0.18, bz);
     backdrop.rotation.y = angle;
     backdrop.receiveShadow = true;
     field.add(backdrop);
 
-    // A narrow primary rail prevents the translucent backdrop from reading as
-    // an unstructured colour rectangle and visually ties it back to the floor.
+    // The architectural frame makes the field read as a wall finish while the
+    // hero object remains visually and lifecycle-independent.
     const rail = new THREE.Mesh(
       this.scope.track(new THREE.BoxGeometry(width + 0.28, 0.12, 0.13)),
-      primary,
+      trim,
     );
-    rail.name = `exhibit-backdrop-rail:${placement.exhibitId}`;
-    rail.position.set(bx, wing.floorY + height + 0.68, bz);
+    rail.name = `exhibit-theme-wall-header:${placement.exhibitId}`;
+    rail.position.set(bx, wing.floorY + height + 0.22, bz);
     rail.rotation.y = angle;
     field.add(rail);
+
+    for (const side of [-1, 1] as const) {
+      const upright = new THREE.Mesh(
+        this.scope.track(new THREE.BoxGeometry(0.13, height + 0.15, 0.13)),
+        trim,
+      );
+      upright.name = `exhibit-theme-wall-upright:${placement.exhibitId}`;
+      upright.position.set(
+        bx + Math.cos(angle) * (width / 2 + 0.02) * side,
+        wing.floorY + height / 2 + 0.18,
+        bz - Math.sin(angle) * (width / 2 + 0.02) * side,
+      );
+      upright.rotation.y = angle;
+      field.add(upright);
+    }
   }
 
-  private derivedMaterial(
-    accentMaterial: THREE.MeshStandardMaterial,
-    trimMaterial: THREE.MeshStandardMaterial,
-    seed: number,
-    complement: boolean,
-    opacity: number,
-  ): THREE.MeshStandardMaterial {
-    const accent = accentMaterial.color.clone();
-    const trim = trimMaterial.color.clone();
-    const hsl = { h: 0, s: 0, l: 0 };
-    accent.getHSL(hsl);
-
-    if (complement) {
-      const paired = new THREE.Color().setHSL(
-        (hsl.h + 0.5 + ((seed % 3) - 1) * 0.018 + 1) % 1,
-        Math.max(0.22, hsl.s * 0.72),
-        Math.min(0.72, hsl.l + 0.07),
-      );
-      accent.copy(trim).lerp(paired, 0.58);
-    } else {
-      accent.setHSL(
-        (hsl.h + ((seed % 5) - 2) * 0.014 + 1) % 1,
-        Math.min(0.86, hsl.s + ((seed >> 2) % 3) * 0.025),
-        Math.max(0.25, Math.min(0.78, hsl.l + (((seed >> 4) % 5) - 2) * 0.018)),
-      );
-    }
-
+  private material(color: number, roughness: number, metalness: number, opacity: number): THREE.MeshStandardMaterial {
     return this.scope.track(new THREE.MeshStandardMaterial({
-      color: accent,
-      roughness: complement ? 0.76 : 0.66,
-      metalness: complement ? 0.04 : 0.08,
+      color,
+      roughness,
+      metalness,
       transparent: true,
       opacity,
-      depthWrite: opacity > 0.6,
+      depthWrite: true,
     }));
   }
-}
-
-function numericSeed(id: string): number {
-  let value = 0;
-  for (let i = 0; i < id.length; i++) value = (value * 33 + id.charCodeAt(i)) >>> 0;
-  return value;
 }

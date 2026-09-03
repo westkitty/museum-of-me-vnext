@@ -18,6 +18,11 @@ export class HUD {
   private readonly subtitle: HTMLElement;
   private readonly hints: HTMLElement;
   private readonly lockPrompt: HTMLElement;
+  private buildModeButton: HTMLButtonElement | null = null;
+  private pointerLocked = false;
+  private buildModeActive = false;
+  private interactionFocus: InteractionFocus | null = null;
+  private workshopCueLabel: string | null = null;
 
   private subtitleTimer = 0;
   private lastZone: ZoneId | null = null;
@@ -72,8 +77,37 @@ export class HUD {
   }
 
   setPointerLocked(locked: boolean): void {
-    this.lockPrompt.hidden = locked || this.touchMode;
+    this.pointerLocked = locked;
+    this.lockPrompt.hidden = locked || this.touchMode || this.buildModeActive;
     this.reticle.style.display = locked || this.touchMode ? '' : 'none';
+  }
+
+  /** Add the development-only Build Mode affordance after the editor loads. */
+  setBuildModeControl(onToggle: (() => void) | null): void {
+    this.buildModeButton?.remove();
+    this.buildModeButton = null;
+    if (!onToggle) return;
+    const button = el('button', {
+      class: 'hud__build-mode',
+      type: 'button',
+      'aria-pressed': 'false',
+      'aria-label': 'Enter Build Mode',
+      text: 'BUILD MODE',
+    });
+    button.addEventListener('click', onToggle);
+    this.root.append(button);
+    this.buildModeButton = button;
+  }
+
+  /** Workshop owns this state; the ordinary capture prompt never overlays it. */
+  setBuildModeActive(active: boolean): void {
+    this.buildModeActive = active;
+    if (this.buildModeButton) {
+      this.buildModeButton.textContent = active ? 'EXIT BUILD MODE' : 'BUILD MODE';
+      this.buildModeButton.setAttribute('aria-label', active ? 'Exit Build Mode' : 'Enter Build Mode');
+      this.buildModeButton.setAttribute('aria-pressed', String(active));
+    }
+    this.lockPrompt.hidden = active || this.pointerLocked || this.touchMode;
   }
 
   private touchMode = false;
@@ -82,7 +116,10 @@ export class HUD {
   setTouchMode(on: boolean): void {
     if (this.touchMode === on) return;
     this.touchMode = on;
-    if (!on) return;
+    if (!on) {
+      this.setPointerLocked(this.pointerLocked);
+      return;
+    }
     this.lockPrompt.hidden = true;
     this.reticle.style.display = '';
     this.hints.innerHTML =
@@ -90,9 +127,21 @@ export class HUD {
   }
 
   setFocus(focus: InteractionFocus | null): void {
-    this.reticle.classList.toggle('hud__reticle--active', focus !== null);
-    this.cue.classList.toggle('hud__cue--visible', focus !== null);
-    if (focus) this.cueLabel.textContent = focus.label;
+    this.interactionFocus = focus;
+    this.renderCue();
+  }
+
+  /** Development-only contextual cue; ordinary visitor interaction wins. */
+  setWorkshopCue(label: string | null): void {
+    this.workshopCueLabel = label;
+    this.renderCue();
+  }
+
+  private renderCue(): void {
+    const label = this.interactionFocus?.label ?? (this.workshopCueLabel ? `EDIT · ${this.workshopCueLabel}` : null);
+    this.reticle.classList.toggle('hud__reticle--active', label !== null);
+    this.cue.classList.toggle('hud__cue--visible', label !== null);
+    if (label) this.cueLabel.textContent = label;
   }
 
   setLocation(zone: ZoneId): void {

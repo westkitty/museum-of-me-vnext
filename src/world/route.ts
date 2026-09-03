@@ -1,8 +1,8 @@
 import {
-  WINGS, PLACEMENTS, faceDirection, place, rightOf,
+  WINGS, PLACEMENTS, faceDirection, place,
   SPAWN_POSITION, ROTUNDA_APOTHEM, LEVEL_1_Y, GROUND_Y,
   SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_CENTER, SANCTUARY_FLOOR_Y,
-  STAIRS, type Vec3, type WingSpec,
+  STAIRS, stairArcPoint, type Vec3, type WingSpec,
 } from './layout';
 import { START_POSITION } from './start';
 
@@ -76,20 +76,18 @@ function ringPath(
 
 function stairWaypoints(): Waypoint[] {
   const s = STAIRS[0];
-  const d = faceDirection(s.face);
-  const r = rightOf(s.face === 'sw' ? d : d);
-  const foot: Vec3 = [
-    d[0] * s.footAlong + r[0] * (s.lateral - s.run / 2), GROUND_Y,
-    d[2] * s.footAlong + r[2] * (s.lateral - s.run / 2),
-  ];
-  const head: Vec3 = [
-    d[0] * s.headAlong + r[0] * (s.lateral + s.run / 2), LEVEL_1_Y,
-    d[2] * s.headAlong + r[2] * (s.lateral + s.run / 2),
-  ];
-  return [
-    { label: 'stair foot', at: foot },
-    { label: 'stair head', at: head },
-  ];
+  // The verification route follows the same arc as the visible treads and
+  // collision ramps. A straight foot-to-head chord would cut inside the
+  // curved stair and falsely exercise the atrium rather than its walking path.
+  return Array.from({ length: s.collisionSegments + 1 }, (_, index) => {
+    const t = index / s.collisionSegments;
+    const label = index === 0
+      ? 'stair foot'
+      : index === s.collisionSegments
+        ? 'stair head'
+        : `stair rise ${index}`;
+    return { label, at: stairArcPoint(s, t) };
+  });
 }
 
 /**

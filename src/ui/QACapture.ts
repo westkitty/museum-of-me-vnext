@@ -15,7 +15,7 @@ const CHECKS: readonly QACheck[] = [
   { id: 'wings', label: 'Wing furnishing and atmosphere add identity without clutter or blocked sightlines.' },
   { id: 'exhibits', label: 'Exhibit colour fields support rather than overpower representative hero objects.' },
   { id: 'pointer', label: 'Pointer lock captures, releases, recovers, and recaptures correctly on this device.' },
-  { id: 'audio', label: 'Audible ambience/exhibit audio agrees with visible subtitles.' },
+  { id: 'audio', label: 'Audio begins muted by default; Sound controls and opted-in playback behave as expected.' },
   { id: 'performance', label: 'Representative-device FPS and 1% low are acceptable at the required checkpoints.' },
   { id: 'defects', label: 'No visible voids, z-fighting, clipping, broken transparency, or obvious geometry failure.' },
 ];
@@ -99,7 +99,7 @@ export class QACapture {
 
     this.notes = el('textarea', {
       rows: '4',
-      placeholder: 'Human notes: clipping, exposure, audio mismatch, device details, exact problem location…',
+      placeholder: 'Human notes: clipping, exposure, mute/default volume, device details, exact problem location…',
       style: 'width:100%;resize:vertical;background:#0d0c12;color:#eee7db;border:1px solid #4a4358;border-radius:3px;padding:.45rem;font:11px/1.45 ui-sans-serif,system-ui;',
     });
 

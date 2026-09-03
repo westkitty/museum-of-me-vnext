@@ -10,7 +10,7 @@ the real installation state machines, the real `Journal` and the real
 persistence store. No mocks and no test-only implementations.
 
 - Boot zone: `plaza`
-- First-person traversal from the visitor start: 133.8 m, zones plaza → south → rotunda
+- First-person traversal from the visitor start: 233.3 m, zones plaza → south → rotunda → north
 - Dexter Sanctuary reached by walking the real route: yes (final zone `sanctuary`, floor y=-5.00)
 - Requests while offline: 1 total, 0 remote
 

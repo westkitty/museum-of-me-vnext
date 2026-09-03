@@ -20,8 +20,8 @@ const HEX: Record<ZoneId | 'shell' | 'sanctuaryZone', { floor: number; wall: num
   rotunda:   { floor: 0xf2f1ed, wall: 0xf8f7f2, trim: 0xc8ad72, ceiling: 0xffffff, accent: 0xd8c18d },
   balcony:   { floor: 0xe9e8e3, wall: 0xf5f4ef, trim: 0xbfa66f, ceiling: 0xffffff, accent: 0xd3bc87 },
 
-  // Starsilk & Drakken: midnight / indigo / celestial violet.
-  north:     { floor: 0x18192c, wall: 0x27233f, trim: 0x7368bd, ceiling: 0x111221, accent: 0xa99cff },
+  // Starsilk & Drakken: near-black, deep blue, and an azure signal.
+  north:     { floor: 0x061521, wall: 0x0b2334, trim: 0x1a789f, ceiling: 0x020914, accent: 0x45c8ff },
 
   // Dex systems / technical systems: cool teal, cyan, slate.
   east:      { floor: 0x244248, wall: 0x31575d, trim: 0x52a9a4, ceiling: 0x172d32, accent: 0x72d2cc },

@@ -7,9 +7,14 @@ async function bootMuseum(page: Page, path = '/'): Promise<string[]> {
     if (message.type() === 'error') errors.push(`console: ${message.text()}`);
   });
 
-  await page.goto(path, { waitUntil: 'domcontentloaded' });
+  await page.goto(path, { waitUntil: 'commit' });
   await page.waitForFunction(() => Boolean(window.__museum));
   await expect(page.locator('#museum-canvas')).toBeVisible();
+
+  // The CI runner has no real GPU. Prove that the real WebGL application boots,
+  // then stop its render loop before any browser-semantic assertions so software
+  // rendering cannot starve Playwright's protocol commands.
+  await page.evaluate(() => window.__museum?.stop());
 
   if (path.includes('qa=1')) {
     const diagnostics = page.locator('.diag');
@@ -19,10 +24,6 @@ async function bootMuseum(page: Page, path = '/'): Promise<string[]> {
     await expect(page.getByRole('complementary', { name: 'Human QA evidence recorder' })).toBeVisible();
   }
 
-  // The CI runner has no real GPU. Prove that the real WebGL application boots,
-  // then stop its render loop so browser semantics can be tested without making
-  // software rendering compete with Playwright's own protocol commands.
-  await page.evaluate(() => window.__museum?.stop());
   return errors;
 }
 
@@ -94,6 +95,10 @@ test('operates the visual map and reduced-motion setting with the keyboard', asy
 
   await page.keyboard.press('o');
   await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
+  await expect(page.getByText('Sound', { exact: true })).toBeVisible();
+  await expect(page.getByRole('slider', { name: 'Overall volume' })).toHaveValue('0');
+  await expect(page.getByRole('slider', { name: 'Ambience' })).toHaveValue('0');
+  expect(await page.evaluate(() => window.__museum?.audio.isRunning)).toBe(false);
   const reducedMotion = page.getByRole('checkbox', { name: 'Reduced motion' });
   await reducedMotion.focus();
   await page.keyboard.press('Space');
@@ -115,5 +120,86 @@ test('exposes the complete accessible collection without requiring pointer lock'
   await expect(mirror).toContainText('Starsilk Universe');
   await expect(mirror).toContainText('BigMac Backbone');
 
+  expect(errors).toEqual([]);
+});
+
+test('admits DexGPT only after entry, then guides through the existing wayfinding path', async ({ page }) => {
+  const errors = await bootMuseum(page);
+
+  await page.keyboard.press('Control+k');
+  const command = page.getByRole('dialog', { name: 'Command palette' });
+  await expect(command).toBeVisible();
+  await expect(command).not.toContainText('Talk to DexGPT');
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+
+  // Enter through the actual south doorway using the same keyboard input and
+  // collision path as a visitor. The stopped render loop means the test must
+  // advance the real fixed and variable updates itself.
+  await page.keyboard.down('w');
+  await page.evaluate(() => {
+    const app = window.__museum;
+    if (!app) throw new Error('museum app missing');
+    for (let i = 0; i < 700; i++) {
+      app.fixedUpdate(1 / 60);
+      app.variableUpdate(1 / 60);
+    }
+  });
+  await page.keyboard.up('w');
+  expect(await page.evaluate(() => window.__museum?.currentZone)).not.toBe('plaza');
+
+  await page.keyboard.press('Control+k');
+  expect(await page.evaluate(() => window.__museum?.currentZone)).toBe('south');
+  await expect(command).toContainText('Talk to DexGPT');
+  await command.getByRole('button', { name: 'Talk to DexGPT — Local museum guide' }).click();
+
+  const guide = page.getByRole('dialog', { name: 'DexGPT' });
+  await expect(guide).toBeVisible();
+  const query = guide.locator('#dexgpt-guide-query');
+  await query.fill('The Full Weasel');
+  await query.press('Enter');
+  await expect(guide).toContainText('finished birthday rhythm game');
+  await expect.poll(() => page.evaluate(() => ({
+    captured: window.__museum?.input.uiCaptured,
+    frozen: window.__museum?.player.isFrozen,
+  }))).toEqual({ captured: true, frozen: true });
+
+  await guide.getByRole('button', { name: 'Guide me to The Full Weasel' }).click();
+  await expect(guide).toBeHidden();
+  expect(await page.evaluate(() => window.__museum?.wayfinding.currentTarget)).toBe('E27');
+  await expect.poll(() => page.evaluate(() => ({
+    captured: window.__museum?.input.uiCaptured,
+    frozen: window.__museum?.player.isFrozen,
+  }))).toEqual({ captured: false, frozen: false });
+  expect(errors).toEqual([]);
+});
+
+test('opens the local Full Weasel artifact and restores Museum input on Escape', async ({ page }) => {
+  const errors = await bootMuseum(page);
+  const embeddedRequests: string[] = [];
+  page.on('request', (request) => {
+    if (request.url().includes('/embedded/full-weasel/')) embeddedRequests.push(request.url());
+  });
+
+  await expect(page.locator('#panel-full-weasel')).toBeHidden();
+  expect(embeddedRequests).toEqual([]);
+
+  await page.evaluate(() => window.__museum?.ui.openFullWeasel());
+  const panel = page.locator('#panel-full-weasel');
+  await expect(panel).toBeVisible();
+  const frame = page.frameLocator('.full-weasel__frame');
+  await expect(frame.locator('#root')).toBeVisible();
+  expect(embeddedRequests.some((url) => url.endsWith('/embedded/full-weasel/index.html'))).toBe(true);
+  await expect.poll(() => page.evaluate(() => ({
+    captured: window.__museum?.input.uiCaptured,
+    frozen: window.__museum?.player.isFrozen,
+  }))).toEqual({ captured: true, frozen: true });
+
+  await frame.locator('body').press('Escape');
+  await expect(panel).toBeHidden();
+  await expect.poll(() => page.evaluate(() => ({
+    captured: window.__museum?.input.uiCaptured,
+    frozen: window.__museum?.player.isFrozen,
+  }))).toEqual({ captured: false, frozen: false });
   expect(errors).toEqual([]);
 });

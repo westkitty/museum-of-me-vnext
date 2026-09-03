@@ -3,10 +3,38 @@ import * as THREE from 'three';
 import { Wayfinding } from '../src/world/Wayfinding';
 import { AmbientVisitors } from '../src/world/AmbientVisitors';
 import { Sky } from '../src/world/Sky';
+import { FlightPadAtmosphere } from '../src/world/FlightPadAtmosphere';
 import { ResourceScope } from '../src/assets/ResourceScope';
+import type { LoadedAsset } from '../src/assets/AssetManager';
+import { QUATERNIUS_ASSET_IDS } from '../src/assets/quaterniusAssets';
 import { QUALITY } from '../src/render/QualityTiers';
 import { PLACEMENT_BY_EXHIBIT, type Vec3 } from '../src/world/layout';
 import { START_POSITION } from '../src/world/start';
+
+function visitorAsset(id: string): LoadedAsset {
+  const object = new THREE.Group();
+  object.add(new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.7, 0.25), new THREE.MeshStandardMaterial()));
+  return {
+    id,
+    object,
+    animations: id === QUATERNIUS_ASSET_IDS.posedSitting
+      ? []
+      : [new THREE.AnimationClip('Walk', 1, [])],
+    bytes: 0,
+    loadMs: 0,
+  };
+}
+
+function visitorLoader(fail = false): { load: (id: string, _scope: ResourceScope) => Promise<LoadedAsset> } {
+  return {
+    load: async (id, scope) => {
+      if (fail) throw new Error(`missing governed visitor asset: ${id}`);
+      const asset = visitorAsset(id);
+      scope.trackObject(asset.object);
+      return asset;
+    },
+  };
+}
 
 describe('wayfinding', () => {
   it('shows nothing until a target is chosen', () => {
@@ -75,10 +103,13 @@ describe('ambient visitors', () => {
     }
   });
 
-  it('walks authored paths and holds still under reduced motion', () => {
+  it('loads governed visitors, walks authored paths, and holds still under reduced motion', async () => {
     const scope = new ResourceScope('t');
     const v = new AmbientVisitors(scope, 6);
+    await v.setPopulation(visitorLoader(), 6);
     expect(v.count).toBe(6);
+    expect(v.ready).toBe(true);
+    expect(v.group.children).toHaveLength(6);
 
     const before = v.group.children.map((c) => c.position.clone());
     for (let i = 0; i < 60; i++) v.update(1 / 60, true);
@@ -89,23 +120,41 @@ describe('ambient visitors', () => {
     for (let i = 0; i < 120; i++) v.update(1 / 60, false);
     const moved = v.group.children.some((c, i) => c.position.distanceTo(before[i]) > 0.5);
     expect(moved, 'nobody moved with motion enabled').toBe(true);
+    v.dispose();
+    scope.dispose();
+    expect(scope.size).toBe(0);
+  });
+
+  it('does not silently replace missing governed visitors with primitives', async () => {
+    const scope = new ResourceScope('t');
+    const v = new AmbientVisitors(scope, 8);
+    await expect(v.setPopulation(visitorLoader(true), 8)).rejects.toThrow(/missing governed visitor asset/);
+    expect(v.group.children).toHaveLength(0);
+    expect(v.loadError?.message).toMatch(/missing governed visitor asset/);
+    expect(v.group.userData.loadError).toMatch(/missing governed visitor asset/);
+    v.dispose();
     scope.dispose();
   });
 
-  it('shares one geometry and a small material set across the crowd', () => {
+  it('reuses governed prototypes when quality changes rebuild the bounded crowd', async () => {
     const scope = new ResourceScope('t');
-    const v = new AmbientVisitors(scope, 8);
-    const geometries = new Set<unknown>();
-    const materials = new Set<unknown>();
-    v.group.traverse((n) => {
-      const mesh = n as THREE.Mesh;
-      if (!mesh.isMesh) return;
-      geometries.add(mesh.geometry);
-      materials.add(mesh.material);
-    });
-    expect(geometries.size, 'a crowd should not cost a crowd of geometries').toBeLessThanOrEqual(2);
-    expect(materials.size).toBeLessThanOrEqual(4);
+    const requested: string[] = [];
+    const loader = {
+      load: async (id: string, assetScope: ResourceScope) => {
+        requested.push(id);
+        const asset = visitorAsset(id);
+        assetScope.trackObject(asset.object);
+        return asset;
+      },
+    };
+    const v = new AmbientVisitors(scope, 6);
+    await v.setPopulation(loader, 6);
+    await v.setPopulation(loader, 4);
+    expect(requested).toHaveLength(3);
+    expect(v.group.children).toHaveLength(4);
+    v.dispose();
     scope.dispose();
+    expect(scope.size).toBe(0);
   });
 });
 
@@ -117,7 +166,32 @@ describe('sky', () => {
     camera.position.set(120, 3, -240);
     sky.follow(camera);
     expect(sky.mesh.position.toArray()).toEqual([120, 3, -240]);
+    expect(sky.mesh.name).toBe('night-sky-layered-stars');
     expect(sky.mesh.frustumCulled).toBe(false);
+    const material = sky.mesh.material as THREE.ShaderMaterial;
+    expect(material.fragmentShader).toContain('starLayer');
+    expect(material.fragmentShader).not.toContain('bloodBand');
+    expect(material.fragmentShader).not.toContain('ringAngle');
+    expect(material.uniforms.parallax.value.toArray()).toEqual([0.09, -0.18]);
     scope.dispose();
+  });
+});
+
+describe('flight pad atmosphere', () => {
+  it('rises in the existing loop, reduces its density by quality, and freezes for reduced motion', () => {
+    const scope = new ResourceScope('flight-pad-atmosphere');
+    const dust = new FlightPadAtmosphere(scope);
+    const first = dust.group.children[0];
+    const startY = first.position.y;
+    dust.update(1, 1, false);
+    expect(first.position.y).toBeGreaterThan(startY);
+    dust.update(0, 0.4, false);
+    expect(dust.group.children.filter((mote) => mote.visible)).toHaveLength(11);
+    const frozenY = first.position.y;
+    dust.update(1, 0.4, true);
+    expect(first.position.y).toBeCloseTo(frozenY, 8);
+    dust.dispose();
+    scope.dispose();
+    expect(scope.size).toBe(0);
   });
 });
