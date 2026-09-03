@@ -78,7 +78,7 @@ The repository contains substantial working infrastructure: a continuous Three.j
 
 Those are implementation facts. They do **not** mean the museum is close enough to finished to call 1.0.
 
-The September 2026 collection revision updates several rooms to reflect projects that now exist in materially stronger forms: the Starsilk Compendium, Selfsame, Project Sentinel, RepoForge, Character Performance Capture, ClearCut Local, AndrewOS Mac Bridge, and the Modern 3D Browser Game Toolkit. The 35-room architecture is preserved while the collection becomes current again.
+The September 2026 collection revision currently represents **73 project identities** across the same 35 physical exhibit slots. It updates rooms to reflect projects that now exist in materially stronger forms, including the Starsilk Compendium, Selfsame, Project Sentinel, RepoForge, Character Performance Capture, ClearCut Local, AndrewOS Mac Bridge, the Modern 3D Browser Game Toolkit, and 2D Game Factory. The 35-room architecture is preserved while the collection becomes current again.
 
 Future 1.0 status will require an explicit owner decision based on the museum as a product — collection accuracy, exhibit quality, spatial/visual presentation, visitor experience, representative-device behavior, and remaining major ambitions — not merely a branch name or a green CI run.
 
