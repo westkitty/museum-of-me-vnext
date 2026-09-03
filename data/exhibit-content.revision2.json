@@ -1,0 +1,106 @@
+{
+  "E02": {
+    "subtitle": "Thirty-seven Entries, With Anatomy as Evidence",
+    "plaque": "One Egg, thirty-five strains, one Mother — plus the forensic anatomy work that tested how far the taxonomy could be illustrated without inventing canon.",
+    "problem": "How do you document a species built to perform an industrial process without turning illustrative teaching material into false canon?",
+    "made": "A fixed five-archetype Drakken compendium accompanied by a forensic anatomy lineage that keeps canon specimens and deliberately invented teaching surrogates visibly separate.",
+    "interaction": "Select a source-grounded process reference at the Egg, then inspect how the anatomy material distinguishes documented process structure from explicitly marked teaching abstraction.",
+    "explore": "The taxonomy remains the primary structure. Anatomy is presented as supporting evidence and method, not as a second competing Drakken canon."
+  },
+  "E06": {
+    "subtitle": "The People Inside the Cosmology",
+    "plaque": "A universe held together by rules still has to be inhabited by people whose identities survive every new production.",
+    "problem": "How do characters remain recognisably themselves across lore, images, timelines, relationships, and generated publications without whichever newest artifact silently becoming canon?",
+    "made": "A generated Starsilk Compendium built from versioned character and lore folios, navigation metadata, media provenance, and machine-readable canon invariants.",
+    "interaction": "Select a character folio. Relationship lines illuminate outward to associated characters, events, visual locks, factions, and productions; switch to canon view to isolate the invariants downstream work is not allowed to contradict.",
+    "explore": "Walk around the character constellation. Peripheral figures and Drakken records sit at the edge while the strongest cross-production relationships pull toward the centre."
+  },
+  "E07": {
+    "subtitle": "A Laboratory That Executes the Cosmology",
+    "plaque": "The process is no longer only described. Planetary transformation, Macros, Starbinding, heliocide, specimens, and telemetry are executable laboratory stations.",
+    "problem": "Do Starsilk and Drakken mechanics remain coherent when several canon rules have to execute against one shared state instead of being explained one paragraph at a time?",
+    "made": "A deterministic six-station computational laboratory joining a planetary solver, Starsilk Macro runtime, Starbinding vector bench, Siege Wall containment experiments, Drakken specimen incubation, and an ordered telemetry ledger.",
+    "interaction": "Run bounded laboratory operations against one shared simulated world. Committed changes propagate between stations, while forbidden orderings and Syrin nullification visibly refuse or terminate Starsilk-driven work.",
+    "explore": "The museum installation summarizes the real laboratory's six stations without pretending its reduced exhibit is the full application. The important state changes remain visible from the engineering floor."
+  },
+  "E09": {
+    "subtitle": "The Building That Started Teaching Back",
+    "plaque": "Earlier museums are preserved as evidence. The current project also produced engineering lessons substantial enough to escape into their own runnable toolkit.",
+    "problem": "What happens when repeatedly building the same impossible browser museum teaches enough architecture to become a separate project?",
+    "made": "A lineage from interactive-document concepts through the single-file Reliquary into the current continuous museum, accompanied by a ten-demonstration browser architecture toolkit derived from the engineering lessons.",
+    "interaction": "Turn the museum timeline to compare earlier forms, then inspect the toolkit station to see how tactics, fixed-step movement, asset loading, raw WebGL, accessibility, crowd scaling, and WebGPU demand different architectures.",
+    "explore": "A separate NOW BUILDING surface points toward current experiments without converting unfinished work into permanent collection history."
+  },
+  "E11": {
+    "subtitle": "Fluency Never Outranks Evidence",
+    "plaque": "Continuity is not remembering more. It is knowing which source governs, what remains uncertain, and when the system must stop rather than improvise around a boundary.",
+    "problem": "How can a project or personal knowledge system survive sessions, conflicting records, corrections, temporary constraints, and confident summaries without silently promoting the wrong state?",
+    "made": "A lineage from evidence-linked handoffs and append-only project Bibles to Selfsame's authority resolutions, contradiction tracking, constraint capsules, hard stops, and Project Sentinel recovery packets.",
+    "interaction": "Feed conflicting records into the authority desk, choose the evidence that actually governs, then activate a temporary constraint. Operations that lack authority or violate the active boundary stop visibly instead of producing a convenient workaround.",
+    "explore": "Older handoff and Bible systems remain connected around the room as lineage. Selfsame is the current control surface; Project Sentinel shows how a dormant repository can leave enough evidence to be reconstructed later."
+  },
+  "E12": {
+    "subtitle": "Move the Lens, Not the Verdict",
+    "plaque": "Interpretive pressure happens inside passages, often where evidence, framing, inference, and confidence overlap rather than where a document earns one label.",
+    "problem": "How can a reader inspect rhetoric without collapsing the exercise into a source trust score or an automatic declaration of truth?",
+    "made": "A self-contained offline experience with a movable rhetoric lens, passage-level multi-tag findings, pressure and confidence kept separate, filters, Pattern Mode, comparison, and event-record views.",
+    "interaction": "Move the lens across an invented article. The inspected passage reveals overlapping rhetorical moves, their pressure, and their confidence without pretending to perform live fact checking.",
+    "explore": "Pin passages, compare patterns, and move between the local article and event-record views. Every example remains fictional museum data."
+  },
+  "E15": {
+    "subtitle": "Capability Is Not Authority",
+    "plaque": "A repository can appear capable of doing something without granting anyone permission to make it do that thing.",
+    "problem": "How can agentic tooling discover useful repository capabilities without letting scanned text, inference, or a generated wrapper silently become authority?",
+    "made": "A lineage from task-routing harnesses into RepoForge: read-only repository scanning, evidence-backed capability proposals, a separate human authority manifest, bounded invocation, postcondition verification, and proof records.",
+    "interaction": "Scan a fictional repository, review the proposed capabilities, and authorize exactly one. The execution rack physically refuses the unapproved candidates; the approved path runs only after authority exists and produces a proof receipt only when its postcondition verifies.",
+    "explore": "The older orchestration harnesses remain on the wall as predecessors. Persistence and authority stay outside the agent rack so replacing the orchestrator does not replace the record or its permissions."
+  },
+  "E16": {
+    "subtitle": "Performance Becomes Data, Then Media",
+    "plaque": "A captured performance can outlive the camera image that produced it, and a finished composite is not trustworthy until the exported artifact is checked.",
+    "problem": "How can local media tools preserve movement, identity boundaries, transparency, audio, and repeatability while allowing the renderer and final background to change?",
+    "made": "A local performance-capture pipeline that records portable performer state and drives character rigs, paired with a local soft-alpha video system for temporal matting, background replacement, and verified transparent export. Earlier casting and media utilities remain as lineage.",
+    "interaction": "Step a safe prerecorded performance through source motion, abstract performance state, character-rig output, alpha matte, and final composite. Change the character or background without changing the captured performance.",
+    "explore": "The old media-application lineage runs along the rear bench. The centre stage is about transformation between representations rather than another row of app screenshots."
+  },
+  "E19": {
+    "subtitle": "Motion Through an Allowlist",
+    "plaque": "A trained gesture is useful only if the receiving machine can prove which bounded command it is allowed to become.",
+    "problem": "Can a phone's physical motion drive a desktop without turning a novel input path into an arbitrary remote-control channel?",
+    "made": "A local Android-to-Mac bridge with QR pairing, trainable motion recognition, authenticated command identifiers, a fixed allowlist, and a manual equivalent for every gesture path.",
+    "interaction": "Tilt the phone model and watch the gesture trace become a command identifier, pass through the allowlist, and reach the desktop. The manual control sends the same allowed command without gesture recognition.",
+    "explore": "The visible trail explains the motion shape while the desk explains the security boundary: no gesture can create a command that was not registered first."
+  },
+  "E22": {
+    "subtitle": "A Shared Surface Is a Synchronisation Problem",
+    "plaque": "DexDraw became a real-time server-authoritative whiteboard because collaboration changes the architecture more deeply than drawing tools do.",
+    "problem": "How does a creative surface preserve edits, ordering, checkpoints, undo, reconnect replay, and multiple participants without pretending collaboration is just a cursor added later?",
+    "made": "A creative-tools lineage whose current whiteboard generation uses an operation stream, server sequence numbers, reconnect replay, checkpoints, drawing and editing tools, exports, remote cursors, and per-client history.",
+    "interaction": "Draw on the design table and watch the mark become an operation in the shared composition. Create another mark, restore a checkpoint, and see the surface return to the recorded sequence rather than merely erasing pixels.",
+    "explore": "DexCraft and DexGen remain as adjacent creative-tool lineages. DexDraw vNext owns the centre table because its shared-state problem is inherently spatial and interactive."
+  },
+  "E30": {
+    "subtitle": "Telegraph → Travel → Impact → Field → Residue",
+    "plaque": "The effect is not only particles. It is a deterministic ability sequence that can change terrain, leave aftermath, and be undone as one authoritative transaction.",
+    "problem": "How do visual effects remain immediate to author while also becoming deterministic gameplay state with bounded resources and reversible world mutation?",
+    "made": "A deterministic Three.js ability and VFX platform with surface-conforming telegraphs, data-defined abilities, semantic sequence composition, persistent world mutations, terrain deformation, atomic undo and redo, performance workloads, and visual regression fixtures.",
+    "interaction": "Cast an ability across the chamber floor. Follow its telegraph, travel, impact, field, and residue stages; then undo the persistent aftermath and watch the world return to the prior authoritative state.",
+    "explore": "Authoring controls remain immediate, but the room now exposes the semantic chain and persistent consequence that distinguish the current platform from a particle sandbox."
+  },
+  "E32": {
+    "subtitle": "A Real Town Compressed Until It Becomes Play",
+    "plaque": "The project is no longer a toy diagram of rolling and growth; it is an expanding offline Duncan and North Cowichan playspace whose geography is edited for play without becoming unrecognisable.",
+    "problem": "How far can a real place be compressed, rerouted, and filled with collectibles before it stops feeling like the place it came from?",
+    "made": "An offline Three.js rolling-collection game with expanded Duncan zones, roads, regional collectibles, gravel trails, landmark districts, map-derived development overlays, and a tuned collection and camera model.",
+    "interaction": "Play a bounded Museum Slice: roll through a recognisable compressed neighbourhood, collect objects smaller than the ball, grow, and reach categories that were impossible at the starting scale.",
+    "explore": "The miniature slice is explicitly a museum extraction of the larger game. Map-derived layout evidence and named landmark references explain how real geography was edited into a playable route."
+  },
+  "E34": {
+    "subtitle": "The Control Plane in Front of the Machinery",
+    "plaque": "The infrastructure is easier to understand once there is a control plane showing which registered operation may touch which machine, and what evidence came back.",
+    "problem": "How can an assistant operate local projects and services without receiving an arbitrary shell, broad filesystem authority, or permission to invent new powers during a conversation?",
+    "made": "The existing local-compute, storage, tunnel, model, and persistent-daemon infrastructure, fronted by AndrewOS Mac Bridge: a registry-driven MCP control plane with fixed tasks, service checks, staged artifacts, evidence receipts, and preview-bound consequential operations.",
+    "interaction": "Choose a registered workflow and watch it travel through the local infrastructure. Consequential actions stop at the Dexter Gate until the exact effect is previewed and bound to a one-use transaction; completed actions return receipts separating attempted, changed, and verified state.",
+    "explore": "The older BigMac nodes remain physically present behind the control surface. Every hostname and identifier shown in the museum is synthetic; the exhibit explains authority and routing without exposing an operational deployment."
+  }
+}
