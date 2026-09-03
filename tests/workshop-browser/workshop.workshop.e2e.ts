@@ -27,7 +27,7 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   await stopSoftwareRenderLoop(page);
   await expect(workshop).toBeAttached({ timeout: 60_000 });
 
-  await page.evaluate(() => {
+  const shrubOriginalY = await page.evaluate(() => {
     const app = window.__museum!;
     const shrub = app.scene.getObjectByName('authorable:arrival-garden-shrub-01')!;
     app.player.teleport([shrub.position.x, 0, shrub.position.z + 3.2]);
@@ -35,6 +35,7 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
     app.player.pitch = 0;
     app.player.applyToCamera(app.camera, 1);
     app.camera.updateMatrixWorld(true);
+    return shrub.position.y;
   });
   await page.keyboard.press('F');
   await expect(workshop).toBeVisible({ timeout: 30_000 });
@@ -131,5 +132,9 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   };
   expect(persisted.objects).toHaveLength(2);
   expect(persisted.objects.find((item) => item.id === 'display-plinth-01')?.rotation[1]).toBeCloseTo(Math.PI / 6, 4);
-  expect(persisted.sceneOverrides.find((item) => item.id === 'arrival-garden-shrub-01')?.position).toEqual([30, 0, 42]);
+  const persistedShrubPosition = persisted.sceneOverrides.find((item) => item.id === 'arrival-garden-shrub-01')?.position;
+  expect(persistedShrubPosition).toBeDefined();
+  expect(persistedShrubPosition![0]).toBeCloseTo(30, 4);
+  expect(persistedShrubPosition![1]).toBeCloseTo(shrubOriginalY, 4);
+  expect(persistedShrubPosition![2]).toBeCloseTo(42, 4);
 });
