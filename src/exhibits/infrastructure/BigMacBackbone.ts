@@ -38,15 +38,28 @@ const WORKFLOWS: readonly Workflow[] = [
   { name: 'Inspect storage route', permission: 'read_only', path: ['control', 'laptop', 'route', 'compute', 'storage'], note: 'The storage path is private and synthetic here; no live filesystem is exposed to the museum.' },
 ];
 
+const RECEIPT_STATES = [
+  { key: 'requested', label: 'REQUESTED', colour: 0x78c3d8 },
+  { key: 'attempted', label: 'ATTEMPTED', colour: 0xe8c65a },
+  { key: 'changed', label: 'CHANGED', colour: 0xd28b5c },
+  { key: 'verified', label: 'VERIFIED', colour: 0x7fd67f },
+  { key: 'failed', label: 'FAILED', colour: 0xd9543a },
+  { key: 'unknown', label: 'UNKNOWN', colour: 0x8e83a7 },
+] as const;
+
 export class BigMacBackbone extends ExhibitBase {
   private nodeMeshes = this.tracked<THREE.Mesh>();
   private nodeIds = this.tracked<string>();
   private curves = this.tracked<THREE.CatmullRomCurve3>();
+  private receiptLamps = this.tracked<THREE.Mesh>();
   private pulse!: Pulse;
   private workflow = -1;
   private segment = -1;
   private previewReady = false;
-  private receiptState: 'none' | 'attempted' | 'verified' = 'none';
+  private receiptRequested = false;
+  private receiptAttempted = false;
+  private receiptChanged = false;
+  private receiptVerified = false;
   private gate!: THREE.Mesh;
 
   constructor(def: ExhibitDefinition) { super(def); }
@@ -85,8 +98,10 @@ export class BigMacBackbone extends ExhibitBase {
       const c = buildConsole(scope, 0.62, 0.46, 1.0, metal); c.position.set(-3.0 + i * 2.0, 0, -0.4); this.group.add(c);
       const label = buildLabel(scope, workflow.name, 0.66); label.position.set(0, 1.02, 0.22); label.rotation.x = -Math.PI / 2.1; c.add(label); scope.track(label.geometry);
       this.control({ object: c, label: `Select ${workflow.name}`, description: `${workflow.note} Permission class: ${workflow.permission}.`, activate: () => {
-        this.workflow = i; this.segment = -1; this.previewReady = false; this.receiptState = 'none'; this.curves.length = 0;
-        this.ctx.announce(`${workflow.name}. ${workflow.note} Permission class: ${workflow.permission}.`);
+        this.workflow = i; this.segment = -1; this.previewReady = false; this.curves.length = 0;
+        this.receiptRequested = true; this.receiptAttempted = false; this.receiptChanged = false; this.receiptVerified = false;
+        this.applyReceiptVisualState();
+        this.ctx.announce(`${workflow.name}. ${workflow.note} Permission class: ${workflow.permission}. REQUESTED receipt state recorded.`);
       }});
     });
 
@@ -105,19 +120,48 @@ export class BigMacBackbone extends ExhibitBase {
     const executeLabel = buildLabel(scope, 'EXECUTE REGISTERED', 0.76); executeLabel.position.set(0, 1.02, 0.2); executeLabel.rotation.x = -Math.PI / 2.1; execute.add(executeLabel); scope.track(executeLabel.geometry);
     this.control({ object: execute, label: 'Execute selected registered operation', description: 'Starts only the selected registered route and returns an evidence receipt when its museum simulation verifies.', activate: () => this.execute() });
 
-    const receipt = buildLabel(scope, 'RECEIPT STATES: requested · attempted · changed · verified · failed · unknown', 4.0); receipt.position.set(0, 4.45, -6.4); this.group.add(receipt); scope.track(receipt.geometry);
+    const receiptBoard = new THREE.Mesh(scope.track(new THREE.BoxGeometry(6.0, 0.08, 0.72)), this.standard(0x2f3635, { roughness: 0.82 }));
+    receiptBoard.position.set(0, 0.72, -2.15); this.group.add(receiptBoard);
+    const receiptTitle = buildLabel(scope, 'EVIDENCE RECEIPT · STATES DO NOT COLLAPSE INTO “DONE”', 3.8);
+    receiptTitle.position.set(0, 1.62, -2.16); this.group.add(receiptTitle); scope.track(receiptTitle.geometry);
+
+    RECEIPT_STATES.forEach((state, i) => {
+      const lamp = new THREE.Mesh(scope.track(new THREE.BoxGeometry(0.42, 0.12, 0.28)), this.emissive(state.colour, 0.06));
+      lamp.name = `E34 receipt ${state.key}`;
+      lamp.position.set(-2.5 + i, 0.86, -2.15); this.group.add(lamp); this.receiptLamps.push(lamp);
+      const label = buildLabel(scope, state.label, 0.72); label.position.set(-2.5 + i, 1.17, -2.13); this.group.add(label); scope.track(label.geometry);
+    });
+
+    const receipt = buildLabel(scope, 'REQUESTED → ATTEMPTED → CHANGED? → VERIFIED    FAILED / UNKNOWN stay distinct', 4.2);
+    receipt.position.set(0, 4.45, -6.4); this.group.add(receipt); scope.track(receipt.geometry);
+    this.applyReceiptVisualState();
+  }
+
+  private applyReceiptVisualState(): void {
+    const active = [this.receiptRequested, this.receiptAttempted, this.receiptChanged, this.receiptVerified, false, false];
+    for (let i = 0; i < this.receiptLamps.length; i++) {
+      const mat = this.receiptLamps[i].material as THREE.MeshStandardMaterial;
+      mat.emissiveIntensity = active[i] ? 1.45 : 0.06;
+    }
   }
 
   private execute(): void {
     if (this.workflow < 0) { this.ctx.announce('Select a registered operation first.'); return; }
     const w = WORKFLOWS[this.workflow];
-    if (w.permission === 'consequential' && !this.previewReady) { this.receiptState = 'attempted'; this.ctx.announce(`BLOCKED at the Dexter Gate. ${w.name} is consequential and has no exact preview transaction.`); return; }
+    this.receiptAttempted = true;
+    this.receiptChanged = false;
+    this.receiptVerified = false;
+    this.applyReceiptVisualState();
+    if (w.permission === 'consequential' && !this.previewReady) {
+      this.ctx.announce(`BLOCKED at the Dexter Gate. ${w.name} is consequential and has no exact preview transaction. REQUESTED and ATTEMPTED remain recorded; CHANGED and VERIFIED do not light.`);
+      return;
+    }
     this.curves.length = 0;
     for (let i = 0; i < w.path.length - 1; i++) {
       const a = this.nodeAt(w.path[i]); const b = this.nodeAt(w.path[i + 1]);
       this.curves.push(new THREE.CatmullRomCurve3([a, a.clone().lerp(b, 0.5).add(new THREE.Vector3(0, 0.25, 0)), b]));
     }
-    this.segment = 0; this.receiptState = 'attempted'; this.previewReady = false; this.pulse.start();
+    this.segment = 0; this.previewReady = false; this.pulse.start();
     this.ctx.announce(`ATTEMPTED: ${w.name}. The route is executing against registered synthetic nodes.`);
   }
 
@@ -126,7 +170,13 @@ export class BigMacBackbone extends ExhibitBase {
       if (this.pulse.update(dt, this.curves[this.segment], this.reducedMotion ? 5 : 1.0)) {
         this.segment++;
         if (this.segment < this.curves.length) this.pulse.start();
-        else { this.receiptState = 'verified'; const w = WORKFLOWS[this.workflow]; this.ctx.announce(`VERIFIED receipt: ${w.name}. Requested and attempted states are preserved separately from the verified result.`); }
+        else {
+          const w = WORKFLOWS[this.workflow];
+          this.receiptChanged = w.permission === 'consequential';
+          this.receiptVerified = true;
+          this.applyReceiptVisualState();
+          this.ctx.announce(`VERIFIED receipt: ${w.name}. ${this.receiptChanged ? 'The simulated consequential operation records CHANGED separately. ' : 'This read-only operation has no CHANGED state. '}Requested, attempted, changed and verified remain distinct evidence states.`);
+        }
       }
     }
     const active = this.workflow >= 0 ? WORKFLOWS[this.workflow].path : [];
@@ -140,11 +190,21 @@ export class BigMacBackbone extends ExhibitBase {
     gm.emissive.setHex(this.previewReady ? 0x7fd67f : 0xd9543a); gm.emissiveIntensity = this.previewReady ? 1.2 : 0.35;
   }
 
-  protected override onReset(): void { this.workflow = -1; this.segment = -1; this.previewReady = false; this.receiptState = 'none'; this.curves.length = 0; this.pulse.stop(); }
+  protected override onReset(): void {
+    this.workflow = -1; this.segment = -1; this.previewReady = false; this.curves.length = 0; this.pulse.stop();
+    this.receiptRequested = false; this.receiptAttempted = false; this.receiptChanged = false; this.receiptVerified = false;
+    this.applyReceiptVisualState();
+  }
 
   protected override describeState(): string {
-    if (this.workflow < 0) return 'The AndrewOS control plane waits in front of six infrastructure nodes. No operation is selected; every identifier is synthetic.';
+    if (this.workflow < 0) return 'The AndrewOS control plane waits in front of six infrastructure nodes. No operation is selected; every identifier is synthetic. Evidence receipt lamps are clear.';
     const w = WORKFLOWS[this.workflow];
-    return `${w.name} selected (${w.permission}). Preview ${this.previewReady ? 'is bound' : 'is not bound'}. Receipt state: ${this.receiptState}. Route: ${w.path.map((id) => NODES.find((n) => n.id === id)!.name).join(' → ')}.`;
+    const receipt = [
+      this.receiptRequested ? 'requested' : null,
+      this.receiptAttempted ? 'attempted' : null,
+      this.receiptChanged ? 'changed' : null,
+      this.receiptVerified ? 'verified' : null,
+    ].filter(Boolean).join(' → ') || 'none';
+    return `${w.name} selected (${w.permission}). Preview ${this.previewReady ? 'is bound' : 'is not bound'}. Receipt: ${receipt}. Route: ${w.path.map((id) => NODES.find((n) => n.id === id)!.name).join(' → ')}.`;
   }
 }
