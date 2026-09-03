@@ -82,11 +82,15 @@ The implementation scope through the governing build plan's Phase 13 is complete
 release preparation is documented. Thirty-five bespoke exhibits represent 64 project identities
 exactly once; traversal and lifecycle gates are automated through the canonical release gate.
 
-The current implementation candidate is `feature/museum-workshop-core-2026-08-26` at committed
-HEAD `bf2fe0611c5c06e69316ec1bbc3cbf81bfac41e2`; the checkout may contain newer uncommitted
-candidate changes, so exact-head checks must be rerun after the candidate is frozen. The older
-`release/v1.0.0` branch and `main` are not the current implementation. Publication remains a
-separate owner decision because it exposes the documentation of sixty-four projects publicly.
+The Workshop/creative-expansion implementation line has been integrated into `release/v1.0.0`
+through PR #3. Its final pre-merge head `f6751de8e83017ec3a3a085d2b8d1f02d9b2cac7` passed all four
+pull-request jobs (`gate`, `browser`, `standalone`, and `workshop`) in workflow run #321 before the
+release integration merge. `release/v1.0.0` is therefore the current release/implementation line;
+`main` remains the older unpublished baseline. Any later release-state-only reconciliation commit
+must receive its own exact-head CI before publication consideration.
+
+Publication remains a separate owner decision. Human visual/audio/pointer-lock/representative-device
+acceptance and hosted verification remain intentionally unverified until they are actually performed.
 `docs/RELEASE_CHECKLIST.md` distinguishes automated proof, human/device acceptance, and hosted
 verification.
 
