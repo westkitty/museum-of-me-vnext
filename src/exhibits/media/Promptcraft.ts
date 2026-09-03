@@ -6,14 +6,16 @@ import { rng } from '../../assets/generators';
 import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
 
 /**
- * E14 — Promptcraft & Vibe Coding. Tier B.
+ * E14 — Promptcraft, Vibe Coding & DexEnhance. Tier B.
  *
- * A prompt assembly machine. Blocks slot in and the scene beyond the glass
- * changes to match — deterministically, with no external service involved.
+ * The left side is a deterministic prompt assembly machine: reusable prompt
+ * structure is made physical, with constraints treated as first-class parts.
+ * The right side is a browser-extension isolation demonstration. A synthetic
+ * host interface can redesign itself while the DexEnhance layer stays stable,
+ * because the extension's own UI lives behind a Shadow DOM boundary.
  *
- * Description blocks and constraint blocks are physically different shapes, and
- * the machine will not run without at least one constraint, because the
- * reusable part of a prompt is the constraint list rather than the description.
+ * Everything here is local museum simulation. No external generation service,
+ * ChatGPT page, Gemini page, account, browser extension, or remote API is used.
  */
 
 type BlockKind = 'subject' | 'style' | 'constraint';
@@ -40,7 +42,11 @@ export class Promptcraft extends ExhibitBase {
   private inserted = this.tracked<boolean>();
   private scene!: THREE.Group;
   private sceneParts = this.tracked<THREE.Mesh>();
+  private hostPieces = this.tracked<THREE.Mesh>();
+  private dexEnhanceLayer!: THREE.Mesh;
   private ran = false;
+  private hostVariant = 0;
+  private dexEnhanceEnabled = true;
 
   /** Reused every frame; allocating these per element churned the heap. */
   private readonly scratchScale = new THREE.Vector3();
@@ -68,12 +74,11 @@ export class Promptcraft extends ExhibitBase {
     const brass = this.standard(0xb9822c, { roughness: 0.35, metalness: 0.72 });
     const wood = this.standard(0x755c3d, { roughness: 0.75 });
 
-    // ── the machine ──
+    // ── prompt assembly machine ──
     const body = new THREE.Mesh(scope.track(new THREE.BoxGeometry(2.6, 1.5, 1.0)), wood);
     body.position.set(-1.2, 0.75, -4.2);
     this.group.add(body);
 
-    // Five slots, shaped by kind: rounded for description, square for constraint.
     BLOCKS.forEach((block, i) => {
       const x = -2.2 + i * 0.5;
       const slot = new THREE.Vector3(x, 1.56, -4.0);
@@ -125,7 +130,7 @@ export class Promptcraft extends ExhibitBase {
       });
     });
 
-    // ── the rendered scene beyond the glass ──
+    // ── deterministic rendered scene ──
     const glassFrame = new THREE.Mesh(scope.track(new THREE.BoxGeometry(2.8, 2.0, 0.08)), brass);
     glassFrame.position.set(2.0, 1.8, -5.4);
     this.group.add(glassFrame);
@@ -161,24 +166,111 @@ export class Promptcraft extends ExhibitBase {
       this.sceneParts.push(figure);
     }
 
-    // ── the run control ──
-    const consoleGroup = buildConsole(scope, 0.6, 0.44, 1.0, wood);
-    consoleGroup.position.set(-1.2, 0, -2.2);
-    this.group.add(consoleGroup);
+    const runConsole = buildConsole(scope, 0.6, 0.44, 1.0, wood);
+    runConsole.position.set(-1.2, 0, -2.2);
+    this.group.add(runConsole);
 
-    const consoleLabel = buildLabel(scope, 'Run the machine', 0.6);
-    consoleLabel.position.set(0, 1.02, 0.2);
-    consoleLabel.rotation.x = -Math.PI / 2.1;
-    consoleGroup.add(consoleLabel);
-    scope.track(consoleLabel.geometry);
+    const runLabel = buildLabel(scope, 'Run the machine', 0.6);
+    runLabel.position.set(0, 1.02, 0.2);
+    runLabel.rotation.x = -Math.PI / 2.1;
+    runConsole.add(runLabel);
+    scope.track(runLabel.geometry);
 
     this.control({
-      object: consoleGroup,
+      object: runConsole,
       label: 'Run the machine',
-      description:
-        'Assembles the inserted blocks and renders the result. Entirely deterministic and entirely local — no external generation service is involved.',
+      description: 'Assembles the inserted blocks and renders the result. Entirely deterministic and local — no external generation service is involved.',
       activate: () => this.run(),
     });
+
+    // ── DexEnhance: host-page isolation demonstration ──
+    const hostFrame = new THREE.Mesh(
+      scope.track(new THREE.BoxGeometry(2.45, 1.5, 0.08)),
+      this.standard(0x30333a, { roughness: 0.55, metalness: 0.35 }),
+    );
+    hostFrame.position.set(2.25, 1.75, -2.75);
+    this.group.add(hostFrame);
+
+    const hostMat = this.standard(0x6b7484, { roughness: 0.72 });
+    for (let i = 0; i < 3; i++) {
+      const piece = new THREE.Mesh(scope.track(new THREE.BoxGeometry(0.72, 0.16, 0.035)), hostMat);
+      piece.position.set(2.25, 2.12 - i * 0.35, -2.69);
+      this.group.add(piece);
+      this.hostPieces.push(piece);
+    }
+
+    this.dexEnhanceLayer = new THREE.Mesh(
+      scope.track(new THREE.BoxGeometry(0.78, 0.52, 0.035)),
+      this.emissive(0x5fd0e8, 0.9),
+    );
+    this.dexEnhanceLayer.position.set(2.83, 1.42, -2.64);
+    this.group.add(this.dexEnhanceLayer);
+
+    const isolationLabel = buildLabel(scope, 'DEXENHANCE · SHADOW DOM ISOLATION', 2.0);
+    isolationLabel.position.set(2.25, 2.7, -2.72);
+    this.group.add(isolationLabel);
+    scope.track(isolationLabel.geometry);
+
+    this.control({
+      object: hostFrame,
+      label: 'Redesign the synthetic host page',
+      description: 'Moves the host interface into a different layout. The DexEnhance layer is a separate isolated surface, so the host redesign does not restyle or reposition it.',
+      activate: () => {
+        this.hostVariant = this.hostVariant === 0 ? 1 : 0;
+        this.applyHostVariant();
+        this.ctx.announce(
+          this.hostVariant === 1
+            ? 'Synthetic host redesign applied. The host controls moved; the DexEnhance layer stayed in place behind its own style boundary.'
+            : 'Synthetic host returned to its first layout. The extension layer remained independent in both versions.',
+        );
+      },
+    });
+
+    const extensionConsole = buildConsole(scope, 0.55, 0.42, 1.0, wood);
+    extensionConsole.position.set(3.25, 0, -1.75);
+    extensionConsole.rotation.y = -0.45;
+    this.group.add(extensionConsole);
+    const extensionLabel = buildLabel(scope, 'DexEnhance layer', 0.58);
+    extensionLabel.position.set(0, 1.02, 0.2);
+    extensionLabel.rotation.x = -Math.PI / 2.1;
+    extensionConsole.add(extensionLabel);
+    scope.track(extensionLabel.geometry);
+
+    this.control({
+      object: extensionConsole,
+      label: () => (this.dexEnhanceEnabled ? 'Disable the DexEnhance layer' : 'Enable the DexEnhance layer'),
+      description: 'Toggles only the local extension surface. Its state is independent from the synthetic host layout and no remote account or service exists in this exhibit.',
+      activate: () => {
+        this.dexEnhanceEnabled = !this.dexEnhanceEnabled;
+        this.dexEnhanceLayer.visible = this.dexEnhanceEnabled;
+        this.ctx.announce(
+          this.dexEnhanceEnabled
+            ? 'DexEnhance layer enabled from local state. The synthetic host page was not modified.'
+            : 'DexEnhance layer disabled. The host page remains exactly as it was.',
+        );
+      },
+    });
+
+    this.applyHostVariant();
+  }
+
+  private applyHostVariant(): void {
+    if (this.hostPieces.length < 3) return;
+    if (this.hostVariant === 0) {
+      this.hostPieces[0].position.set(2.25, 2.12, -2.69);
+      this.hostPieces[0].scale.set(2.45, 1, 1);
+      this.hostPieces[1].position.set(1.58, 1.73, -2.69);
+      this.hostPieces[1].scale.set(0.62, 2.5, 1);
+      this.hostPieces[2].position.set(2.42, 1.72, -2.69);
+      this.hostPieces[2].scale.set(1.25, 2.2, 1);
+    } else {
+      this.hostPieces[0].position.set(2.25, 1.32, -2.69);
+      this.hostPieces[0].scale.set(2.45, 1, 1);
+      this.hostPieces[1].position.set(2.92, 1.85, -2.69);
+      this.hostPieces[1].scale.set(0.62, 2.5, 1);
+      this.hostPieces[2].position.set(2.05, 1.88, -2.69);
+      this.hostPieces[2].scale.set(1.25, 2.2, 1);
+    }
   }
 
   private constraintCount(): number {
@@ -191,9 +283,7 @@ export class Promptcraft extends ExhibitBase {
 
   private run(): void {
     if (this.constraintCount() === 0) {
-      this.ctx.announce(
-        'The machine will not run. No constraint block is inserted, and a prompt without its constraint list is the part that does not survive reuse.',
-      );
+      this.ctx.announce('The machine will not run. No constraint block is inserted, and a prompt without its constraint list is the part that does not survive reuse.');
       return;
     }
     this.ran = true;
@@ -208,7 +298,6 @@ export class Promptcraft extends ExhibitBase {
       this.blocks[i].position.lerp(target, rate);
     }
 
-    // The scene answers only what is actually in the machine.
     const subject = this.inserted[0];
     const dusk = this.inserted[1];
     const wide = this.inserted[2];
@@ -232,6 +321,8 @@ export class Promptcraft extends ExhibitBase {
 
   protected override onReset(): void {
     this.ran = false;
+    this.hostVariant = 0;
+    this.dexEnhanceEnabled = true;
     for (let i = 0; i < this.inserted.length; i++) {
       this.inserted[i] = false;
       if (this.blocks[i]) this.blocks[i].position.copy(this.homes[i]);
@@ -241,15 +332,17 @@ export class Promptcraft extends ExhibitBase {
       this.scene.scale.setScalar(1);
     }
     for (let i = 1; i < this.sceneParts.length; i++) this.sceneParts[i].visible = false;
+    if (this.dexEnhanceLayer) this.dexEnhanceLayer.visible = true;
+    this.applyHostVariant();
   }
 
   protected override describeState(): string {
     const inserted = BLOCKS.filter((_b, i) => this.inserted[i]).map((b) => b.label);
-    if (inserted.length === 0) return 'The machine is empty. Five blocks wait: three descriptions and two constraints.';
-    const constraints = this.constraintCount();
-    if (!this.ran) {
-      return `Loaded with ${inserted.join(', ')}. ${constraints === 0 ? 'No constraint is inserted, so the machine will refuse to run.' : 'Ready to run.'}`;
-    }
-    return `Run with ${inserted.join(', ')}. The rendered scene shows the result — deterministic, and entirely local.`;
+    const promptState = inserted.length === 0
+      ? 'The prompt machine is empty.'
+      : this.ran
+        ? `The prompt machine has run with ${inserted.join(', ')}.`
+        : `The prompt machine is loaded with ${inserted.join(', ')}.`;
+    return `${promptState} Synthetic host layout ${this.hostVariant + 1} is visible; the DexEnhance Shadow DOM layer is ${this.dexEnhanceEnabled ? 'enabled and isolated from it' : 'disabled'}.`;
   }
 }
