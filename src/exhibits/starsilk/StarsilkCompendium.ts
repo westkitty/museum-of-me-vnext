@@ -6,10 +6,7 @@ import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
 
 /**
  * E06 — Starsilk Compendium: Character & Canon Archive.
- *
  * A character/canon constellation rather than another Drakken anatomy table.
- * The archived anatomy project moved into E02 as Drakken-compendium lineage;
- * this bay now supplies the North wing's missing human/character centre.
  */
 
 interface Folio {
@@ -20,16 +17,11 @@ interface Folio {
 }
 
 const FOLIOS: readonly Folio[] = [
-  { name: 'Codec', role: 'principal character folio', colour: 0x4f8cff,
-    locks: ['identity', 'visual law', 'chronology', 'relationships'] },
-  { name: 'Tiger', role: 'principal character folio', colour: 0x78a8ff,
-    locks: ['identity', 'visual law', 'cosmological role', 'chronology'] },
-  { name: 'Syrin', role: 'canon-critical folio', colour: 0xbd78ff,
-    locks: ['identity', 'nullification law', 'relationships', 'terminology'] },
-  { name: 'Drakken Register', role: 'species and strain folios', colour: 0xd46b6b,
-    locks: ['taxonomy', 'strain identity', 'process law', 'forbidden drift'] },
-  { name: 'WorldsVault', role: 'supporting lore material', colour: 0xd1b46a,
-    locks: ['source provenance', 'cross-reference', 'chronology', 'status'] },
+  { name: 'Codec', role: 'principal character folio', colour: 0x4f8cff, locks: ['identity', 'visual law', 'chronology', 'relationships'] },
+  { name: 'Tiger', role: 'principal character folio', colour: 0x78a8ff, locks: ['identity', 'visual law', 'cosmological role', 'chronology'] },
+  { name: 'Syrin', role: 'canon-critical folio', colour: 0xbd78ff, locks: ['identity', 'nullification law', 'relationships', 'terminology'] },
+  { name: 'Drakken Register', role: 'species and strain folios', colour: 0xd46b6b, locks: ['taxonomy', 'strain identity', 'process law', 'forbidden drift'] },
+  { name: 'WorldsVault', role: 'supporting lore material', colour: 0xd1b46a, locks: ['source provenance', 'cross-reference', 'chronology', 'status'] },
 ];
 
 export class StarsilkCompendium extends ExhibitBase {
@@ -39,81 +31,36 @@ export class StarsilkCompendium extends ExhibitBase {
   private selected = 0;
   private canonView = false;
 
-  constructor(def: ExhibitDefinition) {
-    super(def);
-  }
+  constructor(def: ExhibitDefinition) { super(def); }
 
   protected override build(): void {
     const scope = this.ctx.scope;
+    const plaque = buildPlaque(scope, this.ctx.record); plaque.position.set(0, 2.2, -7.2); this.group.add(plaque); scope.trackObject(plaque);
+    const lectern = buildLectern(scope, this.ctx.record, this.ctx.projects); lectern.position.set(3.4, 0, -4.8); lectern.rotation.y = -0.6; this.group.add(lectern); scope.trackObject(lectern);
 
-    const plaque = buildPlaque(scope, this.ctx.record);
-    plaque.position.set(0, 2.2, -7.2);
-    this.group.add(plaque);
-    scope.trackObject(plaque);
+    const archive = new THREE.Mesh(scope.track(new THREE.CylinderGeometry(0.62, 0.78, 1.0, 16)), this.standard(0x20243a, { roughness: 0.45, metalness: 0.5 }));
+    archive.position.set(0, 0.5, -4.0); this.group.add(archive);
+    const archiveCore = new THREE.Mesh(scope.track(new THREE.IcosahedronGeometry(0.32, 2)), this.emissive(0x5aa8ff, 1.0));
+    archiveCore.position.set(0, 1.45, -4.0); this.group.add(archiveCore);
 
-    const lectern = buildLectern(scope, this.ctx.record, this.ctx.projects);
-    lectern.position.set(3.4, 0, -4.8);
-    lectern.rotation.y = -0.6;
-    this.group.add(lectern);
-    scope.trackObject(lectern);
-
-    const archive = new THREE.Mesh(
-      scope.track(new THREE.CylinderGeometry(0.62, 0.78, 1.0, 16)),
-      this.standard(0x20243a, { roughness: 0.45, metalness: 0.5 }),
-    );
-    archive.position.set(0, 0.5, -4.0);
-    this.group.add(archive);
-
-    const archiveCore = new THREE.Mesh(
-      scope.track(new THREE.IcosahedronGeometry(0.32, 2)),
-      this.emissive(0x5aa8ff, 1.0),
-    );
-    archiveCore.position.set(0, 1.45, -4.0);
-    this.group.add(archiveCore);
-
+    const centre = new THREE.Vector3(0, 1.45, -4.0);
     const positions = FOLIOS.map((_, i) => {
       const a = (i / FOLIOS.length) * Math.PI * 2 - Math.PI / 2;
       return new THREE.Vector3(Math.cos(a) * 2.5, 2.0 + (i % 2) * 0.45, -4.0 + Math.sin(a) * 1.9);
     });
 
     FOLIOS.forEach((folio, i) => {
-      const g = new THREE.Group();
-      g.position.copy(positions[i]);
-      this.group.add(g);
-      this.nodes.push(g);
+      const g = new THREE.Group(); g.position.copy(positions[i]); this.group.add(g); this.nodes.push(g);
+      const core = new THREE.Mesh(scope.track(new THREE.IcosahedronGeometry(i < 3 ? 0.28 : 0.23, 1)), this.emissive(folio.colour, i === 0 ? 1.2 : 0.45));
+      g.add(core); this.cores.push(core);
+      const frame = new THREE.Mesh(scope.track(new THREE.TorusGeometry(i < 3 ? 0.46 : 0.39, 0.025, 8, 28)), this.standard(0x7780a4, { roughness: 0.4, metalness: 0.55 }));
+      frame.rotation.x = Math.PI / 2; g.add(frame);
+      const label = buildLabel(scope, folio.name, 1.25); label.position.set(0, 0.68, 0); g.add(label); scope.track(label.geometry);
+      const role = buildLabel(scope, folio.role, 1.4); role.position.set(0, -0.58, 0); g.add(role); scope.track(role.geometry);
 
-      const core = new THREE.Mesh(
-        scope.track(new THREE.IcosahedronGeometry(i < 3 ? 0.28 : 0.23, 1)),
-        this.emissive(folio.colour, i === 0 ? 1.2 : 0.45),
-      );
-      g.add(core);
-      this.cores.push(core);
-
-      const frame = new THREE.Mesh(
-        scope.track(new THREE.TorusGeometry(i < 3 ? 0.46 : 0.39, 0.025, 8, 28)),
-        this.standard(0x7780a4, { roughness: 0.4, metalness: 0.55 }),
-      );
-      frame.rotation.x = Math.PI / 2;
-      g.add(frame);
-
-      const label = buildLabel(scope, folio.name, 1.25);
-      label.position.set(0, 0.68, 0);
-      g.add(label);
-      scope.track(label.geometry);
-
-      const role = buildLabel(scope, folio.role, 1.4);
-      role.position.set(0, -0.58, 0);
-      g.add(role);
-      scope.track(role.geometry);
-
+      const midpoint = positions[i].clone().lerp(centre, 0.45).add(new THREE.Vector3(0, 0.3, 0));
       const link = new Filament(scope, this.scaled(16), 0.018, this.standard(0x324d72, { roughness: 0.65 }));
-      link.follow(new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0, 1.45, -4.0),
-        positions[i].clone().lerp(new THREE.Vector3(0, 1.45, -4.0), 0.45).add(new THREE.Vector3(0, 0.3, 0)),
-        positions[i],
-      ]));
-      this.group.add(link.group);
-      this.links.push(link);
+      link.follow(new THREE.CatmullRomCurve3([centre, midpoint, positions[i]])); this.group.add(link.group); this.links.push(link);
 
       this.control({
         object: g,
@@ -128,15 +75,8 @@ export class StarsilkCompendium extends ExhibitBase {
     });
 
     const consoleGroup = buildConsole(scope, 0.7, 0.5, 1.0, this.standard(0x252b45, { roughness: 0.65 }));
-    consoleGroup.position.set(0, 0, -1.5);
-    this.group.add(consoleGroup);
-
-    const modeLabel = buildLabel(scope, 'CANON VIEW', 0.72);
-    modeLabel.position.set(0, 1.02, 0.2);
-    modeLabel.rotation.x = -Math.PI / 2.1;
-    consoleGroup.add(modeLabel);
-    scope.track(modeLabel.geometry);
-
+    consoleGroup.position.set(0, 0, -1.5); this.group.add(consoleGroup);
+    const modeLabel = buildLabel(scope, 'CANON VIEW', 0.72); modeLabel.position.set(0, 1.02, 0.2); modeLabel.rotation.x = -Math.PI / 2.1; consoleGroup.add(modeLabel); scope.track(modeLabel.geometry);
     this.control({
       object: consoleGroup,
       label: () => (this.canonView ? 'Hide canon invariants' : 'Show canon invariants'),
@@ -144,18 +84,12 @@ export class StarsilkCompendium extends ExhibitBase {
       activate: () => {
         this.canonView = !this.canonView;
         const folio = FOLIOS[this.selected];
-        this.ctx.announce(
-          this.canonView
-            ? `Canon view. ${folio.name}: ${folio.locks.join(', ')}.`
-            : 'Folio view. Generated presentation returns to the foreground; authority remains in the versioned sources.',
-        );
+        this.ctx.announce(this.canonView ? `Canon view. ${folio.name}: ${folio.locks.join(', ')}.` : 'Folio view. Generated presentation returns to the foreground; authority remains in the versioned sources.');
       },
     });
 
     const provenance = buildLabel(scope, 'Generated presentation ← versioned sources ← canon invariants', 3.2);
-    provenance.position.set(0, 4.9, -6.4);
-    this.group.add(provenance);
-    scope.track(provenance.geometry);
+    provenance.position.set(0, 4.9, -6.4); this.group.add(provenance); scope.track(provenance.geometry);
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
@@ -164,19 +98,17 @@ export class StarsilkCompendium extends ExhibitBase {
       const mat = this.cores[i].material as THREE.MeshStandardMaterial;
       const target = active ? (this.canonView ? 1.8 : 1.3) : (this.canonView ? 0.7 : 0.35);
       mat.emissiveIntensity += (target - mat.emissiveIntensity) * Math.min(1, dt * 5);
-      const scale = active ? 1.14 : 1;
-      this.nodes[i].scale.lerp(new THREE.Vector3(scale, scale, scale), this.reducedMotion ? 1 : Math.min(1, dt * 4));
+      const targetScale = active ? 1.14 : 1;
+      const amount = this.reducedMotion ? 1 : Math.min(1, dt * 4);
+      const currentScale = this.nodes[i].scale.x;
+      this.nodes[i].scale.setScalar(currentScale + (targetScale - currentScale) * amount);
       if (!this.reducedMotion) this.nodes[i].rotation.y += dt * (active ? 0.2 : 0.05);
     }
   }
 
   protected override onReset(): void {
-    this.selected = 0;
-    this.canonView = false;
-    for (const node of this.nodes) {
-      node.scale.setScalar(1);
-      node.rotation.set(0, 0, 0);
-    }
+    this.selected = 0; this.canonView = false;
+    for (const node of this.nodes) { node.scale.setScalar(1); node.rotation.set(0, 0, 0); }
   }
 
   protected override describeState(): string {
