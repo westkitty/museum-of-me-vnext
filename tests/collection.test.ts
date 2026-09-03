@@ -37,6 +37,7 @@ describe('collection integrity', () => {
     expect(EXHIBITS_BY_ID.get('E21')?.projectIds).not.toContain('P029');
     expect(EXHIBITS_BY_ID.get('E11')?.projectIds).toContain('P060'); // He-Maker: project recovery / archaeology
     expect(EXHIBITS_BY_ID.get('E16')?.projectIds).not.toContain('P060');
+    expect(EXHIBITS_BY_ID.get('E22')?.projectIds).toContain('P073'); // 2D Game Factory: visual creative-workbench pipeline
   });
 
   it('resolves projects for every exhibit', () => {
