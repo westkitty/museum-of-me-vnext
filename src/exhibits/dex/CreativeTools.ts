@@ -8,19 +8,33 @@ import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
 /**
  * E22 — Creative Tools Studio. Tier B.
  *
- * A large collaborative design table. Drawing on it leaves a mark on the
- * surface itself, and the marks persist for the length of a visit — which is
- * the point the whiteboard's three rewrites were about: a shared surface is a
- * synchronisation problem, not a drawing problem.
+ * Three related creative-tool problems share the room:
+ * - DexDraw makes a shared drawing surface into an operation-history problem.
+ * - DexCraft demonstrates that prompt structure depends on the destination.
+ * - 2D Game Factory turns user-owned assets into a real generated Phaser game
+ *   through one governed workbench rather than an editor-side mock pipeline.
  *
- * A dial changes the prompt-shaping target, and the same shape is rewritten for
- * a different destination, because prompt structure is target-dependent.
+ * The factory station is a museum-scale workflow model. It does not execute or
+ * embed the external 2D Game Factory repository; its job is to make the actual
+ * authority path legible: Import → Asset Lab → Role Map → Scene → Preview →
+ * Validate → Build → Pack.
  */
 
 const TARGETS = [
   { name: 'Chat assistant', note: 'Prose, context first, the request last.', k: 3, colour: 0x3fb9b2 },
   { name: 'Research tool', note: 'Claims and sources. Structure over voice.', k: 5, colour: 0x9d8bff },
   { name: 'Agentic IDE', note: 'Constraints, file paths and acceptance criteria. Almost no prose.', k: 8, colour: 0xe8c65a },
+] as const;
+
+const FACTORY_STAGES = [
+  { name: 'Import', note: 'Stage user-owned source assets without surrendering source authority.' },
+  { name: 'Asset Lab', note: 'Inspect and derive usable game assets while preserving their lineage.' },
+  { name: 'Role Map', note: 'Assign semantic game roles so art connects to native theme and scene documents.' },
+  { name: 'Scene', note: 'Compose the playable scene through the visual workbench.' },
+  { name: 'Preview', note: 'Launch the actual generated Phaser game, not an editor-side imitation.' },
+  { name: 'Validate', note: 'Run the project-native validation contract before build or pack.' },
+  { name: 'Build', note: 'Build through the same canonical generator seam used by the workbench.' },
+  { name: 'Pack', note: 'Package the validated game while retaining provenance and local-first boundaries.' },
 ] as const;
 
 const STROKE_SEGMENTS = 26;
@@ -30,9 +44,11 @@ export class CreativeTools extends ExhibitBase {
   private strokes = this.tracked<Filament>();
   private strokeUsed = this.tracked<boolean>();
   private nodes = this.tracked<THREE.Mesh>();
+  private factoryLamps = this.tracked<THREE.Mesh>();
   private target = 0;
   private dial!: Dial;
   private strokeCount = 0;
+  private factoryStage = 0;
   private surface!: THREE.Mesh;
 
   /** Reused every frame; allocating these per element churned the heap. */
@@ -57,8 +73,9 @@ export class CreativeTools extends ExhibitBase {
     scope.trackObject(lectern);
 
     const steel = this.standard(0x9aa4a6, { roughness: 0.35, metalness: 0.6 });
+    const darkSteel = this.standard(0x3a4148, { roughness: 0.62, metalness: 0.45 });
 
-    // ── the design table ──
+    // ── DexDraw: the design table ──
     const frame = new THREE.Mesh(scope.track(new THREE.BoxGeometry(4.6, 0.14, 3.0)), steel);
     frame.position.set(0, 0.9, -4.0);
     this.group.add(frame);
@@ -78,7 +95,7 @@ export class CreativeTools extends ExhibitBase {
       }
     }
 
-    // ── strokes: pre-allocated so drawing never churns resources ──
+    // Strokes are pre-allocated so drawing never creates runtime resources.
     const random = rng(22022);
     for (let i = 0; i < MAX_STROKES; i++) {
       const hue = 0.45 + random() * 0.35;
@@ -90,7 +107,6 @@ export class CreativeTools extends ExhibitBase {
       this.strokeUsed.push(false);
     }
 
-    // ── connected objects the strokes bind together ──
     for (let i = 0; i < this.scaled(5); i++) {
       const a = (i / 5) * Math.PI * 2;
       const node = new THREE.Mesh(
@@ -102,7 +118,6 @@ export class CreativeTools extends ExhibitBase {
       this.nodes.push(node);
     }
 
-    // ── controls ──
     const drawConsole = buildConsole(scope, 0.62, 0.46, 1.0, steel);
     drawConsole.position.set(-3.0, 0, -2.6);
     drawConsole.rotation.y = 0.5;
@@ -118,10 +133,11 @@ export class CreativeTools extends ExhibitBase {
       object: drawConsole,
       label: 'Draw a connection',
       description:
-        'Draws a stroke that binds two objects on the table. Marks stay for the length of your visit — a shared surface is a synchronisation problem, which is what three rewrites of this project were about.',
+        'Draws a stroke that binds two objects on the table. Marks stay for the length of your visit — a shared surface is a synchronisation problem, which is what three rewrites of DexDraw were about.',
       activate: () => this.draw(),
     });
 
+    // ── DexCraft: target-specific prompt shaping ──
     const promptConsole = buildConsole(scope, 0.62, 0.46, 1.0, steel);
     promptConsole.position.set(3.0, 0, -2.6);
     promptConsole.rotation.y = -0.5;
@@ -149,6 +165,53 @@ export class CreativeTools extends ExhibitBase {
         this.redraw();
       },
     });
+
+    // ── 2D Game Factory: one governed path from assets to packaged game ──
+    const factoryBoard = new THREE.Mesh(
+      scope.track(new THREE.BoxGeometry(5.2, 0.78, 0.08)),
+      darkSteel,
+    );
+    factoryBoard.position.set(0, 3.15, -6.1);
+    this.group.add(factoryBoard);
+
+    for (let i = 0; i < FACTORY_STAGES.length; i++) {
+      const x = -2.15 + i * 0.615;
+      const lamp = new THREE.Mesh(
+        scope.track(new THREE.SphereGeometry(0.07, 10, 8)),
+        this.emissive(0x5fd0e8, i === 0 ? 1.35 : 0.08),
+      );
+      lamp.position.set(x, 3.28, -6.04);
+      this.group.add(lamp);
+      this.factoryLamps.push(lamp);
+
+      const stageLabel = buildLabel(scope, FACTORY_STAGES[i].name, 0.5);
+      stageLabel.position.set(x, 3.0, -6.03);
+      this.group.add(stageLabel);
+      scope.track(stageLabel.geometry);
+    }
+
+    const factoryTitle = buildLabel(scope, '2D GAME FACTORY · SAME RUNTIME PATH', 2.8);
+    factoryTitle.position.set(0, 3.72, -6.05);
+    this.group.add(factoryTitle);
+    scope.track(factoryTitle.geometry);
+
+    const factoryConsole = buildConsole(scope, 0.7, 0.48, 1.0, darkSteel);
+    factoryConsole.position.set(0, 0, -1.45);
+    this.group.add(factoryConsole);
+
+    const factoryLabel = buildLabel(scope, 'Advance factory', 0.7);
+    factoryLabel.position.set(0, 1.02, 0.2);
+    factoryLabel.rotation.x = -Math.PI / 2.1;
+    factoryConsole.add(factoryLabel);
+    scope.track(factoryLabel.geometry);
+
+    this.control({
+      object: factoryConsole,
+      label: () => `Advance 2D Game Factory: ${FACTORY_STAGES[this.factoryStage].name}`,
+      description:
+        'Advances a museum-scale model of the real workbench path. The actual project previews its generated Phaser game rather than an editor mock; this exhibit represents that contract without executing the external factory.',
+      activate: () => this.advanceFactory(),
+    });
   }
 
   private draw(): void {
@@ -170,6 +233,17 @@ export class CreativeTools extends ExhibitBase {
     );
   }
 
+  private advanceFactory(): void {
+    const current = FACTORY_STAGES[this.factoryStage];
+    this.ctx.announce(`2D Game Factory — ${current.name}. ${current.note}`);
+    if (this.factoryStage === FACTORY_STAGES.length - 1) {
+      this.factoryStage = 0;
+      this.ctx.announce('Package complete in the museum simulation. A new factory run begins at Import; no external repository or game was executed here.');
+      return;
+    }
+    this.factoryStage++;
+  }
+
   /** Lay every drawn stroke out for the current target's structure. */
   private redraw(): void {
     const t = TARGETS[this.target];
@@ -181,8 +255,6 @@ export class CreativeTools extends ExhibitBase {
       const steps = 6;
       for (let s = 0; s <= steps; s++) {
         const p = from.clone().lerp(to, s / steps);
-        // Target structure changes the character of the line: prose curves,
-        // constraints go straight and square.
         const bend = Math.sin((s / steps) * Math.PI) * (0.42 - this.target * 0.16);
         p.y += bend + 0.02;
         p.x += Math.sin((s / steps) * t.k) * bend * 0.5;
@@ -200,6 +272,12 @@ export class CreativeTools extends ExhibitBase {
     sm.emissive.lerp(this.scratchColour.setHex(t.colour), Math.min(1, dt * 3));
     sm.emissiveIntensity = 0.12 + (this.strokeCount / MAX_STROKES) * 0.2;
 
+    for (let i = 0; i < this.factoryLamps.length; i++) {
+      const mat = this.factoryLamps[i].material as THREE.MeshStandardMaterial;
+      const intensity = i === this.factoryStage ? 1.35 : i < this.factoryStage ? 0.55 : 0.08;
+      mat.emissiveIntensity += (intensity - mat.emissiveIntensity) * Math.min(1, dt * 6);
+    }
+
     if (!this.reducedMotion) {
       for (let i = 0; i < this.nodes.length; i++) {
         this.nodes[i].rotation.y += dt * (0.2 + i * 0.05);
@@ -212,6 +290,7 @@ export class CreativeTools extends ExhibitBase {
   protected override onReset(): void {
     this.target = 0;
     this.strokeCount = 0;
+    this.factoryStage = 0;
     for (let i = 0; i < this.strokeUsed.length; i++) {
       this.strokeUsed[i] = false;
       this.strokes[i].setVisible(false);
@@ -225,9 +304,10 @@ export class CreativeTools extends ExhibitBase {
 
   protected override describeState(): string {
     const t = TARGETS[this.target];
-    if (this.strokeCount === 0) {
-      return `The table is empty and shaping for ${t.name}. ${t.note}`;
-    }
-    return `${this.strokeCount} stroke${this.strokeCount === 1 ? '' : 's'} on the table, shaped for ${t.name}. ${t.note}`;
+    const drawing = this.strokeCount === 0
+      ? `The DexDraw table is empty and shaping for ${t.name}.`
+      : `${this.strokeCount} stroke${this.strokeCount === 1 ? '' : 's'} remain on the DexDraw table, shaped for ${t.name}.`;
+    const factory = FACTORY_STAGES[this.factoryStage];
+    return `${drawing} 2D Game Factory is at ${factory.name}: ${factory.note}`;
   }
 }
