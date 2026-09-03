@@ -4,9 +4,11 @@ This runbook prepares Phase 14 without silently performing publication. It is in
 
 ## Current candidate and release shape
 
-- Implementation candidate: `feature/museum-workshop-core-2026-08-26` at committed HEAD `7ea364f8c2b406225b1c1110628ce75a647178dc`.
-- Release branch: `release/v1.0.0`, currently awaiting promotion of the implementation candidate through PR #3.
-- Release PR: `release/v1.0.0` → `main`; it will track the promoted release head automatically after PR #3 lands.
+- Current release/implementation line: `release/v1.0.0`.
+- Integration baseline: PR #3 merged the exact-head-verified Workshop / creative-expansion candidate into `release/v1.0.0` at merge commit `65142465336ee4603a07dd56333813f4f55befb0`.
+- Pre-merge proof: feature head `f6751de8e83017ec3a3a085d2b8d1f02d9b2cac7` passed pull-request workflow run #321 in all four jobs: `gate`, `browser`, `standalone`, and `workshop`.
+- Subsequent release-state-only reconciliation commits must receive their own exact-head CI before publication consideration; pre-merge proof is not silently transferred to a newer release head.
+- Release PR: `release/v1.0.0` → `main` (PR #1). It tracks the caught-up release line but remains deliberately unmerged while human/device evidence is pending.
 - Static build output: `dist/`
 - Build runtime: Node.js 22
 - Browser runtime: modern WebGL 2 browser
@@ -19,11 +21,13 @@ A release candidate is eligible for an owner publication decision only when all 
 
 1. Canonical `museum gate` succeeds on the exact release head.
 2. The browser job succeeds on the exact release head, including the production-only dependency audit and Playwright visitor-path suite.
-3. `npm run verify:dist` succeeds after the production build.
-4. The 35-exhibit / 64-project / 35-bespoke QA report remains green.
-5. A real-device human pass completes `validation/reports/HUMAN_QA_CHECKLIST.md`, including pointer lock, muted-by-default audio and representative-device FPS, and preserves a completed Markdown evidence record based on `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md` or the in-museum `?qa=1` recorder output.
-6. Run `npm run verify:human-evidence -- <completed-human-qa.md>` against that preserved record and require PASS. The verifier checks evidence completeness only: exactly nine human acceptance checks must be PASS, at least six telemetry snapshots must be present, and human notes must exist. It does not make the underlying perceptual/device judgments.
-7. The release PR remains reviewable and mergeable.
+3. The standalone job succeeds on the exact release head, including the offline canonical artifact verification.
+4. The Workshop job succeeds on the exact release head, preserving the development-only authoring/save/reload contract without changing production ownership.
+5. `npm run verify:dist` succeeds after the production build.
+6. The 35-exhibit / 64-project / 35-bespoke QA report remains green.
+7. A real-device human pass completes `validation/reports/HUMAN_QA_CHECKLIST.md`, including pointer lock, muted-by-default audio and representative-device FPS, and preserves a completed Markdown evidence record based on `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md` or the in-museum `?qa=1` recorder output.
+8. Run `npm run verify:human-evidence -- <completed-human-qa.md>` against that preserved record and require PASS. The verifier checks evidence completeness only: exactly nine human acceptance checks must be PASS, at least six telemetry snapshots must be present, and human notes must exist. It does not make the underlying perceptual/device judgments.
+9. The release PR remains reviewable and mergeable.
 
 Automated browser evidence reduces uncertainty; it does not substitute for the explicitly human checks above. The `?qa=1` recorder structures human evidence and captures telemetry snapshots, but the human tester still makes every perceptual/device judgment.
 
@@ -73,7 +77,7 @@ The hosted verifier should catch transport/header/cache regressions quickly; the
 
 ## Merge and tag boundary
 
-Do not merge PR #1, create `v1.0.0`, or publish a production URL merely because the repository is buildable. First promote the accepted current implementation into the release branch, then require exact-head automated evidence plus the remaining human/device evidence. These are owner-controlled release actions.
+Do not merge PR #1, create `v1.0.0`, or publish a production URL merely because the repository is buildable. The implementation is now promoted into `release/v1.0.0`; the remaining release boundary is exact-head release proof plus the outstanding human/device evidence. These are owner-controlled release actions.
 
 When those conditions are met and publication is explicitly authorized, the intended order is:
 
