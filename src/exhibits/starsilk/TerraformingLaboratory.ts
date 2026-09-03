@@ -136,7 +136,7 @@ export class TerraformingLaboratory extends ExhibitBase {
     const targetColour = this.collapsed ? new THREE.Color(0x09090d) : this.nullified ? new THREE.Color(0x4b4448) : new THREE.Color(0x6b4a3a).lerp(new THREE.Color(0x3f7a52), Math.min(1, this.mutationCount / 8));
     wm.color.lerp(targetColour, Math.min(1, dt * 2));
     const am = this.atmosphere.material as THREE.MeshStandardMaterial;
-    am.opacity += (((this.mutationCount > 0 ? 0.08 + Math.min(0.22, this.mutationCount * 0.025) : 0.06)) - am.opacity) * Math.min(1, dt * 2));
+    am.opacity += ((this.mutationCount > 0 ? 0.08 + Math.min(0.22, this.mutationCount * 0.025) : 0.06) - am.opacity) * Math.min(1, dt * 2);
     if (!this.reducedMotion) { this.world.rotation.y += dt * 0.08; this.atmosphere.rotation.y -= dt * 0.04; }
   }
 
