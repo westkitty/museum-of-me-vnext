@@ -234,9 +234,8 @@ export class ContinuitySystems extends ExhibitBase {
       this.cards[i].position.y += ((this.cardHomes[i].y + lift) - this.cards[i].position.y) * (this.reducedMotion ? 1 : Math.min(1, dt * 6));
     }
     const target = this.recoveryHomes[this.recoveryStage];
-    const tokenTarget = new THREE.Vector3(target.x, 2.38, -2.62);
-    if (this.reducedMotion) this.recoveryToken.position.copy(tokenTarget);
-    else this.recoveryToken.position.lerp(tokenTarget, Math.min(1, dt * 6));
+    if (this.reducedMotion) this.recoveryToken.position.set(target.x, 2.38, -2.62);
+    else this.recoveryToken.position.x += (target.x - this.recoveryToken.position.x) * Math.min(1, dt * 6);
     for (let i = 0; i < this.recoveryStations.length; i++) {
       const lift = i === this.recoveryStage ? 0.1 : 0;
       this.recoveryStations[i].position.y += ((this.recoveryHomes[i].y + lift) - this.recoveryStations[i].position.y) * (this.reducedMotion ? 1 : Math.min(1, dt * 6));
