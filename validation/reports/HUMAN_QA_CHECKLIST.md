@@ -41,6 +41,18 @@ Keep diagnostics visible for the performance checkpoints and pointer-lock/audio 
 
 Capture QA-recorder telemetry snapshots at minimum at the exterior spawn, Rotunda, one dense wing, one Tier A exhibit, Dexter Sanctuary, and the final return to the entrance.
 
+## Collection Revision 2 — changed-room acceptance
+
+These checks are intentionally specific. The automated suite proves state changes, resets, lifecycle and protected contracts; this section asks whether a human visitor can actually **see and understand what the revised installation is teaching**.
+
+- [ ] **E11 — Selfsame / He-Maker:** advance the He-Maker recovery packet through **Loose files → Repository → Intent & history → Durable record**. The four stations, active token and accumulated/reached stages must be readable without relying on the announcement text. Confirm the separate authority desk and preflight/hard-stop interaction still read as a different but related system rather than one confused control cluster.
+- [ ] **E14 — Promptcraft / DexEnhance:** change the synthetic host-page presentation and operate the isolated DexEnhance layer. Confirm it is visually obvious that the extension surface remains independent from the host layout instead of merely being described as Shadow DOM isolation.
+- [ ] **E16 — Performance Capture & Media Transformation:** advance the pipeline from source motion through portable state, character rig, soft alpha, composite and verified artifact. Change the **character** and **background** independently and confirm the output visibly changes while the source performer/performance reads as preserved. Verify the matte and final verification state are noticeable but not visually noisy.
+- [ ] **E22 — Creative Tools / 2D Game Factory:** advance the Factory station through **Import → Asset Lab → Role Map → Scene → Preview → Validate → Build → Pack**. Confirm the workflow can be understood as a game-production workbench without implying that the Museum is secretly running the external factory. Confirm DexDraw/DexCraft remain legible as neighboring creative lineages rather than being crowded out by the Factory station.
+- [ ] **E34 — AndrewOS / BigMac:** exercise one read-only operation and one consequential operation. Confirm the physical receipt makes **REQUESTED / ATTEMPTED / CHANGED / VERIFIED** visibly distinct; read-only success must not look like it changed state, and consequential work without a Dexter Gate preview must visibly stop before CHANGED/VERIFIED. The receipt should read as evidence, not as a generic progress bar.
+
+For each changed room, record **Pass** or **Needs work** separately for: spatial composition, label readability, control discoverability, visible state change, and whether the interaction teaches the project without requiring prior knowledge.
+
 ## Device interaction
 
 - [ ] Capture pointer lock with mouse and with keyboard activation of the entry prompt; record diagnostics changing from `pointer free` to `pointer locked`.
