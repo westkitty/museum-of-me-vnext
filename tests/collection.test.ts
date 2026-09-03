@@ -32,6 +32,13 @@ describe('collection integrity', () => {
     }
   });
 
+  it('keeps corrected current project homes instead of restoring stale historical grouping', () => {
+    expect(EXHIBITS_BY_ID.get('E14')?.projectIds).toContain('P029'); // DexEnhance: prompt/browser workflow tooling
+    expect(EXHIBITS_BY_ID.get('E21')?.projectIds).not.toContain('P029');
+    expect(EXHIBITS_BY_ID.get('E11')?.projectIds).toContain('P060'); // He-Maker: project recovery / archaeology
+    expect(EXHIBITS_BY_ID.get('E16')?.projectIds).not.toContain('P060');
+  });
+
   it('resolves projects for every exhibit', () => {
     for (const e of COLLECTION.exhibits) {
       const projects = projectsForExhibit(e.id);
