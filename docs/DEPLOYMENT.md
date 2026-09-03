@@ -4,7 +4,7 @@
 
 Static files only. There is no application server, database, API, or request-time build step.
 
-The build plan's Phase 14 recommends Cloudflare Pages for the shell plus Cloudflare R2 for large hashed museum assets. **The R2 half is not needed for the current release candidate.** Current museum models and textures are generated procedurally from code shipped in the bundle (see `docs/ASSET_POLICY.md`); runtime audio playback is disabled, so there are no runtime museum binary assets that need a second host.
+The build plan's Phase 14 recommends Cloudflare Pages for the shell plus Cloudflare R2 for large hashed museum assets. **The R2 half is not needed for the current candidate.** The candidate includes provenance-governed local Quaternius GLBs and a deferred locally bundled Full Weasel application; offline verification must continue to show zero unnecessary remote requests. Audio is not permanently disabled: the audio system exists, with Overall volume and Ambience defaulting to zero until the visitor opts in.
 
 ## Release-candidate build
 
@@ -25,7 +25,7 @@ The independent GitHub Actions browser job additionally performs the production-
 | Entry | `dist/index.html` |
 | Base path | relative (`./`), so the museum can work at a domain root or sub-path without rebuilding |
 | Runtime model | static same-origin files; no live backend required |
-| Current separate asset host | none |
+| Current separate asset host | none; governed runtime assets are bundled locally |
 
 ## Hosting
 

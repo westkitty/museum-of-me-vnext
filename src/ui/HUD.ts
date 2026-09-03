@@ -21,6 +21,8 @@ export class HUD {
   private buildModeButton: HTMLButtonElement | null = null;
   private pointerLocked = false;
   private buildModeActive = false;
+  private interactionFocus: InteractionFocus | null = null;
+  private workshopCueLabel: string | null = null;
 
   private subtitleTimer = 0;
   private lastZone: ZoneId | null = null;
@@ -125,9 +127,21 @@ export class HUD {
   }
 
   setFocus(focus: InteractionFocus | null): void {
-    this.reticle.classList.toggle('hud__reticle--active', focus !== null);
-    this.cue.classList.toggle('hud__cue--visible', focus !== null);
-    if (focus) this.cueLabel.textContent = focus.label;
+    this.interactionFocus = focus;
+    this.renderCue();
+  }
+
+  /** Development-only contextual cue; ordinary visitor interaction wins. */
+  setWorkshopCue(label: string | null): void {
+    this.workshopCueLabel = label;
+    this.renderCue();
+  }
+
+  private renderCue(): void {
+    const label = this.interactionFocus?.label ?? (this.workshopCueLabel ? `EDIT · ${this.workshopCueLabel}` : null);
+    this.reticle.classList.toggle('hud__reticle--active', label !== null);
+    this.cue.classList.toggle('hud__cue--visible', label !== null);
+    if (label) this.cueLabel.textContent = label;
   }
 
   setLocation(zone: ZoneId): void {

@@ -2,6 +2,7 @@ import placementManifest from '../data/workshop-placements.json';
 import { App } from './app/App';
 import { MuseumPlacements } from './workshop/MuseumPlacements';
 import { PersistentEnvironment } from './world/PersistentEnvironment';
+import { AuthorableSceneRegistry } from './workshop/AuthorableSceneRegistry';
 
 function fail(message: string, detail?: unknown): never {
   console.error('[museum]', message, detail);
@@ -28,13 +29,19 @@ try {
   // All always-resident polish lives behind one measurable lifecycle boundary.
   // It shares the application ResourceScope and never owns collision, loops or
   // exhibit lifecycle resources.
-  const environment = new PersistentEnvironment(app.scope).build();
+  const environmentBuilder = new PersistentEnvironment(app.scope);
+  const environment = environmentBuilder.build();
   app.scene.add(environment);
+
+  const sceneRegistry = new AuthorableSceneRegistry([
+    ...app.arrivalGarden.authorableSceneRoots(),
+    ...environmentBuilder.authorableSceneRoots(),
+  ]);
 
   // Museum Workshop writes only this declarative placement source. The normal
   // runtime consumes it in every build; the development editor itself is loaded
   // separately and is stripped from production output.
-  placements = new MuseumPlacements(placementManifest);
+  placements = new MuseumPlacements(placementManifest, sceneRegistry);
   app.scene.add(placements.group);
 } catch (err) {
   fail(
@@ -58,6 +65,7 @@ if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('edit
     .then(({ Workshop }) => {
       const workshop = new Workshop(app, placements);
       toggleWorkshop = () => workshop.toggle();
+      app.setWorkshopUpdate(() => workshop.update());
       window.__museumWorkshop = workshop;
     })
     .catch((error) => {

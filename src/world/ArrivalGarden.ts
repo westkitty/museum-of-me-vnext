@@ -27,6 +27,8 @@ export class ArrivalGarden {
   private readonly shoreline: THREE.MeshStandardMaterial;
   private readonly water: THREE.ShaderMaterial;
   private readonly waterTime: { value: number };
+  private readonly authorableRoots: { id: string; root: THREE.Object3D }[] = [];
+  private shrubCount = 0;
 
   constructor(
     private readonly scope: ResourceScope,
@@ -44,7 +46,8 @@ export class ArrivalGarden {
       color: 0x24799b, roughness: 0.18, metalness: 0.28, transparent: true, opacity: 0.68,
     }));
     this.island = this.mat(0x142d2f, 0.96);
-    this.shoreline = this.mat(0x4a6a68, 0.94);
+    // The shoreline is the distant water boundary, not a luminous outline.
+    this.shoreline = this.mat(0x183238, 0.98);
     this.waterTime = { value: 0 };
     this.water = this.scope.track(new THREE.ShaderMaterial({
       transparent: true,
@@ -159,6 +162,10 @@ export class ArrivalGarden {
     return this.group;
   }
 
+  authorableSceneRoots(): readonly { readonly id: string; readonly root: THREE.Object3D }[] {
+    return this.authorableRoots;
+  }
+
   /** Water and shoreline are visual-only: the proven exterior ground and its
    * Sanctuary-trench cut-out remain the sole collision authority. */
   private buildIsland(): void {
@@ -194,9 +201,10 @@ export class ArrivalGarden {
         const angle = (i / radii.length) * Math.PI * 2;
         return new THREE.Vector3(Math.cos(angle) * radius, GROUND_Y - 0.36, Math.sin(angle) * radius * 0.86);
       }), true, 'catmullrom', 0.2),
-      160, 0.85, 8, true,
+      96, 0.32, 6, true,
     )), this.shoreline);
     shore.name = 'night-island-shoreline';
+    shore.userData.visualRole = 'water-boundary';
     this.group.add(shore);
   }
 
@@ -258,6 +266,13 @@ export class ArrivalGarden {
     shrub.position.set(x, y + radius * 0.62, z);
     shrub.castShadow = true;
     this.group.add(shrub);
+    this.shrubCount++;
+    if (this.shrubCount <= 6) {
+      this.authorableRoots.push({
+        id: `arrival-garden-shrub-${String(this.shrubCount).padStart(2, '0')}`,
+        root: shrub,
+      });
+    }
   }
 
   private flowerCluster([x, y, z]: Vec3): void {

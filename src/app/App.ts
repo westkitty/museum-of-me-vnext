@@ -85,6 +85,7 @@ export class App implements LoopCallbacks {
   preferences: VisitorPreferences;
 
   private disposed = false;
+  private workshopUpdate: (() => void) | null = null;
 
   constructor(opts: AppOptions) {
     this.uiRoot = opts.uiRoot;
@@ -298,6 +299,11 @@ export class App implements LoopCallbacks {
     this.loop.stop();
   }
 
+  /** Development-only Workshop cue hook; the editor remains dynamically loaded. */
+  setWorkshopUpdate(update: (() => void) | null): void {
+    this.workshopUpdate = update;
+  }
+
   // ── LoopCallbacks ─────────────────────────────────────────────────────────
 
   /** Latest announcement, surfaced by the HUD subtitle line and the DOM mirror. */
@@ -359,6 +365,7 @@ export class App implements LoopCallbacks {
 
     this.streaming.evaluate(eye, dt, zone);
     this.interaction.update(this.camera);
+    this.workshopUpdate?.();
 
     // Bay key lights follow exhibit residency, and the light director then
     // enables only the nearest few — so the shader cost of lighting does not
@@ -393,13 +400,14 @@ export class App implements LoopCallbacks {
   render(alpha: number): void {
     this.player.applyToCamera(this.camera, alpha);
     this.renderer.render();
-    this.diagnostics.sample(this.renderer.renderer, this.loop.fps);
+    this.diagnostics.sample(this.renderer.renderer, this.loop.fps, this.loop.frameTimeMs);
   }
 
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
     this.loop.stop();
+    this.workshopUpdate = null;
     this.ui?.dispose();
     this.audio.dispose();
     this.assets.dispose();

@@ -2,15 +2,17 @@
 
 This runbook prepares Phase 14 without silently performing publication. It is intentionally separate from the build plan's implementation gates.
 
-## Current release shape
+## Current candidate and release shape
 
-- Source branch: `release/v1.0.0`
-- Release PR: `release/v1.0.0` → `main`
+- Implementation candidate: `feature/museum-workshop-core-2026-08-26` at committed HEAD `bf2fe0611c5c06e69316ec1bbc3cbf81bfac41e2`.
+- Working-tree state: additional uncommitted candidate changes were present during this reconciliation; committed-head CI does not cover them.
+- Release branch: `release/v1.0.0`, an older baseline 32 commits behind the implementation candidate.
+- Release PR: `release/v1.0.0` → `main`; it does not contain the current Workshop/creative-expansion candidate.
 - Static build output: `dist/`
 - Build runtime: Node.js 22
 - Browser runtime: modern WebGL 2 browser
-- Current large-asset host requirement: none; the present release ships procedural museum content and no runtime binary museum assets
-- Future large governed assets: use the build plan's separate asset-host policy when actual GLB/KTX2/audio binaries are introduced
+- Current large-asset host requirement: none; governed Quaternius GLBs and the deferred Full Weasel artifact are bundled locally, with no unnecessary runtime hotlinks.
+- Local asset rule: binary assets are permitted only when provenance- and manifest-governed, included in offline verification, and served same-origin.
 
 ## Required evidence before publication
 
@@ -72,7 +74,7 @@ The hosted verifier should catch transport/header/cache regressions quickly; the
 
 ## Merge and tag boundary
 
-Do not merge PR #1, create `v1.0.0`, or publish a production URL merely because the repository is buildable. Those are owner-controlled release actions and should follow the current-head automated evidence plus the remaining human/device evidence.
+Do not merge PR #1, create `v1.0.0`, or publish a production URL merely because the repository is buildable. First promote the accepted current implementation into the release branch, then require exact-head automated evidence plus the remaining human/device evidence. These are owner-controlled release actions.
 
 When those conditions are met and publication is explicitly authorized, the intended order is:
 

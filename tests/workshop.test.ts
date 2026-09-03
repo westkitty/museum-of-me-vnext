@@ -3,12 +3,14 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
+import * as THREE from 'three';
 import { INSTALLATION_PLACEMENTS } from '../src/world/installationPlacement';
 import { PLACEMENT_BY_EXHIBIT, SANCTUARY_DIR, SANCTUARY_RAMP_FROM, place } from '../src/world/layout';
 import { writeWorkshopManifest } from '../scripts/workshop-save-plugin';
 import { validateWorkshopManifestForMuseum, validateWorkshopConservation } from '../src/workshop/conservation';
 import { MuseumPlacements } from '../src/workshop/MuseumPlacements';
 import { WorkshopHistory } from '../src/workshop/history';
+import { AuthorableSceneRegistry } from '../src/workshop/AuthorableSceneRegistry';
 import {
   EMPTY_WORKSHOP_MANIFEST,
   serializeWorkshopManifest,
@@ -146,6 +148,15 @@ describe('Museum Workshop conservation', () => {
       });
       expect(await readFile(target, 'utf8')).toBe(original);
 
+      const rejectedScene = await writeWorkshopManifest({
+        schemaVersion: 1,
+        objects: [],
+        sceneOverrides: [{ id: 'rotunda-information-counter', position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] }],
+      }, target);
+      expect(rejectedScene.ok).toBe(false);
+      expect(rejectedScene.violations?.[0]?.placementId).toBe('rotunda-information-counter');
+      expect(await readFile(target, 'utf8')).toBe(original);
+
       const accepted = await writeWorkshopManifest(at([30, 0, 42]), target);
       expect(accepted.ok).toBe(true);
       expect(await readFile(target, 'utf8')).toBe(serializeWorkshopManifest(at([30, 0, 42])));
@@ -174,6 +185,34 @@ describe('MuseumPlacements', () => {
     placements.replaceManifest(sample);
     expect(placements.objectCount).toBe(1);
     placements.dispose();
+  });
+
+  it('applies existing-scene overrides through the explicit registry', () => {
+    const root = new THREE.Group();
+    const registry = new AuthorableSceneRegistry([{ id: 'arrival-garden-shrub-01', root }]);
+    const placements = new MuseumPlacements({
+      schemaVersion: 1,
+      objects: [],
+      sceneOverrides: [{ id: 'arrival-garden-shrub-01', position: [30, 0, 42], rotation: [0, 0.2, 0], scale: [1, 1, 1] }],
+    }, registry);
+    expect(root.position.toArray()).toEqual([30, 0, 42]);
+    expect(placements.captureManifest().sceneOverrides?.[0]?.rotation[1]).toBe(0.2);
+    root.position.x = 31;
+    expect(placements.captureManifest().sceneOverrides?.[0]?.position[0]).toBe(31);
+    placements.setRecord(sample.objects[0]!);
+    expect(placements.captureManifest().sceneOverrides?.[0]?.position[0]).toBe(31);
+    placements.dispose();
+  });
+
+  it('rejects an existing-scene override that enters protected circulation', () => {
+    const result = validateWorkshopManifestForMuseum({
+      schemaVersion: 1,
+      objects: [],
+      sceneOverrides: [{ id: 'rotunda-information-counter', position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] }],
+    });
+    expect(result.ok).toBe(false);
+    expect(result.errors[0]).toContain('rotunda-information-counter');
+    expect(result.errors[0]).toContain('Rotunda flight-pad operating area');
   });
 });
 

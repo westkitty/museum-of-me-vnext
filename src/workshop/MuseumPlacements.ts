@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import { ResourceScope } from '../assets/ResourceScope';
 import { type WorkshopPrefabId } from './catalog';
+import { AuthorableSceneRegistry, type AuthorableSceneTransform } from './AuthorableSceneRegistry';
 import { validateWorkshopManifestForMuseum } from './conservation';
 import {
   canonicalizeWorkshopManifest,
   WORKSHOP_SCHEMA_VERSION,
   type WorkshopPlacementManifest,
   type WorkshopPlacementRecord,
+  type WorkshopSceneOverride,
 } from './schema';
 
 interface PlacementMaterials {
@@ -21,11 +23,13 @@ export class MuseumPlacements {
 
   private readonly roots = new Map<string, THREE.Group>();
   private readonly scope = new ResourceScope('museum-placements');
+  private readonly registry: AuthorableSceneRegistry | null;
   private manifest: WorkshopPlacementManifest;
 
-  constructor(rawManifest: unknown) {
+  constructor(rawManifest: unknown, registry: AuthorableSceneRegistry | null = null) {
     this.group.name = 'museum-authored-placements';
-    const parsed = validateWorkshopManifestForMuseum(rawManifest);
+    this.registry = registry;
+    const parsed = validateWorkshopManifestForMuseum(rawManifest, registry?.entries() ?? []);
     if (!parsed.ok || !parsed.value) {
       throw new Error(`Museum Workshop placement manifest is invalid: ${parsed.errors.join('; ')}`);
     }
@@ -35,12 +39,24 @@ export class MuseumPlacements {
 
   get objectCount(): number { return this.roots.size; }
 
-  getObject(id: string): THREE.Group | null {
-    return this.roots.get(id) ?? null;
+  getObject(id: string): THREE.Object3D | null {
+    return this.roots.get(id) ?? this.registry?.get(id)?.root ?? null;
   }
 
-  selectableObjects(): readonly THREE.Group[] {
-    return [...this.roots.values()];
+  getSceneEntry(id: string) {
+    return this.registry?.get(id) ?? null;
+  }
+
+  sceneEntries() {
+    return this.registry?.entries() ?? [];
+  }
+
+  selectableObjects(): readonly THREE.Object3D[] {
+    return [...this.roots.values(), ...(this.registry?.selectableObjects() ?? [])];
+  }
+
+  authorableEntryForObject(object: THREE.Object3D | null) {
+    return this.registry?.entryForObject(object) ?? null;
   }
 
   captureManifest(): WorkshopPlacementManifest {
@@ -54,11 +70,20 @@ export class MuseumPlacements {
         scale: [root.scale.x, root.scale.y, root.scale.z] as [number, number, number],
       };
     });
-    return canonicalizeWorkshopManifest({ schemaVersion: WORKSHOP_SCHEMA_VERSION, objects });
+    const sceneOverrides: WorkshopSceneOverride[] = [];
+    const saved = new Map((this.manifest.sceneOverrides ?? []).map((override) => [override.id, override]));
+    for (const entry of this.registry?.entries() ?? []) {
+      const transform = this.registry?.capture(entry.id);
+      if (!transform) continue;
+      if (saved.has(entry.id) || !transformsEqual(transform, entry.baseline)) {
+        sceneOverrides.push({ id: entry.id, ...transform });
+      }
+    }
+    return canonicalizeWorkshopManifest({ schemaVersion: WORKSHOP_SCHEMA_VERSION, objects, sceneOverrides });
   }
 
   replaceManifest(rawManifest: unknown): WorkshopPlacementManifest {
-    const parsed = validateWorkshopManifestForMuseum(rawManifest);
+    const parsed = validateWorkshopManifestForMuseum(rawManifest, this.registry?.entries() ?? []);
     if (!parsed.ok || !parsed.value) {
       throw new Error(`Museum Workshop placement manifest is invalid: ${parsed.errors.join('; ')}`);
     }
@@ -71,7 +96,20 @@ export class MuseumPlacements {
     const current = this.captureManifest();
     const objects = current.objects.filter((item) => item.id !== record.id);
     objects.push(record);
-    return this.replaceManifest({ schemaVersion: WORKSHOP_SCHEMA_VERSION, objects });
+    return this.replaceManifest({
+      schemaVersion: WORKSHOP_SCHEMA_VERSION,
+      objects,
+      sceneOverrides: current.sceneOverrides,
+    });
+  }
+
+  setSceneOverride(id: string, transform: AuthorableSceneTransform): WorkshopPlacementManifest {
+    const entry = this.registry?.get(id);
+    if (!entry) throw new Error(`Unknown authorable scene object: ${id}`);
+    const current = this.captureManifest();
+    const sceneOverrides = current.sceneOverrides?.filter((item) => item.id !== id) ?? [];
+    sceneOverrides.push({ id, ...transform });
+    return this.replaceManifest({ schemaVersion: WORKSHOP_SCHEMA_VERSION, objects: current.objects, sceneOverrides });
   }
 
   removeRecord(id: string): WorkshopPlacementManifest {
@@ -79,6 +117,7 @@ export class MuseumPlacements {
     return this.replaceManifest({
       schemaVersion: WORKSHOP_SCHEMA_VERSION,
       objects: current.objects.filter((record) => record.id !== id),
+      sceneOverrides: current.sceneOverrides,
     });
   }
 
@@ -93,6 +132,8 @@ export class MuseumPlacements {
     this.group.clear();
     this.roots.clear();
     this.scope.releaseAll();
+    for (const entry of this.registry?.entries() ?? []) this.registry?.apply(entry.id, entry.baseline);
+    for (const override of this.manifest.sceneOverrides ?? []) this.registry?.apply(override.id, override);
     const materials = this.createMaterials();
 
     for (const record of this.manifest.objects) {
@@ -174,4 +215,10 @@ export class MuseumPlacements {
     mesh.receiveShadow = true;
     return mesh;
   }
+}
+
+function transformsEqual(a: AuthorableSceneTransform, b: AuthorableSceneTransform): boolean {
+  return a.position.every((value, index) => value === b.position[index])
+    && a.rotation.every((value, index) => value === b.rotation[index])
+    && a.scale.every((value, index) => value === b.scale[index]);
 }

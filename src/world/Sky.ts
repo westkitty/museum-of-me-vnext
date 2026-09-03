@@ -10,9 +10,11 @@ export class Sky {
   readonly bloodRing: THREE.Mesh;
   readonly horizon = new THREE.Color(0x17304b);
 
-  static readonly BLOOD_RING_ORBIT_RADIUS = 480;
-  static readonly BLOOD_RING_TUBE_RADIUS = 22;
-  static readonly BLOOD_RING_HEIGHT = 170;
+  // The surface-view composition needs a broad sky sweep, not a distant
+  // hairline or a heavy torus hidden behind the building.
+  static readonly BLOOD_RING_ORBIT_RADIUS = 285;
+  static readonly BLOOD_RING_TUBE_RADIUS = 5.2;
+  static readonly BLOOD_RING_HEIGHT = 255;
 
   constructor(scope: ResourceScope) {
     const geometry = scope.track(new THREE.SphereGeometry(420, 32, 20));
@@ -94,37 +96,55 @@ export class Sky {
     this.mesh.renderOrder = -1;
     this.mesh.frustumCulled = false;
 
+    // The Blood Ring is one planet-scale orbit. A low-poly cross-section and
+    // flat shading expose crystal planes without breaking its silhouette into
+    // separate beads.
     const ringGeometry = scope.track(new THREE.TorusGeometry(
       Sky.BLOOD_RING_ORBIT_RADIUS,
       Sky.BLOOD_RING_TUBE_RADIUS,
-      16,
-      128,
+      8,
+      144,
     ));
     const ringMaterial = scope.track(new THREE.MeshPhysicalMaterial({
-      color: 0x3c0711,
-      roughness: 0.34,
-      metalness: 0.08,
-      transmission: 0.18,
-      thickness: 18,
-      ior: 1.46,
-      clearcoat: 0.42,
-      clearcoatRoughness: 0.22,
-      attenuationColor: new THREE.Color(0x180107),
-      attenuationDistance: 36,
+      color: 0xc30d36,
+      emissive: 0x650012,
+      emissiveIntensity: 0.9,
+      roughness: 0.12,
+      metalness: 0.12,
+      transmission: 0.03,
+      thickness: 8,
+      ior: 1.52,
+      clearcoat: 1,
+      clearcoatRoughness: 0.035,
+      attenuationColor: new THREE.Color(0x5e0013),
+      attenuationDistance: 12,
       flatShading: true,
-      transparent: true,
-      opacity: 0.94,
+      transparent: false,
+      opacity: 1,
       side: THREE.DoubleSide,
-      depthWrite: false,
+      depthWrite: true,
+      // The orbit sits at the scene fog boundary. Fog was replacing the red
+      // crystal with the blue horizon colour, producing the reported hoop.
+      fog: false,
+      toneMapped: false,
     }));
     this.bloodRing = new THREE.Mesh(ringGeometry, ringMaterial);
     this.bloodRing.name = 'blood-ring-complete-orbital-structure';
     this.bloodRing.position.y = Sky.BLOOD_RING_HEIGHT;
     this.bloodRing.rotation.set(
-      THREE.MathUtils.degToRad(17),
+      // TorusGeometry starts in a vertical XY plane. A surface viewpoint
+      // needs the orbit nearly horizontal so it reads as an overhead sweep,
+      // not as a circular hoop facing the visitor.
+      THREE.MathUtils.degToRad(78),
       THREE.MathUtils.degToRad(-8),
-      THREE.MathUtils.degToRad(11),
+      THREE.MathUtils.degToRad(16),
     );
+    // The arrival canopy writes depth across the apparent sky. Keep this
+    // celestial landmark in the sky pass so the planetary sweep remains
+    // visible from the surface viewpoint.
+    this.bloodRing.renderOrder = -0.5;
+    ringMaterial.depthTest = false;
+    ringMaterial.depthWrite = false;
     this.bloodRing.frustumCulled = false;
   }
 

@@ -18,8 +18,8 @@ export class ExteriorIdentity {
 
   constructor(private readonly scope: ResourceScope) {
     this.group.name = 'exterior-museum-identity';
-    this.stone = this.mat(0x182431, 0.76, 0.18);
-    this.warmStone = this.mat(0x263849, 0.68, 0.28);
+    this.stone = this.mat(0x121820, 0.82, 0.16);
+    this.warmStone = this.mat(0x0b1016, 0.78, 0.22);
     this.azure = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x56b8ed, emissive: 0x17658f, emissiveIntensity: 0.62, roughness: 0.34, metalness: 0.45,
     }));

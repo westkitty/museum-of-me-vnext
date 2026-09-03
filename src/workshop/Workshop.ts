@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { TransformControls, type TransformControlsMode } from 'three/examples/jsm/controls/TransformControls.js';
 import type { App } from '../app/App';
 import type { MuseumPlacements } from './MuseumPlacements';
+import type { AuthorableSceneEntry, AuthorableSceneTransform } from './AuthorableSceneRegistry';
 import { WORKSHOP_PREFABS, type WorkshopPrefabId } from './catalog';
 import { conservationErrors, validateWorkshopConservation } from './conservation';
 import { WorkshopHistory } from './history';
@@ -80,12 +81,13 @@ export class Workshop {
 
   get isOpen(): boolean { return this.openState; }
 
-  open(): void {
+  open(targetId: string | null = null): void {
     if (this.openState) return;
     if (this.app.ui.anyPanelOpen) {
       this.note('Close the current museum panel before opening Workshop.', 'warn');
       return;
     }
+    if (targetId) this.select(targetId);
     this.openState = true;
     this.root.hidden = false;
     this.app.input.releasePointerLock();
@@ -109,11 +111,23 @@ export class Workshop {
     this.app.input.uiCaptured = false;
     this.app.player.setFrozen(false);
     this.app.ui.setBuildModeActive(false);
+    this.app.ui.hud.setWorkshopCue(null);
   }
 
   toggle(): void {
     if (this.openState) this.close();
     else this.open();
+  }
+
+  /** Called by App's existing variable phase; never owns a frame loop. */
+  update(): void {
+    if (this.openState) {
+      this.app.ui.hud.setWorkshopCue(null);
+      return;
+    }
+    const hit = this.authorableHit(true);
+    const focus = this.app.interaction.currentFocus;
+    this.app.ui.hud.setWorkshopCue(!focus && hit ? hit.entry?.label ?? hit.id : null);
   }
 
   dispose(): void {
@@ -256,7 +270,8 @@ export class Workshop {
   private commitTransform(): void {
     const object = this.object();
     const record = this.record();
-    if (!object || !record) return;
+    const sceneEntry = this.sceneEntry();
+    if (!object || (!record && !sceneEntry)) return;
     const v = Object.fromEntries(INPUT_KEYS.map((key) => [key, Number(this.inputs[key].value)])) as Record<InputKey, number>;
     if (Object.values(v).some((value) => !Number.isFinite(value))) return this.note('Transform values must be finite.', 'error');
     const before = this.placements.captureManifest();
@@ -271,7 +286,19 @@ export class Workshop {
       THREE.MathUtils.clamp(v.sy, 0.05, 20),
       THREE.MathUtils.clamp(v.sz, 0.05, 20),
     );
-    this.history.push(`Transform ${record.label}`, before, this.placements.captureManifest());
+    const label = record?.label ?? sceneEntry?.label ?? this.selectedId ?? 'object';
+    let after: WorkshopPlacementManifest;
+    try {
+      after = sceneEntry
+        ? this.placements.setSceneOverride(sceneEntry.id, this.captureTransform(object))
+        : this.placements.captureManifest();
+    } catch (error) {
+      this.placements.replaceManifest(before);
+      this.note(error instanceof Error ? error.message : 'Transform rejected by Museum conservation.', 'error');
+      this.refresh();
+      return;
+    }
+    this.history.push(`Transform ${label}`, before, after);
     this.selectionBox?.update();
     this.refresh();
   }
@@ -332,11 +359,33 @@ export class Workshop {
     this.refreshInspector();
   }
 
-  private object(): THREE.Group | null { return this.selectedId ? this.placements.getObject(this.selectedId) : null; }
+  private object(): THREE.Object3D | null { return this.selectedId ? this.placements.getObject(this.selectedId) : null; }
   private record(): WorkshopPlacementRecord | null {
     return this.selectedId
       ? this.placements.captureManifest().objects.find((item) => item.id === this.selectedId) ?? null
       : null;
+  }
+
+  private sceneEntry(): AuthorableSceneEntry | null {
+    return this.selectedId ? this.placements.getSceneEntry(this.selectedId) : null;
+  }
+
+  private captureTransform(object: THREE.Object3D): AuthorableSceneTransform {
+    return {
+      position: [object.position.x, object.position.y, object.position.z],
+      rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
+      scale: [object.scale.x, object.scale.y, object.scale.z],
+    };
+  }
+
+  private authorableHit(centre: boolean): { id: string; entry: AuthorableSceneEntry | null } | null {
+    if (centre) this.pointer.set(0, 0);
+    this.raycaster.setFromCamera(this.pointer, this.app.camera);
+    const hit = this.raycaster.intersectObjects([...this.placements.selectableObjects()], true)[0];
+    if (!hit) return null;
+    const entry = this.placements.authorableEntryForObject(hit.object);
+    const id = entry?.id ?? hit.object.userData.workshopId;
+    return typeof id === 'string' ? { id, entry } : null;
   }
 
   private readonly onCanvasPointerDown = (event: PointerEvent): void => {
@@ -347,10 +396,9 @@ export class Workshop {
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
-    this.raycaster.setFromCamera(this.pointer, this.app.camera);
-    const hit = this.raycaster.intersectObjects([...this.placements.selectableObjects()], true)[0];
-    const id = hit?.object.userData.workshopId;
-    this.select(typeof id === 'string' ? id : null);
+    const hit = this.authorableHit(false);
+    this.select(hit?.id ?? null);
+    if (!hit) this.note('Protected scene geometry. Only registered dressing objects can be edited.', 'warn');
     this.refresh();
   };
 
@@ -375,8 +423,19 @@ export class Workshop {
   private readonly onTransformEnd = (): void => {
     const before = this.dragBefore;
     const record = this.record();
+    const sceneEntry = this.sceneEntry();
     this.dragBefore = null;
-    if (before && record) this.history.push(`Transform ${record.label}`, before, this.placements.captureManifest());
+    if (before && (record || sceneEntry)) {
+      try {
+        const after = sceneEntry
+          ? this.placements.setSceneOverride(sceneEntry.id, this.captureTransform(this.object()!))
+          : this.placements.captureManifest();
+        this.history.push(`Transform ${record?.label ?? sceneEntry?.label ?? 'object'}`, before, after);
+      } catch (error) {
+        this.placements.replaceManifest(before);
+        this.note(error instanceof Error ? error.message : 'Transform rejected by Museum conservation.', 'error');
+      }
+    }
     this.refresh();
   };
 
@@ -384,9 +443,23 @@ export class Workshop {
     if (event.code === 'F8') {
       event.preventDefault(); event.stopPropagation(); this.toggle(); return;
     }
-    if (!this.openState) return;
     const target = event.target as HTMLElement | null;
-    const editing = /^(INPUT|TEXTAREA|SELECT)$/.test(target?.tagName ?? '') || Boolean(target?.isContentEditable);
+    const editing = /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(target?.tagName ?? '')
+      || Boolean(target?.isContentEditable)
+      || target?.getAttribute('role') === 'button';
+    if (event.code === 'KeyF' && !editing) {
+      const hit = this.authorableHit(true);
+      if (!this.openState) {
+        if (this.app.interaction.currentFocus || !hit) return;
+        event.preventDefault(); event.stopPropagation(); this.open(hit.id); return;
+      }
+      event.preventDefault(); event.stopPropagation();
+      if (hit) this.select(hit.id);
+      else this.note('Protected scene geometry. Only registered dressing objects can be edited.', 'warn');
+      this.refresh();
+      return;
+    }
+    if (!this.openState) return;
     const mod = event.metaKey || event.ctrlKey;
     if (mod && event.code === 'KeyS') { event.preventDefault(); void this.save(); }
     else if (!editing && mod && event.code === 'KeyZ') {
@@ -409,10 +482,10 @@ export class Workshop {
     this.refreshOutliner();
     this.undoButton.disabled = !this.history.canUndo;
     this.redoButton.disabled = !this.history.canRedo;
-    const selected = this.selectedId !== null;
-    this.el<HTMLButtonElement>('duplicate').disabled = !selected;
-    this.el<HTMLButtonElement>('delete').disabled = !selected;
-    this.el<HTMLButtonElement>('floor').disabled = !selected;
+    const placementSelected = this.record() !== null;
+    this.el<HTMLButtonElement>('duplicate').disabled = !placementSelected;
+    this.el<HTMLButtonElement>('delete').disabled = !placementSelected;
+    this.el<HTMLButtonElement>('floor').disabled = !placementSelected;
     this.root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((button) => {
       button.dataset.active = String(button.dataset.mode === this.transform.mode);
     });
@@ -420,22 +493,25 @@ export class Workshop {
 
   private refreshInspector(): void {
     const record = this.record();
+    const sceneEntry = this.sceneEntry();
     const object = this.object();
-    const disabled = !record || !object;
-    this.labelInput.disabled = disabled;
-    this.anchorInput.disabled = disabled;
+    const disabled = (!record && !sceneEntry) || !object;
+    this.labelInput.disabled = disabled || sceneEntry !== null;
+    this.anchorInput.disabled = disabled || sceneEntry !== null;
     for (const input of Object.values(this.inputs)) input.disabled = disabled;
-    if (!record || !object) {
+    if ((!record && !sceneEntry) || !object) {
       this.title.textContent = 'Nothing selected';
       this.meta.textContent = 'Click an authored object or choose one below.';
       this.labelInput.value = '';
       for (const input of Object.values(this.inputs)) input.value = '';
       return;
     }
-    this.title.textContent = record.label;
-    this.meta.textContent = `${record.id} · ${record.prefab}`;
-    this.labelInput.value = record.label;
-    this.anchorInput.value = record.anchor;
+    this.title.textContent = record?.label ?? sceneEntry!.label;
+    this.meta.textContent = record
+      ? `${record.id} · ${record.prefab}`
+      : `${sceneEntry!.id} · existing scene · ${sceneEntry!.source} · ${sceneEntry!.collisionPolicy}`;
+    this.labelInput.value = record?.label ?? sceneEntry!.label;
+    this.anchorInput.value = record?.anchor ?? 'free';
     const values: Record<InputKey, number> = {
       px: object.position.x, py: object.position.y, pz: object.position.z,
       rx: object.rotation.x * DEG, ry: object.rotation.y * DEG, rz: object.rotation.z * DEG,
@@ -447,8 +523,18 @@ export class Workshop {
   private refreshOutliner(): void {
     this.outliner.replaceChildren();
     const objects = this.placements.captureManifest().objects;
-    if (!objects.length) {
+    const sceneEntries = this.placements.sceneEntries();
+    if (!objects.length && !sceneEntries.length) {
       const empty = document.createElement('p'); empty.className = 'workshop-muted'; empty.textContent = 'No authored objects yet.'; this.outliner.append(empty); return;
+    }
+    for (const entry of sceneEntries) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.selected = String(entry.id === this.selectedId);
+      button.textContent = entry.label;
+      const small = document.createElement('small'); small.textContent = `${entry.id} · existing`; button.append(small);
+      button.addEventListener('click', () => { this.select(entry.id); this.refresh(); });
+      this.outliner.append(button);
     }
     for (const record of objects) {
       const button = document.createElement('button');
@@ -498,7 +584,7 @@ const WORKSHOP_HTML = `
   <button type="button" data-workshop="save">Save to build</button><button type="button" data-workshop="exit">Exit F8</button>
 </div>
 <nav class="workshop-keymap" data-workshop="keymap" aria-label="Museum Workshop keyboard commands">
-  <span><kbd>F8</kbd>toggle</span><span><kbd>Esc</kbd>exit</span><span><kbd>W</kbd>move</span><span><kbd>E</kbd>rotate</span><span><kbd>R</kbd>scale</span><span><kbd>G</kbd>floor</span>
+  <span><kbd>F</kbd>Select/Edit object</span><span><kbd>F8</kbd>toggle</span><span><kbd>Esc</kbd>exit</span><span><kbd>W</kbd>move</span><span><kbd>E</kbd>rotate</span><span><kbd>R</kbd>scale</span><span><kbd>G</kbd>floor</span>
   <span><kbd>⌘/Ctrl+D</kbd>duplicate</span><span><kbd>Delete</kbd>remove</span><span><kbd>⌘/Ctrl+Z</kbd>undo</span><span><kbd>⇧⌘/Ctrl+Z</kbd>redo</span><span><kbd>⌘/Ctrl+S</kbd>save</span>
 </nav>
 <aside class="workshop-panel" data-workshop="panel" tabindex="-1" aria-label="Museum Workshop development editor">

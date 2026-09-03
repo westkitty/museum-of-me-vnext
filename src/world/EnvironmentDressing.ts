@@ -24,6 +24,7 @@ export class EnvironmentDressing {
   private readonly darkMetal: THREE.MeshStandardMaterial;
   private readonly facadeDark: THREE.MeshStandardMaterial;
   private readonly facadeAzure: THREE.MeshStandardMaterial;
+  private readonly authorableRoots: { id: string; root: THREE.Object3D }[] = [];
 
   constructor(private readonly scope: ResourceScope) {
     this.group.name = 'environment-dressing';
@@ -46,6 +47,10 @@ export class EnvironmentDressing {
     this.buildRotundaWelcome();
     this.buildWingFurnishings();
     return this.group;
+  }
+
+  authorableSceneRoots(): readonly { readonly id: string; readonly root: THREE.Object3D }[] {
+    return this.authorableRoots;
   }
 
   private buildFacade(): void {
@@ -120,8 +125,8 @@ export class EnvironmentDressing {
     this.group.add(welcome);
     this.scope.track(welcome.geometry);
 
-    this.indoorPlant(place(d, VESTIBULE_FROM + 3.6, -3.8, GROUND_Y), 1.2);
-    this.indoorPlant(place(d, VESTIBULE_FROM + 3.6, 3.8, GROUND_Y), 1.2);
+    this.indoorPlant(place(d, VESTIBULE_FROM + 3.6, -3.8, GROUND_Y), 1.2, 'vestibule-plant-left');
+    this.indoorPlant(place(d, VESTIBULE_FROM + 3.6, 3.8, GROUND_Y), 1.2, 'vestibule-plant-right');
   }
 
   private buildRotundaWelcome(): void {
@@ -131,14 +136,17 @@ export class EnvironmentDressing {
     desk.name = 'welcome-information-desk';
     desk.position.set(-6.7, GROUND_Y, 5.2);
     this.group.add(desk);
+    this.authorableRoots.push({ id: 'rotunda-information-counter', root: desk });
     this.localBox(desk, [0, 0.72, 0], [2.4, 0.72, 0.8], this.ivory);
     this.localBox(desk, [0, 1.43, -0.48], [2.4, 0.08, 0.34], this.brass);
 
     const deskSign = buildWingSign(this.scope, 'Information', 'Map · orientation · museum guide');
     deskSign.scale.setScalar(0.34);
     deskSign.position.set(-6.7, 2.45, 5.2);
+    deskSign.name = 'rotunda-information-sign';
     this.group.add(deskSign);
     this.scope.track(deskSign.geometry);
+    this.authorableRoots.push({ id: 'rotunda-information-sign', root: deskSign });
 
     // Plants occupy diagonal blind zones, leaving all radial routes unobstructed.
     for (const [x, z, s] of [
@@ -190,12 +198,13 @@ export class EnvironmentDressing {
     }
   }
 
-  private indoorPlant([x, y, z]: Vec3, scale: number): void {
+  private indoorPlant([x, y, z]: Vec3, scale: number, authorableId?: string): void {
     const g = new THREE.Group();
     g.name = 'indoor-plant';
     g.position.set(x, y, z);
     g.scale.setScalar(scale);
     this.group.add(g);
+    if (authorableId) this.authorableRoots.push({ id: authorableId, root: g });
 
     const pot = new THREE.Mesh(
       this.scope.track(new THREE.CylinderGeometry(0.5, 0.66, 0.78, 12)),

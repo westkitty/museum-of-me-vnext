@@ -78,14 +78,17 @@ npm run test:workshop # real Chromium Workshop authoring + source-save/reload jo
 
 ## State
 
-All fourteen phases of the governing build plan are complete. Thirty-five
-bespoke exhibits represent 64 project identities exactly once; traversal and
-lifecycle gates are automated through the canonical release gate.
+The implementation scope through the governing build plan's Phase 13 is complete, and Phase 14
+release preparation is documented. Thirty-five bespoke exhibits represent 64 project identities
+exactly once; traversal and lifecycle gates are automated through the canonical release gate.
 
-The current refinement work continues from `release/v1.0.0` without publishing the museum.
-Publication remains a separate owner decision because it exposes the documentation of sixty-four
-projects publicly. `docs/RELEASE_CHECKLIST.md` distinguishes automated proof from the remaining
-human browser/device checks.
+The current implementation candidate is `feature/museum-workshop-core-2026-08-26` at committed
+HEAD `bf2fe0611c5c06e69316ec1bbc3cbf81bfac41e2`; the checkout may contain newer uncommitted
+candidate changes, so exact-head checks must be rerun after the candidate is frozen. The older
+`release/v1.0.0` branch and `main` are not the current implementation. Publication remains a
+separate owner decision because it exposes the documentation of sixty-four projects publicly.
+`docs/RELEASE_CHECKLIST.md` distinguishes automated proof, human/device acceptance, and hosted
+verification.
 
 ## Lineage
 

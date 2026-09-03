@@ -192,6 +192,9 @@ describe('museum environment coherence', () => {
     expect(ringMaterial.transmission).toBeGreaterThan(0);
     expect(ringMaterial.thickness).toBeGreaterThan(0);
     expect(ringMaterial.flatShading).toBe(true);
+    const ringHsl = ringMaterial.color.getHSL({ h: 0, s: 0, l: 0 });
+    expect(ringHsl.h < 0.03 || ringHsl.h > 0.97).toBe(true);
+    expect(ringHsl.s).toBeGreaterThan(0.75);
     expect(sky.horizon.getHSL({ h: 0, s: 0, l: 0 }).l).toBeGreaterThan(0.03);
     expect(sky.horizon.getHSL({ h: 0, s: 0, l: 0 }).l).toBeLessThan(0.07);
     scope.dispose();
@@ -216,6 +219,7 @@ describe('museum environment coherence', () => {
     garden.update(1, true);
     expect(waterMaterial.uniforms.time.value).toBe(animatedWaterTime);
     expect(collision.size).toBeGreaterThan(0); // garden trees/benches retain their own proven blockers
+    expect((gardenRoot.getObjectByName('night-island-shoreline') as THREE.Mesh).userData.visualRole).toBe('water-boundary');
     scope.dispose();
   });
 

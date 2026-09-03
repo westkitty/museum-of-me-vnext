@@ -6,6 +6,13 @@ export const WORKSHOP_MAX_OBJECTS = 256;
 export type WorkshopAnchor = 'floor' | 'free';
 export type WorkshopVec3 = [number, number, number];
 
+export interface WorkshopSceneOverride {
+  readonly id: string;
+  readonly position: WorkshopVec3;
+  readonly rotation: WorkshopVec3;
+  readonly scale: WorkshopVec3;
+}
+
 export interface WorkshopPlacementRecord {
   readonly id: string;
   readonly label: string;
@@ -19,6 +26,8 @@ export interface WorkshopPlacementRecord {
 export interface WorkshopPlacementManifest {
   readonly schemaVersion: typeof WORKSHOP_SCHEMA_VERSION;
   readonly objects: readonly WorkshopPlacementRecord[];
+  /** Existing-scene dressing transforms. Optional for schema-version-1 files. */
+  readonly sceneOverrides?: readonly WorkshopSceneOverride[];
 }
 
 export interface WorkshopManifestValidation {
@@ -30,6 +39,7 @@ export interface WorkshopManifestValidation {
 export const EMPTY_WORKSHOP_MANIFEST: WorkshopPlacementManifest = {
   schemaVersion: WORKSHOP_SCHEMA_VERSION,
   objects: [],
+  sceneOverrides: [],
 };
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
@@ -112,6 +122,33 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
   };
 }
 
+function validateSceneOverride(value: unknown, index: number, errors: string[]): WorkshopSceneOverride | null {
+  if (!isRecord(value)) {
+    errors.push(`sceneOverrides[${index}] must be an object`);
+    return null;
+  }
+  const id = typeof value.id === 'string' ? value.id : '';
+  if (!ID_PATTERN.test(id)) errors.push(`sceneOverrides[${index}].id must match ${ID_PATTERN}`);
+  const position = finiteVec3(value.position);
+  const rotation = finiteVec3(value.rotation);
+  const scale = finiteVec3(value.scale);
+  if (!position) errors.push(`sceneOverrides[${index}].position must be three finite numbers`);
+  if (!rotation) errors.push(`sceneOverrides[${index}].rotation must be three finite numbers`);
+  if (!scale) errors.push(`sceneOverrides[${index}].scale must be three finite numbers`);
+  if (position) {
+    for (let axis = 0; axis < 3; axis++) {
+      if (Math.abs(position[axis]) > POSITION_LIMITS[axis]) {
+        errors.push(`sceneOverrides[${index}].position[${axis}] exceeds the Workshop world bounds`);
+      }
+    }
+  }
+  if (scale && scale.some((entry) => entry < SCALE_MIN || entry > SCALE_MAX)) {
+    errors.push(`sceneOverrides[${index}].scale entries must be between ${SCALE_MIN} and ${SCALE_MAX}`);
+  }
+  if (!ID_PATTERN.test(id) || !position || !rotation || !scale) return null;
+  return { id, position, rotation, scale };
+}
+
 export function validateWorkshopManifest(value: unknown): WorkshopManifestValidation {
   const errors: string[] = [];
   if (!isRecord(value)) {
@@ -125,11 +162,16 @@ export function validateWorkshopManifest(value: unknown): WorkshopManifestValida
     errors.push('objects must be an array');
     return { ok: false, value: null, errors };
   }
+  const rawSceneOverrides = value.sceneOverrides === undefined ? [] : value.sceneOverrides;
+  if (!Array.isArray(rawSceneOverrides)) {
+    errors.push('sceneOverrides must be an array when present');
+  }
   if (value.objects.length > WORKSHOP_MAX_OBJECTS) {
     errors.push(`objects may contain at most ${WORKSHOP_MAX_OBJECTS} records`);
   }
 
   const objects: WorkshopPlacementRecord[] = [];
+  const sceneOverrides: WorkshopSceneOverride[] = [];
   const ids = new Set<string>();
   for (let index = 0; index < value.objects.length; index++) {
     const parsed = validateRecord(value.objects[index], index, errors);
@@ -142,10 +184,24 @@ export function validateWorkshopManifest(value: unknown): WorkshopManifestValida
     objects.push(parsed);
   }
 
+  if (Array.isArray(rawSceneOverrides)) {
+    if (rawSceneOverrides.length > 64) errors.push('sceneOverrides may contain at most 64 records');
+    for (let index = 0; index < rawSceneOverrides.length; index++) {
+      const parsed = validateSceneOverride(rawSceneOverrides[index], index, errors);
+      if (!parsed) continue;
+      if (ids.has(parsed.id)) {
+        errors.push(`duplicate object id: ${parsed.id}`);
+        continue;
+      }
+      ids.add(parsed.id);
+      sceneOverrides.push(parsed);
+    }
+  }
+
   if (errors.length) return { ok: false, value: null, errors };
   return {
     ok: true,
-    value: canonicalizeWorkshopManifest({ schemaVersion: WORKSHOP_SCHEMA_VERSION, objects }),
+    value: canonicalizeWorkshopManifest({ schemaVersion: WORKSHOP_SCHEMA_VERSION, objects, sceneOverrides }),
     errors: [],
   };
 }
@@ -171,6 +227,14 @@ export function canonicalizeWorkshopManifest(manifest: WorkshopPlacementManifest
         position: canonicalVec3(record.position),
         rotation: canonicalVec3(record.rotation),
         scale: canonicalVec3(record.scale),
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+    sceneOverrides: [...(manifest.sceneOverrides ?? [])]
+      .map((override) => ({
+        id: override.id,
+        position: canonicalVec3(override.position),
+        rotation: canonicalVec3(override.rotation),
+        scale: canonicalVec3(override.scale),
       }))
       .sort((a, b) => a.id.localeCompare(b.id)),
   };

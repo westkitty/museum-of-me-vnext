@@ -30,6 +30,10 @@ import {
   type WorkshopPlacementRecord,
 } from './schema';
 import type { WorkshopPrefabId } from './catalog';
+import {
+  AUTHORABLE_SCENE_DEFINITIONS,
+  type AuthorableSceneEntry,
+} from './AuthorableSceneRegistry';
 
 export interface WorkshopConservationViolation {
   readonly placementId: string;
@@ -60,6 +64,12 @@ interface PrefabBounds {
   readonly maxY: number;
 }
 
+type SceneTransform = {
+  readonly position: readonly [number, number, number];
+  readonly rotation: readonly [number, number, number];
+  readonly scale: readonly [number, number, number];
+};
+
 /** Conservative render bounds for the existing four safe, non-colliding prefabs. */
 const PREFAB_BOUNDS: Record<WorkshopPrefabId, PrefabBounds> = {
   'display-plinth': { halfX: 0.88, halfY: 0.55, halfZ: 0.88, minY: 0, maxY: 1.1 },
@@ -67,6 +77,8 @@ const PREFAB_BOUNDS: Record<WorkshopPrefabId, PrefabBounds> = {
   'sign-post': { halfX: 0.625, halfY: 0.89, halfZ: 0.26, minY: 0, maxY: 1.78 },
   'artifact-table': { halfX: 0.825, halfY: 0.5, halfZ: 0.5, minY: 0, maxY: 1 },
 };
+
+const SCENE_BOUNDS = new Map(AUTHORABLE_SCENE_DEFINITIONS.map((entry) => [entry.id, entry.bounds]));
 
 function circle(
   protectedArea: string,
@@ -232,8 +244,23 @@ function overlapsVertical(record: WorkshopPlacementRecord, area: ProtectedArea):
   return minY <= area.yMax && maxY >= area.yMin;
 }
 
+function sceneRadius(transform: SceneTransform, bounds: PrefabBounds): number {
+  return Math.hypot(
+    bounds.halfX * transform.scale[0],
+    bounds.halfY * transform.scale[1],
+    bounds.halfZ * transform.scale[2],
+  );
+}
+
+function sceneOverlapsVertical(transform: SceneTransform, bounds: PrefabBounds, area: ProtectedArea): boolean {
+  const minY = transform.position[1] + bounds.minY * transform.scale[1];
+  const maxY = transform.position[1] + bounds.maxY * transform.scale[1];
+  return minY <= area.yMax && maxY >= area.yMin;
+}
+
 export function validateWorkshopConservation(
   manifest: WorkshopPlacementManifest,
+  sceneEntries: readonly AuthorableSceneEntry[] = [],
 ): WorkshopConservationValidation {
   const violations: WorkshopConservationViolation[] = [];
   for (const record of manifest.objects) {
@@ -250,6 +277,35 @@ export function validateWorkshopConservation(
       break;
     }
   }
+
+  const entriesById = new Map(sceneEntries.map((entry) => [entry.id, entry]));
+  for (const override of manifest.sceneOverrides ?? []) {
+    const entry = entriesById.get(override.id);
+    const bounds = entry?.bounds ?? SCENE_BOUNDS.get(override.id);
+    if (!bounds) {
+      violations.push({
+        placementId: override.id,
+        placementLabel: override.id,
+        protectedArea: 'Authorable scene registry',
+        rule: 'unknown-authorable-object',
+        reason: `${override.id} is not registered as an authorable scene object`,
+      });
+      continue;
+    }
+    for (const area of PROTECTED_AREAS) {
+      if (!sceneOverlapsVertical(override, bounds, area) || !area.intersects(
+        override.position[0], override.position[2], sceneRadius(override, bounds),
+      )) continue;
+      violations.push({
+        placementId: override.id,
+        placementLabel: entry?.label ?? override.id,
+        protectedArea: area.protectedArea,
+        rule: area.rule,
+        reason: `${entry?.label ?? override.id} intersects ${area.protectedArea}`,
+      });
+      break;
+    }
+  }
   return { ok: violations.length === 0, violations };
 }
 
@@ -260,10 +316,13 @@ export function conservationErrors(
     `${violation.placementLabel} (${violation.placementId}): ${violation.reason} [${violation.rule}]`);
 }
 
-export function validateWorkshopManifestForMuseum(raw: unknown): WorkshopManifestValidation {
+export function validateWorkshopManifestForMuseum(
+  raw: unknown,
+  sceneEntries: readonly AuthorableSceneEntry[] = [],
+): WorkshopManifestValidation {
   const parsed = validateWorkshopManifest(raw);
   if (!parsed.ok || !parsed.value) return parsed;
-  const conservation = validateWorkshopConservation(parsed.value);
+  const conservation = validateWorkshopConservation(parsed.value, sceneEntries);
   if (!conservation.ok) {
     return { ok: false, value: null, errors: conservationErrors(conservation.violations) };
   }
