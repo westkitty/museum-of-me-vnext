@@ -4,229 +4,149 @@ import { buildPlaque, buildLectern, buildLabel } from '../Furniture';
 import { buildConsole } from '../parts';
 import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
 
-/**
- * E12 — Rhetorical InDEX. Tier B.
- *
- * An evidence table. The visitor sorts sample statements into five categories,
- * and the table shows what the tool would classify them as and why. The
- * interesting result is how often a single sentence is doing two things at
- * once.
- *
- * SOURCE RULE: every statement here is invented for the museum. No real
- * dispute, publication or person is analysed in this room.
- */
+/** E12 — Rhetorical InDEX: a movable passage lens, not a five-bin quiz. */
 
-type Kind = 'evidence' | 'interpretation' | 'framing' | 'inference' | 'unsupported';
+type Finding = { readonly family: string; readonly pressure: number; readonly confidence: number; readonly note: string };
+type Passage = { readonly text: string; readonly findings: readonly Finding[] };
 
-const KINDS: readonly { key: Kind; name: string; colour: number; note: string }[] = [
-  { key: 'evidence', name: 'Evidence', colour: 0x7fd67f, note: 'A statement of what was observed or recorded.' },
-  { key: 'interpretation', name: 'Interpretation', colour: 0x5fb0e8, note: 'What the evidence is taken to mean.' },
-  { key: 'framing', name: 'Framing', colour: 0xe8c65a, note: 'Which facts are placed in view, and in what order. Persuasion mostly lives here.' },
-  { key: 'inference', name: 'Inference', colour: 0x9d8bff, note: 'A conclusion drawn beyond what was stated.' },
-  { key: 'unsupported', name: 'Unsupported', colour: 0xd9543a, note: 'Asserted with nothing behind it.' },
-];
-
-/** All invented for the exhibit. */
-const STATEMENTS: readonly { text: string; answer: Kind; why: string }[] = [
-  { text: 'The gauge read 41 at 09:12.', answer: 'evidence',
-    why: 'A recorded observation with a time attached. Nothing is claimed about what it means.' },
-  { text: 'A reading of 41 indicates the seal had already failed.', answer: 'interpretation',
-    why: 'The same number, now assigned a meaning. The number is not in dispute; the meaning is.' },
-  { text: 'Even after three prior warnings, the gauge read 41.', answer: 'framing',
-    why: 'The reading is unchanged. What changed is what was placed beside it.' },
-  { text: 'So the crew must have known for weeks.', answer: 'inference',
-    why: 'A conclusion reaching well past anything stated. It may be right; it is not established.' },
-  { text: 'Everyone involved knew this would happen.', answer: 'unsupported',
-    why: 'A confident claim with nothing behind it at all — and the hardest to notice in a paragraph of the others.' },
-];
+const PASSAGES: readonly Passage[] = [
+  { text: 'The gauge read 41 at 09:12.', findings: [
+    { family: 'evidence', pressure: 1, confidence: 5, note: 'A timestamped observation with no interpretation attached.' },
+  ] },
+  { text: 'Even after three prior warnings, the gauge read 41.', findings: [
+    { family: 'evidence', pressure: 1, confidence: 5, note: 'The reading is still evidence.' },
+    { family: 'framing', pressure: 4, confidence: 5, note: 'The prior warnings change the reader’s frame without changing the measurement.' },
+  ] },
+  { text: 'A reading of 41 shows the seal had already failed.', findings: [
+    { family: 'interpretation', pressure: 3, confidence: 4, note: 'The observed value is assigned a meaning.' },
+  ] },
+  { text: 'So the crew must have known for weeks.', findings: [
+    { family: 'inference', pressure: 4, confidence: 4, note: 'The conclusion reaches beyond what the preceding observations establish.' },
+  ] },
+  { text: 'Everyone involved knew this would happen.', findings: [
+    { family: 'unsupported', pressure: 5, confidence: 5, note: 'A broad certainty claim arrives without supporting evidence in the fixture.' },
+  ] },
+] as const;
 
 export class RhetoricalIndex extends ExhibitBase {
-  /** Reused by onUpdate; classification counts must not allocate every frame. */
-  private readonly binCounts = new Uint8Array(KINDS.length);
-  private cards = this.tracked<THREE.Group>();
-  private homes = this.tracked<THREE.Vector3>();
-  private sorted = this.tracked<number>();
-  private binSlots = this.tracked<THREE.Vector3>();
-  private revealed = false;
+  private lens!: THREE.Group;
+  private passagePanels = this.tracked<THREE.Mesh>();
+  private index = 0;
+  private patternMode = false;
+  private pins = new Set<number>();
 
-  /** Reused every frame; allocating these per element churned the heap. */
-  private readonly scratchTarget = new THREE.Vector3();
-
-  constructor(def: ExhibitDefinition) {
-    super(def);
-  }
+  constructor(def: ExhibitDefinition) { super(def); }
 
   protected override build(): void {
     const scope = this.ctx.scope;
-
     const plaque = buildPlaque(scope, this.ctx.record);
-    plaque.position.set(0, 2.2, -7.2);
-    this.group.add(plaque);
-    scope.trackObject(plaque);
-
+    plaque.position.set(0, 2.2, -7.2); this.group.add(plaque); scope.trackObject(plaque);
     const lectern = buildLectern(scope, this.ctx.record, this.ctx.projects);
-    lectern.position.set(3.2, 0, -4.6);
-    lectern.rotation.y = -0.6;
-    this.group.add(lectern);
-    scope.trackObject(lectern);
+    lectern.position.set(3.25, 0, -4.8); lectern.rotation.y = -0.6;
+    this.group.add(lectern); scope.trackObject(lectern);
 
-    const wood = this.standard(0x5d4d70, { roughness: 0.78 });
-    const bronze = this.standard(0x8a6a42, { roughness: 0.4, metalness: 0.6 });
+    const article = new THREE.Mesh(
+      scope.track(new THREE.BoxGeometry(5.2, 2.65, 0.12)),
+      this.standard(0xeee6d3, { roughness: 0.95 }),
+    );
+    article.position.set(0, 2.15, -5.1); this.group.add(article);
 
-    // ── the table ──
-    const top = new THREE.Mesh(scope.track(new THREE.BoxGeometry(5.0, 0.1, 2.4)), wood);
-    top.position.set(0, 0.92, -4.0);
-    this.group.add(top);
-    for (const sx of [-1, 1]) {
-      const leg = new THREE.Mesh(scope.track(new THREE.BoxGeometry(0.14, 0.92, 2.0)), bronze);
-      leg.position.set(sx * 2.2, 0.46, -4.0);
-      this.group.add(leg);
-    }
-
-    // ── five bins ──
-    KINDS.forEach((kind, i) => {
-      const x = -2.0 + i * 1.0;
-      const tray = new THREE.Mesh(
-        scope.track(new THREE.BoxGeometry(0.85, 0.05, 0.6)),
-        this.standard(kind.colour, { roughness: 0.6 }),
+    PASSAGES.forEach((passage, i) => {
+      const y = 3.0 - i * 0.48;
+      const panel = new THREE.Mesh(
+        scope.track(new THREE.BoxGeometry(4.55, 0.34, 0.035)),
+        this.standard(0xd8cfbb, { roughness: 0.9 }),
       );
-      tray.position.set(x, 0.99, -4.5);
-      this.group.add(tray);
-      this.binSlots.push(new THREE.Vector3(x, 1.04, -4.5));
-
-      const label = buildLabel(scope, kind.name, 0.8);
-      label.position.set(x, 1.0, -3.95);
-      label.rotation.x = -Math.PI / 2;
-      this.group.add(label);
-      scope.track(label.geometry);
-    });
-
-    // ── the statement cards ──
-    STATEMENTS.forEach((statement, i) => {
-      const g = new THREE.Group();
-      const home = new THREE.Vector3(-1.9 + i * 0.95, 1.03, -3.3);
-      g.position.copy(home);
-      this.group.add(g);
-      this.cards.push(g);
-      this.homes.push(home);
-      this.sorted.push(-1);
-
-      const card = new THREE.Mesh(
-        scope.track(new THREE.BoxGeometry(0.72, 0.02, 0.5)),
-        this.standard(0xefe8d8, { roughness: 0.9 }),
-      );
-      g.add(card);
-
-      const text = buildLabel(scope, statement.text, 0.68);
-      text.position.set(0, 0.015, 0);
-      text.rotation.x = -Math.PI / 2;
-      g.add(text);
-      scope.track(text.geometry);
-
+      panel.position.set(0, y, -5.0); this.group.add(panel); this.passagePanels.push(panel);
+      const text = buildLabel(scope, passage.text, 4.1);
+      text.position.set(0, y, -4.965); this.group.add(text); scope.track(text.geometry);
       this.control({
-        object: g,
-        label: `Classify: “${statement.text.slice(0, 30)}…”`,
-        description:
-          'Cycles this statement through the five categories. Compare your reading with the tool’s — the useful question is rarely whether a claim is true, but what kind of move it is making.',
-        activate: () => {
-          this.sorted[i] = (this.sorted[i] + 1) % KINDS.length;
-          const chosen = KINDS[this.sorted[i]];
-          const correct = chosen.key === statement.answer;
-          this.ctx.announce(
-            this.revealed
-              ? `${chosen.name}. The tool says ${KINDS.find((k) => k.key === statement.answer)!.name}: ${statement.why}`
-              : `Sorted as ${chosen.name}. ${chosen.note}${correct ? '' : ''}`,
-          );
-        },
+        object: panel,
+        label: `Place lens: ${passage.text}`,
+        description: 'Moves the rhetoric lens to this passage. Findings may overlap; pressure and confidence are separate measurements.',
+        activate: () => { this.index = i; this.announcePassage(); },
       });
     });
 
-    // ── the reveal ──
-    const consoleGroup = buildConsole(scope, 0.64, 0.46, 1.0, wood);
-    consoleGroup.position.set(-3.4, 0, -2.2);
-    consoleGroup.rotation.y = 0.5;
-    this.group.add(consoleGroup);
+    this.lens = new THREE.Group(); this.lens.position.set(0, 3.0, -4.82); this.group.add(this.lens);
+    const ring = new THREE.Mesh(scope.track(new THREE.TorusGeometry(0.72, 0.055, 10, 36)), this.emissive(0xb995db, 1.2));
+    this.lens.add(ring);
+    const crossH = new THREE.Mesh(scope.track(new THREE.BoxGeometry(1.2, 0.018, 0.018)), this.emissive(0xb995db, 0.7));
+    const crossV = new THREE.Mesh(scope.track(new THREE.BoxGeometry(0.018, 0.45, 0.018)), this.emissive(0xb995db, 0.7));
+    this.lens.add(crossH, crossV);
 
-    const consoleLabel = buildLabel(scope, 'Show the analysis', 0.64);
-    consoleLabel.position.set(0, 1.02, 0.2);
-    consoleLabel.rotation.x = -Math.PI / 2.1;
-    consoleGroup.add(consoleLabel);
-    scope.track(consoleLabel.geometry);
-
+    const scanConsole = buildConsole(scope, 0.62, 0.44, 1.0, this.standard(0x4c3e61, { roughness: 0.7 }));
+    scanConsole.position.set(-2.1, 0, -2.0); this.group.add(scanConsole);
+    const scanLabel = buildLabel(scope, 'MOVE LENS', 0.6); scanLabel.position.set(0, 1.02, 0.2); scanLabel.rotation.x = -Math.PI / 2.1;
+    scanConsole.add(scanLabel); scope.track(scanLabel.geometry);
     this.control({
-      object: consoleGroup,
-      label: () => (this.revealed ? 'Hide the analysis' : 'Show what the tool says'),
-      description:
-        'Reveals the tool’s classification and its reasoning for each statement. Every statement here is invented for the museum.',
+      object: scanConsole,
+      label: 'Move the rhetoric lens',
+      description: 'Advances the lens passage by passage through the fictional article fixture.',
+      activate: () => { this.index = (this.index + 1) % PASSAGES.length; this.announcePassage(); },
+    });
+
+    const pinConsole = buildConsole(scope, 0.62, 0.44, 1.0, this.standard(0x4c3e61, { roughness: 0.7 }));
+    pinConsole.position.set(0, 0, -1.65); this.group.add(pinConsole);
+    const pinLabel = buildLabel(scope, 'PIN PASSAGE', 0.62); pinLabel.position.set(0, 1.02, 0.2); pinLabel.rotation.x = -Math.PI / 2.1;
+    pinConsole.add(pinLabel); scope.track(pinLabel.geometry);
+    this.control({
+      object: pinConsole,
+      label: 'Pin or unpin current passage',
+      description: 'Keeps a finding visible for pattern comparison without converting it into a verdict on the whole article.',
       activate: () => {
-        this.revealed = !this.revealed;
-        this.ctx.announce(
-          this.revealed
-            ? `Analysis shown. ${this.correctCount()} of ${STATEMENTS.length} of your classifications match the tool.`
-            : 'Analysis hidden.',
-        );
+        if (this.pins.has(this.index)) this.pins.delete(this.index); else this.pins.add(this.index);
+        this.ctx.announce(`${this.pins.has(this.index) ? 'Pinned' : 'Unpinned'} passage ${this.index + 1}. ${this.pins.size} passage${this.pins.size === 1 ? '' : 's'} pinned.`);
       },
     });
 
-    const notice = buildLabel(scope, 'Every statement here is invented. No real dispute is analysed.', 3.0);
-    notice.position.set(0, 2.7, -6.6);
-    this.group.add(notice);
-    scope.track(notice.geometry);
+    const patternConsole = buildConsole(scope, 0.62, 0.44, 1.0, this.standard(0x4c3e61, { roughness: 0.7 }));
+    patternConsole.position.set(2.1, 0, -2.0); this.group.add(patternConsole);
+    const patternLabel = buildLabel(scope, 'PATTERN MODE', 0.62); patternLabel.position.set(0, 1.02, 0.2); patternLabel.rotation.x = -Math.PI / 2.1;
+    patternConsole.add(patternLabel); scope.track(patternLabel.geometry);
+    this.control({
+      object: patternConsole,
+      label: () => (this.patternMode ? 'Leave Pattern Mode' : 'Enter Pattern Mode'),
+      description: 'Summarizes families found in pinned passages. It does not create a trust, ideology, truth, or harm score.',
+      activate: () => {
+        this.patternMode = !this.patternMode;
+        this.ctx.announce(this.patternMode ? this.patternSummary() : 'Pattern Mode closed. The lens returns to the current passage.');
+      },
+    });
+
+    const disclaimer = buildLabel(scope, 'FICTIONAL FIXTURE · NO LIVE FACT CHECK · PRESSURE ≠ CONFIDENCE', 3.9);
+    disclaimer.position.set(0, 4.1, -5.0); this.group.add(disclaimer); scope.track(disclaimer.geometry);
   }
 
-  private correctCount(): number {
-    let n = 0;
-    for (let i = 0; i < STATEMENTS.length; i++) {
-      if (this.sorted[i] >= 0 && KINDS[this.sorted[i]].key === STATEMENTS[i].answer) n++;
-    }
-    return n;
+  private announcePassage(): void {
+    const p = PASSAGES[this.index];
+    const findings = p.findings.map((f) => `${f.family}: pressure ${f.pressure}/5, confidence ${f.confidence}/5 — ${f.note}`).join(' ');
+    this.ctx.announce(`Passage ${this.index + 1}. ${findings}`);
+  }
+
+  private patternSummary(): string {
+    if (this.pins.size === 0) return 'Pattern Mode. Nothing is pinned, so there is no pattern to summarize.';
+    const counts = new Map<string, number>();
+    for (const i of this.pins) for (const f of PASSAGES[i].findings) counts.set(f.family, (counts.get(f.family) ?? 0) + 1);
+    return `Pattern Mode across ${this.pins.size} pinned passage${this.pins.size === 1 ? '' : 's'}: ${[...counts].map(([k, v]) => `${k} ×${v}`).join(', ')}. No article-level verdict is produced.`;
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    const rate = this.reducedMotion ? 1 : Math.min(1, dt * 4);
-    this.binCounts.fill(0);
-
-    for (let i = 0; i < this.cards.length; i++) {
-      const bin = this.sorted[i];
-      let target: THREE.Vector3;
-      if (bin < 0) {
-        target = this.homes[i];
-      } else {
-        target = this.scratchTarget.copy(this.binSlots[bin]);
-        target.y += this.binCounts[bin]++ * 0.03;
-      }
-      this.cards[i].position.lerp(target, rate);
-
-      // Under the reveal, a correct classification lifts slightly.
-      if (this.revealed && bin >= 0) {
-        const correct = KINDS[bin].key === STATEMENTS[i].answer;
-        this.cards[i].position.y += correct ? 0.06 : 0;
-        this.cards[i].rotation.z += ((correct ? 0 : 0.12) - this.cards[i].rotation.z) * rate;
-      } else {
-        this.cards[i].rotation.z += (0 - this.cards[i].rotation.z) * rate;
-      }
+    const y = 3.0 - this.index * 0.48;
+    this.lens.position.y += (y - this.lens.position.y) * (this.reducedMotion ? 1 : Math.min(1, dt * 7));
+    for (let i = 0; i < this.passagePanels.length; i++) {
+      const mat = this.passagePanels[i].material as THREE.MeshStandardMaterial;
+      const target = this.pins.has(i) ? 0xbba2d2 : i === this.index ? 0xe9d775 : 0xd8cfbb;
+      mat.color.lerp(new THREE.Color(target), Math.min(1, dt * 5));
     }
+    if (!this.reducedMotion) this.lens.rotation.z += dt * 0.08;
   }
 
-  protected override onReset(): void {
-    this.revealed = false;
-    for (let i = 0; i < this.sorted.length; i++) {
-      this.sorted[i] = -1;
-      if (this.cards[i]) {
-        this.cards[i].position.copy(this.homes[i]);
-        this.cards[i].rotation.set(0, 0, 0);
-      }
-    }
-  }
+  protected override onReset(): void { this.index = 0; this.patternMode = false; this.pins.clear(); if (this.lens) this.lens.position.y = 3.0; }
 
   protected override describeState(): string {
-    const placed = this.sorted.filter((s) => s >= 0).length;
-    if (placed === 0) {
-      return `Five invented statements lie unsorted on the table, with five categories to sort them into: ${KINDS.map((k) => k.name).join(', ')}.`;
-    }
-    if (!this.revealed) {
-      return `${placed} of ${STATEMENTS.length} statements classified. The tool’s own analysis is hidden.`;
-    }
-    return `${placed} of ${STATEMENTS.length} classified, and ${this.correctCount()} match the tool’s reading. The analysis is shown.`;
+    const p = PASSAGES[this.index];
+    const mode = this.patternMode ? ` ${this.patternSummary()}` : '';
+    return `The rhetoric lens is on passage ${this.index + 1}: “${p.text}” ${p.findings.length} finding${p.findings.length === 1 ? '' : 's'} visible; ${this.pins.size} pinned.${mode}`;
   }
 }
