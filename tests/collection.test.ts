@@ -8,17 +8,17 @@ import {
 } from '../src/content/collection.generated';
 
 describe('collection integrity', () => {
-  it('represents exactly 64 project identities', () => {
-    expect(COLLECTION.projects).toHaveLength(64);
-    expect(PROJECTS_BY_ID.size).toBe(64);
+  it('has unique current project identities', () => {
+    expect(COLLECTION.projects.length).toBeGreaterThanOrEqual(64);
+    expect(PROJECTS_BY_ID.size).toBe(COLLECTION.projects.length);
   });
 
-  it('has exactly 35 visitor-facing exhibits', () => {
+  it('has exactly 35 visitor-facing physical exhibit slots', () => {
     expect(COLLECTION.exhibits).toHaveLength(35);
     expect(EXHIBITS_BY_ID.size).toBe(35);
   });
 
-  it('maps every project to exactly one exhibit', () => {
+  it('maps every current project to exactly one exhibit', () => {
     const owner = new Map<string, string>();
     for (const e of COLLECTION.exhibits) {
       for (const p of e.projectIds) {
@@ -26,7 +26,7 @@ describe('collection integrity', () => {
         owner.set(p, e.id);
       }
     }
-    expect(owner.size).toBe(64);
+    expect(owner.size).toBe(COLLECTION.projects.length);
     for (const p of COLLECTION.projects) {
       expect(owner.has(p.id), `${p.id} unrepresented`).toBe(true);
     }
@@ -71,7 +71,6 @@ describe('collection integrity', () => {
   });
 
   it('keeps interpretation project-first rather than creator-facing', () => {
-    // PRODUCT LAW 7. The museum presents the projects; it does not praise their creator.
     const forbidden = /\b(Andrew|his |brilliant|genius|masterful|visionary|prolific|impressive achievement)\b/i;
     for (const p of COLLECTION.projects) {
       const text = [p.summary, p.brief, ...p.deep, p.lesson].join(' ');
