@@ -88,12 +88,12 @@
     "explore": "Nothing in this room is a real case record. The mechanics make the central rule physical: unsupported events do not lock, and a partial chronology does not get promoted into a confident institutional action."
   },
   "E22": {
-    "subtitle": "A Shared Surface Is a Synchronisation Problem",
-    "plaque": "DexDraw became a real-time server-authoritative whiteboard because collaboration changes the architecture more deeply than drawing tools do.",
-    "problem": "How does a creative surface preserve edits, ordering, checkpoints, undo, reconnect replay, and multiple participants without pretending collaboration is just a cursor added later?",
-    "made": "A creative-tools lineage whose current whiteboard generation uses an operation stream, server sequence numbers, reconnect replay, checkpoints, drawing and editing tools, exports, remote cursors, and per-client history.",
-    "interaction": "Draw on the design table and watch the mark become an operation in the shared composition. Create another mark, restore a checkpoint, and see the surface return to the recorded sequence rather than merely erasing pixels.",
-    "explore": "DexCraft and DexGen remain as adjacent creative-tool lineages. DexDraw vNext owns the centre table because its shared-state problem is inherently spatial and interactive."
+    "subtitle": "From Shared Canvas to Game Factory",
+    "plaque": "Creative tools become serious when the editor, runtime, validation, and packaged artifact belong to the same governed workflow instead of becoming separate demos that quietly drift apart.",
+    "problem": "How can creative software preserve shared state and user-owned source assets while still giving the maker a visual workbench whose preview is the real thing that will later be built and packaged?",
+    "made": "A creative-tools lineage spanning DexCraft, DexGen, DexDraw's server-authoritative shared canvas, and 2D Game Factory: a local-first visual workbench with a 74-preset catalogue, Asset Lab, semantic role mapping, Scene Composer, real Phaser preview, validation, build, and packaging.",
+    "interaction": "Draw persistent connections on the DexDraw table, reshape the same idea for different prompt targets, then advance the 2D Game Factory station from Import through Asset Lab, Role Map, Scene, real-runtime Preview, Validate, Build, and Pack. The Museum models the workflow without executing the external factory.",
+    "explore": "The room makes three kinds of continuity physical: operations persist on a shared canvas, prompt structure changes with its destination, and user-owned assets retain provenance as they travel from source material to a validated generated game."
   },
   "E30": {
     "subtitle": "Telegraph → Travel → Impact → Field → Residue",
