@@ -3,7 +3,8 @@
   "project": {
     "id": "museum-of-me-vnext",
     "name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
-    "repository": "westkitty/museum-of-me-vnext"
+    "repository": "westkitty/museum-of-me-vnext",
+    "maturity": "active-development-pre-1.0"
   },
   "runtime": {
     "renderer": {
@@ -38,6 +39,14 @@
       "networkRequiredForBaseline": false
     }
   },
+  "collection": {
+    "physicalExhibitSlots": 35,
+    "historicalSnapshot": "data/exhibit-mapping.json",
+    "currentMapping": "data/exhibit-mapping.current.json",
+    "policy": "The 35 physical exhibit slots remain stable. The represented project inventory is a living versioned collection and is not frozen at the 64 identities known on 2026-08-19. Every current project identity maps exactly once; older work may remain as lineage when a newer project becomes the primary subject of a room.",
+    "dexterOutsideMapping": true,
+    "currentWorkSurface": "NOW BUILDING may show unfinished work outside the permanent project mapping"
+  },
   "assets": {
     "governance": "src/assets/manifest.ts and src/assets/AssetManager.ts",
     "activeProductionKinds": [
@@ -48,11 +57,7 @@
       "deferred locally bundled first-party Full Weasel web application for E27",
       "versioned Museum Workshop safe-placement records"
     ],
-    "supportedButNotActivated": [
-      "KTX2 textures",
-      "Draco decoding",
-      "Meshopt decoding"
-    ],
+    "supportedButNotActivated": ["KTX2 textures", "Draco decoding", "Meshopt decoding"],
     "runtimeExternalAssetRequests": false
   },
   "quality": {
@@ -61,39 +66,24 @@
     "reducedMotion": "suppresses DOM motion and freezes ambient world motion, skeletal walks, and flight-pad dust"
   },
   "protectedContracts": [
-    "frozen 64-project to 35-exhibit mapping",
-    "35 bespoke exhibit hero-object contracts",
+    "35 stable physical exhibit slots and six established wings",
+    "35 bespoke exhibit lifecycle contracts",
     "fourteen source installation paths",
     "seventeen authored visitor conversations",
     "Dexter Sanctuary remains outside the exhibits",
     "continuous exterior-to-Sanctuary traversal",
-    "ResourceScope disposal",
-    "Museum Workshop Core cannot mutate structural/collision-authoritative geometry, source installations, or authored visitor routes"
+    "ResourceScope disposal and single authoritative frame loop",
+    "Museum Workshop Core cannot mutate structural/collision-authoritative geometry, source installations, or authored visitor routes",
+    "historical data/exhibit-mapping.json remains preserved as the 2026-08-19 collection snapshot"
   ],
   "evidence": {
-    "recordedAt": "2026-08-27",
-    "activeBranch": "feature/museum-workshop-core-2026-08-26",
-    "handoffHead": "57abceb7b3d2d4e61667232ccdbd893342e5b81c",
-    "baseCommit": "57abceb7b3d2d4e61667232ccdbd893342e5b81c",
-    "creativeExpansionBaseline": "80a18d9e437b584f8adabccd9b34065e57c05d57",
-    "verifiedWorkshopImplementationCommit": "5c591e630b31df9d96a620ce5a2b29c689523407",
-    "verifiedWorkflowRun": 33042038232,
-    "currentBrowserBaselineRun": 33038039499,
-    "currentBrowserBaselineStatus": "failed: software-WebGL render-loop starvation during the first QA telemetry click; four later journeys passed",
-    "currentHead": "c711b9177752a0c7bd8be3c67548998b743695fb",
-    "currentWorkflowRun": 33049517878,
-    "currentHardeningStatus": "Build Mode, physical Blood Ring and smooth water verified locally and by exact-head CI; human visual acceptance remains pending",
-    "checks": [
-      "canonical npm run gate: PASS (565 tests)",
-      "local production dependency audit and production build: PASS; exact-head CI run 33042038232: PASS",
-      "dedicated Museum Workshop Chromium journey: PASS after real museum WebGL boot and before semantic assertions, with the render loop stopped",
-      "Workshop journey proved add, numeric transform, duplicate, undo, redo, F8 control handback, foreign-Origin HTTP 403 rejection, localhost source save, reload, and source-authoritative persistence",
-      "shared conservation validator rejects protected areas with structured placement and rule diagnostics; invalid save leaves target bytes unchanged and valid save atomically replaces the target",
-      "ordinary npm run test:e2e: PASS (5 Chromium journeys)",
-      "Workshop authoring proof: PASS; two authored placements survived the save bridge, standalone rebuild and real standalone scene inspection; checked-in source restored to the empty manifest",
-      "release dist verifier rejects leaked Workshop editor/write markers and styles",
-      "fresh offline standalone build and verification: PASS",
-      "existing standalone runtime source QA remains 14/14 source installations, 17/17 authored visitor conversations, zero remote requests"
-    ]
+    "recordedAt": "2026-09-03",
+    "developmentBranch": "development/collection-revision-2-2026-09-03",
+    "baselineMainHead": "901ec91496f533638c978a3846bd3ea0c7914f48",
+    "maturityCorrection": "Owner explicitly superseded prior v1.0/release-ready claims. Earlier release/v1.0.0 branch, PR and merge names are historical implementation lineage, not current product maturity authority.",
+    "packageVersion": "0.1.0",
+    "githubReleaseObjectsAtCorrection": 0,
+    "priorAutomationEvidence": "Preserved as evidence about tested code paths; not interpreted as proof that the product had reached 1.0.",
+    "humanProductAcceptance": "UNKNOWN/UNVERIFIED unless separately recorded after the 2026-09-03 correction"
   }
 }
