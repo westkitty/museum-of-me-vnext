@@ -4,7 +4,7 @@ import { buildPlaque, buildLectern, buildLabel } from '../Furniture';
 import { buildConsole } from '../parts';
 import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
 
-/** E11 — Selfsame: Continuity & Authority Systems. */
+/** E11 — Selfsame: Continuity, Authority & Recovery Systems. */
 
 type EvidenceState = 'claimed' | 'observed' | 'verified' | 'superseded';
 interface RecordCard {
@@ -117,7 +117,25 @@ export class ContinuitySystems extends ExhibitBase {
       activate: () => this.preflight(),
     });
 
-    const lineage = buildLabel(scope, 'KinDex → Bible Repo → Selfsame    Project Sentinel → recovery packet', 3.8);
+    // He-Maker is a concrete recovery case rather than a media-processing project:
+    // a cloud/sync-folder source became a repository again only after history,
+    // intent, and project records were reconstructed around the files.
+    const recovery = buildConsole(scope, 0.62, 0.44, 1.0, bronze);
+    recovery.position.set(3.15, 0, -0.9); recovery.rotation.y = -0.5;
+    this.group.add(recovery);
+    const recoveryLabel = buildLabel(scope, 'HE-MAKER RECOVERY', 0.68);
+    recoveryLabel.position.set(0, 1.02, 0.2); recoveryLabel.rotation.x = -Math.PI / 2.1;
+    recovery.add(recoveryLabel); scope.track(recoveryLabel.geometry);
+    this.control({
+      object: recovery,
+      label: 'Inspect the He-Maker recovery case',
+      description: 'A concrete example of project archaeology: files in cloud storage were not treated as a finished project until source, repository structure, intent, and a durable project record were reconstructed.',
+      activate: () => {
+        this.ctx.announce('He-Maker recovery case: cloud-folder source → reconstructed repository → written project record. The files were evidence; the recovered history and stated intent made the project resumable again.');
+      },
+    });
+
+    const lineage = buildLabel(scope, 'KinDex → Bible Repo → Selfsame    He-Maker / Project Sentinel → recovery evidence', 4.15);
     lineage.position.set(0, 4.25, -6.4); this.group.add(lineage); scope.track(lineage.geometry);
   }
 
@@ -156,6 +174,6 @@ export class ContinuitySystems extends ExhibitBase {
     const record = RECORDS[this.authorityIndex];
     const capsule = this.capsule >= 0 ? ` Active constraint: ${CAPSULES[this.capsule].name}.` : ' No temporary constraint is active.';
     const stop = this.stopped ? ' The most recent preflight stopped.' : '';
-    return `Authority desk currently selects a ${record.state} record: “${record.text}”.${capsule}${stop}`;
+    return `Authority desk currently selects a ${record.state} record: “${record.text}”.${capsule}${stop} He-Maker is represented here as a concrete recovery case.`;
   }
 }
