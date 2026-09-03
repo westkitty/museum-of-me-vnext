@@ -173,3 +173,26 @@ Repair:
 The earlier 72-project counts in this addendum remain true historical evidence for the previously verified Revision 2 head. This section supersedes them for the current living collection. The physical museum remains 35 exhibit slots across six wings; Dexter remains outside project mapping.
 
 A new exact-head four-job workflow is required after this addition before P073/E22 may be called automation-verified. Human readability and interaction feel for the new Factory station remain UNKNOWN/UNVERIFIED regardless of automation outcome.
+
+## E16 visual-legibility repair — Performance Capture & Media Transformation
+
+**Evidence state: IMPLEMENTED / AUTOMATION VERIFIED ON CODE HEAD; HUMAN VISUAL ACCEPTANCE UNKNOWN**
+
+A visitor-facing quality review found that E16's semantic controls were technically stateful but too thin as a physical museum interaction. The `Character` and `Background` controls changed internal state, accessible text, and announcements, but did not visibly substitute a character representation or output background. The exhibit could therefore pass the generic interaction gate while failing to demonstrate its own central idea: one captured performance surviving changes in downstream representation.
+
+Repair:
+
+- added a visible safe prerecorded-source performer fixture; the Museum still requests no camera or live biometric input;
+- added visible `PerformanceFrame` markers that appear when source motion becomes portable performer state;
+- added three visible character targets — reference A, reference B, and wireframe — controlled by the existing character interaction;
+- added three visible output backgrounds — studio, night museum, and transparent checkerboard — controlled independently from the character and source fixture;
+- added a visible soft-alpha layer at the matting stage and verification lamps at the final artifact stage;
+- pipeline advancement now changes those visible layers in addition to the existing stage indicators;
+- reduced-motion mode preserves all semantic state changes while suppressing source-performer motion;
+- all new Three.js geometry/materials remain owned by the existing exhibit `ResourceScope`; no dependency, collision authority, external media path, or second frame loop was added.
+
+Focused regression coverage was added in `tests/media-lineage-visual.test.ts`. It proves that character selection visibly substitutes the character while preserving the source performer, background selection visibly substitutes the background independently, and pipeline progression reveals portable-state, matte, and verification layers under reduced motion.
+
+Exact code head `f8316578aa60c21fbd478206d1fdeea17611aad7` passed GitHub Actions push run `33756180459` in all four jobs: canonical development gate, production real-browser visitor path, standalone/offline verification, and development-only Workshop authoring. The canonical gate reports **27 test files / 571 tests passing**, including the 3 focused E16 visual-semantic tests and the existing 316-test per-exhibit lifecycle/interaction gate. Production dependency audit reports zero production vulnerabilities; mapping remains 73/73 current project identities across 35/35 physical exhibits.
+
+This proves the tested E16 interaction/lifecycle semantics and protected project paths for that exact code head. It does **not** establish that E16's final composition, readability, scale, or interaction feel is visually good on the representative device. Those judgments remain **UNKNOWN / UNVERIFIED** until human walkthrough evidence exists.
