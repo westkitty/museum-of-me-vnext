@@ -4,238 +4,110 @@ import { buildPlaque, buildLectern, buildLabel } from '../Furniture';
 import { buildConsole, Pulse, Filament } from '../parts';
 import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
 
-/**
- * E16 — Media Application Lineage. Tier C.
- *
- * A workbench of four device generations, arranged chronologically and each
- * physically smaller in scope than the one before. A media job runs across all
- * of them — input, trim, convert, transcribe, output — and the differences in
- * how each generation handles the same job are the exhibit.
- */
+/** E16 — Performance Capture & Media Transformation. */
 
-interface Generation {
-  readonly name: string;
-  readonly surfaces: number;
-  readonly width: number;
-  readonly note: string;
-  readonly colour: number;
-}
+const STAGES = [
+  { name: 'Source motion', colour: 0xcbb39b, note: 'A safe prerecorded performer fixture supplies movement. The museum does not request a camera.' },
+  { name: 'PerformanceFrame', colour: 0x63c7e6, note: 'Movement becomes portable performer state rather than durable camera pixels.' },
+  { name: 'Character rig', colour: 0x9d8bff, note: 'The same recorded state drives a different authorized character representation.' },
+  { name: 'Soft alpha matte', colour: 0x7fd67f, note: 'Continuous alpha preserves soft edges and temporal stability instead of a binary cut.' },
+  { name: 'Composite', colour: 0xe8c65a, note: 'Character output and background are combined.' },
+  { name: 'Verified artifact', colour: 0xf1e3a2, note: 'Duration, frames, audio and transparency are checked before the export counts.' },
+] as const;
 
-const GENERATIONS: readonly Generation[] = [
-  { name: 'Guy_Cast', surfaces: 3, width: 1.15, colour: 0x8a7a5c,
-    note: 'Desktop, web and a browser extension. Three permission models and three update paths for one feature set.' },
-  { name: 'Gay_Cast', surfaces: 1, width: 0.75, colour: 0x5fb0e8,
-    note: 'One native platform. The feature set could finally develop instead of being ported.' },
-  { name: 'He-Maker', surfaces: 1, width: 0.65, colour: 0xd97a4e,
-    note: 'Recovered from a sync folder. Source without history is a backup, not a project.' },
-  { name: 'Media Getter', surfaces: 1, width: 0.85, colour: 0xe8c65a,
-    note: 'Native, with its command-line tools bundled — which removes the most common support problem this kind of utility has.' },
-];
-
-const STEPS = ['Input', 'Trim', 'Convert', 'Transcribe', 'Output'] as const;
+const BACKGROUNDS = ['studio', 'night museum', 'transparent'] as const;
+const CHARACTERS = ['reference A', 'reference B', 'wireframe'] as const;
 
 export class MediaLineage extends ExhibitBase {
-  private devices = this.tracked<THREE.Group>();
-  private stepLamps = this.tracked<THREE.Mesh>();
-  private curves = this.tracked<THREE.CatmullRomCurve3>();
+  private stages = this.tracked<THREE.Mesh>();
+  private stage = 0;
+  private character = 0;
+  private background = 0;
   private pulse!: Pulse;
-  private step = -1;
+  private curves = this.tracked<THREE.CatmullRomCurve3>();
   private travelling = false;
-  private generation = 0;
 
-  constructor(def: ExhibitDefinition) {
-    super(def);
-  }
+  constructor(def: ExhibitDefinition) { super(def); }
 
   protected override build(): void {
     const scope = this.ctx.scope;
+    const plaque = buildPlaque(scope, this.ctx.record); plaque.position.set(0, 2.1, -6.5); this.group.add(plaque); scope.trackObject(plaque);
+    const lectern = buildLectern(scope, this.ctx.record, this.ctx.projects); lectern.position.set(3.0, 0, -4.2); lectern.rotation.y = -0.6; this.group.add(lectern); scope.trackObject(lectern);
 
-    const plaque = buildPlaque(scope, this.ctx.record);
-    plaque.position.set(0, 2.1, -6.4);
-    this.group.add(plaque);
-    scope.trackObject(plaque);
-
-    const lectern = buildLectern(scope, this.ctx.record, this.ctx.projects);
-    lectern.position.set(2.8, 0, -4.0);
-    lectern.rotation.y = -0.6;
-    this.group.add(lectern);
-    scope.trackObject(lectern);
-
-    const wood = this.standard(0x755c3d, { roughness: 0.75 });
-    const brass = this.standard(0xb9822c, { roughness: 0.35, metalness: 0.7 });
-
-    // ── the bench ──
-    const bench = new THREE.Mesh(scope.track(new THREE.BoxGeometry(5.0, 0.1, 1.3)), wood);
-    bench.position.set(0, 0.94, -4.2);
-    this.group.add(bench);
-    for (const sx of [-1, 1]) {
-      const leg = new THREE.Mesh(scope.track(new THREE.BoxGeometry(0.12, 0.94, 1.1)), brass);
-      leg.position.set(sx * 2.2, 0.47, -4.2);
-      this.group.add(leg);
-    }
-
-    // ── four device generations, chronological ──
-    GENERATIONS.forEach((generation, i) => {
-      const x = -1.9 + i * 1.25;
-      const g = new THREE.Group();
-      g.position.set(x, 1.0, -4.2);
-      this.group.add(g);
-      this.devices.push(g);
-
-      // One body per delivery surface — the first generation is visibly three.
-      for (let s = 0; s < generation.surfaces; s++) {
-        const body = new THREE.Mesh(
-          scope.track(new THREE.BoxGeometry(generation.width * 0.7, 0.42, 0.5)),
-          this.standard(generation.colour, { roughness: 0.5, metalness: 0.25 }),
-        );
-        body.position.set((s - (generation.surfaces - 1) / 2) * 0.3, 0.21 + s * 0.06, s * -0.08);
-        g.add(body);
-      }
-
-      const label = buildLabel(scope, generation.name, 0.95);
-      label.position.set(0, 0.78, 0);
-      g.add(label);
-      scope.track(label.geometry);
-
-      const consoleGroup = buildConsole(scope, 0.48, 0.38, 1.0, wood);
-      consoleGroup.position.set(x, 0, -2.6);
-      this.group.add(consoleGroup);
-
-      this.control({
-        object: consoleGroup,
-        label: `Run the job on ${generation.name}`,
-        description: `${generation.note} Runs the same input, trim, convert, transcribe and output job on this generation.`,
-        activate: () => {
-          this.generation = i;
-          this.step = -1;
-          this.travelling = false;
-          this.pulse.stop();
-          this.ctx.announce(`${generation.name}. ${generation.note}`);
-        },
-      });
-    });
-
-    // ── the five job steps, above the bench ──
-    STEPS.forEach((step, i) => {
-      const x = -2.0 + i * 1.0;
-      const lamp = new THREE.Mesh(
-        scope.track(new THREE.SphereGeometry(0.06, 10, 8)),
-        this.emissive(0xe8c65a, 0.08),
-      );
-      lamp.position.set(x, 1.85, -4.6);
-      this.group.add(lamp);
-      this.stepLamps.push(lamp);
-
-      const label = buildLabel(scope, step, 0.6);
-      label.position.set(x, 2.1, -4.6);
-      this.group.add(label);
-      scope.track(label.geometry);
-
+    const metal = this.standard(0x3f464b, { roughness: 0.45, metalness: 0.5 });
+    const railPoints: THREE.Vector3[] = [];
+    STAGES.forEach((stage, i) => {
+      const x = -3.1 + i * 1.22;
+      const mesh = new THREE.Mesh(scope.track(new THREE.BoxGeometry(0.92, 1.25, 0.12)), this.standard(stage.colour, { roughness: 0.55 }));
+      mesh.position.set(x, 1.55, -4.5); this.group.add(mesh); this.stages.push(mesh);
+      const label = buildLabel(scope, stage.name, 0.86); label.position.set(x, 2.45, -4.4); this.group.add(label); scope.track(label.geometry);
+      railPoints.push(new THREE.Vector3(x, 3.0, -4.35));
       if (i > 0) {
-        this.curves.push(
-          new THREE.CatmullRomCurve3([
-            new THREE.Vector3(x - 1.0, 1.85, -4.6),
-            new THREE.Vector3(x - 0.5, 2.0, -4.6),
-            new THREE.Vector3(x, 1.85, -4.6),
-          ]),
-        );
+        const a = railPoints[i - 1]; const b = railPoints[i];
+        this.curves.push(new THREE.CatmullRomCurve3([a, a.clone().lerp(b, 0.5).add(new THREE.Vector3(0, 0.18, 0)), b]));
       }
     });
+    const rail = new Filament(scope, this.scaled(26), 0.018, metal); rail.follow(new THREE.CatmullRomCurve3(railPoints)); this.group.add(rail.group);
+    this.pulse = new Pulse(scope, 0.09, this.emissive(0xffffff, 1.8)); this.group.add(this.pulse.mesh);
 
-    const rail = new Filament(scope, this.scaled(20), 0.014, brass);
-    rail.follow(new THREE.CatmullRomCurve3([
-      new THREE.Vector3(-2.0, 1.85, -4.6),
-      new THREE.Vector3(0, 1.85, -4.6),
-      new THREE.Vector3(2.0, 1.85, -4.6),
-    ]));
-    this.group.add(rail.group);
-
-    this.pulse = new Pulse(scope, 0.07, this.emissive(0xffffff, 1.8));
-    this.group.add(this.pulse.mesh);
-
-    // ── run control ──
-    const runConsole = buildConsole(scope, 0.6, 0.44, 1.0, wood);
-    runConsole.position.set(2.9, 0, -2.6);
-    runConsole.rotation.y = -0.5;
-    this.group.add(runConsole);
-
-    const runLabel = buildLabel(scope, 'Advance the job', 0.6);
-    runLabel.position.set(0, 1.02, 0.2);
-    runLabel.rotation.x = -Math.PI / 2.1;
-    runConsole.add(runLabel);
-    scope.track(runLabel.geometry);
-
+    const advance = buildConsole(scope, 0.72, 0.48, 1.0, metal); advance.position.set(0, 0, -2.2); this.group.add(advance);
+    const advanceLabel = buildLabel(scope, 'ADVANCE PIPELINE', 0.72); advanceLabel.position.set(0, 1.02, 0.2); advanceLabel.rotation.x = -Math.PI / 2.1; advance.add(advanceLabel); scope.track(advanceLabel.geometry);
     this.control({
-      object: runConsole,
-      label: 'Advance the media job',
-      description: 'Steps the job through input, trim, convert, transcribe and output on the selected generation.',
+      object: advance,
+      label: 'Advance the performance/media pipeline',
+      description: 'Moves the same performance through state capture, character rendering, alpha matting, compositing, and artifact verification.',
       activate: () => {
         if (this.travelling) return;
-        if (this.step >= STEPS.length - 1) {
-          this.step = -1;
-          this.ctx.announce('Job complete and cleared. Choose another generation to compare.');
-          return;
-        }
-        if (this.step < 0) {
-          this.step = 0;
-          this.ctx.announce(`Input on ${GENERATIONS[this.generation].name}.`);
-          return;
-        }
-        this.travelling = true;
-        this.pulse.start();
+        if (this.stage >= STAGES.length - 1) { this.stage = 0; this.ctx.announce(`${STAGES[0].name}. ${STAGES[0].note}`); return; }
+        this.travelling = true; this.pulse.start();
       },
     });
+
+    const character = buildConsole(scope, 0.62, 0.44, 1.0, metal); character.position.set(-2.25, 0, -1.25); this.group.add(character);
+    const characterLabel = buildLabel(scope, 'CHARACTER', 0.62); characterLabel.position.set(0, 1.02, 0.2); characterLabel.rotation.x = -Math.PI / 2.1; character.add(characterLabel); scope.track(characterLabel.geometry);
+    this.control({
+      object: character,
+      label: 'Change character representation',
+      description: 'Changes the rendering target while preserving the same captured performance state.',
+      activate: () => { this.character = (this.character + 1) % CHARACTERS.length; this.ctx.announce(`Character ${CHARACTERS[this.character]}. The PerformanceFrame did not change.`); },
+    });
+
+    const background = buildConsole(scope, 0.62, 0.44, 1.0, metal); background.position.set(2.25, 0, -1.25); this.group.add(background);
+    const backgroundLabel = buildLabel(scope, 'BACKGROUND', 0.62); backgroundLabel.position.set(0, 1.02, 0.2); backgroundLabel.rotation.x = -Math.PI / 2.1; background.add(backgroundLabel); scope.track(backgroundLabel.geometry);
+    this.control({
+      object: background,
+      label: 'Change composite background',
+      description: 'Changes the background after soft-alpha separation. Transparent output remains an explicit export target.',
+      activate: () => { this.background = (this.background + 1) % BACKGROUNDS.length; this.ctx.announce(`Background: ${BACKGROUNDS[this.background]}. Captured motion and character state remain unchanged.`); },
+    });
+
+    // Historical app lineage remains visible but secondary.
+    const lineage = buildLabel(scope, 'LINEAGE WALL: Guy_Cast → Gay_Cast · He-Maker · Media Getter', 3.7);
+    lineage.position.set(0, 4.05, -6.05); this.group.add(lineage); scope.track(lineage.geometry);
+    const privacy = buildLabel(scope, 'Museum fixture only · no camera requested · performance state ≠ camera pixels', 3.8);
+    privacy.position.set(0, 3.7, -6.05); this.group.add(privacy); scope.track(privacy.geometry);
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
     if (this.travelling && this.pulse.isRunning) {
-      const index = Math.min(this.curves.length - 1, Math.max(0, this.step));
-      if (this.pulse.update(dt, this.curves[index], this.reducedMotion ? 5 : 1.6)) {
-        this.step = Math.min(STEPS.length - 1, this.step + 1);
-        this.travelling = false;
-        this.ctx.announce(
-          this.step === STEPS.length - 1
-            ? `Output on ${GENERATIONS[this.generation].name}. ${GENERATIONS[this.generation].note}`
-            : `${STEPS[this.step]} on ${GENERATIONS[this.generation].name}.`,
-        );
+      const curve = this.curves[Math.min(this.curves.length - 1, this.stage)];
+      if (this.pulse.update(dt, curve, this.reducedMotion ? 5 : 1.4)) {
+        this.stage = Math.min(STAGES.length - 1, this.stage + 1); this.travelling = false;
+        this.ctx.announce(`${STAGES[this.stage].name}. ${STAGES[this.stage].note}`);
       }
     }
-
-    for (let i = 0; i < this.stepLamps.length; i++) {
-      const mat = this.stepLamps[i].material as THREE.MeshStandardMaterial;
-      const target = i <= this.step ? 1.5 : 0.08;
-      mat.emissiveIntensity += (target - mat.emissiveIntensity) * Math.min(1, dt * 5);
-    }
-
-    // The active generation lifts off the bench.
-    for (let i = 0; i < this.devices.length; i++) {
-      const lift = i === this.generation ? 0.1 : 0;
-      this.devices[i].position.y += (1.0 + lift - this.devices[i].position.y) * Math.min(1, dt * 5);
-      if (!this.reducedMotion && i === this.generation) {
-        this.devices[i].rotation.y = Math.sin(this.elapsed * 0.6) * 0.1;
-      }
+    for (let i = 0; i < this.stages.length; i++) {
+      const mat = this.stages[i].material as THREE.MeshStandardMaterial;
+      const target = i === this.stage ? 1 : 0.55;
+      mat.emissive.setHex(STAGES[i].colour); mat.emissiveIntensity += (target - mat.emissiveIntensity) * Math.min(1, dt * 5);
+      const lift = i === this.stage ? 0.12 : 0;
+      this.stages[i].position.y += ((1.55 + lift) - this.stages[i].position.y) * (this.reducedMotion ? 1 : Math.min(1, dt * 5));
     }
   }
 
-  protected override onReset(): void {
-    this.step = -1;
-    this.travelling = false;
-    this.generation = 0;
-    this.pulse.stop();
-    for (const lamp of this.stepLamps) {
-      (lamp.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.08;
-    }
-    for (const device of this.devices) {
-      device.position.y = 1.0;
-      device.rotation.set(0, 0, 0);
-    }
-  }
+  protected override onReset(): void { this.stage = 0; this.character = 0; this.background = 0; this.travelling = false; this.pulse.stop(); }
 
   protected override describeState(): string {
-    const generation = GENERATIONS[this.generation];
-    if (this.step < 0) {
-      return `${generation.name} is selected, showing ${generation.surfaces} delivery surface${generation.surfaces === 1 ? '' : 's'}. No job is running.`;
-    }
-    return `Running on ${generation.name}, currently at ${STEPS[this.step]}. ${generation.note}`;
+    return `Pipeline at ${STAGES[this.stage].name}. Character: ${CHARACTERS[this.character]}. Background: ${BACKGROUNDS[this.background]}. The same performance state survives both presentation changes.`;
   }
 }
