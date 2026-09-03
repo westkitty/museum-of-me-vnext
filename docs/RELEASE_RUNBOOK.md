@@ -4,10 +4,9 @@ This runbook prepares Phase 14 without silently performing publication. It is in
 
 ## Current candidate and release shape
 
-- Implementation candidate: `feature/museum-workshop-core-2026-08-26` at committed HEAD `bf2fe0611c5c06e69316ec1bbc3cbf81bfac41e2`.
-- Working-tree state: additional uncommitted candidate changes were present during this reconciliation; committed-head CI does not cover them.
-- Release branch: `release/v1.0.0`, an older baseline 32 commits behind the implementation candidate.
-- Release PR: `release/v1.0.0` → `main`; it does not contain the current Workshop/creative-expansion candidate.
+- Implementation candidate: `feature/museum-workshop-core-2026-08-26` at committed HEAD `7ea364f8c2b406225b1c1110628ce75a647178dc`.
+- Release branch: `release/v1.0.0`, currently awaiting promotion of the implementation candidate through PR #3.
+- Release PR: `release/v1.0.0` → `main`; it will track the promoted release head automatically after PR #3 lands.
 - Static build output: `dist/`
 - Build runtime: Node.js 22
 - Browser runtime: modern WebGL 2 browser
@@ -53,7 +52,7 @@ After an explicitly authorized deployment, run the deterministic hosted verifier
 npm run verify:hosted -- https://museum.example/
 ```
 
-It checks the hosted shell for a successful response, the three required mount points, shell revalidation, `nosniff`, frame denial, the required CSP boundary, same-origin content-hashed JavaScript/CSS, successful asset responses, and immutable one-year asset caching. Its own logic is exercised by `npm run test:release-tools`, which is part of the canonical gate.
+It checks the hosted shell for a successful response, the three required mount points, shell revalidation, `nosniff`, frame denial, the required CSP boundary, same-origin content-hashed JavaScript/CSS, successful asset responses and immutable one-year asset caching. Its own logic is exercised by `npm run test:release-tools`, which is part of the canonical gate.
 
 This is transport/header evidence only. It deliberately does **not** promote visual composition, audio behavior, pointer-lock feel/recovery, or representative-device FPS to verified.
 
