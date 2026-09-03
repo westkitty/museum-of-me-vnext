@@ -196,3 +196,65 @@ Focused regression coverage was added in `tests/media-lineage-visual.test.ts`. I
 Exact code head `f8316578aa60c21fbd478206d1fdeea17611aad7` passed GitHub Actions push run `33756180459` in all four jobs: canonical development gate, production real-browser visitor path, standalone/offline verification, and development-only Workshop authoring. The canonical gate reports **27 test files / 571 tests passing**, including the 3 focused E16 visual-semantic tests and the existing 316-test per-exhibit lifecycle/interaction gate. Production dependency audit reports zero production vulnerabilities; mapping remains 73/73 current project identities across 35/35 physical exhibits.
 
 This proves the tested E16 interaction/lifecycle semantics and protected project paths for that exact code head. It does **not** establish that E16's final composition, readability, scale, or interaction feel is visually good on the representative device. Those judgments remain **UNKNOWN / UNVERIFIED** until human walkthrough evidence exists.
+
+## E11 visual-legibility repair — He-Maker recovery
+
+**Evidence state: IMPLEMENTED; CANONICAL GATE VERIFIED ON CODE HEAD; FINAL DOCS-INCLUSIVE FOUR-JOB PROOF PENDING AT TIME OF THIS WRITE**
+
+The same visitor-facing review found that E11 accurately described He-Maker as project archaeology but represented that recovery case mainly as a console announcement. That was not enough for a museum installation whose point is the transformation from scattered evidence into a resumable project.
+
+Repair:
+
+- preserved the existing Selfsame authority desk, evidence-state selection, temporary constraint capsules, and preflight/hard-stop behavior;
+- added a separate four-stage He-Maker recovery bench: **Loose files → Repository → Intent & history → Durable record**;
+- added physical stage representations so the sequence reads as file evidence becoming repository structure, reconstructed intent/history, and finally a durable project record;
+- added a visible recovery token and reached/current-stage emphasis;
+- reduced-motion mode snaps the token/stages instead of easing them, while preserving the same semantic progression;
+- reset returns the recovery case to Loose files without disturbing the default authority-desk state;
+- a first draft accidentally allocated a `THREE.Vector3` in `onUpdate`; that allocation was removed before validation so the final implementation preserves the Museum's allocation-free hot-path contract.
+
+Focused regression coverage was added in `tests/continuity-recovery-visual.test.ts`. It proves all four recovery stages become the current visible/accessible state in order and that reset restores Loose files while leaving the authority desk's default observed record intact.
+
+Exact code head `b4b398db01fa7ff00d268506ecd6e8498eb46582` passed the canonical development gate in GitHub Actions push run `33756941509`: **28 test files / 573 tests passing**, including both new recovery tests, all three E16 visual-semantic tests, the existing 316-test per-exhibit gate, and passing hot-path/mapping/content/privacy/frame-loop/assets/source-parity/build/budget/dist checks. That workflow's independent browser/standalone/Workshop jobs were still running when later commits moved the development branch; the final docs-inclusive head must therefore receive its own four-job proof rather than borrowing those unfinished job states.
+
+Human judgment of E11's spacing, labels, token readability, and whether Selfsame versus He-Maker feels like two legible related systems remains **UNKNOWN / UNVERIFIED**.
+
+## E34 visual-legibility repair — evidence receipts
+
+**Evidence state: IMPLEMENTED; CANONICAL GATE VERIFIED ON CODE HEAD; FINAL DOCS-INCLUSIVE FOUR-JOB PROOF PENDING AT TIME OF THIS WRITE**
+
+E34 already showed the synthetic AndrewOS/BigMac route and the Dexter Gate, but its evidence receipt was mostly described in text. That weakened one of the control plane's most important ideas: **requested, attempted, changed, verified, failed, and unknown are different states and must not collapse into “done.”**
+
+Repair:
+
+- added a physical evidence-receipt board with separate **REQUESTED, ATTEMPTED, CHANGED, VERIFIED, FAILED, UNKNOWN** indicators;
+- selecting a registered workflow records REQUESTED;
+- starting execution records ATTEMPTED;
+- a read-only successful route reaches VERIFIED without falsely claiming CHANGED;
+- a consequential operation attempted without the exact Dexter Gate preview remains requested/attempted and does not light CHANGED or VERIFIED;
+- a preview-bound consequential route lights CHANGED separately from VERIFIED only after the deterministic route completes;
+- reset clears the receipt ledger;
+- FAILED and UNKNOWN remain visibly distinct states but are not fabricated by the deterministic success/block paths;
+- no new dependency, collision authority, external service, asset, or frame loop was introduced.
+
+Focused regression coverage was added in `tests/bigmac-receipt-visual.test.ts`. One test proves read-only `requested → attempted → verified` without a false changed state; the other proves a consequential operation is blocked before changed/verified without preview and reaches `requested → attempted → changed → verified` only after the previewed route completes.
+
+Exact code head `87e1ef32f072eebe043de7b99c8779094f96f60e` passed the canonical development gate in GitHub Actions push run `33757245306`: **29 test files / 575 tests passing**, including the 2 E34 receipt tests, 2 E11 recovery tests, 3 E16 visual-semantic tests, the 316-test per-exhibit gate, and all mapping/content/privacy/frame-loop/hot-path/asset/source-parity/QA/build/budget/dist checks. Production dependency audit had also passed on that exact head before this documentation write moved the branch.
+
+Human judgment of receipt-board composition, label readability, whether the evidence states read as proof rather than a generic progress bar, and the visual relationship between the receipt and Dexter Gate remains **UNKNOWN / UNVERIFIED**.
+
+## Human-QA targeting after semantic-legibility repairs
+
+**Evidence state: PLANNED HUMAN VERIFICATION / CHECKLIST IMPLEMENTED**
+
+`validation/reports/HUMAN_QA_CHECKLIST.md` now contains a dedicated Collection Revision 2 changed-room route. It requires human inspection of:
+
+- E11 He-Maker four-stage recovery and its visual separation from the Selfsame authority desk;
+- E14 DexEnhance host-interface isolation;
+- E16 visible character/background substitution plus portable-state/matte/verification stages;
+- E22 2D Game Factory workflow and coexistence with DexDraw/DexCraft;
+- E34 read-only versus consequential evidence-receipt semantics and Dexter Gate behavior.
+
+For each changed room the human tester must separately judge spatial composition, label readability, control discoverability, visible state change, and whether the interaction teaches the project without prior knowledge. These criteria are deliberately not inferred from automation.
+
+Because this file and the human-QA checklist changed after the most recent code-head gates, the authoritative final automated evidence for the branch must be read from the GitHub Actions workflow attached to the exact current commit containing these documentation changes. Do not edit this ledger merely to paste that future workflow result back into itself; record it externally in the draft PR and canonical Project Bible after the workflow completes.
