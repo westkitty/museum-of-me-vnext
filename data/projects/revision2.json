@@ -142,5 +142,23 @@
     "capabilities": ["Ten runnable architecture demonstrations", "Three.js and Canvas patterns", "Raw WebGL and WebGPU examples", "Lifecycle ownership", "Accessibility patterns", "Per-demo architecture contracts"],
     "lesson": "Architecture guidance becomes more useful when every recommendation has a runnable counterexample showing when a different choice is better.",
     "repos": ["westkitty/modern_3d_browser_game_toolkit"]
+  },
+  {
+    "id": "P073",
+    "name": "2D Game Factory",
+    "family": "Game creation / creative tools",
+    "kind": "Local-first visual game factory",
+    "status": "Active expansion; core workbench established",
+    "period": "2026",
+    "summary": "A local-first visual 2D browser-game factory that turns user-owned assets into real generated Phaser games through one governed workbench.",
+    "brief": "2D Game Factory combines asset import, an Asset Lab, semantic role mapping, scene composition, real generated-game preview, validation, build, and packaging around a 74-preset catalogue. Its current expansion is filling the catalogue with honest playable starter experiences while keeping the reusable machine separate from game-specific content and keeping source assets and provenance under user control.",
+    "deep": [
+      "The workbench previews the actual generated Phaser game rather than an editor-side imitation, so what the user approves is on the same runtime path as what gets built.",
+      "Asset authority stays explicit: immutable source assets and derived recipes remain traceable while semantic roles connect user-owned art to the generated game's native theme and scene documents.",
+      "Starter depth and evidence maturity are deliberately separate claims. A richer starter does not become proof-validated merely because it is more complete, and unfinished starter scaffolds stay outside the shipped registry."
+    ],
+    "capabilities": ["74-preset game catalogue", "Asset Lab and semantic role mapping", "Visual Scene Composer", "Real Phaser preview", "Validate / Build / Pack workflow", "Governed starter-kit expansion"],
+    "lesson": "A game factory is trustworthy when the visual workbench, generator, preview, validation, and packager all pass through the same authority and provenance seams.",
+    "repos": ["westkitty/2d_Game_Factory"]
   }
 ]
