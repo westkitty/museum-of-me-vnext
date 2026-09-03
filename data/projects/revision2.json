@@ -1,0 +1,146 @@
+[
+  {
+    "id": "P065",
+    "name": "Starsilk Compendium",
+    "family": "Starsilk / canon systems",
+    "kind": "Generated canon compendium",
+    "status": "Active",
+    "period": "2026",
+    "summary": "A source-grounded Starsilk compendium of character folios, Drakken records, canon invariants, and supporting lore material.",
+    "brief": "The Starsilk Compendium grew from a character dossier into a generated canon publication. Versioned source sections, navigation metadata, media provenance, and machine-readable canon invariants produce a reproducible public site whose generated output is validated rather than hand-edited.",
+    "deep": [
+      "Character identity and canon locks are stored as source material rather than inferred from whichever generated image or prose passage happens to be newest.",
+      "The build regenerates the published site from versioned sections and checks canon invariants, local asset integrity, provenance, and cross-browser interaction before the generated output counts as current.",
+      "Large source media is kept outside the ordinary Git payload while published derivatives retain hashes and provenance, separating canonical originals from optimized delivery artifacts."
+    ],
+    "capabilities": ["Character and lore folios", "Machine-readable canon invariants", "Deterministic publication", "Media provenance", "Cross-browser validation"],
+    "lesson": "A canon reference becomes durable when generated presentation can be rebuilt from smaller authoritative sources instead of becoming the source itself.",
+    "repos": ["westkitty/Starsilk_Character_Dossier"]
+  },
+  {
+    "id": "P066",
+    "name": "Selfsame",
+    "family": "Continuity / authority systems",
+    "kind": "Local continuity application",
+    "status": "Active",
+    "period": "2026",
+    "summary": "A local source-grounded continuity and project-intelligence system that keeps authority, corrections, contradictions, and temporary constraints explicit.",
+    "brief": "Selfsame stores original sources, dated passages, reviewed memories, decisions, corrections, authority resolutions, project contexts, contradictions, and unfinished threads in a local database. Its workbench runs preflight checks so fluent synthesis cannot silently outrank evidence or route around a declared boundary.",
+    "deep": [
+      "Authority resolution is a first-class object rather than an assumption. A current-state answer can be stopped when the system lacks evidence identifying what actually governs the question.",
+      "Temporary constraint capsules such as local-only or preserve-the-boundary travel with the active work without being rewritten into autobiographical evidence.",
+      "Hard stops are recorded as operational events with reasons and required next actions, so refusal is inspectable rather than an invisible model behavior."
+    ],
+    "capabilities": ["Source-grounded continuity", "Authority resolution", "Constraint capsules", "Contradiction tracking", "Auditable hard stops", "Local archive export"],
+    "lesson": "Fluent synthesis is useful only after the system can show which evidence and authority permitted it to speak.",
+    "repos": ["westkitty/SelfSame"]
+  },
+  {
+    "id": "P067",
+    "name": "Project Sentinel",
+    "family": "Continuity / project recovery",
+    "kind": "Local project scanner",
+    "status": "Active",
+    "period": "2026",
+    "summary": "A bounded local scanner that turns project directories into recovery reports, maps, handoffs, fragile-file lists, and resumable project evidence.",
+    "brief": "Project Sentinel inspects project directories without executing discovered project commands. It records repository state, detected commands, fragile files, duplicate candidates, and successor-agent context into a local resurrection packet, with optional repository hooks and a macOS supervisor for keeping that evidence current.",
+    "deep": [
+      "Scanning is intentionally read-oriented: discovered code and documentation are evidence to summarize, not instructions the scanner is allowed to execute.",
+      "The recovery packet is written beside the project so a stale repository can explain itself even when the conversation that produced it has disappeared.",
+      "Automation stays bounded: hooks and supervisor configuration can trigger scans, but the scanner does not convert project discovery into arbitrary command execution."
+    ],
+    "capabilities": ["Project-state scanning", "Recovery report generation", "Successor-agent handoffs", "Fragile-file detection", "Optional local supervision"],
+    "lesson": "A project is easier to revive when it leaves its own recovery evidence while it is still understandable.",
+    "repos": ["westkitty/Project_Sentinel"]
+  },
+  {
+    "id": "P068",
+    "name": "RepoForge",
+    "family": "Agent / capability systems",
+    "kind": "Capability compiler",
+    "status": "Active vertical slice",
+    "period": "2026",
+    "summary": "A repository-to-capability compiler that separates what a codebase appears able to do from what a person has actually authorized it to do.",
+    "brief": "RepoForge scans a repository read-only, proposes bounded capabilities with evidence, requires explicit human authority for an exact capability contract, generates a narrow invocation surface, and treats an operation as successful only after its declared postcondition verifies.",
+    "deep": [
+      "Repository text is evidence, never authority. A README can support a candidate capability but cannot grant permission to invoke it.",
+      "Capability and authority manifests are deliberately separate so inference cannot silently upgrade itself into permission.",
+      "Proof records bind the scan, the authorized contract, the invocation, and the observed postcondition into one auditable chain."
+    ],
+    "capabilities": ["Read-only repository scanning", "Evidence-backed capability proposals", "Separate authority manifest", "Bounded MCP generation", "Postcondition verification", "Proof records"],
+    "lesson": "Discovering a capability and having permission to use it are different facts and should live in different artifacts.",
+    "repos": ["westkitty/RepoForge"]
+  },
+  {
+    "id": "P069",
+    "name": "Character Performance Capture",
+    "family": "Media / character systems",
+    "kind": "Local performance-capture application",
+    "status": "Active; target-hardware verified",
+    "period": "2026",
+    "summary": "A local character-performance pipeline that turns camera movement into portable performer state and drives a character without storing the camera image in the take.",
+    "brief": "Character Performance Capture reads webcam or video input, derives face-performance state through an optional tracker, records that state in a portable CPC format, drives an authorized character rig, and can send the rendered result to a virtual camera. The recorded performance can be replayed without retaining the original camera pixels.",
+    "deep": [
+      "The portable performance record separates movement data from identity-bearing camera frames, making replay and character substitution possible without treating raw video as the durable artifact.",
+      "Tracker, renderer, recorder, and output sink are explicit adapters, so the core performance schema can survive model or rendering changes.",
+      "The full live route has target-hardware evidence for webcam capture, face tracking, character rendering, take recording/replay, and virtual-camera consumption."
+    ],
+    "capabilities": ["Webcam and video capture", "Portable performance records", "Character rig driving", "Take record and replay", "Virtual-camera output", "Local-first processing"],
+    "lesson": "Performance becomes reusable when the motion can survive independently of the camera image and of the renderer that first consumed it.",
+    "repos": ["westkitty/character-performance-capture"]
+  },
+  {
+    "id": "P070",
+    "name": "ClearCut Local",
+    "family": "Media / local video tools",
+    "kind": "Local video application",
+    "status": "Active",
+    "period": "2026",
+    "summary": "A local video-background removal and replacement application built around continuous soft alpha matting and verified transparent export.",
+    "brief": "ClearCut Local performs subject selection, temporally stable soft matting, mask refinement, background replacement, and transparent video export on Apple Silicon without uploading footage. Export validation checks duration, frame count, audio preservation, and alpha-channel presence instead of treating a completed render command as proof.",
+    "deep": [
+      "Continuous alpha rather than a binary cut is what preserves hair, edge softness, and motion without turning the subject into a cardboard silhouette.",
+      "Human and general-subject routes use different local segmentation strategies while sharing the same refinement and export contract.",
+      "The export path verifies the produced media because a renderer reporting success is not enough evidence that the file retained its audio and transparency."
+    ],
+    "capabilities": ["Local soft-alpha matting", "Temporal stabilization", "Subject selection", "Background replacement", "Transparent ProRes export", "Post-render verification"],
+    "lesson": "A media export is not complete when rendering stops; it is complete when the artifact is inspected for the properties the workflow promised.",
+    "repos": ["westkitty/ClearCut"]
+  },
+  {
+    "id": "P071",
+    "name": "AndrewOS Mac Bridge",
+    "family": "Local systems / control planes",
+    "kind": "Private MCP control plane",
+    "status": "Active",
+    "period": "2026",
+    "summary": "A registry-driven local Mac control plane exposing fixed project and service operations with evidence receipts instead of an arbitrary shell.",
+    "brief": "The Mac Bridge lets an assistant inspect registered projects, invoke fixed tasks, check registered services, stage text artifacts, and return exact evidence receipts. Consequential operations require a preview-bound one-use transaction, while general shell strings, broad filesystem access, and automatic Git publication remain outside the exposed authority.",
+    "deep": [
+      "Projects and operations are registered ahead of time, so a conversation cannot invent a new local power merely by asking for it.",
+      "The Dexter Gate binds previewed effects to a short-lived exact transaction before a consequential action may execute, making approval specific rather than ceremonial.",
+      "Receipts separate requested, attempted, observed, changed, verified, failed, unknown, and rollback states so a successful tool call cannot masquerade as proof of the intended result."
+    ],
+    "capabilities": ["Registered project inspection", "Fixed task invocation", "Service checks", "Preview-gated consequential actions", "Artifact staging", "Evidence receipts"],
+    "lesson": "A useful local control plane exposes named powers with evidence, not a general-purpose command line with polite warnings.",
+    "repos": ["westkitty/AndrewOS_MacBridge"]
+  },
+  {
+    "id": "P072",
+    "name": "Modern 3D Browser Game Toolkit",
+    "family": "Three.js / architecture systems",
+    "kind": "Interactive architecture toolkit",
+    "status": "Active; ten demonstrations implemented",
+    "period": "2026",
+    "summary": "A ten-demonstration browser toolkit showing how different game requirements lead to different rendering, timing, input, and lifecycle architectures.",
+    "brief": "The Modern 3D Browser Game Toolkit turns architectural guidance into independently runnable demonstrations: tactics, ray-casting, fixed-step character movement, verified GLB loading, raw WebGL, an accessible puzzle museum, IK telemetry, crowd scaling, a strategy globe, and a WebGPU field simulation.",
+    "deep": [
+      "The demonstrations intentionally use several rendering paths rather than forcing every problem through Three.js, because the product requirement determines the useful abstraction level.",
+      "Each demo carries its own architecture contract and shares a launcher that permits only one demonstration to own rendering and input resources at a time.",
+      "The museum itself helped motivate the operational rules the toolkit demonstrates, making the toolkit a record of engineering lessons that escaped the project that produced them."
+    ],
+    "capabilities": ["Ten runnable architecture demonstrations", "Three.js and Canvas patterns", "Raw WebGL and WebGPU examples", "Lifecycle ownership", "Accessibility patterns", "Per-demo architecture contracts"],
+    "lesson": "Architecture guidance becomes more useful when every recommendation has a runnable counterexample showing when a different choice is better.",
+    "repos": ["westkitty/modern_3d_browser_game_toolkit"]
+  }
+]
