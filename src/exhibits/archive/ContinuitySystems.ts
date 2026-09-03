@@ -49,7 +49,6 @@ export class ContinuitySystems extends ExhibitBase {
     const bronze = this.standard(0x8a6a42, { roughness: 0.4, metalness: 0.6 });
     const violet = this.standard(0x4b3f62, { roughness: 0.75 });
 
-    // Authority desk: contradictory records remain simultaneously visible.
     const desk = new THREE.Mesh(scope.track(new THREE.BoxGeometry(5.0, 0.12, 2.0)), violet);
     desk.position.set(0, 0.92, -4.2); this.group.add(desk);
 
@@ -80,7 +79,6 @@ export class ContinuitySystems extends ExhibitBase {
       });
     });
 
-    // Hard-stop gate.
     this.gate = new THREE.Mesh(
       scope.track(new THREE.BoxGeometry(2.2, 2.0, 0.14)),
       this.emissive(0x7fd67f, 0.25),
@@ -140,9 +138,8 @@ export class ContinuitySystems extends ExhibitBase {
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    const target = this.stopped ? 0xd9543a : 0x7fd67f;
     const mat = this.gate.material as THREE.MeshStandardMaterial;
-    mat.emissive.lerp(new THREE.Color(target), Math.min(1, dt * 5));
+    mat.emissive.setHex(this.stopped ? 0xd9543a : 0x7fd67f);
     mat.emissiveIntensity += ((this.stopped ? 1.5 : 0.25) - mat.emissiveIntensity) * Math.min(1, dt * 5);
     for (let i = 0; i < this.cards.length; i++) {
       const lift = i === this.authorityIndex ? 0.13 : 0;
