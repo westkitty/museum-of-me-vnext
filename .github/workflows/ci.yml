@@ -1,4 +1,4 @@
-name: museum gate
+name: museum development gate
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: canonical automated release gate
+      - name: canonical development gate
         run: npm run gate
 
   browser:
@@ -30,7 +30,7 @@ jobs:
       - run: npm ci
       - name: production dependency audit
         run: npm audit --omit=dev --audit-level=high
-      - name: build production museum
+      - name: build production-style museum artifact
         run: npm run build
       - name: install Chromium
         run: npx playwright install --with-deps chromium
