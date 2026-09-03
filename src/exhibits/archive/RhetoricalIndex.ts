@@ -137,7 +137,7 @@ export class RhetoricalIndex extends ExhibitBase {
     for (let i = 0; i < this.passagePanels.length; i++) {
       const mat = this.passagePanels[i].material as THREE.MeshStandardMaterial;
       const target = this.pins.has(i) ? 0xbba2d2 : i === this.index ? 0xe9d775 : 0xd8cfbb;
-      mat.color.lerp(new THREE.Color(target), Math.min(1, dt * 5));
+      mat.color.setHex(target);
     }
     if (!this.reducedMotion) this.lens.rotation.z += dt * 0.08;
   }
