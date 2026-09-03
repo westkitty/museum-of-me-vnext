@@ -31,7 +31,7 @@
     { "id": "E19", "slug": "dextilt",                  "title": "DexTilt",                                   "wing": "east",   "tier": "B", "projects": ["P023"] },
     { "id": "E20", "slug": "utility-bench",            "title": "Utility & Privacy Bench",                   "wing": "east",   "tier": "C", "projects": ["P024", "P032", "P061"] },
     { "id": "E21", "slug": "civic-support",            "title": "Civic Support Studio",                      "wing": "east",   "tier": "B", "projects": ["P025"] },
-    { "id": "E22", "slug": "creative-tools",           "title": "Creative Tools Studio",                     "wing": "east",   "tier": "B", "projects": ["P026", "P028", "P030"] },
+    { "id": "E22", "slug": "creative-tools",           "title": "Creative Tools Studio",                     "wing": "east",   "tier": "B", "projects": ["P026", "P028", "P030", "P073"] },
     { "id": "E23", "slug": "sensemaking-lab",          "title": "Sensemaking Lab",                           "wing": "east",   "tier": "B", "projects": ["P027", "P031"] },
 
     { "id": "E24", "slug": "invincible-magic",         "title": "Era of Invincible Magic",                   "wing": "south",  "tier": "A", "projects": ["P012"] },
