@@ -18,19 +18,19 @@
 
     { "id": "E09", "slug": "museum-evolution",         "title": "Museum Evolution",                          "wing": "west",   "tier": "C", "projects": ["P009", "P072"] },
     { "id": "E10", "slug": "worldsvault-lineage",      "title": "WorldsVault Lineage",                       "wing": "west",   "tier": "B", "projects": ["P047", "P048", "P049"] },
-    { "id": "E11", "slug": "continuity-systems",       "title": "Selfsame: Continuity & Authority Systems",    "wing": "west",   "tier": "B", "projects": ["P014", "P018", "P046", "P066", "P067"] },
+    { "id": "E11", "slug": "continuity-systems",       "title": "Selfsame: Continuity & Authority Systems",    "wing": "west",   "tier": "B", "projects": ["P014", "P018", "P046", "P060", "P066", "P067"] },
     { "id": "E12", "slug": "rhetorical-index",         "title": "Rhetorical InDEX",                          "wing": "west",   "tier": "B", "projects": ["P062"] },
 
     { "id": "E13", "slug": "suno-studio",              "title": "Suno Studio",                               "wing": "media",  "tier": "B", "projects": ["P010"] },
-    { "id": "E14", "slug": "promptcraft",              "title": "Promptcraft & Vibe Coding",                 "wing": "media",  "tier": "B", "projects": ["P011", "P013"] },
+    { "id": "E14", "slug": "promptcraft",              "title": "Promptcraft & Vibe Coding",                 "wing": "media",  "tier": "B", "projects": ["P011", "P013", "P029"] },
     { "id": "E15", "slug": "agent-capability-lab",     "title": "Agent Control & Capability Laboratory",       "wing": "media",  "tier": "B", "projects": ["P017", "P019", "P068"] },
-    { "id": "E16", "slug": "performance-media-lab",    "title": "Performance Capture & Media Transformation",  "wing": "media",  "tier": "B", "projects": ["P058", "P059", "P060", "P064", "P069", "P070"] },
+    { "id": "E16", "slug": "performance-media-lab",    "title": "Performance Capture & Media Transformation",  "wing": "media",  "tier": "B", "projects": ["P058", "P059", "P064", "P069", "P070"] },
 
     { "id": "E17", "slug": "voice-lab",                "title": "Dex Voice Lab",                             "wing": "east",   "tier": "A", "projects": ["P021", "P022", "P033", "P034", "P036"] },
     { "id": "E18", "slug": "companion-systems",        "title": "Dex Companion & Agent Systems",             "wing": "east",   "tier": "C", "projects": ["P016", "P020", "P035"] },
     { "id": "E19", "slug": "dextilt",                  "title": "DexTilt",                                   "wing": "east",   "tier": "B", "projects": ["P023"] },
     { "id": "E20", "slug": "utility-bench",            "title": "Utility & Privacy Bench",                   "wing": "east",   "tier": "C", "projects": ["P024", "P032", "P061"] },
-    { "id": "E21", "slug": "civic-support",            "title": "Civic Support Studio",                      "wing": "east",   "tier": "B", "projects": ["P025", "P029"] },
+    { "id": "E21", "slug": "civic-support",            "title": "Civic Support Studio",                      "wing": "east",   "tier": "B", "projects": ["P025"] },
     { "id": "E22", "slug": "creative-tools",           "title": "Creative Tools Studio",                     "wing": "east",   "tier": "B", "projects": ["P026", "P028", "P030"] },
     { "id": "E23", "slug": "sensemaking-lab",          "title": "Sensemaking Lab",                           "wing": "east",   "tier": "B", "projects": ["P027", "P031"] },
 
