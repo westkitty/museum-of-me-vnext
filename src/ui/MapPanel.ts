@@ -7,6 +7,7 @@ import {
 } from '../world/layout';
 import { EXHIBITS_BY_ID, WINGS_BY_ID, exhibitsForWing, COLLECTION } from '../content/collection.generated';
 import type { Journal } from '../state/Journal';
+import type { ActiveVisitThread } from '../state/VisitThread';
 
 const SVG = 'http://www.w3.org/2000/svg';
 /** Plan extent in metres, mapped onto the SVG viewBox. */
@@ -45,6 +46,7 @@ export class MapPanel extends Panel {
     private readonly journal: Journal,
     private readonly getPosition: () => Vec3,
     private readonly getZone: () => string,
+    private readonly getThread: () => ActiveVisitThread | null,
   ) {
     super('map', 'Museum map', 'Where you are');
   }
@@ -94,6 +96,8 @@ export class MapPanel extends Panel {
     });
     plan.append(rot);
     plan.append(textAt(EXTENT, EXTENT - ROTUNDA_APOTHEM - 3, this.level === 0 ? 'Rotunda' : 'Balcony'));
+
+    this.renderVisitThread(plan);
 
     for (const wing of WINGS) {
       if (wing.level !== this.level) continue;
@@ -171,6 +175,7 @@ export class MapPanel extends Panel {
     const halo = svg('circle', { cx: px, cy: py, r: 5.2, fill: 'none', stroke: '#e8c65a', 'stroke-width': 0.8, 'stroke-opacity': '0.6' });
     plan.append(halo);
 
+    const thread = this.getThread();
     const list = el('div', {});
     for (const wing of COLLECTION.wings) {
       if (wing.level !== this.level) continue;
@@ -223,6 +228,9 @@ export class MapPanel extends Panel {
           this.target
             ? el('p', { class: 'panel__note', text: `Wayfinding to ${EXHIBITS_BY_ID.get(this.target)?.title}. Select it again to clear.` })
             : el('p', { class: 'panel__note', text: `${this.journal.visitedCount} of 35 exhibits visited. There is no score.` }),
+          thread
+            ? el('p', { class: 'map__thread-note', text: `Visit Thread: ${thread.title} · ${thread.status === 'complete' ? 'complete' : `stop ${thread.cursor + 1} of ${thread.stopIds.length}`}. Numbered markers on the plan are itinerary stops, not completion marks.` })
+            : document.createTextNode(''),
           el('div', { class: 'panel__grid' },
             el('button', { type: 'button', text: 'Next unvisited', onclick: () => {
               const next = this.journal.nextUnvisited(COLLECTION.exhibits.map((e) => e.id));
@@ -235,6 +243,47 @@ export class MapPanel extends Panel {
       ),
     );
   }
+
+  private renderVisitThread(plan: SVGSVGElement): void {
+    const thread = this.getThread();
+    if (!thread) return;
+    const stops = thread.stopIds.map((id, index) => {
+      const placement = PLACEMENTS.find((entry) => entry.exhibitId === id);
+      const exhibit = EXHIBITS_BY_ID.get(id);
+      const wing = exhibit ? WINGS_BY_ID.get(exhibit.wing) : undefined;
+      return placement && wing ? { id, index, placement, wing } : null;
+    }).filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+
+    for (let i = 1; i < stops.length; i++) {
+      const a = stops[i - 1];
+      const b = stops[i];
+      if (a.wing.level !== this.level || b.wing.level !== this.level) continue;
+      const [x1, y1] = toSvg(a.placement.doorway);
+      const [x2, y2] = toSvg(b.placement.doorway);
+      plan.append(svg('line', {
+        class: 'thread-link', x1, y1, x2, y2,
+        stroke: '#e8c65a', 'stroke-width': 1.15, 'stroke-opacity': 0.62, 'stroke-dasharray': '2 1.5',
+      }));
+    }
+
+    for (const stop of stops) {
+      if (stop.wing.level !== this.level) continue;
+      const [x, y] = toSvg(stop.placement.doorway);
+      const completed = thread.completedIds.includes(stop.id);
+      const skipped = thread.skippedIds.includes(stop.id);
+      const current = thread.status !== 'complete' && stop.index === thread.cursor;
+      const marker = svg('g', { class: `thread-marker thread-marker--${completed ? 'visited' : skipped ? 'skipped' : current ? 'current' : 'upcoming'}` });
+      marker.append(svg('circle', { cx: x, cy: y, r: current ? 3.3 : 2.7 }));
+      const number = textAt(x, y + 1.3, String(stop.index + 1));
+      number.setAttribute('class', 'thread-marker__label');
+      marker.append(number);
+      const title = svg('title');
+      title.textContent = `Visit Thread stop ${stop.index + 1}: ${EXHIBITS_BY_ID.get(stop.id)?.title ?? stop.id}`;
+      marker.append(title);
+      plan.append(marker);
+    }
+  }
+
 }
 
 function textAt(x: number, y: number, label: string): SVGTextElement {

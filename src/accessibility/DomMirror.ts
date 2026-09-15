@@ -19,6 +19,7 @@ export class DomMirror {
     private readonly root: HTMLElement,
     private readonly streaming: StreamingManager,
     private readonly onOpenExhibit: (id: string) => void,
+    private readonly onOpenThread?: () => void,
   ) {
     this.liveRegion = el('p', { role: 'status', 'aria-live': 'polite', class: 'a11y-live' });
     this.stateBlock = el('div', {});
@@ -32,7 +33,7 @@ export class DomMirror {
       el('h1', { text: 'Museum of Me — The Reliquary of Iterative Becoming' }),
       el('p', {
         text:
-          'A first-person museum of sixty-four projects, presented through thirty-five exhibits across six wings and two levels. ' +
+          `A first-person museum of ${COLLECTION.projects.length} current project identities, presented through ${COLLECTION.exhibits.length} exhibits across ${COLLECTION.wings.length} wings and two levels. ` +
           'The full text of every exhibit is below and needs no walking. Press H at any time to return here, or Escape to go back to the museum.',
       }),
       el('h2', { text: 'Controls' }),
@@ -40,7 +41,7 @@ export class DomMirror {
         el('li', { text: 'W A S D or the arrow keys — walk. Shift — sprint.' }),
         el('li', { text: 'Q and E — turn. Page Up and Page Down — look vertically. A mouse is optional.' }),
         el('li', { text: 'Space — jump. F or Enter — interact with whatever you are facing.' }),
-        el('li', { text: 'M — map. J — journal. O — settings. H — these contents.' }),
+        el('li', { text: 'M — map. J — journal. T — Visit Thread. O — settings. H — these contents.' }),
         el('li', { text: 'Escape — release the mouse, or close a panel.' }),
         el('li', { text: 'On a touch screen: the left half of the screen walks, the right half looks, and a tap in the centre interacts.' }),
       ),
@@ -49,6 +50,7 @@ export class DomMirror {
           'Settings (O) offer reduced motion, high contrast, interface scaling, field of view, look sensitivity and subtitles. ' +
           'With reduced motion on, every exhibit stays fully usable — its moving parts simply hold still.',
       }),
+      this.onOpenThread ? el('button', { type: 'button', class: 'panel__card', text: 'Open Visit Thread — build a local self-guided route without teleporting', onclick: () => this.onOpenThread?.() }) : document.createTextNode(''),
       el('h2', { text: 'Where you are' }),
       this.stateBlock,
       this.liveRegion,

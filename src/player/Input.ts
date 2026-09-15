@@ -7,7 +7,7 @@ export type Action =
   | 'lookLeft' | 'lookRight' | 'lookUp' | 'lookDown'
   | 'run' | 'jump' | 'interact' | 'map' | 'journal'
   | 'settings' | 'diagnostics' | 'accessibility'
-  | 'curator' | 'study' | 'command';
+  | 'curator' | 'study' | 'thread' | 'command';
 
 /**
  * Directional keys are movement. WASD and the arrow cluster are deliberately
@@ -32,6 +32,7 @@ const BINDINGS: Record<string, Action> = {
   KeyO: 'settings',
   KeyC: 'curator',
   KeyY: 'study',
+  KeyT: 'thread',
   Backquote: 'diagnostics',
   KeyH: 'accessibility',
 };
@@ -42,7 +43,7 @@ export const KEYBOARD_LOOK_SPEED = 110;
 /** Actions that fire once per physical key press rather than being held. */
 const EDGE_ACTIONS = new Set<Action>([
   'jump', 'interact', 'map', 'journal', 'settings', 'diagnostics', 'accessibility',
-  'curator', 'study', 'command',
+  'curator', 'study', 'thread', 'command',
 ]);
 
 function clamp(v: number, lo: number, hi: number): number {

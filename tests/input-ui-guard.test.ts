@@ -92,6 +92,19 @@ describe('semantic UI input isolation', () => {
     expect(interact).not.toHaveBeenCalled();
   });
 
+
+  it('opens Visit Thread once per T press and never from a focused control', () => {
+    const thread = vi.fn();
+    input.on('thread', thread);
+
+    keydown('KeyT', { tagName: 'CANVAS' });
+    keydown('KeyT', { tagName: 'CANVAS' });
+    expect(thread).toHaveBeenCalledTimes(1);
+    keyup('KeyT', { tagName: 'CANVAS' });
+    keydown('KeyT', { tagName: 'BUTTON' });
+    expect(thread).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps the ordinary canvas/global interaction path intact', () => {
     const interact = vi.fn();
     input.on('interact', interact);

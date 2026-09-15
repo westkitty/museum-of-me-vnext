@@ -6,6 +6,7 @@ import { detectQualityTier, type QualityTier } from '../render/QualityTiers';
 import { loadPreferencesResult, savePreferences, type VisitorPreferences } from '../state/Preferences';
 import { Journal } from '../state/Journal';
 import { Study } from '../state/Study';
+import { VisitThread } from '../state/VisitThread';
 import { Lifecycle } from './Lifecycle';
 import { SourceVisitors } from '../world/SourceVisitors';
 import { SupplementaryCases } from '../world/SupplementaryCases';
@@ -74,6 +75,7 @@ export class App implements LoopCallbacks {
   readonly sourceInstallations: SourceInstallations;
   readonly sourceArtwork: SourceArtwork;
   readonly study: Study;
+  readonly visitThread: VisitThread;
   lifecycle!: Lifecycle;
   ui!: UILayer;
   /** Zone the visitor is currently standing in. Drives audio and streaming. */
@@ -103,6 +105,7 @@ export class App implements LoopCallbacks {
     this.preferences = loaded.preferences;
     this.audio.setVolumes(this.preferences.masterVolume, this.preferences.ambienceVolume);
     this.journal = new Journal();
+    this.visitThread = new VisitThread();
     this.study = new Study(() => new Set([
       ...SOURCE_INSTALLATIONS.map((i) => i.id),
       ...SOURCE_SUPPLEMENTARY.map((s) => s.id),
@@ -183,7 +186,10 @@ export class App implements LoopCallbacks {
     this.input.on('interact', () => {
       if (this.interaction.activate()) {
         const focus = this.interaction.currentFocus;
-        if (focus) this.journal.markVisited(focus.exhibitId);
+        if (focus) {
+          this.journal.markVisited(focus.exhibitId);
+          this.visitThread.recordVisit(focus.exhibitId);
+        }
         this.audio.tick();
       }
     });

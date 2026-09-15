@@ -1,5 +1,7 @@
 import { COLLECTION, EXHIBITS_BY_ID, WINGS_BY_ID } from '../content/collection.generated';
 import type { Journal } from '../state/Journal';
+import type { VisitThread } from '../state/VisitThread';
+import { threadWeaveForCurrent } from '../state/ThreadWeave';
 
 export interface GuideAction {
   readonly kind: 'guide';
@@ -18,17 +20,35 @@ export interface GuideReply {
  * second content or navigation authority.
  */
 export class DeterministicMuseumGuide {
-  constructor(private readonly journal: Journal) {}
+  constructor(private readonly journal: Journal, private readonly visitThread?: VisitThread) {}
 
   answer(rawQuery: string): GuideReply {
     const query = rawQuery.trim().toLocaleLowerCase();
     if (!query) return this.reply('Ask about an exhibit, project, wing, controls, or something you have not visited yet.');
 
     if (/\b(controls?|move|walk|key|keyboard|help)\b/.test(query)) {
-      return this.reply('Move with W/A/S/D or the arrow keys; Q/E turns; Shift sprints; Space jumps; F or Enter interacts. M opens the map, J the journal, and Ctrl+K the command palette. I can set the map’s existing floor-line guide, but I do not teleport you.');
+      return this.reply('Move with W/A/S/D or the arrow keys; Q/E turns; Shift sprints; Space jumps; F or Enter interacts. M opens the map, J the journal, T your Visit Thread, and Ctrl+K the command palette. I can set the map’s existing floor-line guide, but I do not teleport you.');
     }
     if (/\b(wing|wings|where am i|where)\b/.test(query) && !/\b(project|exhibit)\b/.test(query)) {
       return this.reply(`The museum has ${COLLECTION.wings.map((wing) => `${wing.name} (${wing.id})`).join(', ')}. Ask for an exhibit or project and I will identify its wing.`);
+    }
+    if (/\b(why this|why stop|why here|connect|connection)\b/.test(query) && this.visitThread?.active) {
+      const woven = threadWeaveForCurrent(this.visitThread.active, this.journal);
+      const current = this.visitThread.currentStopId;
+      if (woven && current) {
+        const exhibit = EXHIBITS_BY_ID.get(current)!;
+        const bridge = woven.bridgeFromPrevious ? ` ${woven.bridgeFromPrevious}` : '';
+        return { text: `${exhibit.title}: ${woven.selectionReason}${bridge}`, actions: [{ kind: 'guide', exhibitId: current, label: `Guide me to ${exhibit.title}` }] };
+      }
+    }
+    if (/\b(thread|tour|itinerary|route)\b/.test(query)) {
+      const active = this.visitThread?.active;
+      const current = this.visitThread?.currentStopId;
+      if (active && current) {
+        const exhibit = EXHIBITS_BY_ID.get(current)!;
+        return { text: `${active.title} is ${active.status}. Next: ${exhibit.title}. ${this.visitThread?.remainingCount ?? 0} stops remain. Ask “why this stop?” for the deterministic connection.`, actions: [{ kind: 'guide', exhibitId: current, label: `Guide me to ${exhibit.title}` }] };
+      }
+      return this.reply('Press T for Visit Thread. It builds a local self-guided itinerary from the actual collection and your journal, then reuses the map’s floor-line wayfinding. It never teleports you and it is not a score or achievement system.');
     }
     if (/\b(missed|unvisited|next)\b/.test(query)) {
       const next = this.journal.nextUnvisited(COLLECTION.exhibits.map((exhibit) => exhibit.id));

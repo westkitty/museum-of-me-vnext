@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { COLLECTION } from '../src/content/collection.generated';
 import { DeterministicMuseumGuide } from '../src/guide/DeterministicMuseumGuide';
 import { Journal } from '../src/state/Journal';
+import { VisitThread } from '../src/state/VisitThread';
 
 function guide(): DeterministicMuseumGuide {
   return new DeterministicMuseumGuide(new Journal(null));
@@ -30,7 +31,17 @@ describe('DeterministicMuseumGuide', () => {
     for (const wing of COLLECTION.wings) expect(wings.text).toContain(wing.name);
     expect(controls.text).toContain('W/A/S/D');
     expect(controls.text).toContain('do not teleport');
+    expect(controls.text).toContain('T your Visit Thread');
     expect(controls.actions).toEqual([]);
+  });
+
+
+  it('explains Visit Thread as local guidance rather than gamified completion', () => {
+    const reply = guide().answer('make me a tour route');
+    expect(reply.text).toContain('Visit Thread');
+    expect(reply.text).toContain('never teleports');
+    expect(reply.text).toContain('not a score');
+    expect(reply.actions).toEqual([]);
   });
 
   it('uses only the visit journal to identify the next unvisited exhibit', () => {
@@ -40,4 +51,18 @@ describe('DeterministicMuseumGuide', () => {
 
     expect(reply.actions[0]?.exhibitId).toBe(COLLECTION.exhibits[1].id);
   });
+
+
+it('explains the active Visit Thread from the same deterministic itinerary state', () => {
+  const journal = new Journal(null);
+  const thread = new VisitThread(null);
+  thread.start({ preset: 'systems', pace: 'quick', avoidVisited: true, preferBookmarks: false, currentWing: 'south', topic: 'continuity' }, journal);
+  const localGuide = new DeterministicMuseumGuide(journal, thread);
+  const status = localGuide.answer('what is my route?');
+  const why = localGuide.answer('why this stop?');
+  expect(status.text).toContain(thread.active!.title);
+  expect(status.actions[0]?.exhibitId).toBe(thread.currentStopId);
+  expect(why.actions[0]?.exhibitId).toBe(thread.currentStopId);
+  expect(why.text).toContain('continuity');
+});
 });

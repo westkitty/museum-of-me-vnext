@@ -18,6 +18,7 @@ export class HUD {
   private readonly subtitle: HTMLElement;
   private readonly hints: HTMLElement;
   private readonly lockPrompt: HTMLElement;
+  private readonly threadStatus: HTMLButtonElement;
   private buildModeButton: HTMLButtonElement | null = null;
   private pointerLocked = false;
   private buildModeActive = false;
@@ -27,17 +28,21 @@ export class HUD {
   private subtitleTimer = 0;
   private lastZone: ZoneId | null = null;
 
-  constructor(onRequestLock: () => void) {
+  constructor(onRequestLock: () => void, onOpenThread?: () => void) {
     this.reticle = el('div', { class: 'hud__reticle' });
     this.cueLabel = el('span', {});
     this.cue = el('div', { class: 'hud__cue' }, el('kbd', { text: 'F' }), this.cueLabel);
     this.location = el('div', { class: 'hud__location' });
     this.subtitle = el('div', { class: 'hud__subtitle', role: 'status', 'aria-live': 'polite' });
+    this.threadStatus = el('button', {
+      class: 'hud__thread', type: 'button', hidden: true,
+      'aria-label': 'Open current Visit Thread', onclick: () => onOpenThread?.(),
+    }) as HTMLButtonElement;
     this.hints = el(
       'div',
       { class: 'hud__hints' },
       el('div', { html: '<b>M</b> map · <b>J</b> journal · <b>C</b> curator' }),
-      el('div', { html: '<b>Y</b> study · <b>Ctrl+K</b> command · <b>H</b> contents · <b>O</b> settings' }),
+      el('div', { html: '<b>Y</b> study · <b>T</b> thread · <b>Ctrl+K</b> command · <b>H</b> contents · <b>O</b> settings' }),
     );
 
     const requestLock = (event?: Event): void => {
@@ -69,6 +74,7 @@ export class HUD {
       this.reticle,
       this.cue,
       this.location,
+      this.threadStatus,
       this.hints,
       this.subtitle,
       this.lockPrompt,
@@ -142,6 +148,12 @@ export class HUD {
     this.reticle.classList.toggle('hud__reticle--active', label !== null);
     this.cue.classList.toggle('hud__cue--visible', label !== null);
     if (label) this.cueLabel.textContent = label;
+  }
+
+
+  setVisitThreadStatus(label: string | null): void {
+    this.threadStatus.hidden = !label;
+    this.threadStatus.textContent = label ?? '';
   }
 
   setLocation(zone: ZoneId): void {

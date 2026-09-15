@@ -117,6 +117,8 @@ test('exposes the complete accessible collection without requiring pointer lock'
   await expect(mirror).toContainText('W A S D or the arrow keys — walk');
   await expect(mirror).toContainText('Q and E — turn');
   await expect(mirror).toContainText('F or Enter — interact');
+  await expect(mirror).toContainText('73 current project identities');
+  await expect(mirror).toContainText('T — Visit Thread');
   await expect(mirror).toContainText('Starsilk Universe');
   await expect(mirror).toContainText('BigMac Backbone');
 
@@ -171,6 +173,11 @@ test('admits DexGPT only after entry, then guides through the existing wayfindin
     captured: window.__museum?.input.uiCaptured,
     frozen: window.__museum?.player.isFrozen,
   }))).toEqual({ captured: false, frozen: false });
+
+  // Regression: DexGPT is a first-class modal surface and must be disposed with
+  // the UILayer rather than leaving its DOM/listeners behind indefinitely.
+  await page.evaluate(() => window.__museum?.ui.dispose());
+  await expect(page.locator('#panel-dexgpt-guide')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -201,5 +208,118 @@ test('opens the local Full Weasel artifact and restores Museum input on Escape',
     captured: window.__museum?.input.uiCaptured,
     frozen: window.__museum?.player.isFrozen,
   }))).toEqual({ captured: false, frozen: false });
+  expect(errors).toEqual([]);
+});
+
+test('builds a Visit Thread through the production UI and connects it to real wayfinding', async ({ page }) => {
+  const errors = await bootMuseum(page);
+
+  await page.keyboard.press('t');
+  const panel = page.locator('#panel-visit-thread');
+  await expect(panel).toBeVisible();
+  await expect(panel).toContainText('Choose a thread through the museum');
+
+  await panel.getByRole('radio', { name: /Systems/ }).click();
+  await panel.getByRole('radio', { name: /Quick · 3 stops/ }).click();
+  await panel.getByLabel('Optional topic').fill('continuity architecture');
+  await expect(panel.locator('.thread-preview__list li')).toHaveCount(3);
+  await expect(panel).toContainText('This is a dry run');
+
+  await panel.getByRole('button', { name: 'Build thread and guide me' }).click();
+  const routeCount = await page.evaluate(() => window.__museum?.visitThread.active?.stopIds.length ?? 0);
+  expect(routeCount).toBe(3);
+  const current = await page.evaluate(() => window.__museum?.visitThread.currentStopId ?? null);
+  expect(current).not.toBeNull();
+  expect(await page.evaluate(() => window.__museum?.wayfinding.currentTarget ?? null)).toBe(current);
+  await expect(panel.locator('.thread-stop')).toHaveCount(3);
+  await expect(panel.locator('.thread-stop[data-state="current"]')).toHaveCount(1);
+  await expect(panel.locator('.thread-reason').first()).toContainText('continuity architecture');
+  await expect(page.locator('.hud__thread')).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('m');
+  const map = page.locator('#panel-map');
+  await expect(map).toBeVisible();
+  await expect(map.locator('.map__thread-note')).toContainText('Visit Thread');
+  expect(await map.locator('.thread-marker').count()).toBeGreaterThan(0);
+
+  expect(errors).toEqual([]);
+});
+
+test('keeps Visit Thread and Journal controls usable at a narrow touch-sized viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const errors = await bootMuseum(page);
+
+  await page.keyboard.press('t');
+  const panel = page.locator('#panel-visit-thread');
+  await expect(panel).toBeVisible();
+  const box = await panel.locator('.panel__body').boundingBox();
+  expect(box).not.toBeNull();
+  expect(Math.round(box!.width)).toBe(390);
+  const primary = panel.getByRole('button', { name: 'Build thread and guide me' });
+  expect((await primary.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('j');
+  const journal = page.locator('#panel-journal');
+  await expect(journal).toBeVisible();
+  const journalBox = await journal.locator('.panel__body').boundingBox();
+  expect(Math.round(journalBox!.width)).toBe(390);
+
+  expect(errors).toEqual([]);
+});
+
+
+test('replays a recent Command Palette action even when the current search no longer matches it', async ({ page }) => {
+  const errors = await bootMuseum(page);
+
+  await page.keyboard.press('Control+k');
+  const command = page.locator('#panel-command');
+  await expect(command).toBeVisible();
+  await command.getByRole('button', { name: 'Open map — Wayfinding' }).click();
+  await expect(page.locator('#panel-map')).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  await page.keyboard.press('Control+k');
+  await command.locator('#command-search').fill('definitely-no-current-match');
+  await expect(command).toContainText('No command or collection item matches');
+  const recentMap = command.getByRole('button', { name: 'Open map', exact: true });
+  await expect(recentMap).toBeVisible();
+  await recentMap.click();
+  await expect(page.locator('#panel-map')).toBeVisible();
+
+  expect(errors).toEqual([]);
+});
+
+test('searches and filters the local Journal against exhibit, project, bookmark, and note state', async ({ page }) => {
+  const errors = await bootMuseum(page);
+  await page.evaluate(() => {
+    const app = window.__museum;
+    if (!app) throw new Error('museum app missing');
+    app.journal.markVisited('E22');
+    app.journal.setNote('E22', 'Factory provenance and real Phaser preview.');
+    app.journal.markVisited('E34');
+    app.journal.toggleBookmark('E34');
+  });
+
+  await page.keyboard.press('j');
+  const journal = page.locator('#panel-journal');
+  await expect(journal).toBeVisible();
+  const search = journal.getByRole('searchbox', { name: 'Find in this visit' });
+  await search.fill('2D Game Factory');
+  await expect(journal.getByRole('status')).toContainText('1 entry shown');
+  await expect(journal).toContainText('Creative Tools Studio');
+  await expect(journal).not.toContainText('BigMac Backbone / AndrewOS Control Plane');
+
+  await search.fill('');
+  await journal.getByRole('button', { name: 'With notes' }).click();
+  await expect(journal.getByRole('status')).toContainText('1 entry shown');
+  await expect(journal.locator('.journal-note')).toHaveValue('Factory provenance and real Phaser preview.');
+
+  await journal.getByRole('button', { name: 'Bookmarked' }).click();
+  await expect(journal.getByRole('status')).toContainText('1 entry shown');
+  await expect(journal).toContainText('BigMac Backbone / AndrewOS Control Plane');
+
   expect(errors).toEqual([]);
 });

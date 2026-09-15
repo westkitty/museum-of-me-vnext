@@ -90,8 +90,7 @@ export class CommandPalette extends Panel {
     );
   }
 
-  private matches(): CommandAction[] {
-    const q = this.query.trim().toLowerCase();
+  private availableActions(): CommandAction[] {
     const exhibitActions: CommandAction[] = COLLECTION.exhibits.map((exhibit) => ({
       id: `exhibit:${exhibit.id}`,
       label: exhibit.title,
@@ -116,10 +115,14 @@ export class CommandPalette extends Panel {
       keywords: v.lines.join(' '),
       run: () => { /* dialogue is world-space */ },
     }));
-    // Contextual actions (such as DexGPT admission after the visitor has
-    // crossed the threshold) must be resolved at render time. A palette can
-    // otherwise retain its exterior action snapshot after the world changes.
-    const all = [...this.getActions(), ...exhibitActions, ...sourceActions, ...visitorActions];
+    // Contextual actions must be resolved at use time so exterior/interior
+    // eligibility never goes stale while the palette remains alive.
+    return [...this.getActions(), ...exhibitActions, ...sourceActions, ...visitorActions];
+  }
+
+  private matches(): CommandAction[] {
+    const q = this.query.trim().toLowerCase();
+    const all = this.availableActions();
     if (!q) return all.slice(0, 12);
     return all
       .map((action) => ({ action, match: score(q, action.label, action.detail, action.keywords) }))
@@ -137,7 +140,10 @@ export class CommandPalette extends Panel {
 
   private run(index: number, matches: CommandAction[]): void {
     const entry = matches[index];
-    if (!entry) return;
+    if (entry) this.execute(entry);
+  }
+
+  private execute(entry: CommandAction): void {
     this.recent = [{ id: entry.id, label: entry.label, at: Date.now() }, ...this.recent.filter((item) => item.id !== entry.id)].slice(0, 7);
     // Release this modal before an action opens another one. Otherwise the
     // command panel's close handler can undo the input capture of its child.
@@ -146,8 +152,10 @@ export class CommandPalette extends Panel {
   }
 
   private runRecent(id: string): void {
-    const matches = this.matches();
-    const index = matches.findIndex((item) => item.id === id);
-    if (index >= 0) this.run(index, matches);
+    // Recent actions must not be constrained by the current search query. The
+    // previous implementation searched only this.matches(), making a recent
+    // command silently inert whenever the query no longer matched it.
+    const entry = this.availableActions().find((item) => item.id === id);
+    if (entry) this.execute(entry);
   }
 }
