@@ -24,13 +24,13 @@ Keep diagnostics visible for the performance checkpoints and pointer-lock/audio 
 
 ## Recording route
 
-- [ ] Begin at the real exterior spawn and record the intentional night composition, readable dark facade, azure accents and garden-facing museum composition.
+- [ ] Begin at the real exterior spawn and record the intentional night composition, readable dark facade, azure accents and garden-facing museum composition. The arrival overlay must let the authored entrance plate carry the visual invitation on its own; the semantic control instructions stay available to screen readers and reappear visibly only when the plate is suppressed (reduced transparency, forced colors). Judge whether the plate alone still reads as an obvious way in.
 - [ ] Walk the central garden path and verify no furnishing clips or blocks the entrance.
 - [ ] Enter through the vestibule and verify the neutral transition reads cleanly.
 - [ ] Circle the Rotunda and balcony; verify the centre stays neutral while all six route threads are legible.
 - [ ] Visit North, East, South, West, Media and Infrastructure; inspect threshold identity, atmosphere and wing-specific furnishings.
 - [ ] Enter at least one early, middle and late exhibit bay in each wing; confirm colour fields frame rather than overpower bespoke hero objects.
-- [ ] Inspect the Blood Ring from representative exterior viewpoints: scale, world-relative placement, crystalline/vitrified material, depth/refraction and readability.
+- [ ] Inspect the Blood Ring from representative exterior viewpoints: scale, world-relative placement, crystalline/vitrified material and readability. Note: transmission-based refraction was removed from the shipped ring material after a controlled same-artifact profile measured roughly double the draw submissions while it was enabled (see `validation/metrics/runtime-profile-transmission-control.json`); the red emissive facets, clearcoat and flat shading are pinned by automated tests. The human decides whether the ring still reads as itself without the subtle refraction.
 - [ ] Inspect island shoreline and water for seams or horizon artifacts; confirm movement is restrained and believable. Confirm searchlight/flood lighting does not overwhelm the architecture.
 - [ ] Inspect Quaternius ambient visitors for scale, floor contact, materials, animation and placement; keep them distinct from the 17 authored source visitors.
 - [ ] Open E27 / The Full Weasel; verify it opens and plays usefully, and Escape closes it without breaking Museum input.
@@ -62,6 +62,7 @@ For each changed room, record **Pass** or **Needs work** separately for: spatial
 - [ ] Open Map, Journal, Settings and accessible contents using keyboard only; verify focus stays inside panels and returns on close.
 - [ ] While a semantic UI control has keyboard focus, verify Enter/Space operates that control without also interacting with or jumping in the 3D museum behind it.
 - [ ] Toggle reduced motion, high contrast and interface scale; verify each change is immediately visible/operative.
+- [ ] With Quality set to Automatic, verify the Settings panel reports the tier actually being rendered, and that a deliberate tier change or any automatic adaptation is announced and never fights a tier the visitor pinned by hand.
 - [ ] Confirm touch fallback on a touch-capable device when available.
 
 ## Audio and performance

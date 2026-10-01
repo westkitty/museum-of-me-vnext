@@ -1,0 +1,9 @@
+# Paired runtime profile checksums — Museum of Me quality-foundation integration (2026-10-01)
+# Baseline artifact: git archive fe534716d0cdb32073e954897b52b8ac8a42bd14 (development head)
+51d893f5509d31bfa008e3946016e00b0b61a6facdc135c1d33254c5a84a4c26  baseline/The_Reliquary_of_Iterative_Becoming.html
+# Candidate artifact: this branch's working tree, built by the same `npm run build:standalone`
+640afe1f132945af2ae1fd4d62f7bd48eaa0c4186aab4dec5819a0c0ae5c5420  candidate/The_Reliquary_of_Iterative_Becoming.html
+
+67e5f901473536caa96098bc36d98645ea52282efca6cb2b97fe6c62a0558af4  validation/metrics/runtime-profile-before.json
+2ef1e3d5d1d306cb82427c16e0846bae09b942cdccd4cb37ddc1f7bf1703ed96  validation/metrics/runtime-profile.json
+4dff1092d9a81edc243d0af88a8faaaf7d71761990feeb816db276093233ba01  validation/metrics/runtime-profile-transmission-control.json

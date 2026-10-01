@@ -1,8 +1,14 @@
 #!/usr/bin/env node
-// Gate (plan §27): no undocumented asset, no duplicate id, no budget overrun,
-// no external asset without provenance, no runtime hotlink.
-import { readFileSync } from 'node:fs';
+// Gate (plan §27): statically check literal asset registration/provenance,
+// obvious external hotlinks, and SHA-256 values for local processed assets.
+// Transfer/tier budgets are checked separately by check-budgets.mjs.
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { walk, report } from './_lib.mjs';
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const errors = [];
 const notes = [];
@@ -47,6 +53,89 @@ for (const f of callSites) {
     }
   }
 }
+// 3. Hash every locally imported file-backed runtime asset against its
+//    manifest. Original third-party source files are provenance-only and may
+//    live in an ignored acquisition cache; the processed files must be present
+//    in this checkout and match byte-for-byte.
+const HASHED_MODULES = [
+  'src/assets/curatedAssets.ts',
+  'src/assets/quaterniusAssets.ts',
+];
+let processedFilesVerified = 0;
+let sourceHashesRetained = 0;
+for (const relativeModule of HASHED_MODULES) {
+  const modulePath = resolve(ROOT, relativeModule);
+  const source = readFileSync(modulePath, 'utf8');
+  const importedFiles = new Map(
+    [...source.matchAll(/import\s+(\w+)\s+from\s+['\"]([^'\"]+)['\"]/g)]
+      .map((match) => [match[1], resolve(dirname(modulePath), match[2])]),
+  );
+  for (const match of source.matchAll(/registerAsset\(\s*\{([\s\S]*?)\}\s*\);/g)) {
+    const body = match[1];
+    const id = body.match(/id:\s*['\"]([^'\"]+)['\"]/ )?.[1];
+    const kind = body.match(/kind:\s*['\"]([^'\"]+)['\"]/ )?.[1];
+    if (!id || kind === 'procedural') continue;
+    const importedUrl = body.match(/url:\s*(\w+)/)?.[1];
+    const expected = body.match(/processedHash:\s*['\"]([a-f0-9]{64})['\"]/i)?.[1];
+    const sourceHash = body.match(/sourceHash:\s*['\"]([a-f0-9]{64})['\"]/i)?.[1];
+    if (!expected) {
+      errors.push(`${relativeModule}: file-backed asset "${id}" has no SHA-256 processedHash`);
+      continue;
+    }
+    const assetPath = importedUrl ? importedFiles.get(importedUrl) : undefined;
+    if (!assetPath) {
+      errors.push(`${relativeModule}: file-backed asset "${id}" URL is not a local imported file`);
+      continue;
+    }
+    if (!existsSync(assetPath)) {
+      errors.push(`${relativeModule}: asset "${id}" file is missing: ${relative(ROOT, assetPath)}`);
+      continue;
+    }
+    const actual = createHash('sha256').update(readFileSync(assetPath)).digest('hex');
+    if (actual !== expected) {
+      errors.push(`${relativeModule}: processed hash mismatch for "${id}" (${relative(ROOT, assetPath)})`);
+      continue;
+    }
+    if (sourceHash) sourceHashesRetained++;
+    processedFilesVerified++;
+  }
+}
+
+// The Full Weasel bundle is a local tree, not a single imported file. Its
+// manifest hash covers sorted relative paths, a NUL separator, and raw bytes.
+const fullWeaselModule = resolve(ROOT, 'src/assets/fullWeaselArtifact.ts');
+const fullWeaselSource = readFileSync(fullWeaselModule, 'utf8');
+const fullWeaselExpected = fullWeaselSource.match(/FULL_WEASEL_TREE_SHA256\s*=\s*['\"]([a-f0-9]{64})['\"]/i)?.[1];
+const fullWeaselEntry = fullWeaselSource.match(/FULL_WEASEL_ENTRY\s*=\s*['\"]([^'\"]+)['\"]/ )?.[1];
+if (!fullWeaselExpected || !fullWeaselEntry || !/processedHash:\s*FULL_WEASEL_TREE_SHA256/.test(fullWeaselSource)) {
+  errors.push('fullWeaselArtifact.ts: missing tree hash, local entry, or manifest binding');
+} else {
+  const entryPath = resolve(ROOT, 'public', fullWeaselEntry.replace(/^\.\//, ''));
+  const bundleRoot = dirname(entryPath);
+  if (!existsSync(entryPath)) {
+    errors.push(`Full Weasel entry is missing: ${relative(ROOT, entryPath)}`);
+  } else {
+    const bundleFiles = walk(bundleRoot).sort((a, b) => {
+      const left = relative(bundleRoot, a).split(sep).join('/');
+      const right = relative(bundleRoot, b).split(sep).join('/');
+      return left < right ? -1 : left > right ? 1 : 0;
+    });
+    const digest = createHash('sha256');
+    for (const file of bundleFiles) {
+      digest.update(relative(bundleRoot, file).split(sep).join('/'));
+      digest.update(Buffer.from([0]));
+      digest.update(readFileSync(file));
+    }
+    const actual = digest.digest('hex');
+    if (actual !== fullWeaselExpected) errors.push('Full Weasel bundle tree SHA-256 does not match its manifest');
+    else notes.push(`Full Weasel bundle tree hash verified (${bundleFiles.length} files)`);
+  }
+}
+
 notes.push(`${ids.size} governed assets registered`);
+notes.push(`${processedFilesVerified} imported asset file hashes verified`);
+if (sourceHashesRetained > 0) {
+  notes.push(`${sourceHashesRetained} sourceHash values retained as provenance; original-source availability is not checked here`);
+}
 
 process.exit(report('assets', errors, notes));

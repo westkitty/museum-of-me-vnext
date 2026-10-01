@@ -36,6 +36,7 @@ The current exterior includes a complete world-relative crystalline Blood Ring o
 ```bash
 npm run gate          # canonical development gate: collection, checks, QA, build, budgets
 npm run test:workshop # real Chromium Workshop authoring + source-save/reload journey
+npm run profile       # paired offline runtime profile of the standalone artifact (draw calls, submissions, frame intervals)
 ```
 
 Existing scripts whose filenames include `release` remain as readiness tooling and compatibility surfaces. Their names do not imply that the product is currently a release candidate.
