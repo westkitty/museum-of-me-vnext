@@ -103,17 +103,19 @@ pre-1.0 development collection with 73 current project identities. It is not par
 this source line still has the frozen 64→35 mapping. These conflicting maturity/collection statements
 are recorded, not silently resolved by importing another branch. See `OPERATIONAL_STATE.md`.
 
-The Arena session branch is based on the `main` SHA above. On this local candidate, `npm run gate`
-passed on 2026-10-01 (594 Vitest tests plus 9 release-tool tests); the rebuilt standalone matches
-profile SHA-256 `b243d8e846863c6648397cd7ff1730ce857358f3f42e9958e747c21068e25937`. Chromium-dependent
-E2E, standalone runtime and Workshop checks are **BLOCKED**, not product failures: the expected
-Playwright browser binary was absent and its CDN download failed with TLS `ECONNRESET`. See
-`docs/RELEASE_CHECKLIST.md` and `OPERATIONAL_STATE.md` for results. The performance snapshots were
-captured earlier on Chromium 131 / SwiftShader; they are not device FPS or GPU timings.
+The Arena session branch is based on the `main` SHA above. Local `npm run gate` passed on
+2026-10-01 (594 Vitest tests plus 9 release-tool tests); the rebuilt standalone matches profile
+SHA-256 `b243d8e846863c6648397cd7ff1730ce857358f3f42e9958e747c21068e25937`. Pushed commit
+`0801ea334aa4070a11a83822554b261133f48824` received exact-head GitHub workflow run
+[36917100585](https://github.com/westkitty/museum-of-me-vnext/actions/runs/36917100585), with `gate`,
+`browser`, `standalone`, and `workshop` all passing. Those are automated checks, not human
+acceptance. Local browser commands remain **BLOCKED** in this sandbox: the expected Playwright
+browser binary was absent and its CDN download failed with TLS `ECONNRESET`. The performance
+snapshots use Chromium 131 / SwiftShader; they are not device FPS or GPU timings.
 
-The local performance and documentation work is a candidate patch to that source line, not a hosted
-deployment or human acceptance record. No production URL, response headers, cache behavior, or
-representative-device FPS was observed in this audit.
+This remains a candidate change, not a hosted deployment or human acceptance record. No production
+URL, response headers, cache behavior, or representative-device FPS was observed in this audit. See
+`docs/RELEASE_CHECKLIST.md` and `OPERATIONAL_STATE.md` for the evidence boundaries.
 
 ## Lineage
 

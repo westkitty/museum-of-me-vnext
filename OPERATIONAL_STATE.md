@@ -26,8 +26,9 @@
 - **PR #4:** open and unmerged at `ad5fa1d706d9d5c76f83842cc41c0510101f96c8`. It proposes ACTIVE DEVELOPMENT / PRE-1.0 and a living 73-project collection. The checked-out `main` source still contains the frozen historical 64-project → 35-exhibit map. The disagreement is recorded; this task did not switch to or import PR #4.
 - **Tag/release audit:** `git ls-remote --tags origin` showed no `v1.0.0` tag; `gh release list` returned no release on 2026-10-01. The older prerelease safety tag remains.
 - **Hosted state:** no production URL, response headers, cache behavior, or hosted visual path was tested. The GitHub deployments API returned HTTP 403 to the configured integration, so deployment existence is **UNKNOWN**, not asserted absent.
-- **Candidate Git state at validation snapshot:** the uplift files were staged for review, not yet committed or pushed. The unconfirmed `data/workshop-placements.json` diff remained outside that staged set. Local validation is not exact-head CI.
-- **Unresolved worktree input:** `data/workshop-placements.json` differs from the base with two display-plinth records and one arrival-shrub override. Its provenance is unconfirmed, so it is excluded from the verified uplift changes. `src/main.ts` imports it; the saved candidate profile/artifact therefore includes it, and the report identifies that measurement boundary explicitly.
+- **Pushed candidate:** commit `0801ea334aa4070a11a83822554b261133f48824` was pushed to the session branch on 2026-10-01. Exact-head GitHub workflow run [36917100585](https://github.com/westkitty/museum-of-me-vnext/actions/runs/36917100585) passed `gate`, `browser`, `standalone`, and `workshop`.
+- **Unresolved worktree input:** `data/workshop-placements.json` remains modified locally with two display-plinth records and one arrival-shrub override. Its provenance is unconfirmed, so it is excluded from the pushed commit. `src/main.ts` imports it; the saved candidate profile/artifact includes it, and the report identifies that measurement boundary explicitly.
+- Local browser commands still fail to launch in this sandbox; the remote CI pass is automated evidence, not human visual/audio/touch/pointer-lock acceptance or hosted verification.
 
 ## 2. Truth reconciliation
 
@@ -113,7 +114,7 @@ the exact browser-tool pair is currently **BLOCKED**. See the quality report for
 | Prior paired 45-frame profiles and Ring control | **PASS, software backend only** — profile JSONs are checksummed; they are a separate earlier browser run on Chromium 131. No representative-device claim. |
 | Human visual/audio/pointer-lock/touch/device FPS acceptance | **UNKNOWN / pending human** — no human-authored evidence record for this pass. |
 | Hosted URL/header/cache verification | **UNKNOWN / not observed** — no URL/response tested; deployment API unavailable. |
-| Exact-head CI on Arena branch | **PENDING** — main run #33746867357 predates this candidate; no candidate push or matching CI yet. |
+| Exact-head CI on Arena branch | **PASS** — pushed commit `0801ea334aa4070a11a83822554b261133f48824`; run [36917100585](https://github.com/westkitty/museum-of-me-vnext/actions/runs/36917100585) passed `gate`, `browser`, `standalone`, and `workshop`. Human/hosted acceptance remains separate. |
 
 ## 6. Protected invariants and prohibitions
 

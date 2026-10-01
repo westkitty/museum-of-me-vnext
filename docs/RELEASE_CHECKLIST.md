@@ -13,6 +13,9 @@ latest source-line reconciliation and measured uplift are recorded in
 - Remote `release/v1.0.0`: `0360bdd1c86692dd1e28f6a0dbad3f5a97040252`.
 - PR #1 is merged. Exact main-head workflow run [33746867357](https://github.com/westkitty/museum-of-me-vnext/actions/runs/33746867357)
   reports `gate`, `browser`, `standalone`, and `workshop` success.
+- Pushed session-branch commit `0801ea334aa4070a11a83822554b261133f48824` received exact-head workflow
+  run [36917100585](https://github.com/westkitty/museum-of-me-vnext/actions/runs/36917100585); all four
+  jobs (`gate`, `browser`, `standalone`, `workshop`) passed. This is automated CI, not human or hosted acceptance.
 - PR #4 is **open and unmerged** at `ad5fa1d706d9d5c76f83842cc41c0510101f96c8`. It proposes
   active pre-1.0 status and 73 current identities. The checked-out code remains the historical
   64-project / 35-exhibit source line. Do not import claims or collection content from PR #4 as if
@@ -37,14 +40,17 @@ standalone rebuild produced SHA-256
 | Asset provenance/hash validation | **PASS** | Fresh `validate:assets`; 12 imported hashes + 65-file tree. Three external Quaternius original-source hashes remain historical because source originals are absent. |
 | Production static build, budgets, distribution | **PASS** | Fresh `build`, `check:budgets`, `verify:dist`; Workshop editor/write bridge excluded from production output. |
 | Production dependency audit | **PASS** | `npm audit --omit=dev --audit-level=high`: 0 production dependency vulnerabilities. |
+| Pushed exact-head GitHub workflow | **PASS** | Run [36917100585](https://github.com/westkitty/museum-of-me-vnext/actions/runs/36917100585) for commit `0801ea334aa4070a11a83822554b261133f48824`; `gate`, `browser`, `standalone`, and `workshop` passed. Automated evidence only. |
 | Full development dependency audit | **FOLLOW-UP** | `npm ci` / full audit reports 7 dev-graph findings (3 moderate, 3 high, 1 critical); no dependency upgrade was attempted in this performance/asset pass. |
 | Chromium visitor/browser suite | **BLOCKED — environment** | `npm run test:e2e`: all 6 tests stopped before execution because Playwright's Chromium 151 binary was absent. `npx playwright install chromium` failed with CDN TLS `ECONNRESET`; this is not a passing browser result or a diagnosed product failure. |
 | Offline standalone runtime browser check | **PARTIAL / BLOCKED** | `verify-standalone-offline.mjs` static SHA/source checks passed; `standalone-offline-browser.mjs` could not launch the same missing browser. Separate runtime-source QA is blocked at browser launch too. |
 | Workshop save/reload proof | **BLOCKED — same environment** | `npm run test:workshop` could not launch Chromium; its `finally` path restores `data/workshop-placements.json` to the exact bytes present at invocation. |
 | Current performance snapshots | **PASS, constrained** | Three diffable JSONs; the rebuilt candidate artifact matches the profiled SHA. Checksum manifest verifies the profile JSON and screenshots. Software SwiftShader, 45 intervals/view; not device FPS/GPU time. |
 
-CI installs a managed browser in its workflow; prior main-head CI is not exact-head CI for this candidate.
-A repeat local browser run needs `npx playwright install chromium` to succeed first.
+The pushed exact-head CI run above installed its managed browser and passed the browser, standalone,
+and Workshop jobs. A repeat **local** browser run still needs `npx playwright install chromium` to
+succeed first; the remote CI result does not substitute for human visual, audio, touch, pointer-lock,
+or representative-device acceptance.
 
 ## Protected contracts
 

@@ -1,13 +1,16 @@
 # Runtime Source QA — 14 installations, 17 conversations
 
-> **Historical result, not a fresh 2026-10-01 pass.** The PASS below is preserved from an earlier
-> offline browser run; its original execution date is not embedded in this report. A fresh current
-> attempt could not launch because Playwright Chromium 151 was missing and its CDN download failed.
-> Current status is **BLOCKED before assertions**, not PASS/FAIL for the candidate. See
-> [`OPERATIONAL_STATE.md`](../../OPERATIONAL_STATE.md) and the dated
+> **Evidence boundary.** The detailed interaction table below is preserved from an earlier offline
+> browser run; its original execution date is not embedded here. A fresh **local** attempt could not
+> launch because Playwright Chromium 151 was missing and its CDN download failed. Separately, pushed
+> commit `0801ea334aa4070a11a83822554b261133f48824` passed exact-head workflow run
+> [36917100585](https://github.com/westkitty/museum-of-me-vnext/actions/runs/36917100585). Its
+> standalone job ran `npm run verify:standalone`, including the runtime-source assertions. That is
+> automated remote evidence for that commit, not a refreshed copy of every table row or human review.
+> See [`OPERATIONAL_STATE.md`](../../OPERATIONAL_STATE.md) and the dated
 > [`quality uplift report`](QUALITY_UPLIFT_2026-10-01.md).
 
-**VERDICT: PASS (historical run only)**
+**VERDICT: Detailed table PASS (historical); exact-head runtime-source automation PASS on commit `0801ea3`**
 
 Evidence source: the canonical standalone artifact, booted from a `file://`
 URL with the browser context offline. Every assertion below ran against the

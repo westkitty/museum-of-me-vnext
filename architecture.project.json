@@ -114,7 +114,19 @@
       "GPU timer query unsupported",
       "tail percentiles low-confidence at this sample count"
     ],
-    "worktreeState": "uncommitted candidate patch on the fixed Arena session branch; no candidate push or exact-head remote CI",
+    "pushedCommit": "0801ea334aa4070a11a83822554b261133f48824",
+    "exactHeadWorkflow": {
+      "runId": 36917100585,
+      "url": "https://github.com/westkitty/museum-of-me-vnext/actions/runs/36917100585",
+      "conclusion": "success",
+      "jobs": {
+        "gate": "success",
+        "browser": "success",
+        "standalone": "success",
+        "workshop": "success"
+      }
+    },
+    "worktreeState": "pushed candidate commit; data/workshop-placements.json remains an unconfirmed local diff excluded from the commit, and the saved candidate profile artifact includes that worktree input",
     "localValidation": {
       "observedAt": "2026-10-01",
       "gate": "PASS",
@@ -135,9 +147,9 @@
       "artifactManifest": "PASS: standalone, 3 profile JSON files, 3 screenshots",
       "productionDependencyAudit": "PASS: npm audit --omit=dev --audit-level=high; 0 findings",
       "developmentDependencyAudit": "FOLLOW_UP: 7 advisories (3 moderate, 3 high, 1 critical)",
-      "chromiumE2E": "BLOCKED: Playwright Chromium 151 binary absent; CDN download failed with TLS ECONNRESET",
-      "standaloneBrowserAndRuntimeSource": "PARTIAL/BLOCKED: static checks pass; browser launch unavailable",
-      "workshopBrowserProof": "BLOCKED: same missing Chromium binary",
+      "chromiumE2E": "LOCAL BLOCKED: Playwright Chromium 151 binary absent; CDN download failed with TLS ECONNRESET; pushed exact-head GitHub browser job passed in run 36917100585",
+      "standaloneBrowserAndRuntimeSource": "LOCAL PARTIAL/BLOCKED: static checks pass; browser launch unavailable; pushed exact-head GitHub standalone job passed in run 36917100585",
+      "workshopBrowserProof": "LOCAL BLOCKED: same missing Chromium binary; pushed exact-head GitHub Workshop job passed in run 36917100585",
       "humanAcceptance": "UNKNOWN: no human-authored evidence for this pass",
       "hostedVerification": "UNKNOWN: no hosted URL or response observed"
     }

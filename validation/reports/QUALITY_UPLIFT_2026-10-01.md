@@ -207,12 +207,12 @@ Rubric: 0 absent/unsafe; 1 weak or unknown; 2 partial / automated presence witho
 | Collision/traversal | 4 | High | Automated route/geometry contracts; no human feel inference. |
 | Controls/accessibility/reduced motion | 3 | Medium | Unit/browser paths plus semantic entry copy; physical touch/screen-reader acceptance open. |
 | Persistence/resources/lifecycle | 4 | High | Existing integrity/quarantine and lifecycle regression suites. |
-| Current-session regression and dependency hygiene | 2 | Medium | Fresh gate passed 594 tests; browser suites are blocked by missing Chromium. Production audit is clean, but the development dependency graph still reports 7 advisories. |
+| Current-session regression and dependency hygiene | 2 | Medium | Local gate and pushed exact-head `gate`/`browser`/`standalone`/`workshop` jobs passed. Production audit is clean, but the development dependency graph still reports 7 advisories; human/device acceptance remains open. |
 | **5. Evidence, docs & release truth — 14/20** ||||
 | Reproducible machine snapshot | 4 | High | Three diffable JSON files identify artifact hashes, method and limitations. |
 | Documentation claim traceability | 3 | Medium | Core current docs reconciled; remote PR #4 maturity conflict remains explicit. |
 | Processed checksum/provenance chain | 3 | Medium | Current processed files verify; external original bytes are absent. |
-| Automated exact-head/release evidence | 3 | Medium | Main exact-head CI is linked; Arena patch requires its own remote run after push. |
+| Automated exact-head/release evidence | 3 | Medium | Main exact-head CI is linked; pushed Arena commit `0801ea334aa4070a11a83822554b261133f48824` also passed all four exact-head workflow jobs in run [36917100585](https://github.com/westkitty/museum-of-me-vnext/actions/runs/36917100585). No release or hosted proof is implied. |
 | Human/hosted/device evidence | 1 | High confidence in absence | Not performed/observed in this audit. |
 | **TOTAL** | **71 / 100** | **Medium overall** | **Below 85+ POLISHED; four categories below the 15/20 floor.** |
 
@@ -243,7 +243,8 @@ No intervention is marked FAILED or ROLLED_BACK because no accepted candidate wa
 
 | Check | Result |
 |---|---|
-| `npm ci` + `npm run gate` | **PASS** — typecheck, lint, all validators, production build/budgets/distribution; 594/594 Vitest tests across 28 files and 9/9 release-tool tests. |
+| `npm ci` + `npm run gate` (local) | **PASS** — typecheck, lint, all validators, production build/budgets/distribution; 594/594 Vitest tests across 28 files and 9/9 release-tool tests. |
+| Exact-head GitHub workflow for pushed commit `0801ea334aa4070a11a83822554b261133f48824` | **PASS** — run [36917100585](https://github.com/westkitty/museum-of-me-vnext/actions/runs/36917100585); all four jobs (`gate`, `browser`, `standalone`, `workshop`) passed. CI automation is not human acceptance. |
 | Fresh asset validation within gate | **PASS** — 17 governed registrations, 12 imported processed hashes, 65-file Full Weasel tree; 3 external original-source hashes not locally rechecked. |
 | Standalone artifact rebuild | **PASS** — `b243d8e846863c6648397cd7ff1730ce857358f3f42e9958e747c21068e25937`, matching the current candidate and transmission-control profiles. |
 | `sha256sum -c validation/metrics/ARTIFACT_SHA256SUMS.txt` | **PASS** — standalone output, 3 profile JSONs and 3 screenshots match. |
@@ -258,9 +259,11 @@ The Full Weasel tree validator hashes all 65 files (134,484,501 bytes / 128.25 M
 `check:budgets` print of `128.24 MB` is its allowlisted-extension subtotal and omits the 14,503-byte
 `manifest.json`; it is not a conflicting full-tree measurement or per-exhibit budget proof.
 
-The current browser-blocked commands are **not** recorded as product failures or passes. Previously
-captured Chromium 131/SwiftShader profile snapshots and the automated entry screenshots remain
-separate, dated evidence; the clean lock now selects Playwright 1.62.1, which expects Chromium 151.
+The local browser-blocked commands are **not** recorded as product failures or passes; a separate
+pushed exact-head GitHub run passed its browser, standalone and Workshop automation. Neither the
+remote jobs nor these stored snapshots are human acceptance. The Chromium 131/SwiftShader profile
+snapshots and automated entry screenshots remain separate, dated evidence; the clean lock now selects
+Playwright 1.62.1, which expects Chromium 151.
 The Playwright package version used for the earlier Chromium 131 capture was not recorded, so that
 exact browser-tool pair cannot currently be reconstructed from the lock alone. The standalone
 artifact itself is reproducibly rebuilt to the stored SHA. After the profile snapshots, the harness
