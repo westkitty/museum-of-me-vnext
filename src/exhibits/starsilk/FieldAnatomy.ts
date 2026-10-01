@@ -188,7 +188,7 @@ export class FieldAnatomy extends ExhibitBase {
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    for (const dial of this.dials) dial.update(dt);
+    for (const dial of this.dials) dial.update(dt, this.reducedMotion);
     if (this.reducedMotion) return;
     // Only the currently visible layer turns, so the tables read as inspectable.
     this.layerGroups.forEach((groups, i) => {

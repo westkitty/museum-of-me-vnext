@@ -171,7 +171,7 @@ export class StarsilkMaker extends ExhibitBase {
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    this.dial.update(dt);
+    this.dial.update(dt, this.reducedMotion);
 
     // The weave grows as it is drawn, then holds.
     if (this.woven < 1) {
