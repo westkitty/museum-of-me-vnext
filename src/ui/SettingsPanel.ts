@@ -7,6 +7,8 @@ export interface SettingsHandlers {
   readonly get: () => VisitorPreferences;
   readonly setQuality: (tier: QualityTier | 'auto') => void;
   readonly update: (patch: Partial<VisitorPreferences>) => void;
+  /** Live adaptive-quality state, or null when the museum is not adapting. */
+  readonly qualityStatus?: () => string | null;
 }
 
 /**
@@ -23,11 +25,7 @@ export class SettingsPanel extends Panel {
 
     this.setContent(
       el('h3', { text: 'Display' }),
-      this.select('Quality', 'Higher tiers add shadows, detail and streaming range. Chosen automatically at first visit.',
-        [['auto', 'Automatic'], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High']],
-        p.quality,
-        (v) => this.handlers.setQuality(v as QualityTier | 'auto'),
-      ),
+      this.qualityField(p),
       this.range('Interface scale', 'Scales all museum text and panels.', p.uiScale, 0.8, 1.6, 0.05,
         (v) => this.handlers.update({ uiScale: v })),
       this.check('High contrast', 'Increases contrast in every reading surface.', p.highContrast,
@@ -78,6 +76,25 @@ export class SettingsPanel extends Panel {
 
       el('p', { class: 'panel__note', text: 'Settings are stored in this browser only. The museum has no account and no server. Append ?safe=1 for a session-only Safe Mode that leaves stored values intact.' }),
     );
+  }
+
+  /**
+   * The Quality control plus whatever the adaptive governor is currently doing.
+   * "Automatic" is a moving target by design, so telling the visitor which tier
+   * they are actually getting is the difference between an adaptive museum and
+   * an unpredictable one.
+   */
+  private qualityField(p: VisitorPreferences): HTMLElement {
+    const field = this.select(
+      'Quality',
+      'Higher tiers add shadows, detail and streaming range. Chosen automatically at first visit.',
+      [['auto', 'Automatic'], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High']],
+      p.quality,
+      (v) => this.handlers.setQuality(v as QualityTier | 'auto'),
+    );
+    const status = this.handlers.qualityStatus?.();
+    if (status) field.append(el('small', { class: 'field__status', text: status }));
+    return field;
   }
 
   private range(label: string, hint: string, value: number, min: number, max: number, step: number, onChange: (v: number) => void): HTMLElement {

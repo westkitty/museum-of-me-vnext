@@ -417,6 +417,13 @@ html[data-motion='reduced'] *::after {
   font: inherit;
 }
 .field--check { display: flex; align-items: flex-start; gap: 0.6rem; }
+/* Live state that changes on its own (adaptive quality, streaming) has to look
+   different from the static hint above it. */
+.field__status {
+  color: var(--gold-bright);
+  border-left: 2px solid rgba(232, 198, 90, 0.55);
+  padding-left: 0.55rem;
+}
 .field--check input { margin-top: 0.25rem; accent-color: var(--gold); }
 
 /* ── diagnostics ────────────────────────────────────────────────────────── */

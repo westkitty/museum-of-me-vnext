@@ -61,6 +61,7 @@ export class UILayer {
       get: () => app.preferences,
       setQuality: (tier: QualityTier | 'auto') => app.setQuality(tier),
       update: (patch: Partial<VisitorPreferences>) => this.applyPreferences(patch),
+      qualityStatus: () => describeQuality(app),
     });
     this.diagnostics = new DiagnosticsOverlay(app.diagnostics);
     this.qaCapture = qaEnabled ? new QACapture(app) : null;
@@ -460,4 +461,27 @@ export class UILayer {
     this.dexgptGuide.dispose();
     this.visitThread.dispose();
   }
+}
+
+/**
+ * What the Quality control should say about itself.
+ *
+ * "Automatic" is a moving target: the museum measures the device and may step
+ * down, so the panel reports the tier the visitor is actually getting rather
+ * than the tier they asked for. A pinned tier says so plainly, because a
+ * visitor who chose High and got High needs no explanation — but a visitor who
+ * chose High and wonders why the museum never adapts does.
+ */
+function describeQuality(app: App): string | null {
+  const governor = app.governor.snapshot;
+  if (!governor.enabled) {
+    return app.preferences.quality === 'auto'
+      ? null
+      : `Pinned to ${governor.tier}. Automatic adaptation is off while a tier is chosen by hand.`;
+  }
+  if (governor.changes === 0) {
+    return `Automatic — running at ${governor.tier} on this device. Adjusting only if needed.`;
+  }
+  return `Automatic — now running at ${governor.tier} after ${governor.changes} adjustment`
+    + `${governor.changes === 1 ? '' : 's'} (${governor.lastReason}).`;
 }

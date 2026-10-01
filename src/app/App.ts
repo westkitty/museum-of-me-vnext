@@ -3,6 +3,7 @@ import { Loop, type LoopCallbacks } from './Loop';
 import { Diagnostics } from './Diagnostics';
 import { RendererHost } from '../render/RendererHost';
 import { detectQualityTier, type QualityTier } from '../render/QualityTiers';
+import { QualityGovernor } from '../render/QualityGovernor';
 import { loadPreferencesResult, savePreferences, type VisitorPreferences } from '../state/Preferences';
 import { Journal } from '../state/Journal';
 import { Study } from '../state/Study';
@@ -76,6 +77,8 @@ export class App implements LoopCallbacks {
   readonly sourceArtwork: SourceArtwork;
   readonly study: Study;
   readonly visitThread: VisitThread;
+  /** Adapts the quality tier to what this device actually renders. */
+  readonly governor: QualityGovernor;
   lifecycle!: Lifecycle;
   ui!: UILayer;
   /** Zone the visitor is currently standing in. Drives audio and streaming. */
@@ -116,6 +119,11 @@ export class App implements LoopCallbacks {
 
     const tier: QualityTier =
       this.preferences.quality === 'auto' ? detectQualityTier() : this.preferences.quality;
+
+    // The boot tier is a ceiling, not a promise. On "Automatic" the governor may
+    // step down if this machine cannot hold it, and back up if it can. A tier
+    // the visitor pinned by hand is never second-guessed.
+    this.governor = new QualityGovernor(tier, this.preferences.quality === 'auto');
 
     this.renderer = new RendererHost(opts.canvas, tier);
     this.renderer.camera.fov = this.preferences.fieldOfView;
@@ -290,11 +298,29 @@ export class App implements LoopCallbacks {
 
   setQuality(tier: QualityTier | 'auto'): void {
     this.preferences.quality = tier;
-    this.renderer.setQuality(tier === 'auto' ? detectQualityTier() : tier);
+    const resolved = tier === 'auto' ? detectQualityTier() : tier;
+    this.renderer.setQuality(resolved);
+    this.governor.configure(resolved, tier === 'auto');
     void this.visitors.setPopulation(this.assets, this.renderer.quality.ambientVisitors).catch((error) => {
       console.error('Ambient visitor quality update failed; no placeholder crowd was created.', error);
     });
     savePreferences(this.preferences);
+  }
+
+  /**
+   * Apply a tier chosen by the governor. The visitor's preference stays
+   * "Automatic"; only what is rendered right now changes, so the next visit
+   * measures this device again instead of inheriting a bad day.
+   */
+  private applyGovernedQuality(tier: QualityTier, reason: string): void {
+    this.renderer.setQuality(tier);
+    this.governor.forceTier(tier);
+    void this.visitors.setPopulation(this.assets, this.renderer.quality.ambientVisitors).catch((error) => {
+      console.error('Ambient visitor quality update failed; no placeholder crowd was created.', error);
+    });
+    this.ui?.hud.announce(
+      `Rendering detail set to ${tier} automatically (${reason}). Change this in Settings.`,
+    );
   }
 
   start(): void {
@@ -390,6 +416,21 @@ export class App implements LoopCallbacks {
       Math.round(this.player.position.z * 10) / 10,
     ];
     this.diagnostics.stats.wing = ZONE_BY_ID.get(this.currentZone as never)?.label ?? this.currentZone;
+
+    // Adaptive quality. Fed the real frame duration, and only while the frame
+    // rate is uncapped: a 30 fps cap would otherwise make every healthy machine
+    // look like it was missing frames.
+    const frameMs = this.loop.frameTimeMs;
+    // Ignore time spent in a hidden tab and a single multi-second resume hitch;
+    // neither describes the rendering budget of a visible, running museum.
+    // The Loop still exposes those intervals to diagnostics, and still clamps
+    // simulation time independently.
+    if (this.loop.frameCap === 0 && !document.hidden && frameMs <= 1_000) {
+      const decision = this.governor.observe(frameMs, frameMs / 1000);
+      if (decision !== 'none') {
+        this.applyGovernedQuality(this.governor.tier, this.governor.snapshot.lastReason);
+      }
+    }
 
     this.wayfinding.update(
       dt,

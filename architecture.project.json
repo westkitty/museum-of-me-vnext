@@ -27,7 +27,7 @@
       "physicsEngine": false,
       "streaming": "three-layer proximity streaming",
       "lod": false,
-      "instancing": false
+      "instancing": true
     },
     "interaction": {
       "pointerLock": true,
@@ -63,7 +63,18 @@
   "quality": {
     "tiers": ["low", "medium", "high"],
     "lowTierAmbientPopulation": "suppressed",
-    "reducedMotion": "suppresses DOM motion and freezes ambient world motion, skeletal walks, and flight-pad dust"
+    "reducedMotion": "suppresses DOM motion and freezes ambient world motion, skeletal walks, and flight-pad dust",
+    "adaptiveQuality": {
+      "initialTierSignals": [
+        "hardwareConcurrency",
+        "deviceMemory",
+        "screenWidth",
+        "userAgent"
+      ],
+      "ceilingBasedOnBootTier": true,
+      "runtimeGovernor": "src/render/QualityGovernor.ts",
+      "note": "Governor implementation is synthetic-test-covered; current offline profile started at low with zero tier changes."
+    }
   },
   "protectedContracts": [
     "35 stable physical exhibit slots and six established wings",
