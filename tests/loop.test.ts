@@ -50,13 +50,16 @@ describe('Loop', () => {
     loop.stop();
   });
 
-  it('clamps a huge delta so a restored tab cannot simulate minutes at once', () => {
+  it('clamps simulation after a long pause but preserves the actual frame interval for diagnostics', () => {
     const fixedUpdate = vi.fn();
-    const loop = new Loop({ fixedUpdate, variableUpdate: vi.fn(), render: vi.fn() });
+    const variableUpdate = vi.fn();
+    const loop = new Loop({ fixedUpdate, variableUpdate, render: vi.fn() });
     loop.start();
     harness.advance(60_000);
     // 0.1 s clamp / (1/60) = 6 steps, capped at MAX_STEPS_PER_FRAME = 5.
     expect(fixedUpdate.mock.calls.length).toBeLessThanOrEqual(5);
+    expect(variableUpdate).toHaveBeenCalledWith(0.1);
+    expect(loop.frameTimeMs).toBe(60_000);
     loop.stop();
   });
 

@@ -189,9 +189,17 @@ describe('museum environment coherence', () => {
     expect(sky.bloodRing.position.z).toBe(0);
     expect(sky.bloodRing.material).toBeInstanceOf(THREE.MeshPhysicalMaterial);
     const ringMaterial = sky.bloodRing.material as THREE.MeshPhysicalMaterial;
-    expect(ringMaterial.transmission).toBeGreaterThan(0);
-    expect(ringMaterial.thickness).toBeGreaterThan(0);
+    // Transmission is excluded from the shipped ring material because a
+    // controlled same-artifact profile measured 520 → 996 Rotunda draw calls
+    // and 571.9 → 1321.6 ms rAF p50 when a diagnostic 0.03 override was applied.
+    // Those are Chromium/SwiftShader results, not device FPS; see the paired
+    // profile JSON files. This structural test protects the intentional red
+    // emissive, clearcoat, flat-facet identity without pretending that the
+    // small refraction change has human visual approval.
+    expect(ringMaterial.transmission).toBe(0);
     expect(ringMaterial.flatShading).toBe(true);
+    expect(ringMaterial.clearcoat).toBeGreaterThan(0.5);
+    expect(ringMaterial.emissiveIntensity).toBeGreaterThan(0.5);
     const ringHsl = ringMaterial.color.getHSL({ h: 0, s: 0, l: 0 });
     expect(ringHsl.h < 0.03 || ringHsl.h > 0.97).toBe(true);
     expect(ringHsl.s).toBeGreaterThan(0.75);

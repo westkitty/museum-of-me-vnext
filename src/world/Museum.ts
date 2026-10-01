@@ -3,7 +3,7 @@ import { GeometryKit } from './GeometryKit';
 import { PaletteSet } from './palette';
 import { CollisionWorld } from './CollisionWorld';
 import { Detailing } from './Detailing';
-import { mergeStatic, type MergeReport } from './MergeStatic';
+import { bakeStatic, type BakeReport, type MergeReport } from './MergeStatic';
 import type { ResourceScope } from '../assets/ResourceScope';
 import {
   ROTUNDA_APOTHEM, ROTUNDA_WALL, LEVEL_1_Y, BALCONY_INNER_APOTHEM,
@@ -36,7 +36,13 @@ function faceEnds(face: OctagonFace, apothem: number): [Vec3, Vec3] {
 
 export interface MuseumBuildResult {
   readonly root: THREE.Group;
-  /** What the static-geometry merge saved, for diagnostics. */
+  /**
+   * What the static bake saved, for diagnostics. `interned` counts materials
+   * replaced by a value-identical canonical instance; `merge` counts the meshes
+   * that then collapsed because they finally shared one.
+   */
+  readonly bake: BakeReport;
+  /** The merge half of `bake`, kept for the existing merge assertions. */
   readonly merge: MergeReport;
   readonly collision: CollisionWorld;
   /** One group per exhibit bay: where exhibit modules mount their contents. */
@@ -84,14 +90,25 @@ export class Museum {
     // Collapse the static architecture into one mesh per material. Collision
     // was already recorded during construction, so this changes only how the
     // building is drawn, never where its walls are.
-    const merge = mergeStatic(this.root, this.scope);
+    //
+    // Interning runs first and is not optional: the shell builds its palette
+    // per zone, so it holds 164 material instances for 90 distinct values, and
+    // merging groups by material identity cannot see through that. Interning
+    // fuses only materials whose every own property `materialKey()` can compare
+    // exactly; anything it cannot describe (a shader material, an
+    // `onBeforeCompile` override) is left alone rather than approximated.
+    // Nothing in the shell mutates a material after the build: the only
+    // runtime material writes in the project are inside exhibit modules, the
+    // installations and the wayfinding overlay, none of which are here.
+    const bake = bakeStatic(this.root, this.scope);
 
     return {
       root: this.root,
       collision: this.collision,
       exhibitMounts: this.exhibitMounts,
       zoneGroups: this.zoneGroups,
-      merge,
+      bake,
+      merge: bake.merge,
     };
   }
 

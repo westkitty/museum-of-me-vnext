@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
+import { bakeStatic, protectSubtree, type BakeReport } from './MergeStatic';
 import { EnvironmentDressing } from './EnvironmentDressing';
 import { ExhibitColorFields } from './ExhibitColorFields';
 import { ExhibitThresholds } from './ExhibitThresholds';
@@ -20,6 +21,8 @@ import { WingIdentity } from './WingIdentity';
  */
 export class PersistentEnvironment {
   readonly group = new THREE.Group();
+  /** What the static bake collapsed, one entry per layer, in layer order. */
+  readonly bake: BakeReport[] = [];
   private readonly dressing: EnvironmentDressing;
 
   constructor(private readonly scope: ResourceScope) {
@@ -28,7 +31,7 @@ export class PersistentEnvironment {
   }
 
   build(): THREE.Group {
-    this.group.add(
+    const layers = [
       this.dressing.build(),
       new ExteriorIdentity(this.scope).build(),
       new RotundaWayfinding(this.scope).build(),
@@ -37,7 +40,21 @@ export class PersistentEnvironment {
       new WingFurnishings(this.scope).build(),
       new ExhibitThresholds(this.scope).build(),
       new ExhibitColorFields(this.scope).build(),
-    );
+    ];
+    this.group.add(...layers);
+
+    // Static bake. Every system above is built once and never transformed or
+    // material-mutated again — none of them has an update() — so their hundreds
+    // of small meshes can be collapsed by material, and their value-identical
+    // materials interned first so that collapse actually groups. Nothing about
+    // what is drawn changes; only how many draws it takes.
+    //
+    // Authorable roots stay whole: the development Workshop attaches a
+    // transform gizmo to each by identity, and a merged mesh has no position of
+    // its own left to move.
+    for (const { root } of this.dressing.authorableSceneRoots()) protectSubtree(root);
+    this.bake.length = 0;
+    for (const layer of layers) this.bake.push(bakeStatic(layer, this.scope));
     return this.group;
   }
 

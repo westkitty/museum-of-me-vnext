@@ -43,6 +43,11 @@ try {
   // separately and is stripped from production output.
   placements = new MuseumPlacements(placementManifest, sceneRegistry);
   app.scene.add(placements.group);
+
+  // The shadow map is drawn on demand, not every frame, because every shadow
+  // caster in the museum is static. Authored placements are the last shadow
+  // casters to arrive, so the map is redrawn for the frames after they land.
+  app.renderer.requestShadowRefresh();
 } catch (err) {
   fail(
     'This museum needs WebGL 2, which this browser did not provide. The full text of every exhibit is still available in the accessible contents.',

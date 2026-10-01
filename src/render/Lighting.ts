@@ -8,13 +8,29 @@ import {
 
 const MAX_ACTIVE_POINT_LIGHTS = 8;
 
+function compareDistance(
+  a: { d: number },
+  b: { d: number },
+): number {
+  return a.d - b.d;
+}
+
 export class Lighting {
   readonly group = new THREE.Group();
   readonly bayLights = new Map<string, THREE.PointLight>();
   private readonly bayFills = new Map<string, THREE.PointLight>();
-  private readonly managed: THREE.PointLight[] = [];
+  /** Every point light the director may enable. Exposed for the reuse test. */
+  readonly managed: THREE.PointLight[] = [];
   private readonly suppressed = new Set<THREE.PointLight>();
-  private readonly distances: { light: THREE.PointLight; d: number }[] = [];
+  /**
+   * Reused across frames. `update()` runs every frame and used to build a fresh
+   * array of `{ light, d }` objects each time — one short-lived object for
+   * every eligible light on every frame. Reusing those entries removes that
+   * avoidable hot-path allocation; its isolated frame-time effect was not
+   * measured. Entries left over from a previous frame are marked unused and
+   * sorted to the end with an infinite distance.
+   */
+  private readonly distances: { light: THREE.PointLight; d: number; used: boolean }[] = [];
 
   constructor(scope: ResourceScope, quality: QualitySettings) {
     this.group.name = 'lighting';
@@ -130,7 +146,8 @@ export class Lighting {
   }
 
   update(eye: readonly [number, number, number]): void {
-    this.distances.length = 0;
+    const pool = this.distances;
+    let used = 0;
     for (const light of this.managed) {
       if (this.suppressed.has(light)) {
         light.visible = false;
@@ -144,12 +161,28 @@ export class Lighting {
         light.visible = false;
         continue;
       }
-      this.distances.push({ light, d });
+      let entry = pool[used];
+      if (!entry) {
+        entry = { light, d, used: true };
+        pool.push(entry);
+      }
+      entry.light = light;
+      entry.d = d;
+      entry.used = true;
+      used++;
+    }
+    for (let i = used; i < pool.length; i++) {
+      pool[i].used = false;
+      pool[i].d = Infinity;
     }
 
-    this.distances.sort((a, b) => a.d - b.d);
-    for (let i = 0; i < this.distances.length; i++) {
-      this.distances[i].light.visible = i < MAX_ACTIVE_POINT_LIGHTS;
+    pool.sort(compareDistance);
+    // Stale entries sort past every live one, so a light is only ever written
+    // once per frame and never by a leftover slot.
+    for (let i = 0; i < pool.length; i++) {
+      const entry = pool[i];
+      if (!entry.used) continue;
+      entry.light.visible = i < MAX_ACTIVE_POINT_LIGHTS;
     }
   }
 
