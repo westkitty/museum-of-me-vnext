@@ -171,7 +171,7 @@ export class MuseumEvolution extends ExhibitBase {
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    this.dial.update(dt);
+    this.dial.update(dt, this.reducedMotion);
     for (let i = 0; i < this.models.length; i++) {
       const active = i === this.index;
       this.models[i].visible = active;

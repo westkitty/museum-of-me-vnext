@@ -230,7 +230,7 @@ export class VoiceLab extends ExhibitBase {
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    this.sampleDial.update(dt);
+    this.sampleDial.update(dt, this.reducedMotion);
 
     const [base, roughness] = SAMPLES[this.sample].shape;
     if (!this.reducedMotion) this.playhead += dt * 0.55;

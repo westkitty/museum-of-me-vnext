@@ -161,7 +161,7 @@ export class AetherVFX extends ExhibitBase {
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    for (const lever of this.levers) lever.update(dt);
+    for (const lever of this.levers) lever.update(dt, this.reducedMotion);
 
     const [emitter, force, lifetime, turbulence, colourShift] = this.values;
     const rate = 0.35 + emitter * 0.5;

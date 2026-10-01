@@ -40,8 +40,9 @@ export class DomMirror {
         el('li', { text: 'W A S D or the arrow keys — walk. Shift — sprint.' }),
         el('li', { text: 'Q and E — turn. Page Up and Page Down — look vertically. A mouse is optional.' }),
         el('li', { text: 'Space — jump. F or Enter — interact with whatever you are facing.' }),
-        el('li', { text: 'M — map. J — journal. O — settings. H — these contents.' }),
-        el('li', { text: 'Escape — release the mouse, or close a panel.' }),
+        el('li', { text: 'M — map. J — journal. C — Curator Desk. Y — Study Lab. Ctrl+K — command palette.' }),
+        el('li', { text: 'O — settings. H — these contents.' }),
+        el('li', { text: 'Escape — release the mouse, or close a panel. The backtick key toggles a diagnostics overlay.' }),
         el('li', { text: 'On a touch screen: the left half of the screen walks, the right half looks, and a tap in the centre interacts.' }),
       ),
       el('p', {

@@ -193,7 +193,7 @@ export class CreativeTools extends ExhibitBase {
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    this.dial.update(dt);
+    this.dial.update(dt, this.reducedMotion);
 
     const t = TARGETS[this.target];
     const sm = this.surface.material as THREE.MeshStandardMaterial;

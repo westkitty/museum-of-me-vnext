@@ -3,6 +3,7 @@ import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
   base: './',
+  server: { allowedHosts: true },
   // Keep the offline bundle's asset handling aligned with the primary build:
   // local Quaternius visitor GLBs are runtime assets, never JavaScript.
   assetsInclude: ['**/*.glb'],

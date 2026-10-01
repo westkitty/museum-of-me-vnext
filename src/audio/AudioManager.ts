@@ -27,11 +27,19 @@ const BEDS: Record<ZoneId, ZoneBed> = {
 
 const CROSSFADE_SECONDS = 2.2;
 
+interface Voice {
+  readonly gain: GainNode;
+  readonly stop: () => void;
+  /** Outstanding cleanup timer scheduled for when this bed fades out;
+   *  cancelled if the visitor re-enters the zone before it fires. */
+  cleanupTimer: ReturnType<typeof setTimeout> | null;
+}
+
 export class AudioManager {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private ambienceGain: GainNode | null = null;
-  private readonly voices = new Map<ZoneId, { gain: GainNode; stop: () => void }>();
+  private readonly voices = new Map<ZoneId, Voice>();
 
   private currentZone: ZoneId | null = null;
   private masterVolume = 0;
@@ -75,15 +83,35 @@ export class AudioManager {
     if (!this.started || !this.ctx || !this.ambienceGain) return;
 
     for (const [id, voice] of this.voices) {
-      if (id === zone) continue;
+      if (id === zone) {
+        // The visitor returned before the previous fade-out cleanup ran.
+        // Cancel that cleanup and leave the voice resident so it can be
+        // re-ramped smoothly.
+        if (voice.cleanupTimer !== null) {
+          clearTimeout(voice.cleanupTimer);
+          voice.cleanupTimer = null;
+        }
+        continue;
+      }
+      if (voice.cleanupTimer !== null) continue; // already fading out
       this.rampTo(voice.gain, 0, CROSSFADE_SECONDS);
+      // Schedule disposal after the crossfade completes so idle beds do not
+      // accumulate oscillators/buffers across every zone the visitor has
+      // entered. If they return before the timer fires, the block above
+      // cancels it and the bed is reused.
+      voice.cleanupTimer = setTimeout(() => {
+        voice.cleanupTimer = null;
+        voice.stop();
+        try { voice.gain.disconnect(); } catch { /* already disconnected */ }
+        if (this.voices.get(id) === voice) this.voices.delete(id);
+      }, (CROSSFADE_SECONDS + 0.1) * 1000);
     }
 
     let voice = this.voices.get(zone);
     if (!voice) {
       const created = this.createBed(zone);
       if (!created) return;
-      voice = created;
+      voice = { ...created, cleanupTimer: null };
       this.voices.set(zone, voice);
     }
     this.rampTo(voice.gain, BEDS[zone].level, CROSSFADE_SECONDS);
@@ -179,7 +207,10 @@ export class AudioManager {
   }
 
   dispose(): void {
-    for (const voice of this.voices.values()) voice.stop();
+    for (const voice of this.voices.values()) {
+      if (voice.cleanupTimer !== null) clearTimeout(voice.cleanupTimer);
+      voice.stop();
+    }
     this.voices.clear();
     void this.ctx?.close();
     this.ctx = null;

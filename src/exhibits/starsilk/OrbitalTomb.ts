@@ -155,7 +155,7 @@ export class OrbitalTomb extends ExhibitBase {
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    this.dial.update(dt);
+    this.dial.update(dt, this.reducedMotion);
 
     const month = MONTHS[this.month];
     const intact = month.intact;
