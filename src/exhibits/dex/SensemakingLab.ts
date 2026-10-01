@@ -218,7 +218,7 @@ export class SensemakingLab extends ExhibitBase {
   private enLabel!: THREE.Mesh;
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    this.phraseDial.update(dt);
+    this.phraseDial.update(dt, this.reducedMotion);
 
     for (let i = 0; i < this.layerGroups.length; i++) {
       this.layerGroups[i].visible = this.layerOn[i];

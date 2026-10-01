@@ -243,7 +243,7 @@ export class StarsilkUniverse extends ExhibitBase {
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    for (const dial of this.dials) dial.update(dt);
+    for (const dial of this.dials) dial.update(dt, this.reducedMotion);
     if (!this.reducedMotion) {
       this.loom.rotation.y += dt * 0.035;
       this.applyWeave(false);

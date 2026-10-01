@@ -201,7 +201,7 @@ export class SunoStudio extends ExhibitBase {
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    for (const lever of this.levers) lever.update(dt);
+    for (const lever of this.levers) lever.update(dt, this.reducedMotion);
 
     const t = this.reducedMotion ? 0 : this.elapsed * 0.8;
     const count = this.waveBars.length;

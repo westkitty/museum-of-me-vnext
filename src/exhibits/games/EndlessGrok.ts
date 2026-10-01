@@ -204,7 +204,7 @@ export class EndlessGrok extends ExhibitBase {
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    this.dial.update(dt);
+    this.dial.update(dt, this.reducedMotion);
     const tech = TECHS[this.tech];
     const rate = this.reducedMotion ? 1 : Math.min(1, dt * 5);
 

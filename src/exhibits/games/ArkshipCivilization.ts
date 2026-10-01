@@ -171,7 +171,7 @@ export class ArkshipCivilization extends ExhibitBase {
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    this.dial.update(dt);
+    this.dial.update(dt, this.reducedMotion);
 
     const target = this.exploded ? 1 : 0;
     this.amount += (target - this.amount) * Math.min(1, dt * (this.reducedMotion ? 20 : 3));

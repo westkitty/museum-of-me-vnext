@@ -216,7 +216,7 @@ export class SpecialistSystems extends ExhibitBase {
   private probeFlash = 0;
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    this.faceDial.update(dt);
+    this.faceDial.update(dt, this.reducedMotion);
 
     // Landmarks appear progressively with the operation.
     // Detect finds the face but marks nothing; landmarking and analysis both

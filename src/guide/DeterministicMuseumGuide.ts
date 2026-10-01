@@ -27,7 +27,7 @@ export class DeterministicMuseumGuide {
     if (!query) return this.reply('Ask about an exhibit, project, wing, controls, or something you have not visited yet.');
 
     if (/\b(controls?|move|walk|key|keyboard|help)\b/.test(query)) {
-      return this.reply('Move with W/A/S/D or the arrow keys; Q/E turns; Shift sprints; Space jumps; F or Enter interacts. M opens the map, J the journal, T your Visit Thread, and Ctrl+K the command palette. I can set the map’s existing floor-line guide, but I do not teleport you.');
+      return this.reply('Move with W/A/S/D or the arrow keys; Q/E turns; Shift sprints; Space jumps; F or Enter interacts. M opens the map, J the journal, T your Visit Thread, C the Curator Desk, Y the Study Lab, O settings, H the full accessible contents, and Ctrl+K the command palette. I can set the map’s existing floor-line guide, but I do not teleport you.');
     }
     if (/\b(wing|wings|where am i|where)\b/.test(query) && !/\b(project|exhibit)\b/.test(query)) {
       return this.reply(`The museum has ${COLLECTION.wings.map((wing) => `${wing.name} (${wing.id})`).join(', ')}. Ask for an exhibit or project and I will identify its wing.`);

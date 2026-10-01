@@ -244,7 +244,7 @@ export class DnDexTable extends ExhibitBase {
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    this.orderDial.update(dt);
+    this.orderDial.update(dt, this.reducedMotion);
 
     if (this.dieSpin > 0) {
       this.dieSpin -= dt;

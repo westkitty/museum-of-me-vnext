@@ -200,7 +200,7 @@ export class WorldsVaultLineage extends ExhibitBase {
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
-    this.lever.update(dt);
+    this.lever.update(dt, this.reducedMotion);
 
     if (this.pulse.isRunning) {
       const index = Math.min(this.curves.length - 1, this.stage - 1);
