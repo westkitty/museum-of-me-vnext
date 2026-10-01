@@ -1,5 +1,5 @@
 // GENERATED FILE — do not edit by hand.
-// Source: data/exhibit-mapping.json, data/exhibit-content.json, data/projects/*.json
+// Source: data/exhibit-mapping.current.json, data/exhibit-content.json + revision overlays, data/projects/*.json
 // Regenerate: npm run build:collection
 // prettier-ignore
 import type { Collection } from './types';
@@ -1648,6 +1648,247 @@ export const COLLECTION: Collection = {
         "westkitty/media-getter",
         "westkitty/MediaGetter_Redux"
       ]
+    },
+    {
+      "id": "P065",
+      "name": "Starsilk Compendium",
+      "family": "Starsilk / canon systems",
+      "kind": "Generated canon compendium",
+      "status": "Active",
+      "period": "2026",
+      "summary": "A source-grounded Starsilk compendium of character folios, Drakken records, canon invariants, and supporting lore material.",
+      "brief": "The Starsilk Compendium grew from a character dossier into a generated canon publication. Versioned source sections, navigation metadata, media provenance, and machine-readable canon invariants produce a reproducible public site whose generated output is validated rather than hand-edited.",
+      "deep": [
+        "Character identity and canon locks are stored as source material rather than inferred from whichever generated image or prose passage happens to be newest.",
+        "The build regenerates the published site from versioned sections and checks canon invariants, local asset integrity, provenance, and cross-browser interaction before the generated output counts as current.",
+        "Large source media is kept outside the ordinary Git payload while published derivatives retain hashes and provenance, separating canonical originals from optimized delivery artifacts."
+      ],
+      "capabilities": [
+        "Character and lore folios",
+        "Machine-readable canon invariants",
+        "Deterministic publication",
+        "Media provenance",
+        "Cross-browser validation"
+      ],
+      "lesson": "A canon reference becomes durable when generated presentation can be rebuilt from smaller authoritative sources instead of becoming the source itself.",
+      "repos": [
+        "westkitty/Starsilk_Character_Dossier"
+      ]
+    },
+    {
+      "id": "P066",
+      "name": "Selfsame",
+      "family": "Continuity / authority systems",
+      "kind": "Local continuity application",
+      "status": "Active",
+      "period": "2026",
+      "summary": "A local source-grounded continuity and project-intelligence system that keeps authority, corrections, contradictions, and temporary constraints explicit.",
+      "brief": "Selfsame stores original sources, dated passages, reviewed memories, decisions, corrections, authority resolutions, project contexts, contradictions, and unfinished threads in a local database. Its workbench runs preflight checks so fluent synthesis cannot silently outrank evidence or route around a declared boundary.",
+      "deep": [
+        "Authority resolution is a first-class object rather than an assumption. A current-state answer can be stopped when the system lacks evidence identifying what actually governs the question.",
+        "Temporary constraint capsules such as local-only or preserve-the-boundary travel with the active work without being rewritten into autobiographical evidence.",
+        "Hard stops are recorded as operational events with reasons and required next actions, so refusal is inspectable rather than an invisible model behavior."
+      ],
+      "capabilities": [
+        "Source-grounded continuity",
+        "Authority resolution",
+        "Constraint capsules",
+        "Contradiction tracking",
+        "Auditable hard stops",
+        "Local archive export"
+      ],
+      "lesson": "Fluent synthesis is useful only after the system can show which evidence and authority permitted it to speak.",
+      "repos": [
+        "westkitty/SelfSame"
+      ]
+    },
+    {
+      "id": "P067",
+      "name": "Project Sentinel",
+      "family": "Continuity / project recovery",
+      "kind": "Local project scanner",
+      "status": "Active",
+      "period": "2026",
+      "summary": "A bounded local scanner that turns project directories into recovery reports, maps, handoffs, fragile-file lists, and resumable project evidence.",
+      "brief": "Project Sentinel inspects project directories without executing discovered project commands. It records repository state, detected commands, fragile files, duplicate candidates, and successor-agent context into a local resurrection packet, with optional repository hooks and a macOS supervisor for keeping that evidence current.",
+      "deep": [
+        "Scanning is intentionally read-oriented: discovered code and documentation are evidence to summarize, not instructions the scanner is allowed to execute.",
+        "The recovery packet is written beside the project so a stale repository can explain itself even when the conversation that produced it has disappeared.",
+        "Automation stays bounded: hooks and supervisor configuration can trigger scans, but the scanner does not convert project discovery into arbitrary command execution."
+      ],
+      "capabilities": [
+        "Project-state scanning",
+        "Recovery report generation",
+        "Successor-agent handoffs",
+        "Fragile-file detection",
+        "Optional local supervision"
+      ],
+      "lesson": "A project is easier to revive when it leaves its own recovery evidence while it is still understandable.",
+      "repos": [
+        "westkitty/Project_Sentinel"
+      ]
+    },
+    {
+      "id": "P068",
+      "name": "RepoForge",
+      "family": "Agent / capability systems",
+      "kind": "Capability compiler",
+      "status": "Active vertical slice",
+      "period": "2026",
+      "summary": "A repository-to-capability compiler that separates what a codebase appears able to do from what a person has actually authorized it to do.",
+      "brief": "RepoForge scans a repository read-only, proposes bounded capabilities with evidence, requires explicit human authority for an exact capability contract, generates a narrow invocation surface, and treats an operation as successful only after its declared postcondition verifies.",
+      "deep": [
+        "Repository text is evidence, never authority. A README can support a candidate capability but cannot grant permission to invoke it.",
+        "Capability and authority manifests are deliberately separate so inference cannot silently upgrade itself into permission.",
+        "Proof records bind the scan, the authorized contract, the invocation, and the observed postcondition into one auditable chain."
+      ],
+      "capabilities": [
+        "Read-only repository scanning",
+        "Evidence-backed capability proposals",
+        "Separate authority manifest",
+        "Bounded MCP generation",
+        "Postcondition verification",
+        "Proof records"
+      ],
+      "lesson": "Discovering a capability and having permission to use it are different facts and should live in different artifacts.",
+      "repos": [
+        "westkitty/RepoForge"
+      ]
+    },
+    {
+      "id": "P069",
+      "name": "Character Performance Capture",
+      "family": "Media / character systems",
+      "kind": "Local performance-capture application",
+      "status": "Active; target-hardware verified",
+      "period": "2026",
+      "summary": "A local character-performance pipeline that turns camera movement into portable performer state and drives a character without storing the camera image in the take.",
+      "brief": "Character Performance Capture reads webcam or video input, derives face-performance state through an optional tracker, records that state in a portable CPC format, drives an authorized character rig, and can send the rendered result to a virtual camera. The recorded performance can be replayed without retaining the original camera pixels.",
+      "deep": [
+        "The portable performance record separates movement data from identity-bearing camera frames, making replay and character substitution possible without treating raw video as the durable artifact.",
+        "Tracker, renderer, recorder, and output sink are explicit adapters, so the core performance schema can survive model or rendering changes.",
+        "The full live route has target-hardware evidence for webcam capture, face tracking, character rendering, take recording/replay, and virtual-camera consumption."
+      ],
+      "capabilities": [
+        "Webcam and video capture",
+        "Portable performance records",
+        "Character rig driving",
+        "Take record and replay",
+        "Virtual-camera output",
+        "Local-first processing"
+      ],
+      "lesson": "Performance becomes reusable when the motion can survive independently of the camera image and of the renderer that first consumed it.",
+      "repos": [
+        "westkitty/character-performance-capture"
+      ]
+    },
+    {
+      "id": "P070",
+      "name": "ClearCut Local",
+      "family": "Media / local video tools",
+      "kind": "Local video application",
+      "status": "Active",
+      "period": "2026",
+      "summary": "A local video-background removal and replacement application built around continuous soft alpha matting and verified transparent export.",
+      "brief": "ClearCut Local performs subject selection, temporally stable soft matting, mask refinement, background replacement, and transparent video export on Apple Silicon without uploading footage. Export validation checks duration, frame count, audio preservation, and alpha-channel presence instead of treating a completed render command as proof.",
+      "deep": [
+        "Continuous alpha rather than a binary cut is what preserves hair, edge softness, and motion without turning the subject into a cardboard silhouette.",
+        "Human and general-subject routes use different local segmentation strategies while sharing the same refinement and export contract.",
+        "The export path verifies the produced media because a renderer reporting success is not enough evidence that the file retained its audio and transparency."
+      ],
+      "capabilities": [
+        "Local soft-alpha matting",
+        "Temporal stabilization",
+        "Subject selection",
+        "Background replacement",
+        "Transparent ProRes export",
+        "Post-render verification"
+      ],
+      "lesson": "A media export is not complete when rendering stops; it is complete when the artifact is inspected for the properties the workflow promised.",
+      "repos": [
+        "westkitty/ClearCut"
+      ]
+    },
+    {
+      "id": "P071",
+      "name": "AndrewOS Mac Bridge",
+      "family": "Local systems / control planes",
+      "kind": "Private MCP control plane",
+      "status": "Active",
+      "period": "2026",
+      "summary": "A registry-driven local Mac control plane exposing fixed project and service operations with evidence receipts instead of an arbitrary shell.",
+      "brief": "The Mac Bridge lets an assistant inspect registered projects, invoke fixed tasks, check registered services, stage text artifacts, and return exact evidence receipts. Consequential operations require a preview-bound one-use transaction, while general shell strings, broad filesystem access, and automatic Git publication remain outside the exposed authority.",
+      "deep": [
+        "Projects and operations are registered ahead of time, so a conversation cannot invent a new local power merely by asking for it.",
+        "The Dexter Gate binds previewed effects to a short-lived exact transaction before a consequential action may execute, making approval specific rather than ceremonial.",
+        "Receipts separate requested, attempted, observed, changed, verified, failed, unknown, and rollback states so a successful tool call cannot masquerade as proof of the intended result."
+      ],
+      "capabilities": [
+        "Registered project inspection",
+        "Fixed task invocation",
+        "Service checks",
+        "Preview-gated consequential actions",
+        "Artifact staging",
+        "Evidence receipts"
+      ],
+      "lesson": "A useful local control plane exposes named powers with evidence, not a general-purpose command line with polite warnings.",
+      "repos": [
+        "westkitty/AndrewOS_MacBridge"
+      ]
+    },
+    {
+      "id": "P072",
+      "name": "Modern 3D Browser Game Toolkit",
+      "family": "Three.js / architecture systems",
+      "kind": "Interactive architecture toolkit",
+      "status": "Active; ten demonstrations implemented",
+      "period": "2026",
+      "summary": "A ten-demonstration browser toolkit showing how different game requirements lead to different rendering, timing, input, and lifecycle architectures.",
+      "brief": "The Modern 3D Browser Game Toolkit turns architectural guidance into independently runnable demonstrations: tactics, ray-casting, fixed-step character movement, verified GLB loading, raw WebGL, an accessible puzzle museum, IK telemetry, crowd scaling, a strategy globe, and a WebGPU field simulation.",
+      "deep": [
+        "The demonstrations intentionally use several rendering paths rather than forcing every problem through Three.js, because the product requirement determines the useful abstraction level.",
+        "Each demo carries its own architecture contract and shares a launcher that permits only one demonstration to own rendering and input resources at a time.",
+        "The museum itself helped motivate the operational rules the toolkit demonstrates, making the toolkit a record of engineering lessons that escaped the project that produced them."
+      ],
+      "capabilities": [
+        "Ten runnable architecture demonstrations",
+        "Three.js and Canvas patterns",
+        "Raw WebGL and WebGPU examples",
+        "Lifecycle ownership",
+        "Accessibility patterns",
+        "Per-demo architecture contracts"
+      ],
+      "lesson": "Architecture guidance becomes more useful when every recommendation has a runnable counterexample showing when a different choice is better.",
+      "repos": [
+        "westkitty/modern_3d_browser_game_toolkit"
+      ]
+    },
+    {
+      "id": "P073",
+      "name": "2D Game Factory",
+      "family": "Game creation / creative tools",
+      "kind": "Local-first visual game factory",
+      "status": "Active expansion; core workbench established",
+      "period": "2026",
+      "summary": "A local-first visual 2D browser-game factory that turns user-owned assets into real generated Phaser games through one governed workbench.",
+      "brief": "2D Game Factory combines asset import, an Asset Lab, semantic role mapping, scene composition, real generated-game preview, validation, build, and packaging around a 74-preset catalogue. Its current expansion is filling the catalogue with honest playable starter experiences while keeping the reusable machine separate from game-specific content and keeping source assets and provenance under user control.",
+      "deep": [
+        "The workbench previews the actual generated Phaser game rather than an editor-side imitation, so what the user approves is on the same runtime path as what gets built.",
+        "Asset authority stays explicit: immutable source assets and derived recipes remain traceable while semantic roles connect user-owned art to the generated game's native theme and scene documents.",
+        "Starter depth and evidence maturity are deliberately separate claims. A richer starter does not become proof-validated merely because it is more complete, and unfinished starter scaffolds stay outside the shipped registry."
+      ],
+      "capabilities": [
+        "74-preset game catalogue",
+        "Asset Lab and semantic role mapping",
+        "Visual Scene Composer",
+        "Real Phaser preview",
+        "Validate / Build / Pack workflow",
+        "Governed starter-kit expansion"
+      ],
+      "lesson": "A game factory is trustworthy when the visual workbench, generator, preview, validation, and packager all pass through the same authority and provenance seams.",
+      "repos": [
+        "westkitty/2d_Game_Factory"
+      ]
     }
   ],
   "exhibits": [
@@ -1676,15 +1917,16 @@ export const COLLECTION: Collection = {
       "wing": "north",
       "tier": "B",
       "projectIds": [
-        "P002"
+        "P002",
+        "P006"
       ],
       "copy": {
-        "subtitle": "Thirty-seven Entries",
-        "plaque": "One Egg, thirty-five strains, one Mother. A terraforming taxonomy presented as a service manual.",
-        "problem": "How do you document a species that exists to perform an industrial process?",
-        "made": "A thirty-seven entry field compendium organised by five archetypes, with fixed formatting doctrine and a canon-correction record.",
-        "interaction": "Select a source-grounded process reference. The central Egg opens an abstract process glyph; it does not claim an undocumented specimen morphology.",
-        "explore": "Four canonical process references and one clearly marked taxonomy abstraction stand around the Egg. Mother is visible as a distant abstract relief."
+        "subtitle": "Thirty-seven Entries, With Anatomy as Evidence",
+        "plaque": "One Egg, thirty-five strains, one Mother — plus the forensic anatomy work that tested how far the taxonomy could be illustrated without inventing canon.",
+        "problem": "How do you document a species built to perform an industrial process without turning illustrative teaching material into false canon?",
+        "made": "A fixed five-archetype Drakken compendium accompanied by a forensic anatomy lineage that keeps canon specimens and deliberately invented teaching surrogates visibly separate.",
+        "interaction": "Select a source-grounded process reference at the Egg, then inspect how the anatomy material distinguishes documented process structure from explicitly marked teaching abstraction.",
+        "explore": "The taxonomy remains the primary structure. Anatomy is presented as supporting evidence and method, not as a second competing Drakken canon."
       }
     },
     {
@@ -1743,20 +1985,20 @@ export const COLLECTION: Collection = {
     },
     {
       "id": "E06",
-      "slug": "field-anatomy",
-      "title": "Drakken Field Anatomy Archive",
+      "slug": "starsilk-compendium",
+      "title": "Starsilk Compendium: Character & Canon Archive",
       "wing": "north",
       "tier": "B",
       "projectIds": [
-        "P006"
+        "P065"
       ],
       "copy": {
-        "subtitle": "Four Layers Down",
-        "plaque": "Drakken organs are stages of a process. The anatomy is a pipeline diagram.",
-        "problem": "How do you teach the structure of a creature without teaching things canon never established?",
-        "made": "A forensic anatomy reference with four view layers and a hard separation between canon specimens and deliberately non-canon teaching surrogates.",
-        "interaction": "Cycle each table through external, skeletal, energy-process and section views.",
-        "explore": "Three tables stand side by side. The surrogate specimen is marked and separated — the marking is part of the exhibit."
+        "subtitle": "The People Inside the Cosmology",
+        "plaque": "A universe held together by rules still has to be inhabited by people whose identities survive every new production.",
+        "problem": "How do characters remain recognisably themselves across lore, images, timelines, relationships, and generated publications without whichever newest artifact silently becoming canon?",
+        "made": "A generated Starsilk Compendium built from versioned character and lore folios, navigation metadata, media provenance, and machine-readable canon invariants.",
+        "interaction": "Select a character folio. Relationship lines illuminate outward to associated characters, events, visual locks, factions, and productions; switch to canon view to isolate the invariants downstream work is not allowed to contradict.",
+        "explore": "Walk around the character constellation. Peripheral figures and Drakken records sit at the edge while the strongest cross-production relationships pull toward the centre."
       }
     },
     {
@@ -1769,12 +2011,12 @@ export const COLLECTION: Collection = {
         "P007"
       ],
       "copy": {
-        "subtitle": "The Process Lock",
-        "plaque": "Gorevault gathers and refines. Ringthroat makes sky. Collapse the two and the world stops changing.",
-        "problem": "Is the terraforming process described in the Compendium actually coherent, or only plausible?",
-        "made": "A deterministic simulation of the full Drakken pipeline: collection, gathering, rendering and refinement into feedstock, then feedstock into SKY.",
-        "interaction": "Deploy strains against the world above the engineering floor. The pipeline executes in order and the planet visibly changes.",
-        "explore": "Walk the full circle of the engineering floor. The world transforms differently depending on which side you watch from."
+        "subtitle": "A Laboratory That Executes the Cosmology",
+        "plaque": "The process is no longer only described. Planetary transformation, Macros, Starbinding, heliocide, specimens, and telemetry are executable laboratory stations.",
+        "problem": "Do Starsilk and Drakken mechanics remain coherent when several canon rules have to execute against one shared state instead of being explained one paragraph at a time?",
+        "made": "A deterministic six-station computational laboratory joining a planetary solver, Starsilk Macro runtime, Starbinding vector bench, Siege Wall containment experiments, Drakken specimen incubation, and an ordered telemetry ledger.",
+        "interaction": "Run bounded laboratory operations against one shared simulated world. Committed changes propagate between stations, while forbidden orderings and Syrin nullification visibly refuse or terminate Starsilk-driven work.",
+        "explore": "The museum installation summarizes the real laboratory's six stations without pretending its reduced exhibit is the full application. The important state changes remain visible from the engineering floor."
       }
     },
     {
@@ -1802,15 +2044,16 @@ export const COLLECTION: Collection = {
       "wing": "west",
       "tier": "C",
       "projectIds": [
-        "P009"
+        "P009",
+        "P072"
       ],
       "copy": {
-        "subtitle": "The Building Before This One",
-        "plaque": "Earlier attempts at this museum, preserved rather than hidden — including the one that proved a single file could not hold it.",
-        "problem": "Is this museum a restoration of the previous artifact, or a new lineage?",
-        "made": "A record of the Museum of Me and Reliquary concepts, the large single-file Three.js artifact they produced, and the decision to build this version as a separate product.",
-        "interaction": "Turn the timeline control. Earlier museum concepts rise from the maquette table as layered models.",
-        "explore": "The final layer is the building you are standing in."
+        "subtitle": "The Building That Started Teaching Back",
+        "plaque": "Earlier museums are preserved as evidence. The current project also produced engineering lessons substantial enough to escape into their own runnable toolkit.",
+        "problem": "What happens when repeatedly building the same impossible browser museum teaches enough architecture to become a separate project?",
+        "made": "A lineage from interactive-document concepts through the single-file Reliquary into the current continuous museum, accompanied by a ten-demonstration browser architecture toolkit derived from the engineering lessons.",
+        "interaction": "Turn the museum timeline to compare earlier forms, then inspect the toolkit station to see how tactics, fixed-step movement, asset loading, raw WebGL, accessibility, crowd scaling, and WebGPU demand different architectures.",
+        "explore": "A separate NOW BUILDING surface points toward current experiments without converting unfinished work into permanent collection history."
       }
     },
     {
@@ -1836,21 +2079,24 @@ export const COLLECTION: Collection = {
     {
       "id": "E11",
       "slug": "continuity-systems",
-      "title": "Continuity Systems",
+      "title": "Selfsame: Continuity & Authority Systems",
       "wing": "west",
-      "tier": "C",
+      "tier": "B",
       "projectIds": [
         "P014",
         "P018",
-        "P046"
+        "P046",
+        "P060",
+        "P066",
+        "P067"
       ],
       "copy": {
-        "subtitle": "Context That Survives the Conversation",
-        "plaque": "Project context that lives only in a conversation is project context you are going to lose.",
-        "problem": "How does a project remember itself across tools, sessions and years?",
-        "made": "A handoff builder with an approval gate, an append-only project record in version control, and a long-horizon progress tracker.",
-        "interaction": "Assemble a handoff from evidence blocks. Claims without supporting evidence are rejected by the mechanism.",
-        "explore": "The documentation chain runs the length of the alcove; each stage physically refuses input the previous stage did not justify."
+        "subtitle": "Fluency Never Outranks Evidence",
+        "plaque": "Continuity is not remembering more. It is knowing which source governs, what remains uncertain, and when the system must stop rather than improvise around a boundary.",
+        "problem": "How can a project or personal knowledge system survive sessions, conflicting records, corrections, temporary constraints, and damaged or incomplete project evidence without silently promoting the wrong state?",
+        "made": "A lineage from evidence-linked handoffs and append-only project Bibles to Selfsame's authority resolutions, contradiction tracking, constraint capsules, hard stops, He-Maker's concrete repository recovery, and Project Sentinel recovery packets.",
+        "interaction": "Feed conflicting records into the authority desk, choose the evidence that actually governs, then activate a temporary constraint. Operations that lack authority or violate the active boundary stop visibly; the He-Maker station shows how files become resumable project evidence only after source, intent, history, and records are reconstructed.",
+        "explore": "Older handoff and Bible systems remain connected around the room as lineage. Selfsame is the current control surface; He-Maker and Project Sentinel show two sides of recovery — reconstructing a real damaged project and preserving enough evidence to make future reconstruction possible."
       }
     },
     {
@@ -1863,12 +2109,12 @@ export const COLLECTION: Collection = {
         "P062"
       ],
       "copy": {
-        "subtitle": "Which Kind of Claim Is This?",
-        "plaque": "The useful question about a statement is rarely whether it is true. It is what kind of move it is making.",
-        "problem": "Readers fail to notice when a text shifts from reporting evidence to framing it.",
-        "made": "An offline single-file analysis tool that classifies spans of writing as evidence, interpretation, framing, inference or unsupported claim.",
-        "interaction": "Sort sample statements into the five categories on the evidence table. The table shows the classification the tool would assign, and why.",
-        "explore": "All examples here are invented. No real dispute, publication or person is analysed in this room."
+        "subtitle": "Move the Lens, Not the Verdict",
+        "plaque": "Interpretive pressure happens inside passages, often where evidence, framing, inference, and confidence overlap rather than where a document earns one label.",
+        "problem": "How can a reader inspect rhetoric without collapsing the exercise into a source trust score or an automatic declaration of truth?",
+        "made": "A self-contained offline experience with a movable rhetoric lens, passage-level multi-tag findings, pressure and confidence kept separate, filters, Pattern Mode, comparison, and event-record views.",
+        "interaction": "Move the lens across an invented article. The inspected passage reveals overlapping rhetorical moves, their pressure, and their confidence without pretending to perform live fact checking.",
+        "explore": "Pin passages, compare patterns, and move between the local article and event-record views. Every example remains fictional museum data."
       }
     },
     {
@@ -1897,55 +2143,58 @@ export const COLLECTION: Collection = {
       "tier": "B",
       "projectIds": [
         "P011",
-        "P013"
+        "P013",
+        "P029"
       ],
       "copy": {
-        "subtitle": "Prompts as Components",
-        "plaque": "The reusable part of a prompt is usually the constraint list, not the description.",
-        "problem": "Generative prompts are rewritten from scratch every time, and their hard-won negative constraints are lost first.",
-        "made": "A registry of visual-prompt templates with batch syntax and stored negative constraints, and a beginner-safe environment for learning to build software conversationally.",
-        "interaction": "Combine deterministic prompt blocks in the assembly machine. The rendered scene beyond the glass changes to match — no external service involved.",
-        "explore": "Constraint blocks are physically different from description blocks, and the machine will not run without them."
+        "subtitle": "Constraints Survive; Interfaces Need Boundaries",
+        "plaque": "Reusable AI workflow design has two recurring problems: preserving the constraints that actually shape an output, and keeping helper interfaces independent from host applications that constantly change underneath them.",
+        "problem": "How can prompt structures and browser workflow tools remain reusable when models, target environments, and host-page interfaces keep changing?",
+        "made": "A prompt-template and learning lineage built around reusable constraint structure, paired with DexEnhance's local-first browser-extension architecture and Shadow DOM interface isolation.",
+        "interaction": "Assemble a deterministic prompt from subject, style, and constraint blocks, then redesign the synthetic host interface beside it. The isolated DexEnhance layer remains independently controlled and does not inherit the host layout change.",
+        "explore": "The prompt machine demonstrates what should travel with an instruction; the browser panel demonstrates what should not leak across an interface boundary. Both are local museum simulations with no external generation or account dependency."
       }
     },
     {
       "id": "E15",
-      "slug": "agent-harness",
-      "title": "Agent Harness Laboratory",
+      "slug": "agent-capability-lab",
+      "title": "Agent Control & Capability Laboratory",
       "wing": "media",
-      "tier": "C",
+      "tier": "B",
       "projectIds": [
         "P017",
-        "P019"
+        "P019",
+        "P068"
       ],
       "copy": {
-        "subtitle": "Routing the Work",
-        "plaque": "An orchestration system should not own the memory it orchestrates, or it becomes impossible to replace.",
-        "problem": "How do several different AI development tools share one project's context and hand work to each other?",
-        "made": "Two orchestration harnesses: one assembling workflows, context and specialist agents around durable external persistence, one attempting interoperability between separate coding agents.",
-        "interaction": "Route a task through the rack: request, context assembly, specialist selection, validation, handoff.",
-        "explore": "Persistence sits outside the rack, physically separate, connected by a single cable."
+        "subtitle": "Capability Is Not Authority",
+        "plaque": "A repository can appear capable of doing something without granting anyone permission to make it do that thing.",
+        "problem": "How can agentic tooling discover useful repository capabilities without letting scanned text, inference, or a generated wrapper silently become authority?",
+        "made": "A lineage from task-routing harnesses into RepoForge: read-only repository scanning, evidence-backed capability proposals, a separate human authority manifest, bounded invocation, postcondition verification, and proof records.",
+        "interaction": "Scan a fictional repository, review the proposed capabilities, and authorize exactly one. The execution rack physically refuses the unapproved candidates; the approved path runs only after authority exists and produces a proof receipt only when its postcondition verifies.",
+        "explore": "The older orchestration harnesses remain on the wall as predecessors. Persistence and authority stay outside the agent rack so replacing the orchestrator does not replace the record or its permissions."
       }
     },
     {
       "id": "E16",
-      "slug": "media-lineage",
-      "title": "Media Application Lineage",
+      "slug": "performance-media-lab",
+      "title": "Performance Capture & Media Transformation",
       "wing": "media",
-      "tier": "C",
+      "tier": "B",
       "projectIds": [
         "P058",
         "P059",
-        "P060",
-        "P064"
+        "P064",
+        "P069",
+        "P070"
       ],
       "copy": {
-        "subtitle": "Four Generations of the Same Idea",
-        "plaque": "One feature shipped to three platforms triples the maintenance before it doubles the audience.",
-        "problem": "A media workflow was rebuilt repeatedly as the delivery strategy changed underneath it.",
-        "made": "A cross-platform casting application, its native Android successor, a recovered creative application, and a native media utility with bundled tooling.",
-        "interaction": "Run a media workflow across the bench: input, trim, convert, transcribe, output. Each device generation handles the same job differently.",
-        "explore": "The devices are arranged chronologically. Each is smaller in scope than the one before it."
+        "subtitle": "Performance Becomes Data, Then Media",
+        "plaque": "A captured performance can outlive the camera image that produced it, and a finished composite is not trustworthy until the exported artifact is checked.",
+        "problem": "How can local media tools preserve movement, identity boundaries, transparency, audio, and repeatability while allowing the renderer and final background to change?",
+        "made": "A local performance-capture pipeline that records portable performer state and drives character rigs, paired with a local soft-alpha video system for temporal matting, background replacement, and verified transparent export. Casting and media-utility generations remain as lineage around the transformation stage.",
+        "interaction": "Step a safe prerecorded performance through source motion, abstract performance state, character-rig output, alpha matte, and final composite. Change the character or background without changing the captured performance.",
+        "explore": "Guy_Cast, Gay_Cast, and Media Getter remain on the rear lineage bench. The centre stage is about transformation between representations rather than repository recovery or another row of app screenshots."
       }
     },
     {
@@ -2000,12 +2249,12 @@ export const COLLECTION: Collection = {
         "P023"
       ],
       "copy": {
-        "subtitle": "Motion as Command",
-        "plaque": "A novel input method needs a boring fallback, or it becomes a novelty that gets uninstalled.",
-        "problem": "Can physical gestures with a phone safely drive a desktop machine?",
-        "made": "A paired phone-and-desktop bridge converting trained motion gestures into commands from an explicit allowlist, with manual equivalents for everything.",
-        "interaction": "Take hold of the phone model and tilt it. The desktop station responds to the gesture events in real time.",
-        "explore": "Your gesture trajectories remain in the air as visible spatial ribbons until they fade."
+        "subtitle": "Motion Through an Allowlist",
+        "plaque": "A trained gesture is useful only if the receiving machine can prove which bounded command it is allowed to become.",
+        "problem": "Can a phone's physical motion drive a desktop without turning a novel input path into an arbitrary remote-control channel?",
+        "made": "A local Android-to-Mac bridge with QR pairing, trainable motion recognition, authenticated command identifiers, a fixed allowlist, and a manual equivalent for every gesture path.",
+        "interaction": "Tilt the phone model and watch the gesture trace become a command identifier, pass through the allowlist, and reach the desktop. The manual control sends the same allowed command without gesture recognition.",
+        "explore": "The visible trail explains the motion shape while the desk explains the security boundary: no gesture can create a command that was not registered first."
       }
     },
     {
@@ -2035,16 +2284,15 @@ export const COLLECTION: Collection = {
       "wing": "east",
       "tier": "B",
       "projectIds": [
-        "P025",
-        "P029"
+        "P025"
       ],
       "copy": {
-        "subtitle": "The Artifact the Institution Asks For",
-        "plaque": "Software for a crisis has to produce what the institution requires, not a better internal model of the problem.",
-        "problem": "Institutional processes fail people who cannot produce an accurate chronology with evidence attached.",
-        "made": "A local-first emergency casefile application for housing, benefits, utilities and medical administration, and a browser extension improving AI workflow surfaces.",
-        "interaction": "Using an entirely fictional situation, assemble a chronology, attach evidence to each event, and produce a next-action packet.",
-        "explore": "The situation on this table is invented. No real case record, correspondence or personal document appears in this museum."
+        "subtitle": "Build the Artifact the Institution Actually Needs",
+        "plaque": "Crisis-support software is useful when it can turn a confusing sequence of notices, calls, submissions, and silence into a dated chronology with evidence and one defensible next action.",
+        "problem": "How can a local casefile help someone navigate an institution without replacing evidence with a generic checklist or exposing the underlying material to a remote service?",
+        "made": "DexAid: a local casefile system that attaches evidence directly to events, builds chronology as the governing structure, and derives the next action from what the record actually establishes.",
+        "interaction": "Work through an entirely fictional case. Attach evidence to each event, lock supported events into the chronology, and produce the next-action packet only when the timeline is complete enough to justify it.",
+        "explore": "Nothing in this room is a real case record. The mechanics make the central rule physical: unsupported events do not lock, and a partial chronology does not get promoted into a confident institutional action."
       }
     },
     {
@@ -2056,15 +2304,16 @@ export const COLLECTION: Collection = {
       "projectIds": [
         "P026",
         "P028",
-        "P030"
+        "P030",
+        "P073"
       ],
       "copy": {
-        "subtitle": "Making Things That Make Things",
-        "plaque": "Three creative tools whose lineages show the same lesson: some requirements cannot be retrofitted.",
-        "problem": "Creative tools accumulate requirements — collaboration, offline operation, target-specific output — that reshape their architecture rather than extending it.",
-        "made": "An offline prompt-shaping menu-bar application, a hosted image-generation service with durable persistence, and a collaborative whiteboard rebuilt across three generations.",
-        "interaction": "Draw directly on the design table. Your marks appear on its surface and connect into the shared composition.",
-        "explore": "The table surface is a live drawing texture. What visitors draw persists for the length of your visit."
+        "subtitle": "From Shared Canvas to Game Factory",
+        "plaque": "Creative tools become serious when the editor, runtime, validation, and packaged artifact belong to the same governed workflow instead of becoming separate demos that quietly drift apart.",
+        "problem": "How can creative software preserve shared state and user-owned source assets while still giving the maker a visual workbench whose preview is the real thing that will later be built and packaged?",
+        "made": "A creative-tools lineage spanning DexCraft, DexGen, DexDraw's server-authoritative shared canvas, and 2D Game Factory: a local-first visual workbench with a 74-preset catalogue, Asset Lab, semantic role mapping, Scene Composer, real Phaser preview, validation, build, and packaging.",
+        "interaction": "Draw persistent connections on the DexDraw table, reshape the same idea for different prompt targets, then advance the 2D Game Factory station from Import through Asset Lab, Role Map, Scene, real-runtime Preview, Validate, Build, and Pack. The Museum models the workflow without executing the external factory.",
+        "explore": "The room makes three kinds of continuity physical: operations persist on a shared canvas, prompt structure changes with its destination, and user-owned assets retain provenance as they travel from source material to a validated generated game."
       }
     },
     {
@@ -2200,17 +2449,17 @@ export const COLLECTION: Collection = {
       "slug": "aethervfx",
       "title": "AetherVFX",
       "wing": "south",
-      "tier": "B",
+      "tier": "A",
       "projectIds": [
         "P053"
       ],
       "copy": {
-        "subtitle": "Zero Feedback Delay",
-        "plaque": "Any authoring tool for something judged by eye must close the feedback loop to nothing.",
-        "problem": "Visual effects are tuned by watching them, and every second between change and result degrades the result.",
-        "made": "A browser workbench for procedural ability effects with live control over emitters, forces, lifetime, turbulence and colour behaviour.",
-        "interaction": "Adjust any control. The effect in the chamber reshapes immediately — there is no apply step.",
-        "explore": "The chamber is transparent on all sides. The same effect reads differently from each."
+        "subtitle": "Telegraph → Travel → Impact → Field → Residue",
+        "plaque": "The effect is not only particles. It is a deterministic ability sequence that can change terrain, leave aftermath, and be undone as one authoritative transaction.",
+        "problem": "How do visual effects remain immediate to author while also becoming deterministic gameplay state with bounded resources and reversible world mutation?",
+        "made": "A deterministic Three.js ability and VFX platform with surface-conforming telegraphs, data-defined abilities, semantic sequence composition, persistent world mutations, terrain deformation, atomic undo and redo, performance workloads, and visual regression fixtures.",
+        "interaction": "Cast an ability across the chamber floor. Follow its telegraph, travel, impact, field, and residue stages; then undo the persistent aftermath and watch the world return to the prior authoritative state.",
+        "explore": "Authoring controls remain immediate, but the room now exposes the semantic chain and persistent consequence that distinguish the current platform from a particle sandbox."
       }
     },
     {
@@ -2242,12 +2491,12 @@ export const COLLECTION: Collection = {
         "P056"
       ],
       "copy": {
-        "subtitle": "A Real Town, Compressed",
-        "plaque": "Real geography is a good starting point and a bad final layout. The editing is the design work.",
-        "problem": "Actual distances are boring at play speed, but a town that loses its shape stops being recognisable.",
-        "made": "A rolling collection game set in a compressed model of a real Vancouver Island town, laid out against real map data and running fully offline.",
-        "interaction": "Take control of the ball. Roll, collect, and grow — one short self-contained level.",
-        "explore": "The diorama is a miniature neighbourhood. Everything in it is collectible at sufficient size."
+        "subtitle": "A Real Town Compressed Until It Becomes Play",
+        "plaque": "The project is no longer a toy diagram of rolling and growth; it is an expanding offline Duncan and North Cowichan playspace whose geography is edited for play without becoming unrecognisable.",
+        "problem": "How far can a real place be compressed, rerouted, and filled with collectibles before it stops feeling like the place it came from?",
+        "made": "An offline Three.js rolling-collection game with expanded Duncan zones, roads, regional collectibles, gravel trails, landmark districts, map-derived development overlays, and a tuned collection and camera model.",
+        "interaction": "Play a bounded Museum Slice: roll through a recognisable compressed neighbourhood, collect objects smaller than the ball, grow, and reach categories that were impossible at the starting scale.",
+        "explore": "The miniature slice is explicitly a museum extraction of the larger game. Map-derived layout evidence and named landmark references explain how real geography was edited into a playable route."
       }
     },
     {
@@ -2271,7 +2520,7 @@ export const COLLECTION: Collection = {
     {
       "id": "E34",
       "slug": "bigmac-backbone",
-      "title": "BigMac Backbone",
+      "title": "BigMac Backbone / AndrewOS Control Plane",
       "wing": "infra",
       "tier": "A",
       "projectIds": [
@@ -2280,15 +2529,16 @@ export const COLLECTION: Collection = {
         "P042",
         "P043",
         "P045",
-        "P063"
+        "P063",
+        "P071"
       ],
       "copy": {
-        "subtitle": "The Machinery Behind the Work",
-        "plaque": "Six infrastructure projects that decide which machine does the work — and where nothing is permitted to go.",
-        "problem": "Local AI work needs real compute, large private storage and a trustworthy path between machines.",
-        "made": "A governed access route, a private storage architecture with no public path, a tunnelled local inference integration, an agent control surface, a launcher for the resulting tool sprawl, and a persistent daemon with real permadeath.",
-        "interaction": "Select a workflow. A pulse travels the sculpture through the exact nodes that workflow touches.",
-        "explore": "Every address, hostname and identifier in this room is a synthetic example. No credential, key or operational configuration appears anywhere in this museum."
+        "subtitle": "The Control Plane in Front of the Machinery",
+        "plaque": "The infrastructure is easier to understand once there is a control plane showing which registered operation may touch which machine, and what evidence came back.",
+        "problem": "How can an assistant operate local projects and services without receiving an arbitrary shell, broad filesystem authority, or permission to invent new powers during a conversation?",
+        "made": "The existing local-compute, storage, tunnel, model, and persistent-daemon infrastructure, fronted by AndrewOS Mac Bridge: a registry-driven MCP control plane with fixed tasks, service checks, staged artifacts, evidence receipts, and preview-bound consequential operations.",
+        "interaction": "Choose a registered workflow and watch it travel through the local infrastructure. Consequential actions stop at the Dexter Gate until the exact effect is previewed and bound to a one-use transaction; completed actions return receipts separating attempted, changed, and verified state.",
+        "explore": "The older BigMac nodes remain physically present behind the control surface. Every hostname and identifier shown in the museum is synthetic; the exhibit explains authority and routing without exposing an operational deployment."
       }
     },
     {
@@ -2324,35 +2574,35 @@ export const COLLECTION: Collection = {
       "name": "Dex Systems",
       "subtitle": "East Wing",
       "level": 0,
-      "blurb": "Nineteen tools built to run on your own machine. White stone, steel, dark teal — a laboratory, not a showroom."
+      "blurb": "Local tools, device bridges, creative systems and assistants. White stone, steel, dark teal — a laboratory, not a showroom."
     },
     {
       "id": "south",
       "name": "Games & Play",
       "subtitle": "South Wing",
       "level": 0,
-      "blurb": "Twelve games and playable systems, from a finished birthday gift to a browser 4X. Warm rust, wood, theatrical light."
+      "blurb": "Games and playable systems, from finished small works to simulations and long-running experiments. Warm rust, wood, theatrical light."
     },
     {
       "id": "west",
       "name": "Archive & Canon",
       "subtitle": "West Wing",
       "level": 0,
-      "blurb": "How work remembers itself. Violet, parchment and bronze; the quietest and most scholarly wing."
+      "blurb": "How work remembers itself, resolves authority and preserves contradictions. Violet, parchment and bronze; the quietest wing."
     },
     {
       "id": "media",
       "name": "Music, Promptcraft & Media",
       "subtitle": "Northwest Mezzanine",
       "level": 1,
-      "blurb": "Craft applied to generative tools — songwriting doctrine, prompt systems, orchestration, media lineages."
+      "blurb": "Craft applied to generative tools, performance, orchestration and media transformation."
     },
     {
       "id": "infra",
       "name": "Local Systems",
       "subtitle": "Northeast Mezzanine",
       "level": 1,
-      "blurb": "The machinery behind everything else. Which machine does the work, and where nothing is permitted to go."
+      "blurb": "The machinery and control planes behind everything else: which machine may do the work, under what authority, and where data is not permitted to go."
     }
   ]
 } as const;
