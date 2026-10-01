@@ -15,10 +15,16 @@ const source = join(root, 'data', 'workshop-placements.json');
 const release = join(root, 'release', 'The_Reliquary_of_Iterative_Becoming.html');
 const original = await readFile(source);
 
-function run(command, args) {
-  const result = spawnSync(command, args, { cwd: root, stdio: 'inherit', env: process.env });
+function run(command, args, env = process.env) {
+  const result = spawnSync(command, args, { cwd: root, stdio: 'inherit', env });
   if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} failed with status ${result.status}`);
 }
+
+// The browser journey restores the authoring source it wrote unless this proof
+// opts out: the authored manifest must survive the Playwright run so the
+// standalone build below can prove those placements in the offline artifact.
+// This script's own finally block then restores the developer's original bytes.
+const proofEnv = { ...process.env, MUSEUM_WORKSHOP_KEEP_AUTHORED_SOURCE: '1' };
 
 async function verifyAuthoredStandalone() {
   const browser = await chromium.launch({
@@ -58,7 +64,7 @@ async function verifyAuthoredStandalone() {
 }
 
 try {
-  run('npx', ['playwright', 'test', '--config', 'playwright.workshop.config.ts']);
+  run('npx', ['playwright', 'test', '--config', 'playwright.workshop.config.ts'], proofEnv);
   run('npm', ['run', 'build:standalone']);
   await verifyAuthoredStandalone();
 } finally {

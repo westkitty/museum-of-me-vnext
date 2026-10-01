@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-
+import { readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 async function stopSoftwareRenderLoop(page: import('@playwright/test').Page): Promise<void> {
   // The CI runner has no representative GPU. As with the production browser
   // suite, prove the real WebGL scene and Workshop have booted, then stop the
@@ -9,6 +10,32 @@ async function stopSoftwareRenderLoop(page: import('@playwright/test').Page): Pr
 }
 
 test('Museum Workshop authors safe objects and persists through the dev-only save bridge', async ({ page, request }) => {
+  // This journey ends by writing the real authoring source through the dev-only
+  // save bridge. Snapshot its bytes first and restore them no matter how the
+  // test ends, exactly as scripts/workshop-authoring-proof.mjs does. Without
+  // this, running the browser suite leaks test-authored plinths and the shrub
+  // override into the tracked manifest — a later Workshop run then starts from
+  // that dirty state and fails its outliner count, and a careless commit would
+  // ship test props into every build.
+  //
+  // The standalone proof is the one caller that needs the authored source to
+  // outlive this test: it builds the offline artifact from what the save bridge
+  // wrote. It opts in by setting MUSEUM_WORKSHOP_KEEP_AUTHORED_SOURCE=1 and
+  // restores the original bytes itself when its build has been verified.
+  const keepAuthoredSource = process.env.MUSEUM_WORKSHOP_KEEP_AUTHORED_SOURCE === '1';
+  const sourcePath = join(import.meta.dirname, '..', '..', 'data', 'workshop-placements.json');
+  const originalBytes = await readFile(sourcePath);
+  try {
+    await authorAndPersist(page, request);
+  } finally {
+    if (!keepAuthoredSource) await writeFile(sourcePath, originalBytes);
+  }
+});
+
+async function authorAndPersist(
+  page: import('@playwright/test').Page,
+  request: import('@playwright/test').APIRequestContext,
+): Promise<void> {
   const browserErrors: string[] = [];
   page.on('pageerror', (error) => browserErrors.push(`pageerror: ${error.message}`));
   page.on('console', (message) => {
@@ -137,4 +164,4 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   expect(persistedShrubPosition![0]).toBeCloseTo(30, 4);
   expect(persistedShrubPosition![1]).toBeCloseTo(shrubOriginalY, 4);
   expect(persistedShrubPosition![2]).toBeCloseTo(42, 4);
-});
+}

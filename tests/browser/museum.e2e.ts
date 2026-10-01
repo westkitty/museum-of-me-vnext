@@ -32,7 +32,25 @@ test('boots at the exterior arrival and keyboard input reaches the real controll
 
   const zone = await page.evaluate(() => window.__museum?.currentZone);
   expect(zone).toBe('plaza');
-  await expect(page.getByRole('button', { name: 'Enter the museum and capture mouse look' })).toBeVisible();
+  const entryPrompt = page.getByRole('button', { name: 'Enter the museum and capture mouse look' });
+  await expect(entryPrompt).toBeVisible();
+  // The authored entrance plate carries the visible arrival copy; the semantic
+  // instructions stay in the accessibility tree without painting a second,
+  // competing column of text over the artwork.
+  await expect(entryPrompt).toHaveAttribute('aria-describedby', 'entry-prompt-copy');
+  const entryCopy = page.locator('#entry-prompt-copy');
+  await expect(entryCopy).toContainText('WASD or arrow keys move');
+  await expect(entryCopy).toContainText('Page Up/Page Down look vertically');
+  const copyBounds = await entryCopy.boundingBox();
+  expect(copyBounds?.width).toBeLessThanOrEqual(1);
+  expect(copyBounds?.height).toBeLessThanOrEqual(1);
+  expect(await entryPrompt.evaluate((node) => getComputedStyle(node).backgroundImage)).not.toBe('none');
+  // When the plate is suppressed, the clipped copy must come back as the
+  // visible affordance instead of leaving an empty full-screen button.
+  await page.evaluate(() => { document.documentElement.dataset.transparency = 'reduced'; });
+  const reducedBounds = await entryCopy.boundingBox();
+  expect(reducedBounds?.width ?? 0).toBeGreaterThan(100);
+  await page.evaluate(() => { delete document.documentElement.dataset.transparency; });
 
   const qaToggle = page.getByRole('button', { name: 'QA evidence' });
   await qaToggle.focus();
