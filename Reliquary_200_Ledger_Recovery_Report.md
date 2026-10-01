@@ -1,5 +1,9 @@
 # Reliquary 200-Observation Closure Ledger — Recovery Report
 
+> **Historical search record — 2026-08-20.** The repository branch/base and search results below belong
+> to that investigation. This remains an absence report, not a recovered or current release ledger;
+> the current checkout state is recorded in [`OPERATIONAL_STATE.md`](OPERATIONAL_STATE.md).
+
 **Date:** 2026-08-20
 **Repository:** `museum-of-me-vnext`, branch `release/v1.0.0`, base commit `20466855999f7c33d520a3a947c73ab07157a940`
 **Subject:** the search for `Reliquary_200_Observation_Closure_Ledger.md` and its two companion artifacts.

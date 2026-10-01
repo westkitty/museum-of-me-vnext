@@ -32,7 +32,16 @@ test('boots at the exterior arrival and keyboard input reaches the real controll
 
   const zone = await page.evaluate(() => window.__museum?.currentZone);
   expect(zone).toBe('plaza');
-  await expect(page.getByRole('button', { name: 'Enter the museum and capture mouse look' })).toBeVisible();
+  const entryPrompt = page.getByRole('button', { name: 'Enter the museum and capture mouse look' });
+  await expect(entryPrompt).toBeVisible();
+  await expect(entryPrompt).toHaveAttribute('aria-describedby', 'entry-prompt-copy');
+  const entryCopy = page.locator('#entry-prompt-copy');
+  await expect(entryCopy).toContainText('WASD or arrow keys move');
+  await expect(entryCopy).toContainText('Page Up/Page Down look vertically');
+  const copyBounds = await entryCopy.boundingBox();
+  expect(copyBounds?.width).toBeLessThanOrEqual(1);
+  expect(copyBounds?.height).toBeLessThanOrEqual(1);
+  expect(await entryPrompt.evaluate((node) => getComputedStyle(node).backgroundImage)).not.toBe('none');
 
   const qaToggle = page.getByRole('button', { name: 'QA evidence' });
   await qaToggle.focus();

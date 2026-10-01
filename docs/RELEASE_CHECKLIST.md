@@ -1,95 +1,94 @@
-# Release Gate
+# Release and Verification Checklist — 2026-10-01
 
-The plan's §39 gate, applied to the current release candidate. Automated evidence and human/device evidence are deliberately kept separate.
+This is an evidence checklist for the **checked-out 2026-10-01 source line**, not a claim that all
+release criteria passed. Automated proof, human acceptance and live-host evidence stay separate. The
+latest source-line reconciliation and measured uplift are recorded in
+[`OPERATIONAL_STATE.md`](../OPERATIONAL_STATE.md) and
+[`validation/reports/QUALITY_UPLIFT_2026-10-01.md`](../validation/reports/QUALITY_UPLIFT_2026-10-01.md).
 
-Current release/implementation line: `release/v1.0.0`. PR #3 integrated `feature/museum-workshop-core-2026-08-26` after exact pre-merge head `f6751de8e83017ec3a3a085d2b8d1f02d9b2cac7` passed pull-request workflow run #321 in all four jobs: `gate`, `browser`, `standalone`, and `workshop`. The integration merge commit was `65142465336ee4603a07dd56333813f4f55befb0`.
+## Repository facts observed
 
-The post-merge truth-layer reconciliation changes only release/state documentation. Its resulting release head must receive its own exact-head automated proof before publication consideration. `main` remains the older unpublished default-branch baseline.
+- Session branch: `arena/01a0f545-museum-of-me-vnext`, based on `main` at
+  `901ec91496f533638c978a3846bd3ea0c7914f48`.
+- Remote `release/v1.0.0`: `0360bdd1c86692dd1e28f6a0dbad3f5a97040252`.
+- PR #1 is merged. Exact main-head workflow run [33746867357](https://github.com/westkitty/museum-of-me-vnext/actions/runs/33746867357)
+  reports `gate`, `browser`, `standalone`, and `workshop` success.
+- PR #4 is **open and unmerged** at `ad5fa1d706d9d5c76f83842cc41c0510101f96c8`. It proposes
+  active pre-1.0 status and 73 current identities. The checked-out code remains the historical
+  64-project / 35-exhibit source line. Do not import claims or collection content from PR #4 as if
+  already merged.
+- No `v1.0.0` tag or GitHub release was listed during this 2026-10-01 audit. No production URL or
+  live host response was tested; the configured integration could not read the deployments API.
 
-## Architecture
+## Fresh local source/build checks
 
-| Item | State | Evidence |
+`npm ci && npm run gate` completed successfully on 2026-10-01: typecheck/lint passed, **594 tests in
+28 Vitest files passed**, 9 release-tool tests passed, all mapping/content/privacy/frame-loop/hotpath/
+asset/exhibit/source-parity/QA checks passed, production build and budgets passed, and distribution
+verification passed (94 files; 142.15 MB uncompressed). Asset validation specifically confirmed 17
+governed registrations, 12 imported processed-file hashes and the 65-file Full Weasel tree. The
+standalone rebuild produced SHA-256
+`b243d8e846863c6648397cd7ff1730ce857358f3f42e9958e747c21068e25937`; the checksum manifest passed.
+
+| Check | State | Evidence / limit |
 |---|---|---|
-| No inaccessible intended public space | ✅ | `tests/traversal.test.ts` walks entrance → every wing → upper floor → Sanctuary → entrance against real collision, plus into and out of all 35 bays. |
-| No collision holes | ✅ | The same harness fails on floor holes and route discontinuities. |
-| No unintended traps | ✅ | The same harness requires measurable progress through the mandatory visitor route. |
-| Exterior-to-interior continuity | ✅ | Spawn is on the Arrival Plaza, the garden path remains non-colliding, and automated traversal reaches the complete building without teleporting. |
+| Mapping, content, exhibit and source parity | **PASS** | Fresh `npm run gate`; 35 exhibits, 64 mapped identities, 14 installation state machines and 17 visitors. |
+| Loop ownership, hot paths, privacy and automated QA | **PASS** | Fresh `npm run gate`; QA wrote automated report/checklist, not a human acceptance record. |
+| Asset provenance/hash validation | **PASS** | Fresh `validate:assets`; 12 imported hashes + 65-file tree. Three external Quaternius original-source hashes remain historical because source originals are absent. |
+| Production static build, budgets, distribution | **PASS** | Fresh `build`, `check:budgets`, `verify:dist`; Workshop editor/write bridge excluded from production output. |
+| Production dependency audit | **PASS** | `npm audit --omit=dev --audit-level=high`: 0 production dependency vulnerabilities. |
+| Full development dependency audit | **FOLLOW-UP** | `npm ci` / full audit reports 7 dev-graph findings (3 moderate, 3 high, 1 critical); no dependency upgrade was attempted in this performance/asset pass. |
+| Chromium visitor/browser suite | **BLOCKED — environment** | `npm run test:e2e`: all 6 tests stopped before execution because Playwright's Chromium 151 binary was absent. `npx playwright install chromium` failed with CDN TLS `ECONNRESET`; this is not a passing browser result or a diagnosed product failure. |
+| Offline standalone runtime browser check | **PARTIAL / BLOCKED** | `verify-standalone-offline.mjs` static SHA/source checks passed; `standalone-offline-browser.mjs` could not launch the same missing browser. Separate runtime-source QA is blocked at browser launch too. |
+| Workshop save/reload proof | **BLOCKED — same environment** | `npm run test:workshop` could not launch Chromium; its `finally` path restores `data/workshop-placements.json` to the exact bytes present at invocation. |
+| Current performance snapshots | **PASS, constrained** | Three diffable JSONs; the rebuilt candidate artifact matches the profiled SHA. Checksum manifest verifies the profile JSON and screenshots. Software SwiftShader, 45 intervals/view; not device FPS/GPU time. |
 
-## Exhibits
+CI installs a managed browser in its workflow; prior main-head CI is not exact-head CI for this candidate.
+A repeat local browser run needs `npx playwright install chromium` to succeed first.
 
-| Item | State | Evidence |
-|---|---|---|
-| 35 / 35 visitor-facing exhibits pass | ✅ | `tests/exhibit-quality.test.ts` exercises physical presence, bay fit, controls, interpretation, reduced-motion behavior, reset, streaming cycles, and ownership boundaries. |
-| 64 / 64 project mappings pass | ✅ | `npm run validate:mapping` requires every project identity to be represented exactly once through the frozen 35-exhibit mapping. |
-| 35 / 35 bespoke implementations | ✅ | `npm run validate:exhibits`. |
-| Whole-museum QA report is complete | ✅ | `npm run qa` reports 35 exhibits, 64 project identities, 35 bespoke implementations, and requires the whole-museum guard suites. |
+## Protected contracts
 
-## Assets and privacy
+- 35 physical exhibit slots / 64 mapped identities on this source line; bespoke hero objects retain
+  their IDs, pivots, hitboxes, interaction raycasts and streaming ownership.
+- Collision, ramp traversal, player transforms, source installation state/persistence, visitor paths,
+  Sanctuary access and Workshop protected areas remain authoritative.
+- Keyboard, pointer-lock recovery, semantic DOM, screen reader instructions, reduced motion, high
+  contrast, scaling, mobile/touch fallback and saved data remain non-regression requirements.
+- Procedural-first local asset policy remains; no remote runtime hotlinks. Processed file hashes and
+  bundle tree hashes must pass `npm run validate:assets`.
+- Renderer optimization may not be presented as GPU time, device FPS, human visual approval or a
+  universal triangle reduction. The dome-view +16.4% submitted-triangle measurement is explicit.
 
-| Item | State | Evidence |
-|---|---|---|
-| No missing governed runtime assets | ✅ automated contract | `AssetManager.load` refuses unknown IDs and `npm run validate:assets` validates provenance/budgets; current candidate includes governed local Quaternius GLBs and the deferred local Full Weasel artifact. |
-| No unnecessary runtime hotlinks | ✅ automated contract | Current local assets are provenance-governed and standalone verification records zero remote requests; the CSP forbids outbound connections. |
-| No secrets/private operational data | ✅ | `npm run validate:privacy` scans public content and exhibit source for credential/private-data signatures. |
-| Production artifact secret-file denylist | ✅ | `npm run verify:dist` rejects secret-like files in `dist/`. |
+## Human/device evidence — still open
 
-## Accessibility and input
+No human-authored evidence record for the current candidate is present in this audit. Complete
+`validation/reports/HUMAN_QA_CHECKLIST.md` on a representative real browser/device and preserve the
+record using `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md` or the in-museum `?qa=1` recorder.
+The decisive review includes:
 
-| Item | State | Evidence |
-|---|---|---|
-| Requested keyboard movement grammar | ✅ | W/Up forward, S/Down back, A/Left left, D/Right right; Q/E turn; Page Up/Page Down vertical look; Shift sprint; Space grounded one-shot jump; F/Enter interact. Unit/regression tests plus Chromium visitor-path gate. |
-| Complete keyboard-accessible collection | ✅ | The DOM mirror exposes all exhibit interpretation without requiring pointer lock; Chromium gate verifies representative access including Starsilk Universe and BigMac Backbone. |
-| Map and modal keyboard semantics | ✅ | SVG bays are keyboard activatable; rebuilt map content restores dialog focus so Escape/focus trapping continue to work. Browser regression covered. |
-| Semantic-control input isolation | ✅ | `InputManager` leaves Enter/Space/etc. to native controls and custom `role="button"` surfaces instead of leaking those keys into global museum interact/jump actions. `tests/input-ui-guard.test.ts` protects native controls, SVG/custom buttons, and the ordinary canvas/global path. |
-| Reduced motion / high contrast / interface scaling | ✅ | Preference contracts are covered by regression tests; the Chromium gate exercises explicit reduced motion in the production build. |
-| Touch path | ✅ automated contract | Touch movement/look/interact fallbacks remain under the accessibility suite. A physical touch-device feel check is still optional human evidence. |
+- first-screen copy/accessibility at common desktop, mobile, zoom and assistive-technology settings;
+- actual Arrival Plaza → entry → vestibule → Rotunda pacing, landmark read, scale and obstruction;
+- Blood Ring identity after the transmission tradeoff, dome view and color/lighting comfort;
+- touch movement/look/panel scrolling, keyboard-only controls, pointer-lock capture/release/loss/
+  recapture and saved data;
+- audio deliberately opted in, volume behavior, clipping/distortion and subtitle agreement;
+- representative-device frame pacing, including the exact views and quality tier recorded.
 
-## Runtime and lifecycle
+`npm run verify:human-evidence -- <record>` checks completeness only. It cannot infer, create or
+upgrade human judgments. SwiftShader screenshots/profiles are not substitutes.
 
-| Item | State | Evidence |
-|---|---|---|
-| No uncaught core-path exceptions | ✅ | Canonical tests plus production Chromium visitor-path checks fail on page/console errors. |
-| Load/unload lifecycle stable | ✅ | Repeated traversal/lifecycle tests require bounded residency and balanced disposal. |
-| Persistent environment bounded | ✅ | Always-resident refinement systems are measured by explicit mesh/triangle/material/light/resource budgets and dispose to zero tracked resources. |
-| Quality tiers work | ✅ | Auto-detection, settings override, DPR limits, shadow/crowd reductions, and budget contracts are covered. |
-| Real production-browser boot + semantic visitor path | ✅ automated contract | Pull-request workflow run #321 passed the production browser job on the integrated feature head; the final post-reconciliation release head must also be green before publication. |
-| Museum Workshop authoring path | ✅ automated contract | Pull-request workflow run #321 passed the dedicated development-only Workshop job after correcting a stale test assertion so X/Z edits explicitly preserve the registered shrub's original Y. Runtime authoring behavior was not weakened. |
-| Offline standalone path | ✅ automated contract | Pull-request workflow run #321 passed the fresh standalone build and offline verification on the integrated feature head. |
-| Human QA evidence recorder | ✅ automated tool contract | `?qa=1` exposes read-only diagnostics plus a session-only manual recorder for Pass/Needs work judgments, telemetry snapshots, notes, and Markdown report generation. Browser CI proves the tool operates; it does not satisfy the human judgments it records. |
-| Production dependency surface | ✅ automated contract | The browser job runs `npm audit --omit=dev --audit-level=high`. Development-tool audit findings are not represented as deployed dependency findings; the exact release head must pass this job before publication. |
-| Audio muted by default | 🟨 human check required | Sound controls begin at zero; a real browser/device must confirm deliberate opt-in playback and subtitle agreement. |
-| Pointer-lock capture/look/release/recapture feel | 🟨 human check required | Runtime implementation is present; actual device capture, Escape/loss recovery and recapture remain a human acceptance check. |
-| Representative-device FPS | 🟨 human check required | Draw-call/light/residency/lifecycle/bundle budgets are automated. CI software rendering is not representative hardware performance. |
+## Hosted evidence — not observed in this audit
 
-## Production artifact
+No production URL, HTTPS response, emitted headers, cache behavior or hosted device journey was
+examined. After any deployment, run `npm run verify:hosted -- <real-https-url>` and then perform a
+real browser/device pass. Do not infer a live response from `public/_headers`, CI, or `dist/`.
 
-| Item | State | Evidence |
-|---|---|---|
-| Production build succeeds | ✅ | `npm run build` inside the canonical gate. |
-| Hashed JS/CSS and multiple production chunks | ✅ | `npm run verify:dist`. |
-| Static security/cache policy emitted | ✅ source + build | `public/_headers` is copied into `dist/_headers`; `verify:dist` requires the CSP, frame denial, `nosniff`, and immutable hashed-asset caching. |
-| Hosted transport/header verification prepared | ✅ tool contract | `npm run verify:hosted -- <url>` checks the live shell, security/cache headers and same-origin hashed assets after an authorized deployment; its deterministic tests run inside the canonical gate. |
-| Release runbook prepared | ✅ | `docs/RELEASE_RUNBOOK.md`. |
-| Durable human QA evidence structure | ✅ source | `validation/reports/HUMAN_QA_CHECKLIST.md` defines the decisive route and `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md` defines the durable record. The in-museum recorder can generate the same kind of Markdown evidence. |
-| Human visual/device QA | ⬜ | No completed representative-device evidence record exists yet. Automated/headless evidence cannot promote these perceptual/device checks. |
-| Hosted production verification | ⬜ | No production deployment has been authorized or performed. |
+## Git/CI finalization
 
-## Git state
-
-| Branch | Role |
-|---|---|
-| `main` | remote default branch and PR #1 base; older unpublished baseline, not current implementation truth. |
-| `feat/foundation` | historical implementation lineage. |
-| `release/v1.0.0` | current release and implementation line after PR #3 integration. |
-| `feature/museum-workshop-core-2026-08-26` | integrated feature lineage; no longer the separate release candidate. |
-
-PR #1 remains open from `release/v1.0.0` to `main` and now tracks the caught-up release line. No merge, auto-merge, release tag, or publication is implied by a green automated gate.
-
-## Remaining actions, exactly
-
-1. Require the final post-reconciliation `release/v1.0.0` head to pass the exact-head automated jobs (`gate`, `browser`, `standalone`, and `workshop`).
-2. Complete the representative-device pass in `validation/reports/HUMAN_QA_CHECKLIST.md` and preserve a completed Markdown evidence record using the in-museum `?qa=1` recorder or `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md`. No acceptance item may remain accidentally Pending.
-3. Run `npm run verify:human-evidence -- <completed-human-qa.md>`; repair only concrete **Needs work** observations and rerun exact-head automated gates if code changes.
-4. Make an explicit owner decision to merge reviewed PR #1 into `main` and authorize publication.
-5. Deploy the resulting reviewed `main` commit, run `npm run verify:hosted -- <production-url>`, and verify the real browser/device path.
-6. Tag the verified deployed commit as `v1.0.0`; do not tag a known-bad or merely pre-deploy commit.
+- [x] Fresh `npm run gate` completed and result recorded.
+- [x] Fresh `npm run build:standalone` completed; artifact SHA matches the profile; checksum manifest passes.
+- [ ] Chromium-dependent `test:e2e`, complete standalone runtime QA and `test:workshop` rerun after browser installation.
+- [ ] `git diff --check`, full diff and `git status` reviewed; only intended task files staged.
+- [ ] Commit created on `arena/01a0f545-museum-of-me-vnext` **only if/when authorized**.
+- [ ] Push sent only to `origin arena/01a0f545-museum-of-me-vnext` **only if/when authorized**; verify remote head/checks.
+- [ ] Human and hosted unknowns remain unpromoted until actual evidence exists.

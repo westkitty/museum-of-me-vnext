@@ -13,7 +13,7 @@
 export interface LoopCallbacks {
   /** Fixed-timestep simulation. Called 0..n times per frame with a constant dt. */
   fixedUpdate(dt: number): void;
-  /** Once per frame, real elapsed time. Systems that must not be stepped twice. */
+  /** Once per frame, simulation elapsed time capped to MAX_FRAME_DELTA. */
   variableUpdate(dt: number): void;
   /** Interpolation factor 0..1 between the last two fixed states, then draw. */
   render(alpha: number): void;
@@ -44,6 +44,11 @@ export class Loop {
 
   setFrameCap(hz: number): void {
     this.frameCapHz = Number.isFinite(hz) && hz > 0 ? hz : 0;
+  }
+
+  /** 0 when uncapped. Adaptive quality needs to know a cap is not in play. */
+  get frameCap(): number {
+    return this.frameCapHz;
   }
 
   get fps(): number {
@@ -78,11 +83,13 @@ export class Loop {
     if (!this.running) return;
     this.rafId = requestAnimationFrame(this.tick);
 
-    let delta = (now - this.lastTime) / 1000;
+    let rawDelta = (now - this.lastTime) / 1000;
     this.lastTime = now;
-    if (!Number.isFinite(delta) || delta < 0) delta = 0;
-    if (delta > MAX_FRAME_DELTA) delta = MAX_FRAME_DELTA;
-    this.frameTimeMs = delta * 1000;
+    if (!Number.isFinite(rawDelta) || rawDelta < 0) rawDelta = 0;
+    // Diagnostics and the quality governor need the actual wall-clock interval;
+    // only simulation time is capped so a restored tab cannot step minutes at once.
+    this.frameTimeMs = rawDelta * 1000;
+    const delta = Math.min(rawDelta, MAX_FRAME_DELTA);
 
     this.accumulator += delta;
     let steps = 0;

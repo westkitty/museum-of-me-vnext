@@ -4,12 +4,16 @@
 **Publisher/creator:** Quaternius
 **License:** CC0 1.0 Universal, evidenced by the official Quaternius pages and
 their linked official distribution surfaces.
-**Runtime policy:** no hotlinks. Originals are retained in the ignored
-`.asset-sources/quaternius/` cache; only the three listed local GLBs ship.
+**Runtime policy:** no hotlinks. Only the three listed local GLBs ship.
+
+**Checkout audit (2026-10-01):** the ignored `.asset-sources/quaternius/` acquisition cache is
+absent from this checkout. The source hashes below remain recorded provenance from the acquisition
+work; they were not independently re-hashed here. All three shipped GLB byte hashes were verified
+against `src/assets/quaterniusAssets.ts` by `npm run validate:assets`.
 
 ## Official source chain and retained originals
 
-| Approved pack | Official page / official linked distribution | Retained original | SHA-256 |
+| Approved pack | Official page / official linked distribution | Source filename at acquisition | Source SHA-256 recorded at acquisition |
 |---|---|---|---|
 | Ultimate Modular Men | <https://quaternius.com/packs/ultimatemodularcharacters.html> → [publisher-linked Google Drive folder](https://drive.google.com/drive/folders/1USAAquX2JJWuA2m6zol0KUkFe3UkZ8zX) | `Casual_2.gltf` | `55c654d09a2a5ff6e3bd6158d4a1b462f181cd6f1e12a0f5e9d959f9c3abc438` |
 | Ultimate Modular Women | <https://quaternius.com/packs/ultimatemodularwomen.html> → [publisher-linked Google Drive folder](https://drive.google.com/drive/folders/1720N9IGyQHXYvtvZJzazhxtTTlz-y2Vf) | `Casual.gltf` | `b0fe6e92219cd71808844a20a1a8b960fd1cf640a6546dc6362b5add6604e87c` |

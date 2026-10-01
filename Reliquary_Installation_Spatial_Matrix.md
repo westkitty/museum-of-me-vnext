@@ -1,5 +1,9 @@
 # Reliquary Installation / Spatial Parity Matrix
 
+> **Historical snapshot — 2026-08-20.** The branch, authority ranking and source dispositions below
+> record that investigation; they are not live branch/deployment status. The current checkout state is
+> reconciled in [`OPERATIONAL_STATE.md`](OPERATIONAL_STATE.md).
+
 **Date:** 2026-08-20 · **Branch:** `release/v1.0.0`
 **Scope:** the fourteen source primary installations — identity, behaviour, physical
 form, artwork, interaction contract, spatial relationships, and the disposition of

@@ -1,8 +1,12 @@
-# Reliquary restoration — generated artifact checksums
-# Date: 2026-08-21
-# Integrated onto remote release base 25cc3121e599ccf7ce535d8853501d81b659f0c4.
-# Historical source files in the parent directory were NOT modified; their
-# hashes are recorded here as provenance only.
+# HISTORICAL Reliquary restoration checksum record — snapshot dated 2026-08-21.
+# These values describe files/artifacts from that restoration snapshot; this is
+# not the current-checkout checksum manifest. The standalone HTML and runtime
+# QA reports have since been rebuilt/updated, and the parent-directory source
+# artifacts are absent from this checkout, so `sha256sum -c` is expected to
+# report mismatches/missing files here. Current built-profile hashes are recorded
+# in validation/metrics/ARTIFACT_SHA256SUMS.txt (2026-10-01).
+# Historical source files in the parent directory were not modified at the time;
+# their hashes remain provenance only.
 
 ## Canonical standalone artifact
 f4b8705363328be8da2a71ccae807abe8b1c184b6e615b22e36f5af3435549ce  release/The_Reliquary_of_Iterative_Becoming.html

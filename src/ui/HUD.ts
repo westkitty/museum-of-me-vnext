@@ -51,16 +51,21 @@ export class HUD {
         role: 'button',
         tabindex: '0',
         'aria-label': 'Enter the museum and capture mouse look',
+        'aria-describedby': 'entry-prompt-copy',
         onclick: requestLock,
         onkeydown: (event: Event) => {
           const keyEvent = event as KeyboardEvent;
           if (isActivationKey(keyEvent)) requestLock(keyEvent);
         },
       },
-      el('h2', { text: 'Museum of Me' }),
-      el('p', { text: 'Click or press Enter to enter. WASD or arrow keys move, mouse looks, Q/E rotate, Shift sprints, Space jumps, F interacts.' }),
-      el('p', { text: 'No mouse? Q/E turn and Page Up/Page Down look vertically; the whole museum remains keyboard-usable.' }),
-      el('p', { text: 'Press H at any time for the full text of every exhibit.' }),
+      el(
+        'div',
+        { id: 'entry-prompt-copy', class: 'hud__lock-copy' },
+        el('h2', { text: 'Museum of Me' }),
+        el('p', { text: 'Click or press Enter to enter. WASD or arrow keys move, mouse looks, Q/E rotate, Shift sprints, Space jumps, F interacts.' }),
+        el('p', { text: 'No mouse? Q/E turn and Page Up/Page Down look vertically; the whole museum remains keyboard-usable.' }),
+        el('p', { text: 'Press H at any time for the full text of every exhibit.' }),
+      ),
     );
 
     this.root = el(

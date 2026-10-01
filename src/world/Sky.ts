@@ -105,19 +105,26 @@ export class Sky {
       8,
       144,
     ));
+    // No `transmission` here. Three.js enters `renderTransmissionPass()` when
+    // any visible material has transmission > 0, then submits the visible opaque
+    // render list again to a multisampled target and regenerates its mipmaps.
+    // A controlled, same-artifact 45-frame SwiftShader profile measured the
+    // Rotunda at 520 calls / 571.9 ms p50 with transmission 0, versus 996 calls
+    // / 1321.6 ms with a diagnostic 0.03 override. See
+    // validation/metrics/runtime-profile.json and
+    // runtime-profile-transmission-control.json. This isolates submissions in
+    // this software renderer; it is not representative-device FPS and the subtle
+    // visual difference remains a human-approval question. The retained red
+    // emissive facet colour and clearcoat are the intentional identity anchors.
     const ringMaterial = scope.track(new THREE.MeshPhysicalMaterial({
       color: 0xc30d36,
       emissive: 0x650012,
       emissiveIntensity: 0.9,
       roughness: 0.12,
       metalness: 0.12,
-      transmission: 0.03,
-      thickness: 8,
       ior: 1.52,
       clearcoat: 1,
       clearcoatRoughness: 0.035,
-      attenuationColor: new THREE.Color(0x5e0013),
-      attenuationDistance: 12,
       flatShading: true,
       transparent: false,
       opacity: 1,

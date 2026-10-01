@@ -38,6 +38,13 @@ export class StreamingManager {
 
   private readonly mountQueue: string[] = [];
   private readonly loading = new Set<string>();
+  /**
+   * Residency is evaluated every frame, so the relevant-zone lookup is rebuilt
+   * only when the visitor actually changes zone instead of allocating a fresh
+   * `Set` (and the spread that fills it) 60 times a second.
+   */
+  private readonly nearbyZones = new Set<ZoneId>();
+  private nearbyZoneKey: ZoneId | null = null;
   private now = 0;
 
   constructor(
@@ -82,8 +89,13 @@ export class StreamingManager {
     let resident = 0;
     let active = 0;
 
-    const here = ZONE_BY_ID.get(zone);
-    const nearbyZones = new Set<string>([zone, ...(here?.neighbours ?? [])]);
+    if (zone !== this.nearbyZoneKey) {
+      this.nearbyZoneKey = zone;
+      this.nearbyZones.clear();
+      this.nearbyZones.add(zone);
+      for (const neighbour of ZONE_BY_ID.get(zone)?.neighbours ?? []) this.nearbyZones.add(neighbour);
+    }
+    const nearbyZones = this.nearbyZones;
 
     for (const [id, host] of this.hosts) {
       const distance = this.distanceTo(id, eye);
@@ -93,6 +105,9 @@ export class StreamingManager {
       // while the visitor is in its wing or somewhere adjoining it.
       const inRelevantZone = nearbyZones.has(host.record.wing);
       const inOwnWing = zone === host.record.wing;
+      // One scan of a queue that is empty most of the time, shared by both
+      // branches below.
+      const queued = this.mountQueue.indexOf(id);
 
       if (inRelevantZone && distance <= this.budget.loadRadius) {
         if (state === 'unloaded' && !this.loading.has(id)) {
@@ -106,7 +121,7 @@ export class StreamingManager {
             })
             .catch((err) => console.error(`[Streaming] preload failed for ${id}`, err))
             .finally(() => this.loading.delete(id));
-        } else if (state === 'loaded' && !this.mountQueue.includes(id)) {
+        } else if (state === 'loaded' && queued < 0) {
           this.mountQueue.push(id);
         }
       } else if (!inRelevantZone || distance > this.budget.unloadRadius) {
@@ -114,7 +129,6 @@ export class StreamingManager {
           host.unmount();
           this.telemetry.totalUnmounts++;
         }
-        const queued = this.mountQueue.indexOf(id);
         if (queued >= 0) this.mountQueue.splice(queued, 1);
       }
 
@@ -180,5 +194,7 @@ export class StreamingManager {
     this.hosts.clear();
     this.mountQueue.length = 0;
     this.loading.clear();
+    this.nearbyZones.clear();
+    this.nearbyZoneKey = null;
   }
 }

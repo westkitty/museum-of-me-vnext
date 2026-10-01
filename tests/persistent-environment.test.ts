@@ -39,9 +39,12 @@ describe('persistent environment budget and lifecycle', () => {
       else if (material) materials.add(material);
     });
 
-    expect(meshes, `persistent mesh count ${meshes}`).toBeLessThan(1200);
+    // The ceilings sit above the current post-bake layer counts while still
+    // failing loudly if the static bake stops running. The paired profile
+    // snapshots report whole-scene counters, not an isolated layer breakdown.
+    expect(meshes, `persistent mesh count ${meshes}`).toBeLessThan(420);
     expect(triangles, `persistent triangle count ${Math.round(triangles)}`).toBeLessThan(500_000);
-    expect(materials.size, `persistent material count ${materials.size}`).toBeLessThan(300);
+    expect(materials.size, `persistent material count ${materials.size}`).toBeLessThan(220);
     expect(lights, 'decorative environment added unmanaged scene lights').toBe(0);
     expect(scope.size, 'persistent layer resource scope grew beyond budget').toBeLessThan(3000);
 

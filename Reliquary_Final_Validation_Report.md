@@ -1,5 +1,10 @@
 # Reliquary Final Validation Report
 
+> **Historical snapshot — 2026-08-21.** The branch, artifact hash and PASS statements below apply to
+> that dated restoration report, not the 2026-10-01 Arena candidate. Current repository, validation
+> and hosted-evidence status is in [`OPERATIONAL_STATE.md`](OPERATIONAL_STATE.md) and
+> [`validation/reports/QUALITY_UPLIFT_2026-10-01.md`](validation/reports/QUALITY_UPLIFT_2026-10-01.md).
+
 **Date:** 2026-08-21 (re-landed onto the current release line)
 **Branch:** `release/v1.0.0`, integrated onto remote base `25cc3121e599ccf7ce535d8853501d81b659f0c4` (the human-QA release line) by cherry-pick of the restoration commit `877d0396964b7e6e92c95b53da0f99a584beea39`
 **Canonical artifact:** `release/The_Reliquary_of_Iterative_Becoming.html`

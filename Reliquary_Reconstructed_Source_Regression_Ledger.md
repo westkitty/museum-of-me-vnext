@@ -1,5 +1,9 @@
 # Reliquary Reconstructed Source Regression Ledger
 
+> **Historical snapshot — 2026-08-21.** The branch and “current vNext runtime” references below describe
+> the reconstruction state on that date. This is not the current checkout or the missing 200-row
+> historical ledger; current repository status is in [`OPERATIONAL_STATE.md`](OPERATIONAL_STATE.md).
+
 > ### THIS IS NOT THE HISTORICAL 200-OBSERVATION LEDGER
 >
 > `Reliquary_200_Observation_Closure_Ledger.md` is **unrecovered**. The search is

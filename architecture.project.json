@@ -26,7 +26,7 @@
       "physicsEngine": false,
       "streaming": "three-layer proximity streaming",
       "lod": false,
-      "instancing": false
+      "instancing": true
     },
     "interaction": {
       "pointerLock": true,
@@ -56,9 +56,24 @@
     "runtimeExternalAssetRequests": false
   },
   "quality": {
-    "tiers": ["low", "medium", "high"],
+    "tiers": [
+      "low",
+      "medium",
+      "high"
+    ],
     "lowTierAmbientPopulation": "suppressed",
-    "reducedMotion": "suppresses DOM motion and freezes ambient world motion, skeletal walks, and flight-pad dust"
+    "reducedMotion": "suppresses DOM motion and freezes ambient world motion, skeletal walks, and flight-pad dust",
+    "adaptiveQuality": {
+      "initialTierSignals": [
+        "hardwareConcurrency",
+        "deviceMemory",
+        "screenWidth",
+        "userAgent"
+      ],
+      "ceilingBasedOnBootTier": true,
+      "runtimeGovernor": "src/render/QualityGovernor.ts",
+      "note": "Governor implementation is synthetic-test-covered; current offline profile started at low with zero tier changes."
+    }
   },
   "protectedContracts": [
     "frozen 64-project to 35-exhibit mapping",
@@ -71,29 +86,60 @@
     "Museum Workshop Core cannot mutate structural/collision-authoritative geometry, source installations, or authored visitor routes"
   ],
   "evidence": {
-    "recordedAt": "2026-08-27",
-    "activeBranch": "feature/museum-workshop-core-2026-08-26",
-    "handoffHead": "57abceb7b3d2d4e61667232ccdbd893342e5b81c",
-    "baseCommit": "57abceb7b3d2d4e61667232ccdbd893342e5b81c",
-    "creativeExpansionBaseline": "80a18d9e437b584f8adabccd9b34065e57c05d57",
-    "verifiedWorkshopImplementationCommit": "5c591e630b31df9d96a620ce5a2b29c689523407",
-    "verifiedWorkflowRun": 33042038232,
-    "currentBrowserBaselineRun": 33038039499,
-    "currentBrowserBaselineStatus": "failed: software-WebGL render-loop starvation during the first QA telemetry click; four later journeys passed",
-    "currentHead": "c711b9177752a0c7bd8be3c67548998b743695fb",
-    "currentWorkflowRun": 33049517878,
-    "currentHardeningStatus": "Build Mode, physical Blood Ring and smooth water verified locally and by exact-head CI; human visual acceptance remains pending",
-    "checks": [
-      "canonical npm run gate: PASS (565 tests)",
-      "local production dependency audit and production build: PASS; exact-head CI run 33042038232: PASS",
-      "dedicated Museum Workshop Chromium journey: PASS after real museum WebGL boot and before semantic assertions, with the render loop stopped",
-      "Workshop journey proved add, numeric transform, duplicate, undo, redo, F8 control handback, foreign-Origin HTTP 403 rejection, localhost source save, reload, and source-authoritative persistence",
-      "shared conservation validator rejects protected areas with structured placement and rule diagnostics; invalid save leaves target bytes unchanged and valid save atomically replaces the target",
-      "ordinary npm run test:e2e: PASS (5 Chromium journeys)",
-      "Workshop authoring proof: PASS; two authored placements survived the save bridge, standalone rebuild and real standalone scene inspection; checked-in source restored to the empty manifest",
-      "release dist verifier rejects leaked Workshop editor/write markers and styles",
-      "fresh offline standalone build and verification: PASS",
-      "existing standalone runtime source QA remains 14/14 source installations, 17/17 authored visitor conversations, zero remote requests"
-    ]
+    "recordedAt": "2026-10-01",
+    "activeBranch": "arena/01a0f545-museum-of-me-vnext",
+    "baseCommit": "901ec91496f533638c978a3846bd3ea0c7914f48",
+    "repositoryDefaultBranch": "main",
+    "observedMainHead": "901ec91496f533638c978a3846bd3ea0c7914f48",
+    "observedReleaseBranchHead": "0360bdd1c86692dd1e28f6a0dbad3f5a97040252",
+    "observedOpenPR": {
+      "number": 4,
+      "head": "ad5fa1d706d9d5c76f83842cc41c0510101f96c8",
+      "state": "open",
+      "summary": "proposes active pre-1.0 status and a 73-project current collection; not part of this checkout"
+    },
+    "currentSourceLine": "historical 64-project to 35-exhibit mapping at main base; PR #4 is unmerged",
+    "candidateArtifactSha256": "b243d8e846863c6648397cd7ff1730ce857358f3f42e9958e747c21068e25937",
+    "baselineArtifactSha256": "af9ce594017c1e12f9d323bf2da2d36bada9d6c2c01c28ec7dc71c75c5b396f2",
+    "profileSnapshots": [
+      "validation/metrics/runtime-profile-before.json",
+      "validation/metrics/runtime-profile.json",
+      "validation/metrics/runtime-profile-transmission-control.json"
+    ],
+    "processedAssetHashEvidence": "npm run validate:assets; nine curated rasters, three Quaternius GLBs and the Full Weasel tree; source archive hashes are not rechecked because .asset-sources is absent",
+    "humanAcceptance": "not recorded in this workspace; automated evidence is not substituted",
+    "hostedVerification": "no production URL or hosted response was tested in this audit; deployment API was inaccessible",
+    "profileLimits": [
+      "Chromium 131 ANGLE/Vulkan SwiftShader, 640x360, 45 frames/view, low quality",
+      "GPU timer query unsupported",
+      "tail percentiles low-confidence at this sample count"
+    ],
+    "worktreeState": "uncommitted candidate patch on the fixed Arena session branch; no candidate push or exact-head remote CI",
+    "localValidation": {
+      "observedAt": "2026-10-01",
+      "gate": "PASS",
+      "vitest": {
+        "filesPassed": 28,
+        "testsPassed": 594
+      },
+      "releaseToolTests": {
+        "passed": 9
+      },
+      "assetValidation": {
+        "governedRegistrations": 17,
+        "importedProcessedHashes": 12,
+        "fullWeaselFiles": 65,
+        "externalSourceHashesNotLocallyVerified": 3
+      },
+      "standaloneBuildSha256": "b243d8e846863c6648397cd7ff1730ce857358f3f42e9958e747c21068e25937",
+      "artifactManifest": "PASS: standalone, 3 profile JSON files, 3 screenshots",
+      "productionDependencyAudit": "PASS: npm audit --omit=dev --audit-level=high; 0 findings",
+      "developmentDependencyAudit": "FOLLOW_UP: 7 advisories (3 moderate, 3 high, 1 critical)",
+      "chromiumE2E": "BLOCKED: Playwright Chromium 151 binary absent; CDN download failed with TLS ECONNRESET",
+      "standaloneBrowserAndRuntimeSource": "PARTIAL/BLOCKED: static checks pass; browser launch unavailable",
+      "workshopBrowserProof": "BLOCKED: same missing Chromium binary",
+      "humanAcceptance": "UNKNOWN: no human-authored evidence for this pass",
+      "hostedVerification": "UNKNOWN: no hosted URL or response observed"
+    }
   }
 }

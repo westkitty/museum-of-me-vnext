@@ -4,6 +4,13 @@
 **Investigation gate:** PASSED
 **Baseline classification:** **(3) A new vNext project created beside a preserved legacy Reliquary.**
 
+> **Historical-snapshot scope:** this document records the initial investigation on 2026-08-19; its
+> “current”/“nothing implemented” statements and machine paths are valid only for that baseline.
+> They are not the status of the 2026-10-01 checkout. Current repository identity, implementation,
+> measurements, and remaining evidence are maintained in `OPERATIONAL_STATE.md` and
+> `validation/reports/QUALITY_UPLIFT_2026-10-01.md`. The listed parent-directory artifacts are not
+> present in this checkout and were not rehashed in this audit.
+
 ---
 
 ## A. Execution environment (verified)

@@ -1,0 +1,17 @@
+# 2026-10-01 candidate artifact and evidence SHA-256 manifest.
+# From repository root, rebuild the ignored standalone artifact, then verify:
+#   npm run build:standalone
+#   sha256sum -c validation/metrics/ARTIFACT_SHA256SUMS.txt
+# Generated standalone output is intentionally ignored by Git; its digest here and in the
+# candidate profile is b243d8e846863c6648397cd7ff1730ce857358f3f42e9958e747c21068e25937.
+# Baseline standalone was built from `git archive 901ec91496f533638c978a3846bd3ea0c7914f48`;
+# its artifact digest is recorded in runtime-profile-before.json and the quality report. The
+# baseline HTML itself was temporary and is not checked into this repository.
+
+b243d8e846863c6648397cd7ff1730ce857358f3f42e9958e747c21068e25937  release/The_Reliquary_of_Iterative_Becoming.html
+262410dd84bc3ca8fcb92cfadfa51af106527ee66e3595680f7bfa6e39f91397  validation/metrics/runtime-profile-before.json
+ed7231947758553f5716c4032b06f8480e9d5a247f0ee9d0d58e0c79059d5ad5  validation/metrics/runtime-profile.json
+5508cf596004613e2e3ac98e92c7762e83fe5a2128c65fd0fd21f45a547515e5  validation/metrics/runtime-profile-transmission-control.json
+b4552b5c675d94f9b3f0ae4a7d935dec6d46f197d3c53c7c62a7b2dc408e89ff  validation/reports/visual-review-arrival.png
+f5b1746677fdbbdad71aeb6d947890739f649e2d0346c7b0fc67f777fd3ec80e  validation/reports/visual-review-entry-current.png
+8965396fa39d7e168462157670289a130db65f14b9515449b68879e1ba0c0286  validation/reports/visual-review-live-arrival.png

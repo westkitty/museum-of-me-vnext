@@ -34,9 +34,11 @@ Required embed-only changes before that build:
 ## Integrity and runtime scope
 
 - Production-copy tree SHA-256: `1264138dd16bce815f761c7b8cd22708ef6d0fba703b6f6b1dd1e32fd99937ce`
-  (lexically ordered relative file paths, each followed by a NUL byte and its
-  raw file bytes).
-- Measured artifact size: 128.24 MiB.
+  (ASCII-lexically sorted relative file paths, each followed by a NUL byte and
+  its raw file bytes). `npm run validate:assets` re-computes this tree hash.
+- **Re-measured 2026-10-01 in this checkout:** 65 files, 134,484,501 bytes
+  (128.25 MiB, binary units). The earlier 128.24 figure was the separate `check:budgets` extension
+  subtotal (it omits the 14,503-byte `manifest.json`), not a full-tree measurement.
 - Entry point: `./embedded/full-weasel/index.html`.
 - Runtime request policy: local same-origin files only. The original Google Fonts and GitHub Pages assumptions are absent; no remote URL is embedded.
 - Lifecycle: the iframe is created on E27 engagement and removed before Museum input is released, stopping the embedded React timers/media rather than leaving a hidden game running.

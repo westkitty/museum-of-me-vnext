@@ -232,6 +232,22 @@ html[data-motion='reduced'] *::after {
 }
 .hud__lock p { margin: 0; color: var(--parchment-dim); font-size: 0.95rem; }
 
+/* The authentic entrance plate already contains its own title, welcome copy,
+   and call to action. Keep the richer semantic instructions in the accessibility
+   tree, but do not paint a second, conflicting set of words over that artwork. */
+.hud__lock-copy {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  white-space: nowrap;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+}
+
 .hud__build-mode {
   position: absolute;
   top: 1.5rem;
@@ -417,6 +433,13 @@ html[data-motion='reduced'] *::after {
   font: inherit;
 }
 .field--check { display: flex; align-items: flex-start; gap: 0.6rem; }
+/* Live state that changes on its own (adaptive quality, streaming) has to look
+   different from the static hint above it. */
+.field__status {
+  color: var(--gold-bright);
+  border-left: 2px solid rgba(232, 198, 90, 0.55);
+  padding-left: 0.55rem;
+}
 .field--check input { margin-top: 0.25rem; accent-color: var(--gold); }
 
 /* ── diagnostics ────────────────────────────────────────────────────────── */
@@ -510,4 +533,83 @@ html[data-safe='1'] .hud::after {
     color: CanvasText;
   }
   .hud__reticle { background: CanvasText; }
+}
+
+/* ── adaptive layout ────────────────────────────────────────────────────────
+   The HUD is two absolutely-positioned footers — location on the left, key
+   hints on the right — plus a centred subtitle above them. At narrow widths the
+   hint lines can compete with the location indicator. The rules below give the
+   footer text a shared mobile column and keep reading panels inside the
+   viewport. The entry control keeps its accessible instructions clipped from
+   sight so the authored entrance plate remains the visual copy. */
+
+.hud__lock {
+  padding: 2rem 1.4rem;
+  overflow-y: auto;
+  /* `safe` keeps a too-tall entry prompt reachable by scrolling instead of
+     centring it off the top of the viewport, where no scroll position can
+     bring it back. A browser without `safe` falls back to the plain `center`
+     declared above. */
+  place-content: safe center;
+}
+.hud__lock p { max-width: 46ch; margin-inline: auto; }
+
+@media (max-width: 720px) {
+  .hud__location,
+  .hud__hints {
+    left: 1rem;
+    right: 1rem;
+    text-align: left;
+  }
+  .hud__hints {
+    bottom: 4.2rem;
+    font-size: 0.7rem;
+    line-height: 1.6;
+  }
+  .hud__location { bottom: 1rem; }
+  .hud__subtitle {
+    bottom: 8.4rem;
+    max-width: calc(100vw - 2rem);
+  }
+  .hud__cue { top: calc(50% + 26px); }
+  .panel__body { padding: 1.4rem 1.2rem 1.8rem; max-height: 92vh; }
+  .panel__head h2 { font-size: 1.3rem; }
+}
+
+@media (max-width: 420px) {
+  .hud__hints { font-size: 0.66rem; }
+}
+
+/* Landscape phones: vertical space, not width, is the constraint. The key
+   hints give way to the location indicator rather than the other way round,
+   and the entry prompt scrolls instead of overflowing. */
+@media (max-height: 480px) {
+  .hud__hints { display: none; }
+  .hud__subtitle { bottom: 3.2rem; }
+  .hud__lock { padding: 1rem 1.2rem; }
+}
+
+/* Coarse-pointer layouts give the frequently used panel/select/Workshop
+   controls more vertical room. Checkboxes and sliders use a smaller 24 px
+   minimum; physical touch usability still needs a real-device review. */
+@media (pointer: coarse) {
+  .panel__close,
+  .map__level button,
+  .study-tab,
+  .hud__build-mode {
+    min-height: 44px;
+  }
+  .field select,
+  .study-input {
+    min-height: 44px;
+  }
+  .field--check input,
+  .field input[type='range'] {
+    min-width: 24px;
+    min-height: 24px;
+  }
+  /* The reticle marks the centre interaction point on touch. Enlarge its visual
+     cue only; the actual interaction gesture/hit area remains unchanged. */
+  .hud__reticle { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
+  .hud__reticle--active { transform: scale(1.7); }
 }

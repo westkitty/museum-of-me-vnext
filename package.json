@@ -32,7 +32,8 @@
     "build:collection": "node scripts/build-collection.mjs",
     "validate:exhibits": "node scripts/validate-exhibits.mjs",
     "qa": "node scripts/qa-report-runner.mjs",
-    "qa:runtime-source": "node scripts/runtime-source-qa.mjs"
+    "qa:runtime-source": "node scripts/runtime-source-qa.mjs",
+    "profile": "node scripts/runtime-profile.mjs"
   },
   "dependencies": {
     "three": "0.185.1"

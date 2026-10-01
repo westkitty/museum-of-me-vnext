@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import type { CollisionWorld } from './CollisionWorld';
+import { bakeStatic, protectSubtree, type BakeReport } from './MergeStatic';
 import {
   GROUND_Y, PLAZA_DEPTH, VESTIBULE_TO,
   faceDirection, place, type Vec3,
@@ -28,6 +29,8 @@ export class ArrivalGarden {
   private readonly water: THREE.ShaderMaterial;
   private readonly waterTime: { value: number };
   private readonly authorableRoots: { id: string; root: THREE.Object3D }[] = [];
+  /** What the static bake collapsed. Empty until build() runs. */
+  bake: BakeReport | null = null;
   private shrubCount = 0;
 
   constructor(
@@ -159,6 +162,14 @@ export class ArrivalGarden {
     this.arrivalMarker([-7.5, GROUND_Y, z1 - 4]);
     this.arrivalMarker([7.5, GROUND_Y, z1 - 4]);
 
+    // Static bake. Nothing in the garden is ever transformed again — the water
+    // animates through its shader uniform, not its mesh — so its trees, shrubs,
+    // benches, paths and markers collapse by material. Authorable roots stay
+    // whole for the development Workshop, and each single-mesh feature (the
+    // island, the shoreline, the water) is left exactly as it is because a group
+    // of one is already one draw call.
+    for (const { root } of this.authorableRoots) protectSubtree(root);
+    this.bake = bakeStatic(this.group, this.scope);
     return this.group;
   }
 

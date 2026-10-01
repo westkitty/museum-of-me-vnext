@@ -1,5 +1,9 @@
 # Reliquary Final Regression Ledger
 
+> **Historical snapshot — 2026-08-21.** The branch name, findings and hosted-status wording below are
+> point-in-time evidence, not the state of the 2026-10-01 Arena candidate. See
+> [`OPERATIONAL_STATE.md`](OPERATIONAL_STATE.md) for the reconciled current status.
+
 **Date:** 2026-08-21 · **Branch:** `release/v1.0.0`
 
 Independent comparison of the CURATED HTML, the Version B source and static build,

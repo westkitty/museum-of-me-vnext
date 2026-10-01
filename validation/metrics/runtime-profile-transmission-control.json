@@ -1,0 +1,571 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-01T11:26:24.768Z",
+  "generatedFrom": "/home/user/museum-of-me-vnext/release/The_Reliquary_of_Iterative_Becoming.html (file://, browser context offline)",
+  "sourceIdentity": {
+    "revision": "901ec91496f533638c978a3846bd3ea0c7914f48",
+    "state": "same uncommitted working-tree artifact; runtime-only Blood Ring transmission override"
+  },
+  "browser": {
+    "name": "Chromium",
+    "version": "131.0.6778.0"
+  },
+  "methodology": {
+    "viewport": {
+      "width": 640,
+      "height": 360
+    },
+    "framesPerView": 45,
+    "settleMsPerView": 900,
+    "coordinateConvention": "view.position is the player foot position; camera eye height is supplied by PlayerController. Yaw 0 faces north (-Z). Each sampled view verifies the expected app.currentZone.",
+    "views": [
+      {
+        "id": "arrival-plaza",
+        "label": "Arrival Plaza spawn, facing north toward the entrance",
+        "position": [
+          0,
+          0,
+          138
+        ],
+        "yaw": 0,
+        "pitch": 0,
+        "expectedZone": "plaza"
+      },
+      {
+        "id": "vestibule",
+        "label": "South vestibule, facing north into the Rotunda",
+        "position": [
+          0,
+          0,
+          121
+        ],
+        "yaw": 0,
+        "pitch": 0.02,
+        "expectedZone": "south"
+      },
+      {
+        "id": "rotunda",
+        "label": "Rotunda floor, facing north from the south approach",
+        "position": [
+          0,
+          0,
+          6
+        ],
+        "yaw": 0,
+        "pitch": 0.02,
+        "expectedZone": "rotunda"
+      },
+      {
+        "id": "rotunda-dome",
+        "label": "Rotunda centre, looking up at the dome",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "yaw": 0,
+        "pitch": 1.2,
+        "expectedZone": "rotunda"
+      }
+    ],
+    "note": "Draw calls, triangles, programs, geometries and textures are THREE.WebGLRenderer.info counters. frameMs is requestAnimationFrame wall time under the renderer named by capability.renderer; SwiftShader is CPU rasterization, not device FPS.",
+    "percentileConfidence": "Low for 1% and 0.1% tails with this sample count; values are retained as order statistics, not stable device percentiles.",
+    "instrumentation": "Per-call WebGL and App callback wrappers collect JavaScript call duration; overhead is included in frameMs. Upload durations are CPU submission-call time, not asynchronous GPU completion.",
+    "runtimeOverrides": [
+      {
+        "target": "app.sky.bloodRing.material.transmission",
+        "original": 0,
+        "value": 0.03,
+        "purpose": "controlled material-cost experiment; not part of the shipped artifact"
+      }
+    ],
+    "limitations": [
+      "No representative-device performance claim: the render backend is recorded in capability.renderer.",
+      "GPU/CPU separation is UNKNOWN when EXT_disjoint_timer_query_webgl2 is absent; do not infer GPU time from frameMs.",
+      "File:// standalone resources are bundled in one HTML file, so browser resource timing does not identify each embedded asset transfer/decode.",
+      "textureUploadKnownBytes counts only typed-array sources; HTMLImageElement/Canvas/Video source byte sizes are unknown."
+    ]
+  },
+  "startup": {
+    "navigationToDOMContentLoadedMs": 1955.8,
+    "navigationToAppReadyMs": 7139.81,
+    "navigationToFirstRenderedFrameMs": 8056.26,
+    "pageBootAndProfileElapsedMs": 208119.3,
+    "standaloneBytes": 16158046,
+    "standaloneSha256": "b243d8e846863c6648397cd7ff1730ce857358f3f42e9958e747c21068e25937"
+  },
+  "capability": {
+    "webgl2": true,
+    "vendor": "Google Inc. (Google)",
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "maxTextureSize": 8192,
+    "maxSamples": 4,
+    "maxVertexUniformVectors": 4096,
+    "anisotropy": true,
+    "colorBufferFloat": true,
+    "timerQuery": false,
+    "devicePixelRatio": 1,
+    "hardwareConcurrency": 2,
+    "deviceMemory": 4
+  },
+  "appStartup": {
+    "timeFromDocumentStartToFirstRenderMs": 13079.2,
+    "firstFrameStreaming": {
+      "resident": 0,
+      "active": 0,
+      "pendingLoads": 0,
+      "lastLoadMs": 0,
+      "totalMounts": 0,
+      "totalUnmounts": 0
+    },
+    "initialQuality": {
+      "effective": {
+        "tier": "low",
+        "maxPixelRatio": 1,
+        "shadows": false,
+        "shadowMapSize": 512,
+        "wingStreamRadius": 45,
+        "exhibitStreamRadius": 22,
+        "detailScale": 0.4,
+        "antialias": false,
+        "ambientVisitors": 0
+      },
+      "preference": "auto",
+      "governor": {
+        "tier": "low",
+        "ceiling": "low",
+        "recentP95Ms": 866.5999755859375,
+        "changes": 0,
+        "lastReason": "measuring",
+        "enabled": true
+      }
+    }
+  },
+  "scene": {
+    "objects": 1907,
+    "meshes": 1385,
+    "materialInstances": 728
+  },
+  "assetAndShaderWork": {
+    "shaderCompileCalls": 100,
+    "shaderCompileCallMs": 0.3,
+    "programLinkCalls": 50,
+    "programLinkCallMs": 0.2,
+    "htmlImageDecodeCalls": 0,
+    "htmlImageDecodeCallMs": 0,
+    "imageBitmapCalls": 0,
+    "imageBitmapCallMs": 0,
+    "imageSrcSetCalls": 7,
+    "imageLoadEvents": 7,
+    "imageSrcToLoadMs": 27095.9,
+    "imageLoadErrors": 0,
+    "imageSourceTimingMeaning": "HTMLImageElement src assignment to load/error event; includes any request and browser decode, not a decode-only time.",
+    "textureUploadCalls": 94,
+    "textureUploadCallMs": 323.3,
+    "textureUploadKnownBytes": 1052,
+    "bufferUploadCalls": 4256,
+    "bufferUploadCallMs": 15.8,
+    "bufferUploadKnownBytes": 5427696,
+    "uploadTimeMeaning": "CPU-side WebGL method call duration; driver/GPU completion is asynchronous and not measured by this field."
+  },
+  "resourceTiming": {
+    "count": 0,
+    "byInitiator": {},
+    "transferBytes": 0,
+    "encodedBodyBytes": 0,
+    "decodedBodyBytes": 0,
+    "durationTotalMs": 0
+  },
+  "memory": {
+    "start": {
+      "usedJSHeapSize": 97400000,
+      "totalJSHeapSize": 103000000,
+      "jsHeapSizeLimit": 2190000000
+    },
+    "end": {
+      "usedJSHeapSize": 97400000,
+      "totalJSHeapSize": 103000000,
+      "jsHeapSizeLimit": 2190000000
+    },
+    "endMinusStartUsedJSHeapBytes": 0,
+    "rendererMemoryAtEnd": {
+      "geometries": 1067,
+      "textures": 87
+    },
+    "behaviorNote": "Heap values are Chromium performance.memory samples and can move with garbage collection. Renderer geometry/texture counts are live Three.js resource counters, not GPU byte allocation."
+  },
+  "streaming": {
+    "endOfProfile": {
+      "resident": 4,
+      "active": 0,
+      "pendingLoads": 0,
+      "lastLoadMs": 980,
+      "totalMounts": 6,
+      "totalUnmounts": 2
+    },
+    "qualityAtEnd": {
+      "effective": {
+        "tier": "low",
+        "maxPixelRatio": 1,
+        "shadows": false,
+        "shadowMapSize": 512,
+        "wingStreamRadius": 45,
+        "exhibitStreamRadius": 22,
+        "detailScale": 0.4,
+        "antialias": false,
+        "ambientVisitors": 0
+      },
+      "preference": "auto",
+      "governor": {
+        "tier": "low",
+        "ceiling": "low",
+        "recentP95Ms": 983.2999877929688,
+        "changes": 0,
+        "lastReason": "measuring",
+        "enabled": true
+      }
+    },
+    "note": "Per-view resident/active/pending counts, mounts/unmounts and mounted IDs are captured below after 900 ms of settling."
+  },
+  "views": {
+    "arrival-plaza": {
+      "label": "Arrival Plaza spawn, facing north toward the entrance",
+      "expectedZone": "plaza",
+      "zone": "plaza",
+      "frames": 45,
+      "frameMs": {
+        "mean": 996.83,
+        "p50": 997,
+        "p95": 1143.1,
+        "p99": 1470.2,
+        "onePercentLowMs": 1470.2,
+        "pointOnePercentLowMs": 1470.2,
+        "over33ms": 45,
+        "tailConfidence": "low: fewer than 1000 samples; tail values are order statistics"
+      },
+      "cpu": {
+        "samples": 45,
+        "jsFixedUpdateMeanMs": 1.293,
+        "jsVariableUpdateMeanMs": 0.207,
+        "jsAppRenderMeanMs": 47.027,
+        "rendererSubmitMeanMs": 47.009,
+        "jsTrackedTotalMeanMs": 48.527,
+        "note": "Main-thread wall time in instrumented application callbacks. Renderer submission is CPU-side and is included in jsAppRenderMeanMs; GPU execution is asynchronous."
+      },
+      "gpu": {
+        "status": "UNKNOWN_UNSUPPORTED_TIMER_QUERY",
+        "timerQueryExtension": false,
+        "samplesMs": 0,
+        "p50Ms": null,
+        "note": "The measured Chromium/SwiftShader context does not expose EXT_disjoint_timer_query_webgl2; GPU time cannot be separated from CPU/browser wall time here."
+      },
+      "render": {
+        "drawCalls": 2083,
+        "triangles": 228748,
+        "points": 0,
+        "lines": 0,
+        "programs": 14,
+        "geometries": 1067,
+        "textures": 87
+      },
+      "memory": {
+        "jsHeap": {
+          "usedJSHeapSize": 97400000,
+          "totalJSHeapSize": 103000000,
+          "jsHeapSizeLimit": 2190000000
+        },
+        "rendererGeometries": 1067,
+        "rendererTextures": 87
+      },
+      "streaming": {
+        "resident": 0,
+        "active": 0,
+        "pendingLoads": 0,
+        "lastLoadMs": 0,
+        "totalMounts": 0,
+        "totalUnmounts": 0
+      },
+      "mountedIds": [],
+      "quality": {
+        "effective": {
+          "tier": "low",
+          "maxPixelRatio": 1,
+          "shadows": false,
+          "shadowMapSize": 512,
+          "wingStreamRadius": 45,
+          "exhibitStreamRadius": 22,
+          "detailScale": 0.4,
+          "antialias": false,
+          "ambientVisitors": 0
+        },
+        "preference": "auto",
+        "governor": {
+          "tier": "low",
+          "ceiling": "low",
+          "recentP95Ms": 1000,
+          "changes": 0,
+          "lastReason": "measuring",
+          "enabled": true
+        }
+      }
+    },
+    "vestibule": {
+      "label": "South vestibule, facing north into the Rotunda",
+      "expectedZone": "south",
+      "zone": "south",
+      "frames": 45,
+      "frameMs": {
+        "mean": 1349.12,
+        "p50": 1327.7,
+        "p95": 1501.5,
+        "p99": 2284.9,
+        "onePercentLowMs": 2284.9,
+        "pointOnePercentLowMs": 2284.9,
+        "over33ms": 45,
+        "tailConfidence": "low: fewer than 1000 samples; tail values are order statistics"
+      },
+      "cpu": {
+        "samples": 45,
+        "jsFixedUpdateMeanMs": 1.489,
+        "jsVariableUpdateMeanMs": 1.469,
+        "jsAppRenderMeanMs": 75.869,
+        "rendererSubmitMeanMs": 75.867,
+        "jsTrackedTotalMeanMs": 78.827,
+        "note": "Main-thread wall time in instrumented application callbacks. Renderer submission is CPU-side and is included in jsAppRenderMeanMs; GPU execution is asynchronous."
+      },
+      "gpu": {
+        "status": "UNKNOWN_UNSUPPORTED_TIMER_QUERY",
+        "timerQueryExtension": false,
+        "samplesMs": 0,
+        "p50Ms": null,
+        "note": "The measured Chromium/SwiftShader context does not expose EXT_disjoint_timer_query_webgl2; GPU time cannot be separated from CPU/browser wall time here."
+      },
+      "render": {
+        "drawCalls": 1992,
+        "triangles": 219516,
+        "points": 0,
+        "lines": 0,
+        "programs": 38,
+        "geometries": 1067,
+        "textures": 87
+      },
+      "memory": {
+        "jsHeap": {
+          "usedJSHeapSize": 97400000,
+          "totalJSHeapSize": 103000000,
+          "jsHeapSizeLimit": 2190000000
+        },
+        "rendererGeometries": 1067,
+        "rendererTextures": 87
+      },
+      "streaming": {
+        "resident": 2,
+        "active": 0,
+        "pendingLoads": 0,
+        "lastLoadMs": 33.10000000009313,
+        "totalMounts": 2,
+        "totalUnmounts": 0
+      },
+      "mountedIds": [
+        "E32",
+        "E33"
+      ],
+      "quality": {
+        "effective": {
+          "tier": "low",
+          "maxPixelRatio": 1,
+          "shadows": false,
+          "shadowMapSize": 512,
+          "wingStreamRadius": 45,
+          "exhibitStreamRadius": 22,
+          "detailScale": 0.4,
+          "antialias": false,
+          "ambientVisitors": 0
+        },
+        "preference": "auto",
+        "governor": {
+          "tier": "low",
+          "ceiling": "low",
+          "recentP95Ms": 1000,
+          "changes": 0,
+          "lastReason": "measuring",
+          "enabled": true
+        }
+      }
+    },
+    "rotunda": {
+      "label": "Rotunda floor, facing north from the south approach",
+      "expectedZone": "rotunda",
+      "zone": "rotunda",
+      "frames": 45,
+      "frameMs": {
+        "mean": 1302.38,
+        "p50": 1321.6,
+        "p95": 1474.3,
+        "p99": 1497,
+        "onePercentLowMs": 1497,
+        "pointOnePercentLowMs": 1497,
+        "over33ms": 45,
+        "tailConfidence": "low: fewer than 1000 samples; tail values are order statistics"
+      },
+      "cpu": {
+        "samples": 45,
+        "jsFixedUpdateMeanMs": 1.749,
+        "jsVariableUpdateMeanMs": 1.871,
+        "jsAppRenderMeanMs": 22.322,
+        "rendererSubmitMeanMs": 22.304,
+        "jsTrackedTotalMeanMs": 25.942,
+        "note": "Main-thread wall time in instrumented application callbacks. Renderer submission is CPU-side and is included in jsAppRenderMeanMs; GPU execution is asynchronous."
+      },
+      "gpu": {
+        "status": "UNKNOWN_UNSUPPORTED_TIMER_QUERY",
+        "timerQueryExtension": false,
+        "samplesMs": 0,
+        "p50Ms": null,
+        "note": "The measured Chromium/SwiftShader context does not expose EXT_disjoint_timer_query_webgl2; GPU time cannot be separated from CPU/browser wall time here."
+      },
+      "render": {
+        "drawCalls": 996,
+        "triangles": 156908,
+        "points": 0,
+        "lines": 0,
+        "programs": 50,
+        "geometries": 1067,
+        "textures": 87
+      },
+      "memory": {
+        "jsHeap": {
+          "usedJSHeapSize": 97400000,
+          "totalJSHeapSize": 103000000,
+          "jsHeapSizeLimit": 2190000000
+        },
+        "rendererGeometries": 1067,
+        "rendererTextures": 87
+      },
+      "streaming": {
+        "resident": 4,
+        "active": 0,
+        "pendingLoads": 0,
+        "lastLoadMs": 980,
+        "totalMounts": 6,
+        "totalUnmounts": 2
+      },
+      "mountedIds": [
+        "E09",
+        "E18",
+        "E24",
+        "E25"
+      ],
+      "quality": {
+        "effective": {
+          "tier": "low",
+          "maxPixelRatio": 1,
+          "shadows": false,
+          "shadowMapSize": 512,
+          "wingStreamRadius": 45,
+          "exhibitStreamRadius": 22,
+          "detailScale": 0.4,
+          "antialias": false,
+          "ambientVisitors": 0
+        },
+        "preference": "auto",
+        "governor": {
+          "tier": "low",
+          "ceiling": "low",
+          "recentP95Ms": 1000,
+          "changes": 0,
+          "lastReason": "measuring",
+          "enabled": true
+        }
+      }
+    },
+    "rotunda-dome": {
+      "label": "Rotunda centre, looking up at the dome",
+      "expectedZone": "rotunda",
+      "zone": "rotunda",
+      "frames": 45,
+      "frameMs": {
+        "mean": 447.79,
+        "p50": 453.4,
+        "p95": 520.8,
+        "p99": 590.4,
+        "onePercentLowMs": 590.4,
+        "pointOnePercentLowMs": 590.4,
+        "over33ms": 45,
+        "tailConfidence": "low: fewer than 1000 samples; tail values are order statistics"
+      },
+      "cpu": {
+        "samples": 45,
+        "jsFixedUpdateMeanMs": 1.698,
+        "jsVariableUpdateMeanMs": 0.2,
+        "jsAppRenderMeanMs": 5.638,
+        "rendererSubmitMeanMs": 5.62,
+        "jsTrackedTotalMeanMs": 7.536,
+        "note": "Main-thread wall time in instrumented application callbacks. Renderer submission is CPU-side and is included in jsAppRenderMeanMs; GPU execution is asynchronous."
+      },
+      "gpu": {
+        "status": "UNKNOWN_UNSUPPORTED_TIMER_QUERY",
+        "timerQueryExtension": false,
+        "samplesMs": 0,
+        "p50Ms": null,
+        "note": "The measured Chromium/SwiftShader context does not expose EXT_disjoint_timer_query_webgl2; GPU time cannot be separated from CPU/browser wall time here."
+      },
+      "render": {
+        "drawCalls": 130,
+        "triangles": 77116,
+        "points": 0,
+        "lines": 0,
+        "programs": 50,
+        "geometries": 1067,
+        "textures": 87
+      },
+      "memory": {
+        "jsHeap": {
+          "usedJSHeapSize": 97400000,
+          "totalJSHeapSize": 103000000,
+          "jsHeapSizeLimit": 2190000000
+        },
+        "rendererGeometries": 1067,
+        "rendererTextures": 87
+      },
+      "streaming": {
+        "resident": 4,
+        "active": 0,
+        "pendingLoads": 0,
+        "lastLoadMs": 980,
+        "totalMounts": 6,
+        "totalUnmounts": 2
+      },
+      "mountedIds": [
+        "E09",
+        "E18",
+        "E24",
+        "E25"
+      ],
+      "quality": {
+        "effective": {
+          "tier": "low",
+          "maxPixelRatio": 1,
+          "shadows": false,
+          "shadowMapSize": 512,
+          "wingStreamRadius": 45,
+          "exhibitStreamRadius": 22,
+          "detailScale": 0.4,
+          "antialias": false,
+          "ambientVisitors": 0
+        },
+        "preference": "auto",
+        "governor": {
+          "tier": "low",
+          "ceiling": "low",
+          "recentP95Ms": 983.2999877929688,
+          "changes": 0,
+          "lastReason": "measuring",
+          "enabled": true
+        }
+      }
+    }
+  },
+  "errors": []
+}

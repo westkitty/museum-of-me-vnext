@@ -1,6 +1,13 @@
 # Runtime Source QA — 14 installations, 17 conversations
 
-**VERDICT: PASS**
+> **Historical result, not a fresh 2026-10-01 pass.** The PASS below is preserved from an earlier
+> offline browser run; its original execution date is not embedded in this report. A fresh current
+> attempt could not launch because Playwright Chromium 151 was missing and its CDN download failed.
+> Current status is **BLOCKED before assertions**, not PASS/FAIL for the candidate. See
+> [`OPERATIONAL_STATE.md`](../../OPERATIONAL_STATE.md) and the dated
+> [`quality uplift report`](QUALITY_UPLIFT_2026-10-01.md).
+
+**VERDICT: PASS (historical run only)**
 
 Evidence source: the canonical standalone artifact, booted from a `file://`
 URL with the browser context offline. Every assertion below ran against the
