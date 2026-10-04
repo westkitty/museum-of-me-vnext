@@ -6,6 +6,7 @@ import { ResourceScope } from '../src/assets/ResourceScope';
 import { QUALITY } from '../src/render/QualityTiers';
 import { mergeStatic, NO_MERGE } from '../src/world/MergeStatic';
 import { SPAWN_POSITION, PLACEMENT_BY_EXHIBIT } from '../src/world/layout';
+import { InteractionManager } from '../src/interaction/InteractionManager';
 
 /**
  * Runtime cost gates. Profiling in a browser put the entrance at 986 draw calls
@@ -65,6 +66,40 @@ describe('static geometry merging', () => {
     const support = built.collision.supportHeight(SPAWN_POSITION[0], SPAWN_POSITION[2], 2, 3);
     expect(support).not.toBeNull();
     scope.dispose();
+  });
+});
+
+describe('interaction hot path', () => {
+  it('samples focus at 30 Hz instead of raycasting every rendered frame', () => {
+    const interaction = new InteractionManager();
+    const target = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
+    target.position.set(0, 0, -2);
+    target.geometry.computeBoundingSphere();
+    target.updateMatrixWorld(true);
+    interaction.register('test', {
+      object: target,
+      label: 'Test target',
+      activate: () => {},
+    });
+
+    const camera = new THREE.PerspectiveCamera(65, 1, 0.1, 10);
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld(true);
+    interaction.update(camera, 1 / 30);
+    expect(interaction.currentFocus?.exhibitId).toBe('test');
+
+    camera.rotation.y = Math.PI;
+    camera.updateMatrixWorld(true);
+    interaction.update(camera, 1 / 120);
+    expect(interaction.currentFocus?.exhibitId).toBe('test');
+
+    interaction.update(camera, 1 / 120);
+    interaction.update(camera, 1 / 120);
+    interaction.update(camera, 1 / 120);
+    expect(interaction.currentFocus).toBeNull();
+    interaction.dispose();
+    target.geometry.dispose();
+    (target.material as THREE.Material).dispose();
   });
 });
 

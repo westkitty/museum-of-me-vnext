@@ -45,6 +45,8 @@ export class StreamingManager {
   private mountQueueHead = 0;
   private readonly queued = new Set<string>();
   private readonly loading = new Set<string>();
+  /** Changes only when an exhibit crosses the mounted/unmounted residency boundary. */
+  residencyRevision = 0;
   private now = 0;
 
   constructor(
@@ -127,6 +129,7 @@ export class StreamingManager {
         if (state === 'active' || state === 'mounted') {
           host.unmount();
           this.telemetry.totalUnmounts++;
+          this.residencyRevision++;
         }
         // Queue cancellation is lazy: deleting membership avoids an O(n)
         // indexOf/splice on the hot streaming path. Tombstones are skipped below.
@@ -158,6 +161,7 @@ export class StreamingManager {
       try {
         host.mount();
         this.telemetry.totalMounts++;
+        this.residencyRevision++;
       } catch (err) {
         console.error(`[Streaming] mount failed for ${id}`, err);
       }

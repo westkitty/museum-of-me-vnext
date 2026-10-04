@@ -177,11 +177,14 @@ describe('streaming', () => {
     const host = streaming.get('E01')!;
     expect(host.currentState, 'E01 should be active when the visitor is beside it').toBe('active');
     expect(streaming.telemetry.resident).toBeGreaterThan(0);
+    const mountedRevision = streaming.residencyRevision;
+    expect(mountedRevision).toBeGreaterThan(0);
 
     // Depart the wing entirely.
     for (let i = 0; i < 6; i++) streaming.evaluate(far, 1 / 60, 'plaza');
     expect(host.currentState, 'E01 should be released when the visitor leaves').toBe('loaded');
     expect(host.resourceCount, 'E01 should hold no resources when released').toBe(0);
+    expect(streaming.residencyRevision).toBeGreaterThan(mountedRevision);
 
     // Return: it must come back without a leak.
     for (let i = 0; i < 12; i++) {

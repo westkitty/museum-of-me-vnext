@@ -90,6 +90,7 @@ export class App implements LoopCallbacks {
   private workshopUpdate: (() => void) | null = null;
   private ambientLoadTimer: number | null = null;
   private diagnosticSampleElapsed = 0.1;
+  private lightingResidencyRevision = -1;
 
   constructor(opts: AppOptions) {
     this.uiRoot = opts.uiRoot;
@@ -343,9 +344,15 @@ export class App implements LoopCallbacks {
       this.sanctuary.update(dt, this.preferences.reducedMotion);
     }
     this.visitors.update(dt, this.preferences.reducedMotion);
-    this.flightPadAtmosphere.update(dt, this.renderer.quality.detailScale, this.preferences.reducedMotion);
+    this.flightPadAtmosphere.update(
+      dt,
+      this.renderer.quality.detailScale,
+      this.preferences.reducedMotion,
+      this.player.position.x,
+      this.player.position.z,
+    );
     this.sourceVisitors.update(dt, this.preferences.reducedMotion);
-    this.sourceInstallations.update(dt, this.preferences.reducedMotion);
+    this.sourceInstallations.update(dt, this.preferences.reducedMotion, this.player.eyePosition);
   }
 
   variableUpdate(dt: number): void {
@@ -369,14 +376,16 @@ export class App implements LoopCallbacks {
     }
 
     this.streaming.evaluate(eye, dt, zone);
-    this.interaction.update(this.camera);
+    this.interaction.update(this.camera, dt);
     this.workshopUpdate?.();
 
-    // Bay key lights follow exhibit residency, and the light director then
-    // enables only the nearest few — so the shader cost of lighting does not
-    // grow with the size of the building.
-    for (const [id, host] of this.streaming.hosts) {
-      this.lighting.setBayLight(id, host.currentState === 'active' || host.currentState === 'mounted');
+    // Bay-light residency changes only on mount/unmount. Avoid scanning all 35
+    // hosts on every rendered frame when streaming state is unchanged.
+    if (this.lightingResidencyRevision !== this.streaming.residencyRevision) {
+      this.lightingResidencyRevision = this.streaming.residencyRevision;
+      for (const [id, host] of this.streaming.hosts) {
+        this.lighting.setBayLight(id, host.currentState === 'active' || host.currentState === 'mounted');
+      }
     }
     this.lighting.update(eye);
 

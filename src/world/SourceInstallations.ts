@@ -184,15 +184,24 @@ export class SourceInstallations {
     }
   }
 
-  update(dt: number, reducedMotion: boolean): void {
+  update(dt: number, reducedMotion: boolean, eye?: readonly [number, number, number]): void {
     this.time += dt;
     for (const [id, runtime] of this.runtimes) {
-      const ticked = tickInstallationState(id, runtime.state, dt, this.held);
-      if (ticked.changed) {
-        runtime.state = ticked.state;
-        this.refresh(runtime, false);
+      // Only two source installations own time-driven state. Avoid cloning and
+      // sanitizing twelve static state objects sixty times per second.
+      if (TIME_DRIVEN_INSTALLATIONS.has(id)) {
+        const ticked = tickInstallationState(id, runtime.state, dt, this.held);
+        if (ticked.changed) {
+          runtime.state = ticked.state;
+          this.refresh(runtime, false);
+        }
       }
-      runtime.visual.tick(this.time, reducedMotion);
+
+      // Visual animation uses absolute museum time, so distant installations
+      // can sleep without losing phase and resume correctly on approach.
+      if (!eye || runtime.engaged || installationVisualIsNear(runtime, eye)) {
+        runtime.visual.tick(this.time, reducedMotion);
+      }
     }
   }
 
@@ -348,6 +357,16 @@ export class SourceInstallations {
 }
 
 const UP = new THREE.Vector3(0, 1, 0);
+const TIME_DRIVEN_INSTALLATIONS: ReadonlySet<string> = new Set(['dexdictate', 'smores-katamari']);
+const INSTALLATION_VISUAL_TICK_RADIUS_SQ = 60 * 60;
+
+function installationVisualIsNear(runtime: InstallationRuntime, eye: readonly [number, number, number]): boolean {
+  const p = runtime.placement.position;
+  const dx = eye[0] - p[0];
+  const dy = eye[1] - p[1];
+  const dz = eye[2] - p[2];
+  return dx * dx + dy * dy + dz * dz <= INSTALLATION_VISUAL_TICK_RADIUS_SQ;
+}
 
 /**
  * Codes an engaged installation holds rather than edge-triggers. Source parity:

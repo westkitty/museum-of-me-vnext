@@ -16,6 +16,7 @@ interface Walker {
 }
 
 interface Observer { readonly mesh: THREE.Group; }
+const AMBIENT_MIXER_INTERVAL = 1 / 30;
 type AmbientAssetLoader = Pick<AssetManager, 'load'>;
 interface VisitorPrototypes {
   readonly men: LoadedAsset;
@@ -31,6 +32,7 @@ export class AmbientVisitors {
   private targetCount: number;
   private loading = 0;
   private motionFrozen = false;
+  private mixerElapsed = 0;
   private prototypes: VisitorPrototypes | null = null;
   loadError: Error | null = null;
 
@@ -89,7 +91,13 @@ export class AmbientVisitors {
   /** Called from the existing single owner loop. */
   update(dt: number, reducedMotion: boolean): void {
     if (this.motionFrozen !== reducedMotion) this.setMotionFrozen(reducedMotion);
-    if (reducedMotion) return;
+    if (reducedMotion) {
+      this.mixerElapsed = 0;
+      return;
+    }
+    this.mixerElapsed += dt;
+    const mixerStep = this.mixerElapsed >= AMBIENT_MIXER_INTERVAL ? this.mixerElapsed : 0;
+    if (mixerStep > 0) this.mixerElapsed = 0;
     for (const walker of this.walkers) {
       const n = walker.path.length;
       walker.t = (walker.t + dt * walker.speed * 0.04) % 1;
@@ -104,7 +112,9 @@ export class AmbientVisitors {
         a[2] + (b[2] - a[2]) * fraction,
       );
       walker.mesh.rotation.y = Math.atan2(b[0] - a[0], b[2] - a[2]);
-      walker.mixer.update(dt);
+      // Skeletal pose evaluation at 30 Hz halves mixer/bone work while route
+      // movement remains on the fixed step; accumulated time preserves speed.
+      if (mixerStep > 0) walker.mixer.update(mixerStep);
     }
   }
 

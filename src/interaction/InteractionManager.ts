@@ -22,6 +22,10 @@ export interface InteractionFocus {
 export class InteractionManager {
   private readonly controls = new Map<THREE.Object3D, RegisteredControl>();
   private readonly raycaster = new THREE.Raycaster();
+  private readonly raycastObjects: THREE.Object3D[] = [];
+  private readonly raycastHits: THREE.Intersection[] = [];
+  private raycastElapsed = INTERACTION_SAMPLE_INTERVAL;
+  private controlsDirty = true;
   private focused: RegisteredControl | null = null;
   /** Maximum reach, metres. Beyond this the visitor must walk closer. */
   reach = INTERACTION_REACH;
@@ -31,19 +35,22 @@ export class InteractionManager {
   register(exhibitId: string, control: ExhibitControl): () => void {
     const entry: RegisteredControl = { ...control, exhibitId };
     this.controls.set(control.object, entry);
+    this.controlsDirty = true;
     control.object.userData.interactive = true;
     return () => {
       if (this.focused?.object === control.object) this.setFocus(null);
       this.controls.delete(control.object);
+      this.controlsDirty = true;
     };
   }
 
   /** Remove every control belonging to an exhibit. Used on unmount. */
   clearExhibit(exhibitId: string): void {
-    for (const [object, entry] of [...this.controls]) {
+    for (const [object, entry] of this.controls) {
       if (entry.exhibitId === exhibitId) {
         if (this.focused?.object === object) this.setFocus(null);
         this.controls.delete(object);
+        this.controlsDirty = true;
       }
     }
   }
@@ -63,8 +70,13 @@ export class InteractionManager {
       : null;
   }
 
-  /** Once per frame from the variable-step phase. */
-  update(camera: THREE.Camera): void {
+  /** Sample focus at 30 Hz; controls and hits reuse stable scratch buffers. */
+  update(camera: THREE.Camera, dt = INTERACTION_SAMPLE_INTERVAL): void {
+    this.raycastElapsed += Math.max(0, dt);
+    if (!this.controlsDirty && this.raycastElapsed < INTERACTION_SAMPLE_INTERVAL) return;
+    this.raycastElapsed = 0;
+    this.controlsDirty = false;
+
     if (this.controls.size === 0) {
       this.setFocus(null);
       return;
@@ -72,18 +84,23 @@ export class InteractionManager {
     this.raycaster.setFromCamera(CENTRE, camera);
     this.raycaster.far = this.reach;
 
-    const objects = [...this.controls.keys()].filter((o) => isVisible(o));
-    if (objects.length === 0) {
+    this.raycastObjects.length = 0;
+    for (const object of this.controls.keys()) {
+      if (isVisible(object)) this.raycastObjects.push(object);
+    }
+    if (this.raycastObjects.length === 0) {
       this.setFocus(null);
       return;
     }
-    const hits = this.raycaster.intersectObjects(objects, true);
-    if (hits.length === 0) {
+
+    this.raycastHits.length = 0;
+    this.raycaster.intersectObjects(this.raycastObjects, true, this.raycastHits);
+    if (this.raycastHits.length === 0) {
       this.setFocus(null);
       return;
     }
     // A hit may be a descendant of the registered object.
-    let node: THREE.Object3D | null = hits[0].object;
+    let node: THREE.Object3D | null = this.raycastHits[0].object;
     while (node && !this.controls.has(node)) node = node.parent;
     this.setFocus(node ? this.controls.get(node)! : null);
   }
@@ -117,11 +134,14 @@ export class InteractionManager {
 
   dispose(): void {
     this.controls.clear();
+    this.raycastObjects.length = 0;
+    this.raycastHits.length = 0;
     this.listeners.clear();
     this.focused = null;
   }
 }
 
+const INTERACTION_SAMPLE_INTERVAL = 1 / 30;
 const CENTRE = new THREE.Vector2(0, 0);
 
 function isVisible(o: THREE.Object3D): boolean {

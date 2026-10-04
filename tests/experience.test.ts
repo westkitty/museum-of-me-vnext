@@ -193,18 +193,31 @@ describe('sky', () => {
 });
 
 describe('flight pad atmosphere', () => {
-  it('rises in the existing loop, reduces its density by quality, and freezes for reduced motion', () => {
+  it('rises as one instanced draw, scales density, freezes, and sleeps when distant', () => {
     const scope = new ResourceScope('flight-pad-atmosphere');
     const dust = new FlightPadAtmosphere(scope);
-    const first = dust.group.children[0];
-    const startY = first.position.y;
+    const matrix = new THREE.Matrix4();
+    const firstY = () => {
+      dust.instances.getMatrixAt(0, matrix);
+      return matrix.elements[13];
+    };
+
+    expect(dust.group.children).toHaveLength(1);
+    const startY = firstY();
     dust.update(1, 1, false);
-    expect(first.position.y).toBeGreaterThan(startY);
+    expect(firstY()).toBeGreaterThan(startY);
+
     dust.update(0, 0.4, false);
-    expect(dust.group.children.filter((mote) => mote.visible)).toHaveLength(11);
-    const frozenY = first.position.y;
+    expect(dust.instances.count).toBe(11);
+    const frozenY = firstY();
     dust.update(1, 0.4, true);
-    expect(first.position.y).toBeCloseTo(frozenY, 8);
+    expect(firstY()).toBeCloseTo(frozenY, 8);
+
+    dust.update(1, 1, false, 1000, 1000);
+    expect(dust.group.visible).toBe(false);
+    dust.update(0, 1, false);
+    expect(dust.group.visible).toBe(true);
+
     dust.dispose();
     scope.dispose();
     expect(scope.size).toBe(0);

@@ -151,28 +151,36 @@ export class Lighting {
     this.dirty = false;
     let candidateCount = 0;
     for (const light of this.managed) {
-      if (this.suppressed.has(light)) {
-        light.visible = false;
-        continue;
-      }
+      light.visible = false;
+      if (this.suppressed.has(light)) continue;
+
       const dx = light.position.x - eye[0];
       const dy = light.position.y - eye[1];
       const dz = light.position.z - eye[2];
       const d = dx * dx + dy * dy + dz * dz;
-      if (d > light.distance * light.distance) {
-        light.visible = false;
-        continue;
+      if (d > light.distance * light.distance) continue;
+
+      // Maintain only the nearest bounded light set. The old path collected
+      // every candidate and sorted the whole array even though only eight
+      // entries can ever render.
+      let insertAt = candidateCount;
+      while (insertAt > 0 && this.distances[insertAt - 1].d > d) insertAt--;
+      if (insertAt >= MAX_ACTIVE_POINT_LIGHTS) continue;
+
+      const limit = Math.min(candidateCount, MAX_ACTIVE_POINT_LIGHTS - 1);
+      const spare = this.distances[limit] ?? { light, d };
+      for (let i = limit; i > insertAt; i--) {
+        this.distances[i] = this.distances[i - 1];
       }
-      const entry = this.distances[candidateCount] ?? { light, d };
-      entry.light = light;
-      entry.d = d;
-      this.distances[candidateCount++] = entry;
+      spare.light = light;
+      spare.d = d;
+      this.distances[insertAt] = spare;
+      candidateCount = Math.min(candidateCount + 1, MAX_ACTIVE_POINT_LIGHTS);
     }
     this.distances.length = candidateCount;
 
-    this.distances.sort((a, b) => a.d - b.d);
-    for (let i = 0; i < this.distances.length; i++) {
-      this.distances[i].light.visible = i < MAX_ACTIVE_POINT_LIGHTS;
+    for (let i = 0; i < candidateCount; i++) {
+      this.distances[i].light.visible = true;
     }
   }
 
