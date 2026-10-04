@@ -56,7 +56,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     environment:
-      name: github-pages
+      # The default github-pages environment may be restricted to the default
+      # branch. This dedicated environment is still owner-controlled by the
+      # pages-preview trigger but permits the verified preview branch to deploy.
+      name: museum-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
