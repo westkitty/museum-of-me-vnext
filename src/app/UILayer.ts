@@ -128,6 +128,7 @@ export class UILayer {
     // directly so start/pause/skip/import/cross-tab reconciliation updates the
     // HUD and floor guide immediately even when rendering is suspended.
     this.unbind.push(app.visitThread.subscribe(() => this.syncVisitThread()));
+    this.syncVisitThread();
 
     uiRoot.append(
       this.hud.root,
@@ -413,7 +414,6 @@ export class UILayer {
     this.hud.setTouchMode(this.app.input.touchActive);
     this.hud.update(dt);
     this.hud.setLocation(this.app.currentZone);
-    this.syncVisitThread();
 
     if (!this.diagnostics.root.hidden) {
       const extra: Record<string, string | number> = {

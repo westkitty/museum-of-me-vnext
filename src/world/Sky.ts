@@ -9,6 +9,8 @@ export class Sky {
   readonly mesh: THREE.Mesh;
   readonly bloodRing: THREE.Mesh;
   readonly horizon = new THREE.Color(0x17304b);
+  private lastParallaxX = Number.NaN;
+  private lastParallaxZ = Number.NaN;
 
   // The surface-view composition needs a broad sky sweep, not a distant
   // hairline or a heavy torus hidden behind the building.
@@ -151,6 +153,11 @@ export class Sky {
   /** Keep the dome centred on the visitor so it never has an edge. */
   follow(camera: THREE.Camera): void {
     this.mesh.position.copy(camera.position);
+    const dx = camera.position.x - this.lastParallaxX;
+    const dz = camera.position.z - this.lastParallaxZ;
+    if (dx * dx + dz * dz < 0.0625) return;
+    this.lastParallaxX = camera.position.x;
+    this.lastParallaxZ = camera.position.z;
     const parallax = (this.mesh.material as THREE.ShaderMaterial).uniforms.parallax.value as THREE.Vector2;
     parallax.set(camera.position.x, camera.position.z).multiplyScalar(0.00075);
   }

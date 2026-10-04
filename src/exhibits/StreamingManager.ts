@@ -4,6 +4,11 @@ import { createExhibit, hasExhibit } from './registry';
 import { EXHIBITS_BY_ID } from '../content/collection.generated';
 import { PLACEMENT_BY_EXHIBIT, ZONE_BY_ID, type Vec3, type ZoneId } from '../world/layout';
 
+const RELEVANT_WINGS_BY_ZONE = new Map<ZoneId, ReadonlySet<string>>(
+  [...ZONE_BY_ID].map(([id, zone]) => [id, new Set<string>([id, ...zone.neighbours])]),
+);
+const NO_RELEVANT_WINGS: ReadonlySet<string> = new Set();
+
 export interface StreamingBudget {
   /** Metres at which an exhibit payload starts loading. */
   loadRadius: number;
@@ -37,6 +42,7 @@ export class StreamingManager {
   };
 
   private readonly mountQueue: string[] = [];
+  private mountQueueHead = 0;
   private readonly queued = new Set<string>();
   private readonly loading = new Set<string>();
   private now = 0;
@@ -83,8 +89,7 @@ export class StreamingManager {
     let resident = 0;
     let active = 0;
 
-    const here = ZONE_BY_ID.get(zone);
-    const neighbours = here?.neighbours ?? [];
+    const relevantWings = RELEVANT_WINGS_BY_ZONE.get(zone) ?? NO_RELEVANT_WINGS;
     const loadRadiusSq = this.budget.loadRadius * this.budget.loadRadius;
     const unloadRadiusSq = this.budget.unloadRadius * this.budget.unloadRadius;
     const activateRadiusSq = this.budget.activateRadius * this.budget.activateRadius;
@@ -96,7 +101,7 @@ export class StreamingManager {
       // Distance alone is not enough: bays in different wings and on different
       // levels can be metres apart through a floor. An exhibit is only relevant
       // while the visitor is in its wing or somewhere adjoining it.
-      const inRelevantZone = zone === host.record.wing || neighbours.includes(host.record.wing);
+      const inRelevantZone = relevantWings.has(host.record.wing);
       const inOwnWing = zone === host.record.wing;
 
       if (inRelevantZone && distanceSq <= loadRadiusSq) {
@@ -123,10 +128,9 @@ export class StreamingManager {
           host.unmount();
           this.telemetry.totalUnmounts++;
         }
-        if (this.queued.delete(id)) {
-          const queued = this.mountQueue.indexOf(id);
-          if (queued >= 0) this.mountQueue.splice(queued, 1);
-        }
+        // Queue cancellation is lazy: deleting membership avoids an O(n)
+        // indexOf/splice on the hot streaming path. Tombstones are skipped below.
+        this.queued.delete(id);
       }
 
       if (state === 'mounted' || state === 'active') resident++;
@@ -144,12 +148,12 @@ export class StreamingManager {
 
     // Spread construction across frames so approaching a wing never hitches.
     let budgetLeft = this.budget.mountsPerFrame;
-    while (budgetLeft > 0 && this.mountQueue.length > 0) {
-      const id = this.mountQueue.shift()!;
-      this.queued.delete(id);
+    while (budgetLeft > 0 && this.mountQueueHead < this.mountQueue.length) {
+      const id = this.mountQueue[this.mountQueueHead++];
+      if (!this.queued.delete(id)) continue;
       const host = this.hosts.get(id);
       if (!host || host.currentState !== 'loaded') continue;
-      if (zone !== host.record.wing && !neighbours.includes(host.record.wing)) continue;
+      if (!relevantWings.has(host.record.wing)) continue;
       if (this.distanceSqTo(id, eye) > unloadRadiusSq) continue;
       try {
         host.mount();
@@ -159,10 +163,14 @@ export class StreamingManager {
       }
       budgetLeft--;
     }
+    if (this.mountQueueHead > 64 && this.mountQueueHead * 2 > this.mountQueue.length) {
+      this.mountQueue.splice(0, this.mountQueueHead);
+      this.mountQueueHead = 0;
+    }
 
     this.telemetry.resident = resident;
     this.telemetry.active = active;
-    this.telemetry.pendingLoads = this.loading.size + this.mountQueue.length;
+    this.telemetry.pendingLoads = this.loading.size + this.queued.size;
   }
 
   /** Step every active exhibit. Called from the fixed-step phase of the loop. */
@@ -205,6 +213,7 @@ export class StreamingManager {
     for (const h of this.hosts.values()) h.dispose();
     this.hosts.clear();
     this.mountQueue.length = 0;
+    this.mountQueueHead = 0;
     this.queued.clear();
     this.loading.clear();
   }

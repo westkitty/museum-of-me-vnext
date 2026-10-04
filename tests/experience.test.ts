@@ -59,6 +59,16 @@ describe('wayfinding', () => {
     scope.dispose();
   });
 
+  it('supports the allocation-free scalar update path used by App', () => {
+    const scope = new ResourceScope('t');
+    const w = new Wayfinding(scope);
+    w.setTarget('E01');
+    w.updateXYZ(1 / 60, START_POSITION[0], START_POSITION[1], START_POSITION[2], false);
+    expect(w.group.visible).toBe(true);
+    expect(w.currentTarget).toBe('E01');
+    scope.dispose();
+  });
+
   it('clears itself on arrival rather than nagging', () => {
     const scope = new ResourceScope('t');
     const w = new Wayfinding(scope);
@@ -173,6 +183,11 @@ describe('sky', () => {
     expect(material.fragmentShader).not.toContain('bloodBand');
     expect(material.fragmentShader).not.toContain('ringAngle');
     expect(material.uniforms.parallax.value.toArray()).toEqual([0.09, -0.18]);
+    const parallax = material.uniforms.parallax.value.clone();
+    camera.position.x += 0.1;
+    sky.follow(camera);
+    expect(sky.mesh.position.x).toBeCloseTo(120.1, 6);
+    expect(material.uniforms.parallax.value.toArray()).toEqual(parallax.toArray());
     scope.dispose();
   });
 });

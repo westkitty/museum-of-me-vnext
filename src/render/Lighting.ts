@@ -147,7 +147,7 @@ export class Lighting {
     this.lastEyeY = eye[1];
     this.lastEyeZ = eye[2];
     this.dirty = false;
-    this.distances.length = 0;
+    let candidateCount = 0;
     for (const light of this.managed) {
       if (this.suppressed.has(light)) {
         light.visible = false;
@@ -161,8 +161,12 @@ export class Lighting {
         light.visible = false;
         continue;
       }
-      this.distances.push({ light, d });
+      const entry = this.distances[candidateCount] ?? { light, d };
+      entry.light = light;
+      entry.d = d;
+      this.distances[candidateCount++] = entry;
     }
+    this.distances.length = candidateCount;
 
     this.distances.sort((a, b) => a.d - b.d);
     for (let i = 0; i < this.distances.length; i++) {

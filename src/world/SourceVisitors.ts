@@ -160,16 +160,18 @@ export class SourceVisitors {
       if (!target) continue;
       const dx = target[0] - v.group.position.x;
       const dz = target[2] - v.group.position.z;
-      const dist = Math.hypot(dx, dz);
-      if (dist < 0.18) {
+      const distSq = dx * dx + dz * dz;
+      if (distSq < 0.18 * 0.18) {
         v.routeIndex = (v.routeIndex + 1) % v.route.length;
         const [min, max] = v.data.pause;
         v.pause = min + (max - min) * 0.5;
         continue;
       }
+      const dist = Math.sqrt(distSq);
       const step = Math.min(dist, v.data.speed * dt);
-      const nx = v.group.position.x + (dx / dist) * step;
-      const nz = v.group.position.z + (dz / dist) * step;
+      const invDist = 1 / dist;
+      const nx = v.group.position.x + dx * invDist * step;
+      const nz = v.group.position.z + dz * invDist * step;
       const probe = this.collisionProbeX;
       probe.x = nx;
       probe.y = v.group.position.y;

@@ -389,9 +389,11 @@ export class App implements LoopCallbacks {
     diagnosticPosition[2] = Math.round(this.player.position.z * 10) / 10;
     this.diagnostics.stats.wing = ZONE_BY_ID.get(this.currentZone as never)?.label ?? this.currentZone;
 
-    this.wayfinding.update(
+    this.wayfinding.updateXYZ(
       dt,
-      [this.player.position.x, this.player.position.y, this.player.position.z],
+      this.player.position.x,
+      this.player.position.y,
+      this.player.position.z,
       this.preferences.reducedMotion,
     );
     this.arrivalGarden.update(dt, this.preferences.reducedMotion);
