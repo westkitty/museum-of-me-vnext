@@ -126,6 +126,16 @@ export class Lighting {
     this.group.add(sanctuary);
     this.managed.push(sanctuary);
 
+    // Light positions and directional targets never move after construction.
+    // Freeze both local and world transforms so scene traversal does not
+    // recompose dozens of static light matrices every rendered frame.
+    this.group.updateMatrixWorld(true);
+    this.group.traverse((node) => {
+      node.updateMatrix();
+      node.matrixAutoUpdate = false;
+      node.matrixWorldAutoUpdate = false;
+    });
+
     void scope;
   }
 

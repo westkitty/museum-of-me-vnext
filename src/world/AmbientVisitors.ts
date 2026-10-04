@@ -13,10 +13,13 @@ interface Walker {
   readonly mixer: THREE.AnimationMixer;
   readonly walk: THREE.AnimationAction;
   t: number;
+  farElapsed: number;
 }
 
 interface Observer { readonly mesh: THREE.Group; }
 const AMBIENT_MIXER_INTERVAL = 1 / 30;
+const FAR_AMBIENT_DISTANCE_SQ = 70 * 70;
+const FAR_AMBIENT_UPDATE_INTERVAL = 0.1;
 type AmbientAssetLoader = Pick<AssetManager, 'load'>;
 interface VisitorPrototypes {
   readonly men: LoadedAsset;
@@ -89,7 +92,7 @@ export class AmbientVisitors {
   }
 
   /** Called from the existing single owner loop. */
-  update(dt: number, reducedMotion: boolean): void {
+  update(dt: number, reducedMotion: boolean, viewerX?: number, viewerZ?: number): void {
     if (this.motionFrozen !== reducedMotion) this.setMotionFrozen(reducedMotion);
     if (reducedMotion) {
       this.mixerElapsed = 0;
@@ -101,6 +104,18 @@ export class AmbientVisitors {
     for (const walker of this.walkers) {
       const n = walker.path.length;
       walker.t = (walker.t + dt * walker.speed * 0.04) % 1;
+
+      let far = false;
+      if (viewerX !== undefined && viewerZ !== undefined) {
+        const dxView = walker.mesh.position.x - viewerX;
+        const dzView = walker.mesh.position.z - viewerZ;
+        far = dxView * dxView + dzView * dzView > FAR_AMBIENT_DISTANCE_SQ;
+        if (far) {
+          walker.farElapsed += dt;
+          if (walker.farElapsed + Number.EPSILON * 8 < FAR_AMBIENT_UPDATE_INTERVAL) continue;
+        }
+      }
+
       const scaled = walker.t * n;
       const index = Math.floor(scaled);
       const fraction = scaled - index;
@@ -112,9 +127,19 @@ export class AmbientVisitors {
         a[2] + (b[2] - a[2]) * fraction,
       );
       walker.mesh.rotation.y = Math.atan2(b[0] - a[0], b[2] - a[2]);
-      // Skeletal pose evaluation at 30 Hz halves mixer/bone work while route
-      // movement remains on the fixed step; accumulated time preserves speed.
-      if (mixerStep > 0) walker.mixer.update(mixerStep);
+      // Near visitors retain the 30 Hz pose cadence. Far visitors coarse-step
+      // both transform and skeleton work at 10 Hz, with accumulated time so
+      // their route/animation state still advances while off-screen.
+      if (far) {
+        walker.mixer.update(walker.farElapsed);
+        walker.farElapsed = 0;
+      } else {
+        if (walker.farElapsed > 0) {
+          walker.mixer.update(walker.farElapsed);
+          walker.farElapsed = 0;
+        }
+        if (mixerStep > 0) walker.mixer.update(mixerStep);
+      }
     }
   }
 
@@ -141,7 +166,7 @@ export class AmbientVisitors {
       const walk = mixer.clipAction(clip);
       walk.play();
       this.group.add(mesh);
-      this.walkers.push({ mesh, path, speed: 0.5 + random() * 0.3, mixer, walk, t: random() });
+      this.walkers.push({ mesh, path, speed: 0.5 + random() * 0.3, mixer, walk, t: random(), farElapsed: 0 });
     }
 
     const exhibitIds = ['E02', 'E04', 'E05', 'E06'];

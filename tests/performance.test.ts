@@ -7,6 +7,8 @@ import { QUALITY } from '../src/render/QualityTiers';
 import { mergeStatic, NO_MERGE } from '../src/world/MergeStatic';
 import { SPAWN_POSITION, PLACEMENT_BY_EXHIBIT } from '../src/world/layout';
 import { InteractionManager } from '../src/interaction/InteractionManager';
+import { CollisionWorld } from '../src/world/CollisionWorld';
+import { SourceVisitors } from '../src/world/SourceVisitors';
 
 /**
  * Runtime cost gates. Profiling in a browser put the entrance at 986 draw calls
@@ -103,6 +105,27 @@ describe('interaction hot path', () => {
   });
 });
 
+describe('visitor simulation budget', () => {
+  it('coarse-steps distant authored visitors instead of simulating them every fixed step', () => {
+    const scope = new ResourceScope('source-visitors-performance');
+    const world = new CollisionWorld();
+    world.addFloor(-500, 500, -500, 500, 0);
+    const interaction = new InteractionManager();
+    const visitors = new SourceVisitors(scope, world, interaction, () => {});
+    const before = visitors.positions().map((v) => [v.x, v.z] as const);
+
+    for (let i = 0; i < 5; i++) visitors.update(1 / 60, false, 10_000, 10_000);
+    expect(visitors.positions().map((v) => [v.x, v.z] as const)).toEqual(before);
+
+    visitors.update(1 / 60, false, 10_000, 10_000);
+    const after = visitors.positions().map((v) => [v.x, v.z] as const);
+    expect(after.some((p, i) => Math.hypot(p[0] - before[i][0], p[1] - before[i][1]) > 1e-5)).toBe(true);
+    visitors.dispose();
+    interaction.dispose();
+    scope.dispose();
+  });
+});
+
 describe('light budget', () => {
   it('caps simultaneous point lights regardless of where the visitor stands', () => {
     const scope = new ResourceScope('t');
@@ -141,6 +164,21 @@ describe('light budget', () => {
     lighting.setBayLight('E01', true);
     lighting.update(eye);
     expect(lighting.bayLights.get('E01')!.visible, 'the bay stayed dark with its exhibit resident').toBe(true);
+    lighting.dispose();
+    scope.dispose();
+  });
+
+  it('freezes static light transforms after construction', () => {
+    const scope = new ResourceScope('static-light-transforms');
+    const lighting = new Lighting(scope, QUALITY.high);
+    let localAutoUpdates = 0;
+    let worldAutoUpdates = 0;
+    lighting.group.traverse((node) => {
+      if (node.matrixAutoUpdate) localAutoUpdates++;
+      if (node.matrixWorldAutoUpdate) worldAutoUpdates++;
+    });
+    expect(localAutoUpdates).toBe(0);
+    expect(worldAutoUpdates).toBe(0);
     lighting.dispose();
     scope.dispose();
   });

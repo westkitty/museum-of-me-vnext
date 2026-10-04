@@ -91,6 +91,7 @@ export class App implements LoopCallbacks {
   private ambientLoadTimer: number | null = null;
   private diagnosticSampleElapsed = 0.1;
   private lightingResidencyRevision = -1;
+  private readonly eyePositionScratch: [number, number, number] = [0, 0, 0];
 
   constructor(opts: AppOptions) {
     this.uiRoot = opts.uiRoot;
@@ -267,7 +268,7 @@ export class App implements LoopCallbacks {
   get currentExhibitId(): string | null {
     const focus = this.interaction.currentFocus;
     if (focus) return focus.exhibitId;
-    return this.streaming.nearestActiveId(this.player.eyePosition, 100);
+    return this.streaming.nearestActiveId(this.player.writeEyePosition(this.eyePositionScratch), 100);
   }
 
   get scene(): THREE.Scene {
@@ -339,11 +340,17 @@ export class App implements LoopCallbacks {
       this.ui?.hud.announce('Launched. Fly with W/A/S/D and look. Shift for speed. Land to walk again.');
     }
     this.player.fixedUpdate(dt);
-    this.streaming.updateActive(dt, this.player.eyePosition);
+    const fixedEye = this.player.writeEyePosition(this.eyePositionScratch);
+    this.streaming.updateActive(dt, fixedEye);
     if (this.currentZone === 'sanctuary') {
       this.sanctuary.update(dt, this.preferences.reducedMotion);
     }
-    this.visitors.update(dt, this.preferences.reducedMotion);
+    this.visitors.update(
+      dt,
+      this.preferences.reducedMotion,
+      this.player.position.x,
+      this.player.position.z,
+    );
     this.flightPadAtmosphere.update(
       dt,
       this.renderer.quality.detailScale,
@@ -351,14 +358,19 @@ export class App implements LoopCallbacks {
       this.player.position.x,
       this.player.position.z,
     );
-    this.sourceVisitors.update(dt, this.preferences.reducedMotion);
-    this.sourceInstallations.update(dt, this.preferences.reducedMotion, this.player.eyePosition);
+    this.sourceVisitors.update(
+      dt,
+      this.preferences.reducedMotion,
+      this.player.position.x,
+      this.player.position.z,
+    );
+    this.sourceInstallations.update(dt, this.preferences.reducedMotion, fixedEye);
   }
 
   variableUpdate(dt: number): void {
     // Mouse, touch and keyboard all feed the same look, so the museum is fully
     // usable with any one of them alone.
-    const keyboardLook = this.input.keyboardLook(dt, this.preferences.mouseSensitivity);
+    const keyboardLook = this.input.keyboardLookReusable(dt, this.preferences.mouseSensitivity);
     this.player.applyLook(
       this.input.mouseDeltaX + this.input.touchDeltaX * 1.6 + keyboardLook.dx,
       this.input.mouseDeltaY + this.input.touchDeltaY * 1.6 + keyboardLook.dy,
@@ -366,7 +378,7 @@ export class App implements LoopCallbacks {
       this.preferences.invertY,
     );
 
-    const eye = this.player.eyePosition;
+    const eye = this.player.writeEyePosition(this.eyePositionScratch);
     const zone = zoneAtXYZ(eye[0], this.player.position.y + 0.1, eye[2]);
     if (zone !== this.currentZone) {
       this.currentZone = zone;

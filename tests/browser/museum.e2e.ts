@@ -32,6 +32,16 @@ test('boots at the exterior arrival and keyboard input reaches the real controll
 
   const zone = await page.evaluate(() => window.__museum?.currentZone);
   expect(zone).toBe('plaza');
+  expect(await page.evaluate(() => window.__museum?.renderer.renderer.shadowMap.autoUpdate)).toBe(false);
+
+  // The environment is intentionally deferred until after the first render.
+  // Prove that the startup optimization does not silently remove PBR ambience.
+  await page.evaluate(() => window.__museum?.renderer.render());
+  await expect.poll(
+    () => page.evaluate(() => Boolean(window.__museum?.renderer.scene.environment)),
+    { timeout: 15_000 },
+  ).toBe(true);
+
   await expect(page.getByRole('button', { name: 'Enter the museum and capture mouse look' })).toBeVisible();
 
   const qaToggle = page.getByRole('button', { name: 'QA evidence' });

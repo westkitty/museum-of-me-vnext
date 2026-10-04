@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { InputManager, KEYBOARD_LOOK_SPEED } from '../src/player/Input';
-import { FLIGHT_LAUNCH_SPEED, JUMP_SPEED, PlayerController } from '../src/player/PlayerController';
+import { EYE_HEIGHT, FLIGHT_LAUNCH_SPEED, JUMP_SPEED, PlayerController } from '../src/player/PlayerController';
 import { CollisionWorld } from '../src/world/CollisionWorld';
 import { DEFAULT_PREFERENCES } from '../src/state/Preferences';
 import { QUALITY } from '../src/render/QualityTiers';
@@ -97,6 +97,26 @@ describe('keyboard-only operation', () => {
     const fast = input.keyboardLook(1 / 60, 2.4);
     expect(slow.dx * 0.4).toBeCloseTo(fast.dx * 2.4, 6);
     expect(slow.dx).toBeGreaterThan(0);
+  });
+
+  it('preserves snapshot semantics while App reuses input and eye scratch objects', () => {
+    const lookA = input.keyboardLook(1 / 60, 1);
+    const lookB = input.keyboardLook(1 / 60, 1);
+    expect(lookA).not.toBe(lookB);
+
+    const reusableA = input.keyboardLookReusable(1 / 60, 1);
+    const reusableB = input.keyboardLookReusable(1 / 60, 1);
+    expect(reusableA).toBe(reusableB);
+    expect(reusableA).toEqual(lookB);
+
+    const player = new PlayerController(flatWorld(), input);
+    player.teleport([2, 3, 4]);
+    const eyeA = player.eyePosition;
+    const eyeB = player.eyePosition;
+    expect(eyeA).not.toBe(eyeB);
+    const scratch: [number, number, number] = [0, 0, 0];
+    expect(player.writeEyePosition(scratch)).toBe(scratch);
+    expect(scratch).toEqual([2, 3 + EYE_HEIGHT, 4]);
   });
 
   it('actually rotates left and right with Q/E', () => {

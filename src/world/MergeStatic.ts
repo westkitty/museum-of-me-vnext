@@ -61,6 +61,17 @@ export function mergeStatic(root: THREE.Object3D, scope: ResourceScope): MergeRe
       entry.geometries.push(geometry);
     }
 
+    const indexedCount = entry.geometries.reduce((count, geometry) => count + (geometry.index ? 1 : 0), 0);
+    if (indexedCount > 0 && indexedCount < entry.geometries.length) {
+      for (let i = 0; i < entry.geometries.length; i++) {
+        const geometry = entry.geometries[i];
+        if (!geometry.index) continue;
+        const nonIndexed = geometry.toNonIndexed();
+        geometry.dispose();
+        entry.geometries[i] = nonIndexed;
+      }
+    }
+
     const combined = mergeGeometries(entry.geometries, false);
     for (const geometry of entry.geometries) geometry.dispose();
     if (!combined) continue;

@@ -478,6 +478,9 @@ export class Workshop {
   };
 
   private refresh(): void {
+    // Workshop is the only runtime allowed to reposition static shadow casters.
+    // Production keeps the shadow map baked; authoring refreshes it on demand.
+    this.app.renderer.requestShadowUpdate();
     this.refreshInspector();
     this.refreshOutliner();
     this.undoButton.disabled = !this.history.canUndo;

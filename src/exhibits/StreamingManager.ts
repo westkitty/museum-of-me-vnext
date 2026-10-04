@@ -45,6 +45,11 @@ export class StreamingManager {
   private mountQueueHead = 0;
   private readonly queued = new Set<string>();
   private readonly loading = new Set<string>();
+  private readonly activeHosts = new Set<ExhibitHost>();
+  private readonly loadRadiusSq: number;
+  private readonly unloadRadiusSq: number;
+  private readonly activateRadiusSq: number;
+  private readonly deactivateRadiusSq: number;
   /** Changes only when an exhibit crosses the mounted/unmounted residency boundary. */
   residencyRevision = 0;
   private now = 0;
@@ -52,8 +57,13 @@ export class StreamingManager {
   constructor(
     private readonly mounts: ReadonlyMap<string, THREE.Group>,
     private readonly services: HostServices,
-    public budget: StreamingBudget,
-  ) {}
+    public readonly budget: StreamingBudget,
+  ) {
+    this.loadRadiusSq = budget.loadRadius * budget.loadRadius;
+    this.unloadRadiusSq = budget.unloadRadius * budget.unloadRadius;
+    this.activateRadiusSq = budget.activateRadius * budget.activateRadius;
+    this.deactivateRadiusSq = this.activateRadiusSq * 1.25 * 1.25;
+  }
 
   /** Create hosts for every exhibit that has an implementation registered. */
   initialise(): void {
@@ -92,10 +102,6 @@ export class StreamingManager {
     let active = 0;
 
     const relevantWings = RELEVANT_WINGS_BY_ZONE.get(zone) ?? NO_RELEVANT_WINGS;
-    const loadRadiusSq = this.budget.loadRadius * this.budget.loadRadius;
-    const unloadRadiusSq = this.budget.unloadRadius * this.budget.unloadRadius;
-    const activateRadiusSq = this.budget.activateRadius * this.budget.activateRadius;
-    const deactivateRadiusSq = activateRadiusSq * 1.25 * 1.25;
 
     for (const [id, host] of this.hosts) {
       const distanceSq = this.distanceSqTo(id, eye);
@@ -106,7 +112,7 @@ export class StreamingManager {
       const inRelevantZone = relevantWings.has(host.record.wing);
       const inOwnWing = zone === host.record.wing;
 
-      if (inRelevantZone && distanceSq <= loadRadiusSq) {
+      if (inRelevantZone && distanceSq <= this.loadRadiusSq) {
         if (state === 'unloaded' && !this.loading.has(id)) {
           this.loading.add(id);
           const started = performance.now();
@@ -125,8 +131,9 @@ export class StreamingManager {
           this.queued.add(id);
           this.mountQueue.push(id);
         }
-      } else if (!inRelevantZone || distanceSq > unloadRadiusSq) {
+      } else if (!inRelevantZone || distanceSq > this.unloadRadiusSq) {
         if (state === 'active' || state === 'mounted') {
+          this.activeHosts.delete(host);
           host.unmount();
           this.telemetry.totalUnmounts++;
           this.residencyRevision++;
@@ -138,13 +145,16 @@ export class StreamingManager {
 
       if (state === 'mounted' || state === 'active') resident++;
       if (host.currentState === 'active') {
-        if (!inOwnWing || distanceSq > deactivateRadiusSq) {
+        if (!inOwnWing || distanceSq > this.deactivateRadiusSq) {
           host.deactivate();
+          this.activeHosts.delete(host);
         } else {
+          this.activeHosts.add(host);
           active++;
         }
-      } else if (host.currentState === 'mounted' && inOwnWing && distanceSq <= activateRadiusSq) {
+      } else if (host.currentState === 'mounted' && inOwnWing && distanceSq <= this.activateRadiusSq) {
         host.activate(this.now);
+        this.activeHosts.add(host);
         active++;
       }
     }
@@ -157,7 +167,7 @@ export class StreamingManager {
       const host = this.hosts.get(id);
       if (!host || host.currentState !== 'loaded') continue;
       if (!relevantWings.has(host.record.wing)) continue;
-      if (this.distanceSqTo(id, eye) > unloadRadiusSq) continue;
+      if (this.distanceSqTo(id, eye) > this.unloadRadiusSq) continue;
       try {
         host.mount();
         this.telemetry.totalMounts++;
@@ -177,11 +187,9 @@ export class StreamingManager {
     this.telemetry.pendingLoads = this.loading.size + this.queued.size;
   }
 
-  /** Step every active exhibit. Called from the fixed-step phase of the loop. */
+  /** Step only active exhibits; inactive hosts never enter the fixed-step loop. */
   updateActive(dt: number, eye: Vec3): void {
-    for (const host of this.hosts.values()) {
-      if (host.isActive) host.update(dt, eye, this.now);
-    }
+    for (const host of this.activeHosts) host.update(dt, eye, this.now);
   }
 
   get(id: string): ExhibitHost | undefined {
@@ -191,8 +199,7 @@ export class StreamingManager {
   nearestActiveId(eye: Vec3, maxDistanceSq = Infinity): string | null {
     let nearest: ExhibitHost | null = null;
     let best = maxDistanceSq;
-    for (const host of this.hosts.values()) {
-      if (!host.isActive) continue;
+    for (const host of this.activeHosts) {
       const anchor = host.module.def.anchor;
       const dx = eye[0] - anchor[0];
       const dy = eye[1] - anchor[1];
@@ -220,5 +227,6 @@ export class StreamingManager {
     this.mountQueueHead = 0;
     this.queued.clear();
     this.loading.clear();
+    this.activeHosts.clear();
   }
 }

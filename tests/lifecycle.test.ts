@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as THREE from 'three';
 import { installExhibits, scaffoldedExhibitIds } from '../src/exhibits';
 import { createExhibit, definitionFor, registeredExhibitIds } from '../src/exhibits/registry';
@@ -179,6 +179,12 @@ describe('streaming', () => {
     expect(streaming.telemetry.resident).toBeGreaterThan(0);
     const mountedRevision = streaming.residencyRevision;
     expect(mountedRevision).toBeGreaterThan(0);
+
+    const activeReads = vi.spyOn(ExhibitHost.prototype, 'isActive', 'get');
+    streaming.updateActive(1 / 60, near);
+    expect(streaming.nearestActiveId(near)).not.toBeNull();
+    expect(activeReads, 'active-index hot paths fell back to scanning all host states').not.toHaveBeenCalled();
+    activeReads.mockRestore();
 
     // Depart the wing entirely.
     for (let i = 0; i < 6; i++) streaming.evaluate(far, 1 / 60, 'plaza');

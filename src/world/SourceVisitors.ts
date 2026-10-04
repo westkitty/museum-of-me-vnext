@@ -14,12 +14,16 @@ interface RuntimeVisitor {
   pause: number;
   lineIndex: number;
   phase: number;
+  farElapsed: number;
   leftArm: THREE.Object3D;
   rightArm: THREE.Object3D;
   leftLeg: THREE.Object3D;
   rightLeg: THREE.Object3D;
   anatomy: Set<string>;
 }
+
+const FAR_VISITOR_DISTANCE_SQ = 70 * 70;
+const FAR_VISITOR_UPDATE_INTERVAL = 0.1;
 
 function rgb(c: number[] | undefined, fallback: number): number {
   if (!c || c.length < 3) return fallback;
@@ -148,12 +152,28 @@ export class SourceVisitors {
     }));
   }
 
-  update(dt: number, reducedMotion: boolean): void {
+  update(dt: number, reducedMotion: boolean, viewerX?: number, viewerZ?: number): void {
     for (const v of this.visitors) {
       v.phase += dt;
       if (v.data.seated || reducedMotion) continue;
+
+      let simDt = dt;
+      if (viewerX !== undefined && viewerZ !== undefined) {
+        const dxView = v.group.position.x - viewerX;
+        const dzView = v.group.position.z - viewerZ;
+        if (dxView * dxView + dzView * dzView > FAR_VISITOR_DISTANCE_SQ) {
+          v.farElapsed += dt;
+          if (v.farElapsed + Number.EPSILON * 8 < FAR_VISITOR_UPDATE_INTERVAL) continue;
+          simDt = v.farElapsed;
+          v.farElapsed = 0;
+        } else if (v.farElapsed > 0) {
+          simDt += v.farElapsed;
+          v.farElapsed = 0;
+        }
+      }
+
       if (v.pause > 0) {
-        v.pause -= dt;
+        v.pause -= simDt;
         continue;
       }
       const target = v.route[v.routeIndex];
@@ -168,7 +188,7 @@ export class SourceVisitors {
         continue;
       }
       const dist = Math.sqrt(distSq);
-      const step = Math.min(dist, v.data.speed * dt);
+      const step = Math.min(dist, v.data.speed * simDt);
       const invDist = 1 / dist;
       const nx = v.group.position.x + dx * invDist * step;
       const nz = v.group.position.z + dz * invDist * step;
@@ -310,7 +330,7 @@ export class SourceVisitors {
 
     return {
       data, group: g, hit, route, routeIndex: 1 % Math.max(1, route.length),
-      pause: seated ? Infinity : 0, lineIndex: 0, phase: 0,
+      pause: seated ? Infinity : 0, lineIndex: 0, phase: 0, farElapsed: 0,
       leftArm, rightArm, leftLeg, rightLeg, anatomy,
     };
   }

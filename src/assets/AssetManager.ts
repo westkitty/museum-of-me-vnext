@@ -1,8 +1,7 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
-import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import type { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import type { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
+import type { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { ResourceScope } from './ResourceScope';
 import { getAsset, type AssetRecord } from './manifest';
 
@@ -49,8 +48,12 @@ export class AssetManager {
   private readonly inFlight = new Map<string, Promise<LoadedAsset>>();
   private readonly bytesById = new Map<string, number>();
 
+  private renderer: THREE.WebGLRenderer | null = null;
+  private transcoderPath = './ktx2/';
   private gltf: GLTFLoader | null = null;
   private ktx2: KTX2Loader | null = null;
+  private draco: DRACOLoader | null = null;
+  private fileLoaderReady: Promise<void> | null = null;
 
   /** Assets whose declared budget was exceeded at runtime. */
   readonly budgetViolations: { id: string; budgetKB: number; actualKB: number }[] = [];
@@ -60,12 +63,36 @@ export class AssetManager {
    * procedural assets never needs them, which is the default.
    */
   attachRenderer(renderer: THREE.WebGLRenderer, transcoderPath = './ktx2/'): void {
-    this.ktx2 = new KTX2Loader().setTranscoderPath(transcoderPath).detectSupport(renderer);
-    const draco = new DRACOLoader().setDecoderPath('./draco/');
-    this.gltf = new GLTFLoader();
-    this.gltf.setKTX2Loader(this.ktx2);
-    this.gltf.setMeshoptDecoder(MeshoptDecoder);
-    this.gltf.setDRACOLoader(draco);
+    // File-backed assets are not needed for the first shell frame. Remember the
+    // renderer now and import/construct decoder modules only on the first file load.
+    this.renderer = renderer;
+    this.transcoderPath = transcoderPath;
+  }
+
+  private async ensureFileLoaders(): Promise<void> {
+    if (this.gltf) return;
+    if (!this.renderer) throw new Error('AssetManager.attachRenderer must be called before loading files');
+    if (!this.fileLoaderReady) {
+      this.fileLoaderReady = Promise.all([
+        import('three/examples/jsm/loaders/GLTFLoader.js'),
+        import('three/examples/jsm/loaders/KTX2Loader.js'),
+        import('three/examples/jsm/loaders/DRACOLoader.js'),
+        import('three/examples/jsm/libs/meshopt_decoder.module.js'),
+      ]).then(([gltfModule, ktx2Module, dracoModule, meshoptModule]) => {
+        if (!this.renderer) throw new Error('AssetManager renderer was disposed during loader warmup');
+        this.ktx2 = new ktx2Module.KTX2Loader()
+          .setTranscoderPath(this.transcoderPath)
+          .detectSupport(this.renderer);
+        this.draco = new dracoModule.DRACOLoader().setDecoderPath('./draco/');
+        this.gltf = new gltfModule.GLTFLoader();
+        this.gltf.setKTX2Loader(this.ktx2);
+        this.gltf.setMeshoptDecoder(meshoptModule.MeshoptDecoder);
+        this.gltf.setDRACOLoader(this.draco);
+      }).finally(() => {
+        this.fileLoaderReady = null;
+      });
+    }
+    await this.fileLoaderReady;
   }
 
   /** Register a procedural generator against a manifest asset id. */
@@ -110,7 +137,7 @@ export class AssetManager {
 
   private async loadFile(record: AssetRecord, scope: ResourceScope, opts: LoadOptions): Promise<LoadedAsset> {
     if (!record.url) throw new Error(`Asset "${record.id}" is ${record.kind} but declares no url`);
-    if (!this.gltf) throw new Error('AssetManager.attachRenderer must be called before loading files');
+    await this.ensureFileLoaders();
 
     const existing = this.inFlight.get(record.id);
     if (existing) {
@@ -165,10 +192,14 @@ export class AssetManager {
 
   dispose(): void {
     this.ktx2?.dispose();
+    this.draco?.dispose();
     this.generators.clear();
     this.inFlight.clear();
     this.bytesById.clear();
+    this.fileLoaderReady = null;
+    this.renderer = null;
     this.ktx2 = null;
+    this.draco = null;
     this.gltf = null;
   }
 }

@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { QUALITY, type QualitySettings, type QualityTier } from './QualityTiers';
 
 /**
@@ -15,7 +14,9 @@ export class RendererHost {
 
   private settings: QualitySettings;
   private contextLost = false;
-  private readonly environmentTarget: THREE.WebGLRenderTarget;
+  private disposed = false;
+  private environmentWarmupStarted = false;
+  private environmentTarget: THREE.WebGLRenderTarget | null = null;
   private readonly onResize = () => this.resize();
   private readonly onContextLost = (e: Event) => {
     e.preventDefault();
@@ -25,6 +26,7 @@ export class RendererHost {
   private readonly onContextRestored = () => {
     this.contextLost = false;
     console.warn('[RendererHost] WebGL context restored');
+    this.applyShadowSettings();
     this.resize();
   };
 
@@ -47,15 +49,9 @@ export class RendererHost {
     this.scene.name = 'museum';
     this.scene.fog = new THREE.FogExp2(0x08121e, 0.00155);
 
-    // One small PMREM gives every Standard/Physical material coherent reflected
-    // light without a runtime reflection pass or network HDR dependency.
-    const room = new RoomEnvironment();
-    const pmrem = new THREE.PMREMGenerator(this.renderer);
-    this.environmentTarget = pmrem.fromScene(room, 0.04);
-    this.scene.environment = this.environmentTarget.texture;
+    // PBR environment quality is preserved, but its addon parse + PMREM bake
+    // are deferred until after the first frame so startup is not blocked by it.
     this.scene.environmentIntensity = 0.42;
-    room.dispose();
-    pmrem.dispose();
 
     this.camera = new THREE.PerspectiveCamera(65, 1, 0.1, 600);
     this.camera.name = 'visitor-camera';
@@ -83,6 +79,37 @@ export class RendererHost {
   private applyShadowSettings(): void {
     this.renderer.shadowMap.enabled = this.settings.shadows;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // Every production shadow caster is static. Bake once, then refresh only
+    // when quality/context changes or the development Workshop edits geometry.
+    this.renderer.shadowMap.autoUpdate = false;
+    this.renderer.shadowMap.needsUpdate = this.settings.shadows;
+  }
+
+  /** Development authoring can move static shadow casters; refresh on demand. */
+  requestShadowUpdate(): void {
+    if (this.settings.shadows) this.renderer.shadowMap.needsUpdate = true;
+  }
+
+  private async warmEnvironment(): Promise<void> {
+    if (this.environmentWarmupStarted || this.disposed) return;
+    this.environmentWarmupStarted = true;
+    try {
+      const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js');
+      if (this.disposed) return;
+      const room = new RoomEnvironment();
+      const pmrem = new THREE.PMREMGenerator(this.renderer);
+      const target = pmrem.fromScene(room, 0.04);
+      room.dispose();
+      pmrem.dispose();
+      if (this.disposed) {
+        target.dispose();
+        return;
+      }
+      this.environmentTarget = target;
+      this.scene.environment = target.texture;
+    } catch (error) {
+      console.error('[RendererHost] deferred environment warmup failed', error);
+    }
   }
 
   resize(): void {
@@ -101,13 +128,17 @@ export class RendererHost {
   render(): void {
     if (this.contextLost) return;
     this.renderer.render(this.scene, this.camera);
+    if (!this.environmentWarmupStarted) void this.warmEnvironment();
   }
 
   dispose(): void {
+    this.disposed = true;
     window.removeEventListener('resize', this.onResize);
     this.canvas.removeEventListener('webglcontextlost', this.onContextLost);
     this.canvas.removeEventListener('webglcontextrestored', this.onContextRestored);
-    this.environmentTarget.dispose();
+    this.scene.environment = null;
+    this.environmentTarget?.dispose();
+    this.environmentTarget = null;
     this.renderer.dispose();
   }
 }

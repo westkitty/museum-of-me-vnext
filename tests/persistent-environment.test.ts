@@ -13,10 +13,16 @@ import { PersistentEnvironment } from '../src/world/PersistentEnvironment';
 describe('persistent environment budget and lifecycle', () => {
   it('keeps the complete always-resident refinement layer bounded', () => {
     const scope = new ResourceScope('persistent-environment-test');
-    const root = new PersistentEnvironment(scope).build();
+    const environment = new PersistentEnvironment(scope);
+    const root = environment.build();
 
     expect(root.name).toBe('persistent-environment');
     expect(root.children).toHaveLength(8);
+    expect(environment.mergeReport.before).toBeGreaterThan(environment.mergeReport.after);
+    expect(environment.mergeReport.merged).toBeGreaterThan(250);
+    for (const item of environment.authorableSceneRoots()) {
+      expect(root.getObjectByProperty('uuid', item.root.uuid)).toBe(item.root);
+    }
 
     let meshes = 0;
     let triangles = 0;

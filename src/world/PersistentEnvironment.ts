@@ -8,6 +8,7 @@ import { RotundaWayfinding } from './RotundaWayfinding';
 import { WingAtmosphere } from './WingAtmosphere';
 import { WingFurnishings } from './WingFurnishings';
 import { WingIdentity } from './WingIdentity';
+import { mergeStatic, NO_MERGE } from './MergeStatic';
 
 /**
  * Owns the always-resident visual refinement layer added after the architectural
@@ -20,6 +21,7 @@ import { WingIdentity } from './WingIdentity';
  */
 export class PersistentEnvironment {
   readonly group = new THREE.Group();
+  readonly mergeReport = { before: 0, after: 0, merged: 0 };
   private readonly dressing: EnvironmentDressing;
 
   constructor(private readonly scope: ResourceScope) {
@@ -28,7 +30,7 @@ export class PersistentEnvironment {
   }
 
   build(): THREE.Group {
-    this.group.add(
+    const layers = [
       this.dressing.build(),
       new ExteriorIdentity(this.scope).build(),
       new RotundaWayfinding(this.scope).build(),
@@ -37,7 +39,22 @@ export class PersistentEnvironment {
       new WingFurnishings(this.scope).build(),
       new ExhibitThresholds(this.scope).build(),
       new ExhibitColorFields(this.scope).build(),
-    );
+    ];
+    this.group.add(...layers);
+
+    // Workshop-owned scene roots must retain their identity and transforms.
+    // Everything else in these eight layers is immutable after construction,
+    // so collapse repeated-material meshes inside each layer to cut draw calls
+    // without flattening the layer hierarchy itself.
+    for (const item of this.dressing.authorableSceneRoots()) {
+      item.root.userData[NO_MERGE] = true;
+    }
+    for (const layer of layers) {
+      const report = mergeStatic(layer, this.scope);
+      this.mergeReport.before += report.before;
+      this.mergeReport.after += report.after;
+      this.mergeReport.merged += report.merged;
+    }
     return this.group;
   }
 

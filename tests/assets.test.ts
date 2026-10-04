@@ -46,6 +46,19 @@ describe('asset manifest governance', () => {
 });
 
 describe('AssetManager (Phase 4 gate)', () => {
+  it('defers file-loader construction until the first file-backed load', () => {
+    const am = new AssetManager();
+    am.attachRenderer({} as THREE.WebGLRenderer);
+    const state = am as unknown as {
+      gltf: unknown; ktx2: unknown; draco: unknown; fileLoaderReady: unknown;
+    };
+    expect(state.gltf).toBeNull();
+    expect(state.ktx2).toBeNull();
+    expect(state.draco).toBeNull();
+    expect(state.fileLoaderReady).toBeNull();
+    am.dispose();
+  });
+
   it('refuses a generator for an asset with no manifest record', () => {
     const am = new AssetManager();
     expect(() => am.registerGenerator('t.missing', () => new THREE.Group())).toThrow(/unknown asset/);

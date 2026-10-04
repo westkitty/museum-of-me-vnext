@@ -317,9 +317,17 @@ export class PlayerController {
     camera.rotation.z = 0;
   }
 
-  /** Eye position at the current fixed step -- used for raycasts and zone tests. */
+  /** Eye-position snapshot for ordinary callers. */
   get eyePosition(): Vec3 {
     return [this.position.x, this.position.y + EYE_HEIGHT, this.position.z];
+  }
+
+  /** Write eye position into caller-owned scratch storage for hot paths. */
+  writeEyePosition(out: [number, number, number]): Vec3 {
+    out[0] = this.position.x;
+    out[1] = this.position.y + EYE_HEIGHT;
+    out[2] = this.position.z;
+    return out;
   }
 
   get forward(): THREE.Vector3 {

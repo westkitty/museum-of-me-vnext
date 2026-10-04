@@ -135,6 +135,22 @@ describe('ambient visitors', () => {
     expect(scope.size).toBe(0);
   });
 
+  it('coarse-steps distant ambient walkers while preserving their route progress', async () => {
+    const scope = new ResourceScope('ambient-distance-cadence');
+    const v = new AmbientVisitors(scope, 6);
+    await v.setPopulation(visitorLoader(), 6);
+    const before = v.positions().map((p) => [p.x, p.z] as const);
+
+    for (let i = 0; i < 5; i++) v.update(1 / 60, false, 10_000, 10_000);
+    expect(v.positions().map((p) => [p.x, p.z] as const)).toEqual(before);
+
+    v.update(1 / 60, false, 10_000, 10_000);
+    const after = v.positions().map((p) => [p.x, p.z] as const);
+    expect(after.some((p, i) => Math.hypot(p[0] - before[i][0], p[1] - before[i][1]) > 1e-5)).toBe(true);
+    v.dispose();
+    scope.dispose();
+  });
+
   it('does not silently replace missing governed visitors with primitives', async () => {
     const scope = new ResourceScope('t');
     const v = new AmbientVisitors(scope, 8);

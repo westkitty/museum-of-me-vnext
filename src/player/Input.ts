@@ -60,6 +60,7 @@ export class InputManager {
    */
   private readonly edgeHeldCodes = new Set<string>();
   private readonly listeners = new Map<Action, Set<() => void>>();
+  private readonly keyboardLookDelta = { dx: 0, dy: 0 };
 
   mouseDeltaX = 0;
   mouseDeltaY = 0;
@@ -92,8 +93,21 @@ export class InputManager {
     canvas.addEventListener('touchcancel', this.onTouchEnd);
   }
 
-  /** Keyboard look contribution for this frame, in mouse-delta units. */
+  /** Keyboard look contribution for ordinary value-style callers. */
   keyboardLook(dt: number, sensitivity: number): { dx: number; dy: number } {
+    return this.keyboardLookInto(dt, sensitivity, { dx: 0, dy: 0 });
+  }
+
+  /** Allocation-free keyboard-look path for the application frame loop. */
+  keyboardLookReusable(dt: number, sensitivity: number): { dx: number; dy: number } {
+    return this.keyboardLookInto(dt, sensitivity, this.keyboardLookDelta);
+  }
+
+  private keyboardLookInto(
+    dt: number,
+    sensitivity: number,
+    out: { dx: number; dy: number },
+  ): { dx: number; dy: number } {
     const step = (KEYBOARD_LOOK_SPEED * dt * Math.PI) / 180;
     // The player controller multiplies by LOOK_SCALE and sensitivity, so undo
     // both here to keep keyboard turning speed independent of mouse settings.
@@ -104,7 +118,9 @@ export class InputManager {
     if (this.isDown('lookRight')) dx += step * scale;
     if (this.isDown('lookUp')) dy -= step * scale;
     if (this.isDown('lookDown')) dy += step * scale;
-    return { dx, dy };
+    out.dx = dx;
+    out.dy = dy;
+    return out;
   }
 
   isDown(action: Action): boolean {
