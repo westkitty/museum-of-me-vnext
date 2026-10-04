@@ -45,7 +45,9 @@ export class Lighting {
       moonlight.shadow.camera.right = extent;
       moonlight.shadow.camera.top = extent;
       moonlight.shadow.camera.bottom = -extent;
-      moonlight.shadow.bias = -0.0008;
+      moonlight.shadow.bias = -0.00035;
+      moonlight.shadow.normalBias = 0.026;
+      moonlight.shadow.radius = 2;
     }
     this.group.add(moonlight, moonlight.target);
 

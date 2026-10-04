@@ -40,6 +40,7 @@ export class Detailing {
   private detailRotunda(parent: THREE.Group): void {
     const p = this.pal.get('rotunda');
     const halfSide = side(ROTUNDA_APOTHEM) / 2;
+    const coveGlow = this.accentGlow(p.accent, 0.34);
 
     for (const face of OCTAGON_FACES) {
       const dir = faceDirection(face);
@@ -54,6 +55,16 @@ export class Detailing {
       cornice.position.set(mid[0], LEVEL_1_Y - 0.35, mid[2]);
       cornice.rotation.y = Math.atan2(dir[0], dir[2]) + Math.PI;
       parent.add(cornice);
+
+      const cove = new THREE.Mesh(
+        this.scope.track(new THREE.BoxGeometry(halfSide * 1.84, 0.055, 0.08)),
+        coveGlow,
+      );
+      cove.name = `rotunda-cove-glow:${face}`;
+      cove.position.set(mid[0], LEVEL_1_Y - 0.7, mid[2]);
+      cove.rotation.y = cornice.rotation.y;
+      cove.renderOrder = 2;
+      parent.add(cove);
 
       // Base moulding.
       const base = new THREE.Mesh(
@@ -186,6 +197,21 @@ export class Detailing {
     const r = rightOf(dir);
     const y = wing.floorY;
     const angle = Math.atan2(dir[0], dir[2]);
+    const thresholdGlow = this.accentGlow(p.accent, wing.id === 'north' ? 0.64 : 0.42);
+
+    // Two material-only light rails make each wing threshold read instantly
+    // without adding another realtime light to the strict point-light budget.
+    for (const s of [-1, 1]) {
+      const threshold = place(dir, ROTUNDA_APOTHEM + 1.15, s * (wing.hallHalfWidth - 0.18), y);
+      const rail = new THREE.Mesh(
+        this.scope.track(new THREE.BoxGeometry(0.075, Math.min(wing.archHeight, 6.8), 0.075)),
+        thresholdGlow,
+      );
+      rail.name = `wing-threshold-glow:${wing.id}:${s < 0 ? 'left' : 'right'}`;
+      rail.position.set(threshold[0], y + Math.min(wing.archHeight, 6.8) / 2, threshold[2]);
+      rail.renderOrder = 2;
+      parent.add(rail);
+    }
 
     // A rhythm of pilasters and lights down both hall walls.
     const bays = Math.max(2, Math.round((wing.hallTo - wing.hallFrom) / 6));
@@ -308,6 +334,20 @@ export class Detailing {
       column.position.set(columnAt[0], 4.2, columnAt[2]);
       parent.add(column);
     }
+  }
+
+  private accentGlow(source: THREE.Material, opacity: number): THREE.MeshBasicMaterial {
+    const color = 'color' in source && source.color instanceof THREE.Color
+      ? source.color.clone()
+      : new THREE.Color(0xd8c18d);
+    return this.scope.track(new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      toneMapped: false,
+    }));
   }
 
   private detailSanctuaryApproach(parent: THREE.Group): void {

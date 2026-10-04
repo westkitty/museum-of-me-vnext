@@ -24,6 +24,7 @@ export class EnvironmentDressing {
   private readonly darkMetal: THREE.MeshStandardMaterial;
   private readonly facadeDark: THREE.MeshStandardMaterial;
   private readonly facadeAzure: THREE.MeshStandardMaterial;
+  private readonly facadeGlass: THREE.MeshPhysicalMaterial;
   private readonly authorableRoots: { id: string; root: THREE.Object3D }[] = [];
 
   constructor(private readonly scope: ResourceScope) {
@@ -38,6 +39,19 @@ export class EnvironmentDressing {
     this.facadeDark = this.mat(0x101923, 0.78, 0.22);
     this.facadeAzure = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x3aa9ef, emissive: 0x176d9f, emissiveIntensity: 0.72, roughness: 0.34, metalness: 0.5,
+    }));
+    this.facadeGlass = this.scope.track(new THREE.MeshPhysicalMaterial({
+      color: 0x12334a,
+      roughness: 0.14,
+      metalness: 0.08,
+      transmission: 0.42,
+      thickness: 0.22,
+      ior: 1.46,
+      clearcoat: 0.55,
+      clearcoatRoughness: 0.1,
+      transparent: true,
+      opacity: 0.62,
+      depthWrite: false,
     }));
   }
 
@@ -62,6 +76,22 @@ export class EnvironmentDressing {
     // south wing remain independent interior systems.
     this.box('facade-entablature', [facade[0], 9.4, facade[2]], [8.8, 0.7, 0.8], this.facadeDark);
     this.box('facade-canopy', place(d, VESTIBULE_TO + 2.4, 0, 6.1), [7.2, 0.22, 2.3], this.facadeDark);
+
+    // Narrow reflective glazing on either side of the real entrance adds depth
+    // without introducing a second doorway or changing collision authority.
+    for (const side of [-1, 1]) {
+      const glassAt = place(d, VESTIBULE_TO + 0.7, side * 3.55, GROUND_Y);
+      const glass = new THREE.Mesh(
+        this.scope.track(new THREE.BoxGeometry(2.45, 5.9, 0.08)),
+        this.facadeGlass,
+      );
+      glass.name = `facade-glass-panel:${side < 0 ? 'west' : 'east'}`;
+      glass.position.set(glassAt[0], 4.55, glassAt[2]);
+      glass.rotation.y = Math.atan2(d[0], d[2]);
+      glass.castShadow = false;
+      glass.receiveShadow = false;
+      this.group.add(glass);
+    }
 
     for (const side of [-1, 1]) {
       const p = place(d, VESTIBULE_TO + 0.5, side * 5.7, GROUND_Y);

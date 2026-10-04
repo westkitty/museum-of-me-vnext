@@ -119,6 +119,11 @@ describe('light budget', () => {
         if ((n as THREE.Light).isLight && (n as THREE.Light).castShadow) casters++;
       });
       expect(casters, `${tier.tier} shadow casters`).toBeLessThanOrEqual(tier.shadows ? 1 : 0);
+      if (tier.shadows) {
+        const caster = lighting.group.children.find((node) => (node as THREE.Light).castShadow) as THREE.DirectionalLight;
+        expect(caster.shadow.normalBias).toBeGreaterThan(0);
+        expect(caster.shadow.radius).toBeGreaterThan(1);
+      }
       lighting.dispose();
       scope.dispose();
     }

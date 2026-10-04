@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { QUALITY, type QualitySettings, type QualityTier } from './QualityTiers';
 
 /**
@@ -14,6 +15,7 @@ export class RendererHost {
 
   private settings: QualitySettings;
   private contextLost = false;
+  private readonly environmentTarget: THREE.WebGLRenderTarget;
   private readonly onResize = () => this.resize();
   private readonly onContextLost = (e: Event) => {
     e.preventDefault();
@@ -43,6 +45,17 @@ export class RendererHost {
 
     this.scene = new THREE.Scene();
     this.scene.name = 'museum';
+    this.scene.fog = new THREE.FogExp2(0x08121e, 0.00155);
+
+    // One small PMREM gives every Standard/Physical material coherent reflected
+    // light without a runtime reflection pass or network HDR dependency.
+    const room = new RoomEnvironment();
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.environmentTarget = pmrem.fromScene(room, 0.04);
+    this.scene.environment = this.environmentTarget.texture;
+    this.scene.environmentIntensity = 0.42;
+    room.dispose();
+    pmrem.dispose();
 
     this.camera = new THREE.PerspectiveCamera(65, 1, 0.1, 600);
     this.camera.name = 'visitor-camera';
@@ -94,6 +107,7 @@ export class RendererHost {
     window.removeEventListener('resize', this.onResize);
     this.canvas.removeEventListener('webglcontextlost', this.onContextLost);
     this.canvas.removeEventListener('webglcontextrestored', this.onContextRestored);
+    this.environmentTarget.dispose();
     this.renderer.dispose();
   }
 }

@@ -55,6 +55,7 @@ export class ArrivalGarden {
       uniforms: { time: this.waterTime },
       vertexShader: /* glsl */ `
         varying vec2 vUv;
+        varying vec3 vWorldPosition;
         uniform float time;
         float hash(vec2 p) {
           return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -74,11 +75,14 @@ export class ArrivalGarden {
           float broad = noise(p.xy * 0.038 + vec2(time * 0.012, -time * 0.009));
           float cross = noise(p.xy * 0.081 + vec2(-time * 0.016, time * 0.013));
           p.z += (broad - 0.5) * 0.18 + (cross - 0.5) * 0.045;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+          vec4 worldPosition = modelMatrix * vec4(p, 1.0);
+          vWorldPosition = worldPosition.xyz;
+          gl_Position = projectionMatrix * viewMatrix * worldPosition;
         }
       `,
       fragmentShader: /* glsl */ `
         varying vec2 vUv;
+        varying vec3 vWorldPosition;
         uniform float time;
         float hash(vec2 p) {
           return fract(sin(dot(p, vec2(41.7, 289.3))) * 19341.173);
@@ -105,11 +109,18 @@ export class ArrivalGarden {
           float cross = fbm(vUv * vec2(11.0, 7.0) + vec2(-time * 0.018, time * 0.014));
           float field = broad * 0.78 + cross * 0.22;
           float sheen = smoothstep(0.66, 0.86, field);
+          vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+          float fresnel = pow(1.0 - clamp(abs(viewDir.y), 0.0, 1.0), 3.0);
+          float waveA = sin((vUv.x * 13.0 + vUv.y * 7.0) * 6.283 + time * 0.22);
+          float waveB = cos((vUv.x * 5.0 - vUv.y * 11.0) * 6.283 - time * 0.17);
+          float glint = smoothstep(0.72, 0.96, waveA * waveB * 0.5 + 0.5) * sheen;
           vec3 deep = vec3(0.006, 0.018, 0.032);
-          vec3 reflectedSky = vec3(0.022, 0.075, 0.108);
-          vec3 colour = mix(deep, reflectedSky, broad * 0.52);
+          vec3 reflectedSky = vec3(0.028, 0.092, 0.135);
+          vec3 horizonFlash = vec3(0.16, 0.34, 0.44);
+          vec3 colour = mix(deep, reflectedSky, broad * 0.52 + fresnel * 0.34);
           colour += vec3(0.026, 0.082, 0.12) * sheen;
           colour += vec3(0.018, 0.052, 0.074) * smoothstep(0.76, 0.96, cross) * 0.35;
+          colour += horizonFlash * glint * (0.08 + fresnel * 0.22);
           gl_FragColor = vec4(colour, 0.94);
         }
       `,

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { ResourceScope } from '../src/assets/ResourceScope';
 import { EnvironmentDressing } from '../src/world/EnvironmentDressing';
+import { Detailing } from '../src/world/Detailing';
 import { ExhibitColorFields } from '../src/world/ExhibitColorFields';
 import { ExhibitThresholds } from '../src/world/ExhibitThresholds';
 import { ExteriorIdentity } from '../src/world/ExteriorIdentity';
@@ -32,6 +33,18 @@ describe('museum environment coherence', () => {
     scope.dispose();
   });
 
+  it('uses physical architectural glass that can pick up the scene environment', () => {
+    const scope = new ResourceScope('environment-test');
+    const palettes = new PaletteSet(scope);
+    const glass = palettes.glass();
+    expect(glass).toBeInstanceOf(THREE.MeshPhysicalMaterial);
+    const material = glass as THREE.MeshPhysicalMaterial;
+    expect(material.transmission).toBeGreaterThan(0.3);
+    expect(material.clearcoat).toBeGreaterThan(0);
+    expect(material.depthWrite).toBe(false);
+    scope.dispose();
+  });
+
   it('gives major wings distinct accent colours', () => {
     const scope = new ResourceScope('environment-test');
     const palettes = new PaletteSet(scope);
@@ -49,6 +62,8 @@ describe('museum environment coherence', () => {
 
     expect(names.has('environment-dressing')).toBe(true);
     expect(names.has('facade-entablature')).toBe(true);
+    expect(names.has('facade-glass-panel:west')).toBe(true);
+    expect(names.has('facade-glass-panel:east')).toBe(true);
     expect(names.has('baseline-vestibule-floor')).toBe(true);
     expect(names.has('welcome-information-desk')).toBe(true);
     expect(names.has('indoor-plant')).toBe(true);
@@ -174,12 +189,35 @@ describe('museum environment coherence', () => {
     scope.dispose();
   });
 
+  it('adds emissive architectural depth cues without adding realtime lights', () => {
+    const scope = new ResourceScope('environment-test');
+    const palettes = new PaletteSet(scope);
+    const parents = new Map<string, THREE.Group>();
+    for (const id of ['rotunda', 'balcony', 'sanctuary', ...WINGS.map((wing) => wing.id)]) {
+      if (!parents.has(id)) parents.set(id, new THREE.Group());
+    }
+    new Detailing(scope, palettes).applyAll(parents);
+    const cove: string[] = [];
+    const thresholds: string[] = [];
+    let addedLights = 0;
+    for (const parent of parents.values()) parent.traverse((node) => {
+      if (node.name.startsWith('rotunda-cove-glow:')) cove.push(node.name);
+      if (node.name.startsWith('wing-threshold-glow:')) thresholds.push(node.name);
+      if ((node as THREE.Light).isLight) addedLights++;
+    });
+    expect(cove).toHaveLength(8);
+    expect(thresholds).toHaveLength(WINGS.length * 2);
+    expect(addedLights).toBe(0);
+    scope.dispose();
+  });
+
   it('uses a readable procedural night sky with a world-relative physical Blood Ring', () => {
     const scope = new ResourceScope('environment-test');
     const sky = new Sky(scope);
     expect(sky.mesh.name).toBe('night-sky-layered-stars');
     const material = sky.mesh.material as THREE.ShaderMaterial;
     expect(material.fragmentShader).toContain('starLayer');
+    expect(material.fragmentShader).toContain('galacticBand');
     expect(material.fragmentShader).not.toContain('bloodBand');
     expect(material.fragmentShader).not.toContain('ringAngle');
     expect(sky.bloodRing.name).toBe('blood-ring-complete-orbital-structure');
@@ -188,6 +226,9 @@ describe('museum environment coherence', () => {
     expect(sky.bloodRing.position.x).toBe(0);
     expect(sky.bloodRing.position.z).toBe(0);
     expect(sky.bloodRing.material).toBeInstanceOf(THREE.MeshPhysicalMaterial);
+    expect(sky.bloodRingHalo.name).toBe('blood-ring-atmospheric-halo');
+    expect(sky.bloodRingHalo.material).toBeInstanceOf(THREE.MeshBasicMaterial);
+    expect((sky.bloodRingHalo.material as THREE.MeshBasicMaterial).blending).toBe(THREE.AdditiveBlending);
     const ringMaterial = sky.bloodRing.material as THREE.MeshPhysicalMaterial;
     expect(ringMaterial.transmission).toBeGreaterThan(0);
     expect(ringMaterial.thickness).toBeGreaterThan(0);
@@ -211,6 +252,8 @@ describe('museum environment coherence', () => {
     expect(water).toBeTruthy();
     const waterMaterial = (water as THREE.Mesh).material as THREE.ShaderMaterial;
     expect(waterMaterial.fragmentShader).toContain('fbm');
+    expect(waterMaterial.fragmentShader).toContain('fresnel');
+    expect(waterMaterial.fragmentShader).toContain('glint');
     expect(waterMaterial.fragmentShader).not.toContain('* 160.0');
     const initialWaterTime = waterMaterial.uniforms.time.value as number;
     garden.update(1, false);

@@ -8,6 +8,7 @@ import type { ResourceScope } from '../assets/ResourceScope';
 export class Sky {
   readonly mesh: THREE.Mesh;
   readonly bloodRing: THREE.Mesh;
+  readonly bloodRingHalo: THREE.Mesh;
   readonly horizon = new THREE.Color(0x17304b);
   private lastParallaxX = Number.NaN;
   private lastParallaxZ = Number.NaN;
@@ -83,6 +84,10 @@ export class Sky {
             float middle = starLayer(sky, 176.0, 0.962, 0.026, vec2(31.6, 4.8));
             float near = starLayer(sky, 62.0, 0.948, 0.065, vec2(53.2, 72.9));
             float visibleSky = smoothstep(-0.035, 0.16, h);
+            float bandCenter = 0.59 + sin(sky.x * 6.283 + 0.7) * 0.055;
+            float galacticBand = exp(-pow((sky.y - bandCenter) * 9.0, 2.0));
+            float dustKnots = 0.5 + 0.5 * sin(sky.x * 73.0 + sin(sky.y * 41.0) * 2.4);
+            colour += vec3(0.13, 0.11, 0.22) * galacticBand * (0.055 + dustKnots * 0.035) * visibleSky;
             colour += vec3(0.62, 0.68, 0.76) * distant * 0.28 * visibleSky;
             colour += vec3(0.96, 0.88, 0.72) * middle * 0.68 * visibleSky;
             colour += vec3(1.0, 0.79, 0.63) * near * 0.90 * visibleSky;
@@ -148,6 +153,28 @@ export class Sky {
     ringMaterial.depthTest = false;
     ringMaterial.depthWrite = false;
     this.bloodRing.frustumCulled = false;
+
+    const haloGeometry = scope.track(new THREE.TorusGeometry(
+      Sky.BLOOD_RING_ORBIT_RADIUS,
+      Sky.BLOOD_RING_TUBE_RADIUS * 1.5,
+      6,
+      96,
+    ));
+    const haloMaterial = scope.track(new THREE.MeshBasicMaterial({
+      color: 0xff214f,
+      transparent: true,
+      opacity: 0.11,
+      blending: THREE.AdditiveBlending,
+      depthTest: false,
+      depthWrite: false,
+      toneMapped: false,
+    }));
+    this.bloodRingHalo = new THREE.Mesh(haloGeometry, haloMaterial);
+    this.bloodRingHalo.name = 'blood-ring-atmospheric-halo';
+    this.bloodRingHalo.position.copy(this.bloodRing.position);
+    this.bloodRingHalo.rotation.copy(this.bloodRing.rotation);
+    this.bloodRingHalo.renderOrder = -0.55;
+    this.bloodRingHalo.frustumCulled = false;
   }
 
   /** Keep the dome centred on the visitor so it never has an edge. */

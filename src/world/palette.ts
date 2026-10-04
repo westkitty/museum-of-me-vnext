@@ -78,12 +78,18 @@ export class PaletteSet {
     const cached = this.cache.get('__glass');
     if (cached) return cached.floor;
     const m = this.scope.track(
-      new THREE.MeshStandardMaterial({
-        color: 0xd4ebf5,
-        roughness: 0.08,
+      new THREE.MeshPhysicalMaterial({
+        color: 0xcce9f6,
+        roughness: 0.1,
         metalness: 0,
+        transmission: 0.36,
+        thickness: 0.24,
+        ior: 1.45,
+        clearcoat: 0.45,
+        clearcoatRoughness: 0.12,
         transparent: true,
-        opacity: 0.25,
+        opacity: 0.34,
+        depthWrite: false,
         side: THREE.DoubleSide,
       }),
     );
