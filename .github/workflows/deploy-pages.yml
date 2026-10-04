@@ -1,10 +1,14 @@
 # Deploying this museum publishes the current seventy-three-project collection.
-# Publication remains owner-controlled: this workflow is manual-only and is
-# never triggered merely because a branch receives a push.
+# Publication remains owner-controlled: ordinary development pushes never
+# publish. Deployment happens only by manual dispatch or an explicit update of
+# the dedicated pages-preview branch.
 name: deploy to github pages
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - pages-preview
 
 permissions:
   contents: read
