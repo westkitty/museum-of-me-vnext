@@ -15,6 +15,11 @@ export class Lighting {
   private readonly managed: THREE.PointLight[] = [];
   private readonly suppressed = new Set<THREE.PointLight>();
   private readonly distances: { light: THREE.PointLight; d: number }[] = [];
+  private readonly bayEnabled = new Map<string, boolean>();
+  private lastEyeX = Number.NaN;
+  private lastEyeY = Number.NaN;
+  private lastEyeZ = Number.NaN;
+  private dirty = true;
 
   constructor(scope: ResourceScope, quality: QualitySettings) {
     this.group.name = 'lighting';
@@ -106,6 +111,7 @@ export class Lighting {
 
       this.bayLights.set(placement.exhibitId, key);
       this.bayFills.set(placement.exhibitId, fill);
+      this.bayEnabled.set(placement.exhibitId, false);
     }
 
     const balcony = new THREE.PointLight(0xf2e8d6, 70, 55, 2);
@@ -122,6 +128,9 @@ export class Lighting {
   }
 
   setBayLight(exhibitId: string, on: boolean): void {
+    if (this.bayEnabled.get(exhibitId) === on) return;
+    this.bayEnabled.set(exhibitId, on);
+    this.dirty = true;
     for (const light of [this.bayLights.get(exhibitId), this.bayFills.get(exhibitId)]) {
       if (!light) continue;
       if (on) this.suppressed.delete(light);
@@ -130,6 +139,14 @@ export class Lighting {
   }
 
   update(eye: readonly [number, number, number]): void {
+    const dxEye = eye[0] - this.lastEyeX;
+    const dyEye = eye[1] - this.lastEyeY;
+    const dzEye = eye[2] - this.lastEyeZ;
+    if (!this.dirty && dxEye * dxEye + dyEye * dyEye + dzEye * dzEye < 0.0025) return;
+    this.lastEyeX = eye[0];
+    this.lastEyeY = eye[1];
+    this.lastEyeZ = eye[2];
+    this.dirty = false;
     this.distances.length = 0;
     for (const light of this.managed) {
       if (this.suppressed.has(light)) {
@@ -168,6 +185,7 @@ export class Lighting {
     this.group.clear();
     this.bayLights.clear();
     this.bayFills.clear();
+    this.bayEnabled.clear();
     this.managed.length = 0;
     this.suppressed.clear();
   }

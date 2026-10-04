@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { COLLECTION, WINGS_BY_ID, exhibitsForWing } from '../src/content/collection.generated';
-import { ZONES, ZONE_BY_ID, WINGS, WING_BY_ID, PLACEMENTS, zoneAt, shapeContains } from '../src/world/layout';
+import { ZONES, ZONE_BY_ID, WINGS, WING_BY_ID, PLACEMENTS, LEVEL_1_Y, zoneAt, shapeContains } from '../src/world/layout';
+import { compassHeading, mapLevelForY, nearestUnvisitedId } from '../src/ui/MapPanel';
 
 /**
  * The map, the HUD location line and the accessible mirror all read from the
@@ -76,5 +77,32 @@ describe('interface data sources', () => {
         expect(shapeContains(shape, [0, 1, 0]), `${w.id} reaches the rotunda centre`).toBe(false);
       }
     }
+  });
+});
+
+
+describe('map orientation helpers', () => {
+  it('translates camera yaw into museum compass headings', () => {
+    expect(compassHeading(0)).toBe('N');
+    expect(compassHeading(Math.PI / 2)).toBe('W');
+    expect(compassHeading(-Math.PI / 2)).toBe('E');
+    expect(compassHeading(Math.PI)).toBe('S');
+  });
+
+  it('chooses the visitor floor from physical height', () => {
+    expect(mapLevelForY(0)).toBe(0);
+    expect(mapLevelForY(LEVEL_1_Y)).toBe(1);
+    expect(mapLevelForY(LEVEL_1_Y - 2.01)).toBe(0);
+  });
+
+  it('finds the physically nearest unvisited exhibit', () => {
+    const origin = PLACEMENTS[0].doorway;
+    const visited = new Set(PLACEMENTS.slice(1).map((entry) => entry.exhibitId));
+    expect(nearestUnvisitedId(origin, visited)).toBe(PLACEMENTS[0].exhibitId);
+  });
+
+  it('returns null when every exhibit has been visited', () => {
+    const visited = new Set(PLACEMENTS.map((entry) => entry.exhibitId));
+    expect(nearestUnvisitedId([0, 0, 0], visited)).toBeNull();
   });
 });

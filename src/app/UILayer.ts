@@ -54,6 +54,12 @@ export class UILayer {
       () => [app.player.position.x, app.player.position.y, app.player.position.z],
       () => app.zoneLabel,
       () => app.visitThread.active,
+      () => app.player.yaw,
+      () => app.preferences,
+      () => [
+        ...app.sourceVisitors.positions(),
+        ...app.visitors.positions(),
+      ],
     );
     this.deep = new DeepPanel(app.journal);
     this.journal = new JournalPanel(app.journal, (id) => this.deep.openFor(id), () => this.visitThread.open());
@@ -409,19 +415,17 @@ export class UILayer {
     this.hud.setLocation(this.app.currentZone);
     this.syncVisitThread();
 
-    const extra: Record<string, string | number> = {
-      quality: this.app.renderer.quality.tier,
-      controls: this.app.interaction.controlCount,
-      audio: this.app.audio.isRunning ? 'on' : 'off',
-      pointer: this.app.input.pointerLocked ? 'locked' : 'free',
-      loads: this.app.streaming.telemetry.pendingLoads,
-    };
-    // currentExhibitId may ask the streaming manager for its active hosts, so do
-    // not pay that diagnostic-only cost while the overlay is hidden.
     if (!this.diagnostics.root.hidden) {
-      extra.exhibit = this.app.currentExhibitId ?? '—';
+      const extra: Record<string, string | number> = {
+        quality: this.app.renderer.quality.tier,
+        controls: this.app.interaction.controlCount,
+        audio: this.app.audio.isRunning ? 'on' : 'off',
+        pointer: this.app.input.pointerLocked ? 'locked' : 'free',
+        loads: this.app.streaming.telemetry.pendingLoads,
+        exhibit: this.app.currentExhibitId ?? '—',
+      };
+      this.diagnostics.update(dt, extra);
     }
-    this.diagnostics.update(dt, extra);
   }
 
   /**

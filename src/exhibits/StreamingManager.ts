@@ -37,6 +37,7 @@ export class StreamingManager {
   };
 
   private readonly mountQueue: string[] = [];
+  private readonly queued = new Set<string>();
   private readonly loading = new Set<string>();
   private now = 0;
 
@@ -63,14 +64,14 @@ export class StreamingManager {
     }
   }
 
-  /** Distance from the visitor to an exhibit's anchor, ignoring nothing. */
-  private distanceTo(id: string, eye: Vec3): number {
+  /** Squared distance avoids a square root for every host on every evaluation. */
+  private distanceSqTo(id: string, eye: Vec3): number {
     const p = PLACEMENT_BY_EXHIBIT.get(id);
     if (!p) return Infinity;
     const dx = eye[0] - p.anchor[0];
     const dy = eye[1] - p.anchor[1];
     const dz = eye[2] - p.anchor[2];
-    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    return dx * dx + dy * dy + dz * dz;
   }
 
   /**
@@ -83,18 +84,22 @@ export class StreamingManager {
     let active = 0;
 
     const here = ZONE_BY_ID.get(zone);
-    const nearbyZones = new Set<string>([zone, ...(here?.neighbours ?? [])]);
+    const neighbours = here?.neighbours ?? [];
+    const loadRadiusSq = this.budget.loadRadius * this.budget.loadRadius;
+    const unloadRadiusSq = this.budget.unloadRadius * this.budget.unloadRadius;
+    const activateRadiusSq = this.budget.activateRadius * this.budget.activateRadius;
+    const deactivateRadiusSq = activateRadiusSq * 1.25 * 1.25;
 
     for (const [id, host] of this.hosts) {
-      const distance = this.distanceTo(id, eye);
+      const distanceSq = this.distanceSqTo(id, eye);
       const state = host.currentState;
       // Distance alone is not enough: bays in different wings and on different
       // levels can be metres apart through a floor. An exhibit is only relevant
       // while the visitor is in its wing or somewhere adjoining it.
-      const inRelevantZone = nearbyZones.has(host.record.wing);
+      const inRelevantZone = zone === host.record.wing || neighbours.includes(host.record.wing);
       const inOwnWing = zone === host.record.wing;
 
-      if (inRelevantZone && distance <= this.budget.loadRadius) {
+      if (inRelevantZone && distanceSq <= loadRadiusSq) {
         if (state === 'unloaded' && !this.loading.has(id)) {
           this.loading.add(id);
           const started = performance.now();
@@ -102,30 +107,36 @@ export class StreamingManager {
             .preload()
             .then(() => {
               this.telemetry.lastLoadMs = performance.now() - started;
-              if (!this.mountQueue.includes(id)) this.mountQueue.push(id);
+              if (!this.queued.has(id)) {
+                this.queued.add(id);
+                this.mountQueue.push(id);
+              }
             })
             .catch((err) => console.error(`[Streaming] preload failed for ${id}`, err))
             .finally(() => this.loading.delete(id));
-        } else if (state === 'loaded' && !this.mountQueue.includes(id)) {
+        } else if (state === 'loaded' && !this.queued.has(id)) {
+          this.queued.add(id);
           this.mountQueue.push(id);
         }
-      } else if (!inRelevantZone || distance > this.budget.unloadRadius) {
+      } else if (!inRelevantZone || distanceSq > unloadRadiusSq) {
         if (state === 'active' || state === 'mounted') {
           host.unmount();
           this.telemetry.totalUnmounts++;
         }
-        const queued = this.mountQueue.indexOf(id);
-        if (queued >= 0) this.mountQueue.splice(queued, 1);
+        if (this.queued.delete(id)) {
+          const queued = this.mountQueue.indexOf(id);
+          if (queued >= 0) this.mountQueue.splice(queued, 1);
+        }
       }
 
       if (state === 'mounted' || state === 'active') resident++;
       if (host.currentState === 'active') {
-        if (!inOwnWing || distance > this.budget.activateRadius * 1.25) {
+        if (!inOwnWing || distanceSq > deactivateRadiusSq) {
           host.deactivate();
         } else {
           active++;
         }
-      } else if (host.currentState === 'mounted' && inOwnWing && distance <= this.budget.activateRadius) {
+      } else if (host.currentState === 'mounted' && inOwnWing && distanceSq <= activateRadiusSq) {
         host.activate(this.now);
         active++;
       }
@@ -135,10 +146,11 @@ export class StreamingManager {
     let budgetLeft = this.budget.mountsPerFrame;
     while (budgetLeft > 0 && this.mountQueue.length > 0) {
       const id = this.mountQueue.shift()!;
+      this.queued.delete(id);
       const host = this.hosts.get(id);
       if (!host || host.currentState !== 'loaded') continue;
-      if (!nearbyZones.has(host.record.wing)) continue;
-      if (this.distanceTo(id, eye) > this.budget.unloadRadius) continue;
+      if (zone !== host.record.wing && !neighbours.includes(host.record.wing)) continue;
+      if (this.distanceSqTo(id, eye) > unloadRadiusSq) continue;
       try {
         host.mount();
         this.telemetry.totalMounts++;
@@ -164,8 +176,22 @@ export class StreamingManager {
     return this.hosts.get(id);
   }
 
-  activeHosts(): ExhibitHost[] {
-    return [...this.hosts.values()].filter((h) => h.isActive);
+  nearestActiveId(eye: Vec3, maxDistanceSq = Infinity): string | null {
+    let nearest: ExhibitHost | null = null;
+    let best = maxDistanceSq;
+    for (const host of this.hosts.values()) {
+      if (!host.isActive) continue;
+      const anchor = host.module.def.anchor;
+      const dx = eye[0] - anchor[0];
+      const dy = eye[1] - anchor[1];
+      const dz = eye[2] - anchor[2];
+      const distanceSq = dx * dx + dy * dy + dz * dz;
+      if (distanceSq < best) {
+        best = distanceSq;
+        nearest = host;
+      }
+    }
+    return nearest?.id ?? null;
   }
 
   /** Total resources currently held across every exhibit. */
@@ -179,6 +205,7 @@ export class StreamingManager {
     for (const h of this.hosts.values()) h.dispose();
     this.hosts.clear();
     this.mountQueue.length = 0;
+    this.queued.clear();
     this.loading.clear();
   }
 }

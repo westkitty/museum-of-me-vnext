@@ -267,17 +267,7 @@ export class App implements LoopCallbacks {
   get currentExhibitId(): string | null {
     const focus = this.interaction.currentFocus;
     if (focus) return focus.exhibitId;
-    const active = this.streaming.activeHosts();
-    if (active.length === 0) return null;
-    let nearest = active[0];
-    let best = Infinity;
-    const eye = this.player.eyePosition;
-    for (const host of active) {
-      const a = host.module.def.anchor;
-      const d = (eye[0] - a[0]) ** 2 + (eye[1] - a[1]) ** 2 + (eye[2] - a[2]) ** 2;
-      if (d < best) { best = d; nearest = host; }
-    }
-    return best <= 100 ? nearest.id : null;
+    return this.streaming.nearestActiveId(this.player.eyePosition, 100);
   }
 
   get scene(): THREE.Scene {
@@ -384,11 +374,10 @@ export class App implements LoopCallbacks {
     this.diagnostics.stats.activeExhibits = this.streaming.telemetry.active;
     this.diagnostics.stats.streamingResident = this.streaming.telemetry.resident;
 
-    this.diagnostics.stats.playerPosition = [
-      Math.round(this.player.position.x * 10) / 10,
-      Math.round(this.player.position.y * 10) / 10,
-      Math.round(this.player.position.z * 10) / 10,
-    ];
+    const diagnosticPosition = this.diagnostics.stats.playerPosition;
+    diagnosticPosition[0] = Math.round(this.player.position.x * 10) / 10;
+    diagnosticPosition[1] = Math.round(this.player.position.y * 10) / 10;
+    diagnosticPosition[2] = Math.round(this.player.position.z * 10) / 10;
     this.diagnostics.stats.wing = ZONE_BY_ID.get(this.currentZone as never)?.label ?? this.currentZone;
 
     this.wayfinding.update(

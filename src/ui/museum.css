@@ -383,6 +383,11 @@ html[data-motion='reduced'] *::after {
 .map__plan .room { stroke: rgba(236, 229, 216, 0.22); stroke-width: 0.5; }
 .map__plan .label { fill: var(--parchment-dim); font-size: 5px; font-family: var(--font-ui); }
 .map__plan .you { fill: var(--gold-bright); }
+.map__plan .you-heading { stroke: var(--gold-bright); stroke-width: 1.15; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.map__plan .map-visitor circle { fill: rgba(236, 229, 216, 0.72); stroke: rgba(23, 20, 29, 0.85); stroke-width: 0.45; vector-effect: non-scaling-stroke; }
+.map__plan .map-visitor--ambient circle { fill: rgba(236, 229, 216, 0.28); }
+.map__plan .map-visitor--staff circle { fill: var(--gold-bright); stroke: var(--focus); stroke-width: 0.9; }
+.map__visitor-note { color: var(--parchment-dim); font-size: 0.88rem; }
 .map__plan .bay { cursor: pointer; }
 .map__plan .bay:hover { stroke: var(--gold-bright); stroke-width: 1.2; }
 .map__plan .bay:focus-visible rect { stroke: var(--focus); stroke-width: 1.6; }
@@ -713,6 +718,9 @@ html[data-contrast='high'] .thread-stop[data-state='current'] { outline: 3px sol
   }
   .thread-stop[data-state='current'] { outline: 3px solid Highlight; }
   .map__plan .thread-marker circle { fill: Canvas; stroke: CanvasText; }
+  .map__plan .you-heading, .map__plan .map-visitor circle { stroke: CanvasText; }
+  .map__plan .map-visitor circle { fill: Canvas; }
+  .map__plan .map-visitor--staff circle { fill: Highlight; stroke: HighlightText; }
   .map__plan .thread-marker--current circle { fill: Highlight; stroke: HighlightText; }
 }
 

@@ -34,6 +34,8 @@ export class SourceVisitors {
   readonly group = new THREE.Group();
   private readonly visitors: RuntimeVisitor[] = [];
   private readonly unbind: (() => void)[] = [];
+  private readonly collisionProbeX = { x: 0, y: 0, z: 0 };
+  private readonly collisionProbeZ = { x: 0, y: 0, z: 0 };
 
   constructor(
     private readonly scope: ResourceScope,
@@ -63,9 +65,14 @@ export class SourceVisitors {
     return SOURCE_VISITORS;
   }
 
-  positions(): Array<{ id: string; x: number; z: number; staff: boolean }> {
+  positions(): Array<{ id: string; x: number; y: number; z: number; staff: boolean; kind: 'authored' }> {
     return this.visitors.map((v) => ({
-      id: v.data.id, x: v.group.position.x, z: v.group.position.z, staff: !!v.data.staff,
+      id: v.data.id,
+      x: v.group.position.x,
+      y: v.group.position.y,
+      z: v.group.position.z,
+      staff: !!v.data.staff,
+      kind: 'authored' as const,
     }));
   }
 
@@ -163,9 +170,15 @@ export class SourceVisitors {
       const step = Math.min(dist, v.data.speed * dt);
       const nx = v.group.position.x + (dx / dist) * step;
       const nz = v.group.position.z + (dz / dist) * step;
-      const probe = { x: nx, y: v.group.position.y, z: v.group.position.z };
+      const probe = this.collisionProbeX;
+      probe.x = nx;
+      probe.y = v.group.position.y;
+      probe.z = v.group.position.z;
       this.collisions.resolveHorizontal(probe, 0.28, 1.6);
-      const probeZ = { x: v.group.position.x, y: v.group.position.y, z: nz };
+      const probeZ = this.collisionProbeZ;
+      probeZ.x = v.group.position.x;
+      probeZ.y = v.group.position.y;
+      probeZ.z = nz;
       this.collisions.resolveHorizontal(probeZ, 0.28, 1.6);
       v.group.position.x = probe.x;
       v.group.position.z = probeZ.z;

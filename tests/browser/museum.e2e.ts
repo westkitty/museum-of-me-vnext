@@ -84,11 +84,18 @@ test('operates the visual map and reduced-motion setting with the keyboard', asy
 
   await page.keyboard.press('m');
   await expect(page.getByRole('dialog', { name: 'Museum map' })).toBeVisible();
+  await expect(page.locator('.map__plan')).toHaveAttribute('aria-label', /You are facing (N|NE|E|SE|S|SW|W|NW)/);
+  await expect(page.locator('.map__plan .you-heading')).toHaveCount(1);
+  expect(await page.locator('.map__plan .map-visitor').count()).toBeGreaterThan(0);
+  await expect(page.locator('#panel-map .map__visitor-note')).toContainText('visible on this floor');
+  await expect(page.getByRole('button', { name: 'Nearest unvisited' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /My floor/ })).toBeDisabled();
 
   const visualBay = page.locator('.map__plan .bay[role="button"]').first();
   await visualBay.focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('#panel-map .panel__note')).toContainText('Wayfinding to');
+  await expect(page.locator('#panel-map .panel__note')).toContainText('m away');
 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog', { name: 'Museum map' })).toBeHidden();

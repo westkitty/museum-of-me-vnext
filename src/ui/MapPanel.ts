@@ -1,13 +1,14 @@
 import { Panel } from './Panel';
 import { el, isActivationKey } from './dom';
 import {
-  WINGS, PLACEMENTS, ROTUNDA_APOTHEM, VESTIBULE_TO, SANCTUARY_CENTER, SANCTUARY_RADIUS,
+  WINGS, PLACEMENTS, ROTUNDA_APOTHEM, VESTIBULE_TO, SANCTUARY_CENTER, SANCTUARY_RADIUS, LEVEL_1_Y,
   SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_DIR,
   faceDirection, place, type Vec3,
 } from '../world/layout';
 import { EXHIBITS_BY_ID, WINGS_BY_ID, exhibitsForWing, COLLECTION } from '../content/collection.generated';
 import type { Journal } from '../state/Journal';
 import type { ActiveVisitThread } from '../state/VisitThread';
+import type { VisitorPreferences } from '../state/Preferences';
 
 const SVG = 'http://www.w3.org/2000/svg';
 /** Plan extent in metres, mapped onto the SVG viewBox. */
@@ -25,6 +26,40 @@ function svg<K extends keyof SVGElementTagNameMap>(
 /** World XZ → SVG coordinates. North is up. */
 function toSvg(p: Vec3): [number, number] {
   return [p[0] + EXTENT, p[2] + EXTENT];
+}
+
+export interface MapVisitorMarker {
+  readonly id: string;
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly kind: 'authored' | 'ambient';
+  readonly staff?: boolean;
+}
+
+export function mapLevelForY(y: number): 0 | 1 {
+  return y >= LEVEL_1_Y - 2 ? 1 : 0;
+}
+
+export function compassHeading(yaw: number): string {
+  const dx = -Math.sin(yaw);
+  const dz = -Math.cos(yaw);
+  const degrees = (Math.atan2(dx, -dz) * 180 / Math.PI + 360) % 360;
+  const names = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
+  return names[Math.round(degrees / 45) % 8];
+}
+
+export function nearestUnvisitedId(position: Vec3, visited: ReadonlySet<string>): string | null {
+  let best: { id: string; distance: number } | null = null;
+  for (const placement of PLACEMENTS) {
+    if (visited.has(placement.exhibitId)) continue;
+    const distance = Math.hypot(
+      placement.doorway[0] - position[0],
+      placement.doorway[2] - position[2],
+    );
+    if (!best || distance < best.distance) best = { id: placement.exhibitId, distance };
+  }
+  return best?.id ?? null;
 }
 
 const WING_COLOUR: Record<string, string> = {
@@ -47,8 +82,16 @@ export class MapPanel extends Panel {
     private readonly getPosition: () => Vec3,
     private readonly getZone: () => string,
     private readonly getThread: () => ActiveVisitThread | null,
+    private readonly getYaw: () => number,
+    private readonly getPreferences: () => Pick<VisitorPreferences, 'showMapVisitors' | 'showTooltips'>,
+    private readonly getVisitors: () => readonly MapVisitorMarker[],
   ) {
     super('map', 'Museum map', 'Where you are');
+  }
+
+  override open(): void {
+    this.level = mapLevelForY(this.getPosition()[1]);
+    super.open();
   }
 
   onTargetChange(fn: (exhibitId: string | null) => void): () => void {
@@ -82,11 +125,16 @@ export class MapPanel extends Panel {
   }
 
   protected render(): void {
+    const position = this.getPosition();
+    const prefs = this.getPreferences();
+    const yaw = this.getYaw();
+    const heading = compassHeading(yaw);
+    const floorName = this.level === 0 ? 'ground floor' : 'upper floor';
     const plan = svg('svg', {
       class: 'map__plan',
       viewBox: `0 0 ${EXTENT * 2} ${EXTENT * 2}`,
       role: 'img',
-      'aria-label': `Museum plan, ${this.level === 0 ? 'ground floor' : 'upper floor'}`,
+      'aria-label': `Museum plan, ${floorName}. You are facing ${heading}.`,
     });
 
     const rot = svg('circle', {
@@ -146,10 +194,13 @@ export class MapPanel extends Panel {
           'fill-opacity': this.journal.hasVisited(record.id) ? '0.85' : '1',
           stroke: colour, 'stroke-width': 0.6,
         });
-        const label = svg('title');
-        label.textContent = `${record.id} · ${record.title} — ${record.copy.plaque}`;
         const activate = (): void => this.setTarget(selected ? null : record.id);
-        g.append(box, label);
+        g.append(box);
+        if (prefs.showTooltips) {
+          const label = svg('title');
+          label.textContent = `${record.id} · ${record.title} — ${record.copy.plaque}`;
+          g.append(label);
+        }
         g.addEventListener('click', activate);
         g.addEventListener('keydown', (event) => {
           if (!isActivationKey(event)) return;
@@ -169,8 +220,33 @@ export class MapPanel extends Panel {
       plan.append(textAt(sx, sy - SANCTUARY_RADIUS - 3, 'Dexter Sanctuary'));
     }
 
-    const pos = this.getPosition();
-    const [px, py] = toSvg(pos);
+    const visitorMarkers = prefs.showMapVisitors
+      ? this.getVisitors().filter((visitor) => mapLevelForY(visitor.y) === this.level)
+      : [];
+    for (const visitor of visitorMarkers) {
+      const [vx, vy] = toSvg([visitor.x, visitor.y, visitor.z]);
+      const marker = svg('g', {
+        class: `map-visitor map-visitor--${visitor.kind}${visitor.staff ? ' map-visitor--staff' : ''}`,
+        'aria-hidden': 'true',
+      });
+      marker.append(svg('circle', { cx: vx, cy: vy, r: visitor.staff ? 1.9 : 1.5 }));
+      if (prefs.showTooltips) {
+        const title = svg('title');
+        title.textContent = visitor.kind === 'authored'
+          ? `${visitor.staff ? 'Museum staff' : 'Authored visitor'} · ${visitor.id}`
+          : 'Ambient museum visitor';
+        marker.append(title);
+      }
+      plan.append(marker);
+    }
+
+    const [px, py] = toSvg(position);
+    const forwardX = -Math.sin(yaw);
+    const forwardZ = -Math.cos(yaw);
+    plan.append(svg('line', {
+      class: 'you-heading',
+      x1: px, y1: py, x2: px + forwardX * 8, y2: py + forwardZ * 8,
+    }));
     plan.append(svg('circle', { class: 'you', cx: px, cy: py, r: 2.6 }));
     const halo = svg('circle', { cx: px, cy: py, r: 5.2, fill: 'none', stroke: '#e8c65a', 'stroke-width': 0.8, 'stroke-opacity': '0.6' });
     plan.append(halo);
@@ -191,6 +267,7 @@ export class MapPanel extends Panel {
               style: `--wing-colour:${WING_COLOUR[wing.id]}`,
               'data-visited': String(this.journal.hasVisited(record.id)),
               'aria-pressed': String(this.target === record.id),
+              ...(prefs.showTooltips ? { title: record.copy.plaque } : {}),
               onclick: () => this.setTarget(this.target === record.id ? null : record.id),
             },
             el('strong', { text: `${record.id} · ${record.title}` }),
@@ -201,6 +278,7 @@ export class MapPanel extends Panel {
       list.append(grid);
     }
 
+    const myLevel = mapLevelForY(position[1]);
     const levelSwitch = el(
       'div',
       { class: 'map__level', role: 'group', 'aria-label': 'Floor' },
@@ -214,6 +292,12 @@ export class MapPanel extends Panel {
         'aria-pressed': String(this.level === 1),
         onclick: () => { this.level = 1; this.rerenderWithDialogFocus(); },
       }),
+      el('button', {
+        type: 'button',
+        text: `My floor · ${myLevel === 0 ? 'ground' : 'upper'}`,
+        disabled: this.level === myLevel,
+        onclick: () => { this.level = myLevel; this.rerenderWithDialogFocus(); },
+      }),
     );
 
     this.setContent(
@@ -224,10 +308,13 @@ export class MapPanel extends Panel {
         el(
           'div',
           {},
-          el('p', { text: `You are in the ${this.getZone()}. Selecting an exhibit marks it on the map and shows a direction cue — it never moves you there.` }),
+          el('p', { text: `You are in the ${this.getZone()}, facing ${heading}. Selecting an exhibit marks it on the map and shows a direction cue — it never moves you there.` }),
           this.target
-            ? el('p', { class: 'panel__note', text: `Wayfinding to ${EXHIBITS_BY_ID.get(this.target)?.title}. Select it again to clear.` })
+            ? el('p', { class: 'panel__note', text: `Wayfinding to ${EXHIBITS_BY_ID.get(this.target)?.title} · ${Math.round(this.distanceTo(this.target))} m away. Select it again to clear.` })
             : el('p', { class: 'panel__note', text: `${this.journal.visitedCount} of 35 exhibits visited. There is no score.` }),
+          prefs.showMapVisitors
+            ? el('p', { class: 'map__visitor-note', text: `${visitorMarkers.length} visitor${visitorMarkers.length === 1 ? '' : 's'} visible on this floor: authored people use solid markers, staff use ringed markers, ambient visitors use quiet markers.` })
+            : el('p', { class: 'map__visitor-note', text: 'Visitor markers are hidden by your settings.' }),
           thread
             ? el('p', { class: 'map__thread-note', text: `Visit Thread: ${thread.title} · ${thread.status === 'complete' ? 'complete' : `stop ${thread.cursor + 1} of ${thread.stopIds.length}`}. Numbered markers on the plan are itinerary stops, not completion marks.` })
             : document.createTextNode(''),
@@ -236,11 +323,29 @@ export class MapPanel extends Panel {
               const next = this.journal.nextUnvisited(COLLECTION.exhibits.map((e) => e.id));
               if (next) this.setTarget(next);
             } }),
+            el('button', { type: 'button', text: 'Nearest unvisited', onclick: () => {
+              const visited = new Set(COLLECTION.exhibits.filter((entry) => this.journal.hasVisited(entry.id)).map((entry) => entry.id));
+              const next = nearestUnvisitedId(position, visited);
+              if (next) this.setTarget(next);
+            } }),
+            thread && thread.status === 'active' && thread.stopIds[thread.cursor]
+              ? el('button', { type: 'button', text: 'Guide current thread stop', onclick: () => this.setTarget(thread.stopIds[thread.cursor]) })
+              : document.createTextNode(''),
             el('button', { type: 'button', text: 'Clear guide', onclick: () => this.setTarget(null) }),
           ),
           list,
         ),
       ),
+    );
+  }
+
+  private distanceTo(exhibitId: string): number {
+    const placement = PLACEMENTS.find((entry) => entry.exhibitId === exhibitId);
+    if (!placement) return 0;
+    const position = this.getPosition();
+    return Math.hypot(
+      placement.doorway[0] - position[0],
+      placement.doorway[2] - position[2],
     );
   }
 

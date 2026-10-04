@@ -43,6 +43,25 @@ export class AmbientVisitors {
   get ready(): boolean { return this.targetCount === 0 || this.residentCount === this.targetCount; }
   get residentCount(): number { return this.walkers.length + this.observers.length; }
 
+  positions(): Array<{ id: string; x: number; y: number; z: number; kind: 'ambient' }> {
+    return [
+      ...this.walkers.map((visitor, index) => ({
+        id: `ambient-walker:${index}`,
+        x: visitor.mesh.position.x,
+        y: visitor.mesh.position.y,
+        z: visitor.mesh.position.z,
+        kind: 'ambient' as const,
+      })),
+      ...this.observers.map((visitor, index) => ({
+        id: `ambient-observer:${index}`,
+        x: visitor.mesh.position.x,
+        y: visitor.mesh.position.y,
+        z: visitor.mesh.position.z,
+        kind: 'ambient' as const,
+      })),
+    ];
+  }
+
   /** Load governed prototypes, then clone skinned visitors without shared-skeleton corruption. */
   async setPopulation(loader: AmbientAssetLoader, count: number): Promise<void> {
     this.targetCount = Math.max(0, count);
