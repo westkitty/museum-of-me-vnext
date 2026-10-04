@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "npm run build:collection && vite",
     "build": "npm run build:collection && tsc --noEmit && vite build",
+    "build:pages": "npm run build && node scripts/prepare-pages-dist.mjs",
     "preview": "vite preview --port 4173",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
@@ -22,6 +23,8 @@
     "check:budgets": "node scripts/check-budgets.mjs",
     "verify:dist": "node scripts/verify-release-dist.mjs",
     "verify:hosted": "node scripts/verify-hosted.mjs",
+    "verify:pages-dist": "node scripts/verify-pages-dist.mjs",
+    "verify:pages-hosted": "node scripts/verify-pages-hosted.mjs",
     "verify:human-evidence": "node scripts/verify-human-evidence.mjs",
     "validate:source-parity": "node scripts/validate-source-parity.mjs",
     "build:standalone": "npm run build:collection && vite build --config vite.standalone.config.ts && node scripts/build-standalone.mjs",

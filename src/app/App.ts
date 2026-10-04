@@ -25,7 +25,7 @@ import { ArrivalGarden } from '../world/ArrivalGarden';
 import { Lighting } from '../render/Lighting';
 import { InputManager } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
-import { zoneAt, ZONE_BY_ID, isOnFlightPad, type ZoneId } from '../world/layout';
+import { zoneAtXYZ, ZONE_BY_ID, isOnFlightPad, type ZoneId } from '../world/layout';
 import { START_POSITION, START_YAW } from '../world/start';
 import { installExhibits } from '../exhibits';
 import { StreamingManager } from '../exhibits/StreamingManager';
@@ -88,6 +88,8 @@ export class App implements LoopCallbacks {
 
   private disposed = false;
   private workshopUpdate: (() => void) | null = null;
+  private ambientLoadTimer: number | null = null;
+  private diagnosticSampleElapsed = 0.1;
 
   constructor(opts: AppOptions) {
     this.uiRoot = opts.uiRoot;
@@ -249,10 +251,7 @@ export class App implements LoopCallbacks {
     const cap = this.preferences.frameCap;
     this.loop.setFrameCap(cap === '30' ? 30 : cap === '60' ? 60 : 0);
     this.ui = new UILayer(this);
-    void this.visitors.setPopulation(this.assets, this.renderer.quality.ambientVisitors).catch((error) => {
-      console.error('Ambient visitors unavailable; no placeholder crowd was created.', error);
-      this.ui.hud.announce('Ambient visitors are unavailable on this device.');
-    });
+    this.scheduleAmbientPopulation(true);
     this.lifecycle = new Lifecycle(this.loop, this.input, this.renderer, () => this.preferences, (message) => {
       this.ui.hud.announce(message);
     });
@@ -281,10 +280,20 @@ export class App implements LoopCallbacks {
   setQuality(tier: QualityTier | 'auto'): void {
     this.preferences.quality = tier;
     this.renderer.setQuality(tier === 'auto' ? detectQualityTier() : tier);
-    void this.visitors.setPopulation(this.assets, this.renderer.quality.ambientVisitors).catch((error) => {
-      console.error('Ambient visitor quality update failed; no placeholder crowd was created.', error);
-    });
+    this.scheduleAmbientPopulation(false);
     savePreferences(this.preferences);
+  }
+
+  private scheduleAmbientPopulation(announceFailure: boolean): void {
+    if (this.ambientLoadTimer !== null) window.clearTimeout(this.ambientLoadTimer);
+    // Let the shell render and accept input before parsing the multi-megabyte crowd GLBs.
+    this.ambientLoadTimer = window.setTimeout(() => {
+      this.ambientLoadTimer = null;
+      void this.visitors.setPopulation(this.assets, this.renderer.quality.ambientVisitors).catch((error) => {
+        console.error('Ambient visitors unavailable; no placeholder crowd was created.', error);
+        if (announceFailure) this.ui.hud.announce('Ambient visitors are unavailable on this device.');
+      });
+    }, 250);
   }
 
   start(): void {
@@ -351,7 +360,7 @@ export class App implements LoopCallbacks {
     );
 
     const eye = this.player.eyePosition;
-    const zone = zoneAt([eye[0], this.player.position.y + 0.1, eye[2]]);
+    const zone = zoneAtXYZ(eye[0], this.player.position.y + 0.1, eye[2]);
     if (zone !== this.currentZone) {
       this.currentZone = zone;
       this.audio.setZone(zone);
@@ -395,7 +404,11 @@ export class App implements LoopCallbacks {
   render(alpha: number): void {
     this.player.applyToCamera(this.camera, alpha);
     this.renderer.render();
-    this.diagnostics.sample(this.renderer.renderer, this.loop.fps, this.loop.frameTimeMs);
+    this.diagnosticSampleElapsed += this.loop.frameTimeMs / 1000;
+    if (this.diagnosticSampleElapsed >= 0.1) {
+      this.diagnosticSampleElapsed = 0;
+      this.diagnostics.sample(this.renderer.renderer, this.loop.fps, this.loop.frameTimeMs);
+    }
   }
 
   dispose(): void {
@@ -403,6 +416,8 @@ export class App implements LoopCallbacks {
     this.disposed = true;
     this.loop.stop();
     this.workshopUpdate = null;
+    if (this.ambientLoadTimer !== null) window.clearTimeout(this.ambientLoadTimer);
+    this.ambientLoadTimer = null;
     this.ui?.dispose();
     this.audio.dispose();
     this.assets.dispose();

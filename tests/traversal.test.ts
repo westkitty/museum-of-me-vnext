@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildMuseum, walkRoute, walkSegment } from './helpers/walk';
 import { canonicalRoute } from '../src/world/route';
 import {
-  PLACEMENTS, WINGS, zoneAt, ZONES,
+  PLACEMENTS, WINGS, zoneAt, zoneAtXYZ, ZONES,
   SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_FLOOR_Y,
   SANCTUARY_CENTER, GROUND_Y, place, PLINTH_RADIUS, PLINTH_TOP_Y,
   STAIRS, stairArcPoint, faceDirection, LEVEL_1_Y,
@@ -116,6 +116,17 @@ describe('curved grand stairs', () => {
 });
 
 describe('zones', () => {
+  it('keeps the allocation-free scalar lookup exactly equivalent to tuple lookup', () => {
+    const points = [
+      ...ZONES.map((zone) => zone.center),
+      START_POSITION,
+      ...PLACEMENTS.slice(0, 12).map((placement) => placement.visitorSpot),
+    ];
+    for (const point of points) {
+      expect(zoneAtXYZ(point[0], point[1], point[2]), point.join(',')).toBe(zoneAt(point));
+    }
+  });
+
   it('resolves every zone centre to itself', () => {
     for (const z of ZONES) {
       expect(zoneAt(z.center), `${z.id}`).toBe(z.id);

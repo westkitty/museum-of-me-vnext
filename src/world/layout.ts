@@ -409,29 +409,33 @@ export interface Zone {
   readonly level: 0 | 1;
 }
 
-export function shapeContains(shape: ZoneShape, p: Vec3): boolean {
+function shapeContainsXYZ(shape: ZoneShape, x: number, y: number, z: number): boolean {
   switch (shape.kind) {
     case 'box':
       return (
-        Math.abs(p[0] - shape.c[0]) <= shape.h[0] &&
-        Math.abs(p[1] - shape.c[1]) <= shape.h[1] &&
-        Math.abs(p[2] - shape.c[2]) <= shape.h[2]
+        Math.abs(x - shape.c[0]) <= shape.h[0] &&
+        Math.abs(y - shape.c[1]) <= shape.h[1] &&
+        Math.abs(z - shape.c[2]) <= shape.h[2]
       );
     case 'cylinder': {
-      if (p[1] < shape.yMin || p[1] > shape.yMax) return false;
-      const dx = p[0] - shape.c[0];
-      const dz = p[2] - shape.c[2];
+      if (y < shape.yMin || y > shape.yMax) return false;
+      const dx = x - shape.c[0];
+      const dz = z - shape.c[2];
       return dx * dx + dz * dz <= shape.radius * shape.radius;
     }
     case 'slab': {
-      if (p[1] < shape.yMin || p[1] > shape.yMax) return false;
-      const along = p[0] * shape.dir[0] + p[2] * shape.dir[2];
+      if (y < shape.yMin || y > shape.yMax) return false;
+      const along = x * shape.dir[0] + z * shape.dir[2];
       if (along < shape.alongMin || along > shape.alongMax) return false;
       const r = rightOf(shape.dir);
-      const lateral = p[0] * r[0] + p[2] * r[2];
+      const lateral = x * r[0] + z * r[2];
       return Math.abs(lateral) <= shape.halfWidth;
     }
   }
+}
+
+export function shapeContains(shape: ZoneShape, p: Vec3): boolean {
+  return shapeContainsXYZ(shape, p[0], p[1], p[2]);
 }
 
 function wingShape(w: WingSpec): ZoneShape {
@@ -545,11 +549,20 @@ export function zoneContains(z: Zone, p: Vec3): boolean {
 }
 
 export function zoneAt(p: Vec3): ZoneId {
-  for (const z of ZONE_TEST_ORDER) if (zoneContains(z, p)) return z.id;
+  return zoneAtXYZ(p[0], p[1], p[2]);
+}
+
+/** Allocation-free zone lookup for frame-loop callers that already have xyz scalars. */
+export function zoneAtXYZ(x: number, y: number, zPos: number): ZoneId {
+  for (const zone of ZONE_TEST_ORDER) {
+    for (const shape of zone.shapes) {
+      if (shapeContainsXYZ(shape, x, y, zPos)) return zone.id;
+    }
+  }
   let best: ZoneId = 'plaza';
   let bestDist = Infinity;
   for (const z of ZONES) {
-    const d = (p[0] - z.center[0]) ** 2 + (p[2] - z.center[2]) ** 2 + (p[1] - z.center[1]) ** 2 * 4;
+    const d = (x - z.center[0]) ** 2 + (zPos - z.center[2]) ** 2 + (y - z.center[1]) ** 2 * 4;
     if (d < bestDist) {
       bestDist = d;
       best = z.id;

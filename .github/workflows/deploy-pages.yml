@@ -1,6 +1,6 @@
-# Deploying this museum publishes documentation for sixty-four projects.
-# That is the repository owner's decision, so this workflow is manual-only and
-# is never triggered by a push.
+# Deploying this museum publishes the current seventy-three-project collection.
+# Publication remains owner-controlled: this workflow is manual-only and is
+# never triggered merely because a branch receives a push.
 name: deploy to github pages
 
 on:
@@ -27,6 +27,23 @@ jobs:
       - run: npm ci
       - name: full release gate
         run: npm run gate
+      - name: production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: install Chromium for real browser gate
+        run: npx playwright install --with-deps chromium
+      - name: real browser visitor-path gate
+        run: npm run test:e2e
+      - name: build GitHub Pages artifact
+        env:
+          VITE_PUBLIC_BASE: /museum-of-me-vnext/
+          MUSEUM_BUILD_SHA: ${{ github.sha }}
+          MUSEUM_BUILD_REF: ${{ github.ref_name }}
+        run: npm run build:pages
+      - name: verify GitHub Pages artifact shape
+        env:
+          VITE_PUBLIC_BASE: /museum-of-me-vnext/
+          MUSEUM_BUILD_SHA: ${{ github.sha }}
+        run: npm run verify:pages-dist
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -40,3 +57,9 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: verify exact deployed Pages revision
+        run: node scripts/verify-pages-hosted.mjs "${{ steps.deployment.outputs.page_url }}" "${{ github.sha }}"

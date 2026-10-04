@@ -3,7 +3,9 @@ import { fileURLToPath, URL } from 'node:url';
 import { museumWorkshopSavePlugin } from './scripts/workshop-save-plugin';
 
 export default defineConfig({
-  base: './',
+  // GitHub Pages serves this repository below /museum-of-me-vnext/. Normal
+  // local/release builds keep the portable relative base unless explicitly set.
+  base: process.env.VITE_PUBLIC_BASE || './',
   assetsInclude: ['**/*.glb'],
   plugins: [museumWorkshopSavePlugin()],
   resolve: {
