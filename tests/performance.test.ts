@@ -6,9 +6,11 @@ import { ResourceScope } from '../src/assets/ResourceScope';
 import { QUALITY } from '../src/render/QualityTiers';
 import { mergeStatic, NO_MERGE } from '../src/world/MergeStatic';
 import { SPAWN_POSITION, PLACEMENT_BY_EXHIBIT } from '../src/world/layout';
-import { InteractionManager } from '../src/interaction/InteractionManager';
+import { INTERACTION_ONLY_LAYER, InteractionManager } from '../src/interaction/InteractionManager';
 import { CollisionWorld } from '../src/world/CollisionWorld';
 import { SourceVisitors } from '../src/world/SourceVisitors';
+import { SourceInstallations } from '../src/world/SourceInstallations';
+import { Journal } from '../src/state/Journal';
 import { NIGHT_MOON_DIRECTION } from '../src/world/Sky';
 
 /**
@@ -104,9 +106,63 @@ describe('interaction hot path', () => {
     target.geometry.dispose();
     (target.material as THREE.Material).dispose();
   });
+
+  it('raycasts interaction-only proxies that the camera cannot render', () => {
+    const interaction = new InteractionManager();
+    const target = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }),
+    );
+    target.layers.set(INTERACTION_ONLY_LAYER);
+    target.position.set(0, 0, -2);
+    target.geometry.computeBoundingSphere();
+    target.updateMatrixWorld(true);
+    interaction.register('proxy', {
+      object: target,
+      label: 'Proxy target',
+      activate: () => {},
+    });
+
+    const camera = new THREE.PerspectiveCamera(65, 1, 0.1, 10);
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld(true);
+    expect(camera.layers.test(target.layers)).toBe(false);
+    interaction.update(camera, 1 / 30);
+    expect(interaction.currentFocus?.exhibitId).toBe('proxy');
+
+    interaction.dispose();
+    target.geometry.dispose();
+    (target.material as THREE.Material).dispose();
+  });
 });
 
 describe('visitor simulation budget', () => {
+  it('renders the 17 authored visitor bodies through one camera-visible batch', () => {
+    const scope = new ResourceScope('source-visitors-batch');
+    const world = new CollisionWorld();
+    world.addFloor(-500, 500, -500, 500, 0);
+    const interaction = new InteractionManager();
+    const visitors = new SourceVisitors(scope, world, interaction, () => {});
+    const camera = new THREE.PerspectiveCamera();
+    let cameraVisibleMeshes = 0;
+    visitors.group.traverse((node) => {
+      if ((node as THREE.Mesh).isMesh && camera.layers.test(node.layers)) cameraVisibleMeshes += 1;
+    });
+
+    expect(visitors.batch.isBatchedMesh).toBe(true);
+    expect(visitors.batch.instanceCount).toBe(327);
+    expect(cameraVisibleMeshes).toBe(1);
+    expect(visitors.snapshot()).toHaveLength(17);
+    expect(visitors.snapshot().every((visitor) => visitor.meshCount >= 20 || visitor.seated)).toBe(true);
+    // One batch + one batch material + one shared hit geometry/material.
+    expect(scope.size).toBeLessThanOrEqual(4);
+
+    visitors.dispose();
+    interaction.dispose();
+    scope.dispose();
+    expect(scope.size).toBe(0);
+  });
+
   it('coarse-steps distant authored visitors instead of simulating them every fixed step', () => {
     const scope = new ResourceScope('source-visitors-performance');
     const world = new CollisionWorld();
@@ -124,6 +180,55 @@ describe('visitor simulation budget', () => {
     visitors.dispose();
     interaction.dispose();
     scope.dispose();
+  });
+});
+
+describe('source installation visibility budget', () => {
+  it('renders only the current zone and its declared neighbours', () => {
+    const scope = new ResourceScope('source-installation-visibility');
+    const world = new CollisionWorld();
+    world.addFloor(-500, 500, -500, 500, 0);
+    const interaction = new InteractionManager();
+    const installations = new SourceInstallations(
+      scope,
+      world,
+      interaction,
+      new Journal(null),
+      () => {},
+    );
+    const total = installations.count;
+    expect(total).toBeGreaterThan(10);
+
+    installations.update(0, false, [0, 1.6, 130], 'plaza');
+    const plazaVisible = installations.visibleCount;
+    expect(plazaVisible).toBeGreaterThan(0);
+    expect(plazaVisible).toBeLessThan(total);
+
+    const hiddenId = installations.ids().find((id) => !installations.get(id)?.group.visible);
+    expect(hiddenId).toBeTruthy();
+    expect(installations.engage(hiddenId!)).toBe(true);
+    expect(installations.get(hiddenId!)?.group.visible).toBe(true);
+    installations.disengage();
+    expect(installations.get(hiddenId!)?.group.visible).toBe(false);
+
+    installations.update(0, false, [0, 1.6, 0], 'rotunda');
+    expect(installations.visibleCount).toBeGreaterThan(plazaVisible);
+
+    const camera = new THREE.PerspectiveCamera();
+    let cameraVisibleHitMeshes = 0;
+    installations.group.traverse((node) => {
+      if (
+        (node as THREE.Mesh).isMesh
+        && node.name.startsWith('installation-hit:')
+        && camera.layers.test(node.layers)
+      ) cameraVisibleHitMeshes += 1;
+    });
+    expect(cameraVisibleHitMeshes).toBe(0);
+
+    installations.dispose();
+    interaction.dispose();
+    scope.dispose();
+    expect(scope.size).toBe(0);
   });
 });
 

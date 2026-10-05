@@ -7,6 +7,8 @@ interface RegisteredControl extends ExhibitControl {
 
 /** Shared visitor reach used by interaction and Workshop conservation. */
 export const INTERACTION_REACH = 4.2;
+/** Camera stays on layer 0; interaction-only proxy geometry lives here. */
+export const INTERACTION_ONLY_LAYER = 1;
 
 export interface InteractionFocus {
   readonly exhibitId: string;
@@ -31,6 +33,12 @@ export class InteractionManager {
   reach = INTERACTION_REACH;
 
   private readonly listeners = new Set<(focus: InteractionFocus | null) => void>();
+
+  constructor() {
+    // Layer 0 remains the ordinary visible scene. Layer 1 is reserved for
+    // invisible interaction proxies that must raycast but never render.
+    this.raycaster.layers.enable(INTERACTION_ONLY_LAYER);
+  }
 
   register(exhibitId: string, control: ExhibitControl): () => void {
     const entry: RegisteredControl = { ...control, exhibitId };

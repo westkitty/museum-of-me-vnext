@@ -364,7 +364,7 @@ export class App implements LoopCallbacks {
       this.player.position.x,
       this.player.position.z,
     );
-    this.sourceInstallations.update(dt, this.preferences.reducedMotion, fixedEye);
+    this.sourceInstallations.update(dt, this.preferences.reducedMotion, fixedEye, this.currentZone);
   }
 
   variableUpdate(dt: number): void {

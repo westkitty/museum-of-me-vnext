@@ -62,6 +62,30 @@ test('boots at the exterior arrival and keyboard input reaches the real controll
     waveModel: 'deep-water-dispersion',
   });
 
+  const renderBudget = await page.evaluate(() => {
+    const app = window.__museum;
+    if (!app) throw new Error('museum app missing');
+    app.fixedUpdate(1 / 60);
+    let cameraVisibleVisitorMeshes = 0;
+    app.sourceVisitors.group.traverse((node) => {
+      if ((node as { isMesh?: boolean }).isMesh && app.camera.layers.test(node.layers)) {
+        cameraVisibleVisitorMeshes += 1;
+      }
+    });
+    return {
+      visitorBatch: app.sourceVisitors.batch.isBatchedMesh,
+      visitorInstances: app.sourceVisitors.batch.instanceCount,
+      cameraVisibleVisitorMeshes,
+      visibleInstallations: app.sourceInstallations.visibleCount,
+      totalInstallations: app.sourceInstallations.count,
+    };
+  });
+  expect(renderBudget.visitorBatch).toBe(true);
+  expect(renderBudget.visitorInstances).toBe(327);
+  expect(renderBudget.cameraVisibleVisitorMeshes).toBe(1);
+  expect(renderBudget.visibleInstallations).toBeGreaterThan(0);
+  expect(renderBudget.visibleInstallations).toBeLessThan(renderBudget.totalInstallations);
+
   await expect(page.getByRole('button', { name: 'Enter the museum and capture mouse look' })).toBeVisible();
 
   const qaToggle = page.getByRole('button', { name: 'QA evidence' });

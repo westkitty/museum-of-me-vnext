@@ -1,9 +1,16 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import type { CollisionWorld } from './CollisionWorld';
-import type { InteractionManager } from '../interaction/InteractionManager';
+import { INTERACTION_ONLY_LAYER, type InteractionManager } from '../interaction/InteractionManager';
 import { SOURCE_VISITORS, visitorRouteForVNext, type SourceVisitor } from '../content/sourceParity';
 import type { Vec3 } from './layout';
+
+type VisitorGeometryKey = 'box' | 'torso' | 'upperArm' | 'lowerArm' | 'upperLeg' | 'lowerLeg' | 'head' | 'orb' | 'hair';
+
+interface VisitorPart {
+  readonly node: THREE.Object3D;
+  readonly instanceId: number;
+}
 
 interface RuntimeVisitor {
   data: SourceVisitor;
@@ -20,10 +27,15 @@ interface RuntimeVisitor {
   leftLeg: THREE.Object3D;
   rightLeg: THREE.Object3D;
   anatomy: Set<string>;
+  parts: VisitorPart[];
 }
 
 const FAR_VISITOR_DISTANCE_SQ = 70 * 70;
 const FAR_VISITOR_UPDATE_INTERVAL = 0.1;
+const SOURCE_VISITOR_INSTANCE_COUNT = SOURCE_VISITORS.reduce(
+  (sum, visitor) => sum + 19 + (visitor.staff ? 1 : 0),
+  0,
+);
 
 function rgb(c: number[] | undefined, fallback: number): number {
   if (!c || c.length < 3) return fallback;
@@ -33,13 +45,25 @@ function rgb(c: number[] | undefined, fallback: number): number {
 /**
  * The 17 authored visitors/staff from the Reliquary source contract.
  * Ambient capsule walkers are not a substitute for these identities.
+ *
+ * Rendering law: authored identity stays object-per-visitor, but visible body
+ * parts are submitted through one BatchedMesh. Semantic anatomy nodes remain
+ * in each visitor hierarchy for inspection and animation; the GPU does not pay
+ * one draw call per eye, hand, foot, prop, or torso.
  */
 export class SourceVisitors {
   readonly group = new THREE.Group();
+  readonly batch: THREE.BatchedMesh;
   private readonly visitors: RuntimeVisitor[] = [];
   private readonly unbind: (() => void)[] = [];
   private readonly collisionProbeX = { x: 0, y: 0, z: 0 };
   private readonly collisionProbeZ = { x: 0, y: 0, z: 0 };
+  private readonly batchRootInverse = new THREE.Matrix4();
+  private readonly batchMatrix = new THREE.Matrix4();
+  private readonly colorScratch = new THREE.Color();
+  private readonly geometryIds: Record<VisitorGeometryKey, number>;
+  private readonly hitGeometry: THREE.CylinderGeometry;
+  private readonly hitMaterial: THREE.MeshBasicMaterial;
 
   constructor(
     private readonly scope: ResourceScope,
@@ -48,10 +72,26 @@ export class SourceVisitors {
     private readonly onSpeak: (visitor: SourceVisitor, line: string, thought?: string) => void,
   ) {
     this.group.name = 'source-visitors';
+
+    const { batch, geometryIds } = this.buildBatch();
+    this.batch = batch;
+    this.geometryIds = geometryIds;
+    this.group.add(this.batch);
+
+    // One shared hit primitive replaces 17 duplicate cylinders/materials. The
+    // camera never renders layer 1, but InteractionManager raycasts it.
+    this.hitGeometry = this.scope.track(new THREE.CylinderGeometry(1, 1, 1, 8));
+    this.hitMaterial = this.scope.track(new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0.001,
+      depthWrite: false,
+    }));
+
     for (const data of SOURCE_VISITORS) {
       const runtime = this.build(data);
       this.visitors.push(runtime);
       this.group.add(runtime.group);
+      this.syncVisitorVisual(runtime);
       this.unbind.push(interaction.register(`visitor:${data.id}`, {
         object: runtime.hit,
         label: `Speak with ${data.title}`,
@@ -109,13 +149,9 @@ export class SourceVisitors {
       if (!spoken) return null;
       lines.push(spoken.line);
     }
-    // Re-entry: the next call must return the conversation's first line again.
-    // This is a preview only -- calling speak() here would itself consume a
-    // line and fire onSpeak(), permanently shifting v.lineIndex one line past
-    // the full cycle every time a caller asks for this preview.
     const repeated = v.data.lines[v.lineIndex % v.data.lines.length] ?? null;
     return {
-      role: `${v.data.title} \u00b7 ${v.data.subtitle}`,
+      role: `${v.data.title} · ${v.data.subtitle}`,
       lines,
       repeated,
     };
@@ -146,7 +182,9 @@ export class SourceVisitors {
       routePoints: v.route.length,
       position: [v.group.position.x, v.group.position.y, v.group.position.z],
       anatomy: [...v.anatomy],
-      meshCount: countMeshes(v.group),
+      // Preserve the proof surface as a physical-part count even though those
+      // parts now share one renderer mesh.
+      meshCount: v.parts.length + 1,
       interactive: !!v.hit.userData.interactive,
       heard: false,
     }));
@@ -210,7 +248,52 @@ export class SourceVisitors {
       v.rightLeg.rotation.x = -swing;
       v.leftArm.rotation.x = -swing * 0.7;
       v.rightArm.rotation.x = swing * 0.7;
+      this.syncVisitorVisual(v);
     }
+  }
+
+  private buildBatch(): {
+    batch: THREE.BatchedMesh;
+    geometryIds: Record<VisitorGeometryKey, number>;
+  } {
+    const geometries: Record<VisitorGeometryKey, THREE.BufferGeometry> = {
+      box: new THREE.BoxGeometry(1, 1, 1),
+      torso: new THREE.CylinderGeometry(0.23 / 0.30, 1, 1, 10),
+      upperArm: new THREE.CylinderGeometry(0.052 / 0.057, 1, 1, 8),
+      lowerArm: new THREE.CylinderGeometry(0.045 / 0.05, 1, 1, 8),
+      upperLeg: new THREE.CylinderGeometry(0.067 / 0.073, 1, 1, 8),
+      lowerLeg: new THREE.CylinderGeometry(0.06 / 0.065, 1, 1, 8),
+      head: new THREE.SphereGeometry(1, 14, 10),
+      orb: new THREE.SphereGeometry(1, 8, 6),
+      hair: new THREE.SphereGeometry(1, 12, 7, 0, Math.PI * 2, 0, Math.PI * 0.54),
+    };
+    const all = Object.values(geometries);
+    const maxVertexCount = all.reduce((sum, geometry) => sum + geometry.getAttribute('position').count, 0);
+    const maxIndexCount = all.reduce((sum, geometry) => sum + (geometry.index?.count ?? 0), 0);
+    const material = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.74,
+      metalness: 0.01,
+    }));
+    const batch = this.scope.track(new THREE.BatchedMesh(
+      SOURCE_VISITOR_INSTANCE_COUNT,
+      maxVertexCount,
+      maxIndexCount,
+      material,
+    ));
+    batch.name = 'source-visitors-batched-visuals';
+    batch.castShadow = false;
+    batch.receiveShadow = false;
+    batch.perObjectFrustumCulled = true;
+
+    const geometryIds = {} as Record<VisitorGeometryKey, number>;
+    for (const [key, geometry] of Object.entries(geometries) as [VisitorGeometryKey, THREE.BufferGeometry][]) {
+      geometry.computeBoundingBox();
+      geometry.computeBoundingSphere();
+      geometryIds[key] = batch.addGeometry(geometry);
+      geometry.dispose();
+    }
+    return { batch, geometryIds };
   }
 
   private build(data: SourceVisitor): RuntimeVisitor {
@@ -226,60 +309,64 @@ export class SourceVisitors {
       'upper-leg-left', 'lower-leg-left', 'foot-left',
       'upper-leg-right', 'lower-leg-right', 'foot-right',
     ]);
+    const parts: VisitorPart[] = [];
     const h = data.height;
     const w = data.width;
     const seated = !!data.seated;
-    const coat = this.mat(rgb(data.palette.coat, 0x4a5460));
-    const trousers = this.mat(rgb(data.palette.trousers, 0x3a3a44));
-    const skin = this.mat(rgb(data.palette.skin, 0xc4a07a));
-    const hair = this.mat(rgb(data.palette.hair, 0x2a2420));
-    const shirt = this.mat(rgb(data.palette.shirt, 0x6a5a52));
-    const dark = this.mat(0x161616);
+    const coat = rgb(data.palette.coat, 0x4a5460);
+    const trousers = rgb(data.palette.trousers, 0x3a3a44);
+    const skin = rgb(data.palette.skin, 0xc4a07a);
+    const hair = rgb(data.palette.hair, 0x2a2420);
+    const shirt = rgb(data.palette.shirt, 0x6a5a52);
+    const dark = 0x161616;
 
-    const pelvis = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(0.31 * w, 0.24, 0.22)), trousers);
-    pelvis.name = 'pelvis';
-    pelvis.position.y = seated ? 0.78 : 0.88;
-    g.add(pelvis);
-    const torso = new THREE.Mesh(this.scope.track(new THREE.CylinderGeometry(0.23 * w, 0.30 * w, 0.58 * h, 10)), coat);
-    torso.name = 'torso';
+    this.part(parts, g, 'pelvis', 'box', trousers)
+      .position.set(0, seated ? 0.78 : 0.88, 0);
+    parts.at(-1)!.node.scale.set(0.31 * w, 0.24, 0.22);
+
+    const torso = this.part(parts, g, 'torso', 'torso', coat);
     torso.position.y = seated ? 1.1 : 1.2;
-    g.add(torso);
+    torso.scale.set(0.30 * w, 0.58 * h, 0.30 * w);
+
     const headY = seated ? 1.49 : 1.66;
-    const head = new THREE.Mesh(this.scope.track(new THREE.SphereGeometry(0.22 * w, 14, 10)), skin);
-    head.name = 'head';
+    const head = this.part(parts, g, 'head', 'head', skin);
     head.position.y = headY;
-    g.add(head);
-    const hairMesh = new THREE.Mesh(this.scope.track(new THREE.SphereGeometry(0.225 * w, 12, 7, 0, Math.PI * 2, 0, Math.PI * 0.54)), hair);
-    hairMesh.name = 'hair';
-    hairMesh.position.set(0, headY + 0.055, 0);
-    g.add(hairMesh);
+    head.scale.setScalar(0.22 * w);
+
+    const hairNode = this.part(parts, g, 'hair', 'hair', hair);
+    hairNode.position.set(0, headY + 0.055, 0);
+    hairNode.scale.setScalar(0.225 * w);
+
     for (const [name, sx] of [['eye-left', -1], ['eye-right', 1]] as const) {
-      const eye = new THREE.Mesh(this.scope.track(new THREE.SphereGeometry(0.026, 8, 6)), dark);
-      eye.name = name;
+      const eye = this.part(parts, g, name, 'orb', dark);
       eye.position.set(sx * 0.075 * w, headY + 0.015, 0.205 * w);
-      g.add(eye);
+      eye.scale.setScalar(0.026);
     }
+
     if (data.staff) {
-      const badge = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(0.12, 0.16, 0.018)), this.mat(0xb89a4a));
-      badge.name = 'staff-badge';
+      const badge = this.part(parts, g, 'staff-badge', 'box', 0xb89a4a);
       badge.position.set(0.15, 1.28, 0.23);
-      g.add(badge);
+      badge.scale.set(0.12, 0.16, 0.018);
       anatomy.add('staff-badge');
     }
 
     const makeArm = (side: number, name: string) => {
       const arm = new THREE.Group();
       arm.name = name;
-      const upper = new THREE.Mesh(this.scope.track(new THREE.CylinderGeometry(0.052, 0.057, 0.32 * h, 8)), shirt);
-      upper.name = `upper-arm-${side < 0 ? 'left' : 'right'}`;
+      const suffix = side < 0 ? 'left' : 'right';
+
+      const upper = this.part(parts, arm, `upper-arm-${suffix}`, 'upperArm', shirt);
       upper.position.y = -0.15 * h;
-      const lower = new THREE.Mesh(this.scope.track(new THREE.CylinderGeometry(0.045, 0.05, 0.29 * h, 8)), shirt);
-      lower.name = `lower-arm-${side < 0 ? 'left' : 'right'}`;
+      upper.scale.set(0.057, 0.32 * h, 0.057);
+
+      const lower = this.part(parts, arm, `lower-arm-${suffix}`, 'lowerArm', shirt);
       lower.position.y = -0.43 * h;
-      const hand = new THREE.Mesh(this.scope.track(new THREE.SphereGeometry(0.058, 8, 6)), skin);
-      hand.name = `hand-${side < 0 ? 'left' : 'right'}`;
+      lower.scale.set(0.05, 0.29 * h, 0.05);
+
+      const hand = this.part(parts, arm, `hand-${suffix}`, 'orb', skin);
       hand.position.y = -0.61 * h;
-      arm.add(upper, lower, hand);
+      hand.scale.setScalar(0.058);
+
       arm.position.set(side * 0.31 * w, 1.38 * h, 0);
       arm.rotation.z = side * 0.09;
       g.add(arm);
@@ -291,12 +378,17 @@ export class SourceVisitors {
     const makeLeg = (side: number, name: string) => {
       const leg = new THREE.Group();
       leg.name = name;
-      const upper = new THREE.Mesh(this.scope.track(new THREE.CylinderGeometry(0.067, 0.073, 0.36 * h, 8)), trousers);
-      upper.name = `upper-leg-${side < 0 ? 'left' : 'right'}`;
-      const lower = new THREE.Mesh(this.scope.track(new THREE.CylinderGeometry(0.06, 0.065, 0.35 * h, 8)), trousers);
-      lower.name = `lower-leg-${side < 0 ? 'left' : 'right'}`;
-      const foot = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(0.13, 0.09, 0.25)), dark);
-      foot.name = `foot-${side < 0 ? 'left' : 'right'}`;
+      const suffix = side < 0 ? 'left' : 'right';
+
+      const upper = this.part(parts, leg, `upper-leg-${suffix}`, 'upperLeg', trousers);
+      upper.scale.set(0.073, 0.36 * h, 0.073);
+
+      const lower = this.part(parts, leg, `lower-leg-${suffix}`, 'lowerLeg', trousers);
+      lower.scale.set(0.065, 0.35 * h, 0.065);
+
+      const foot = this.part(parts, leg, `foot-${suffix}`, 'box', dark);
+      foot.scale.set(0.13, 0.09, 0.25);
+
       if (seated) {
         upper.rotation.x = -Math.PI / 2;
         upper.position.set(0, -0.02, 0.17);
@@ -308,45 +400,59 @@ export class SourceVisitors {
         foot.position.set(0, -0.73 * h, 0.07);
       }
       leg.add(upper, lower, foot);
-      leg.position.set(side * 0.12 * w, seated ? 0.83 : 0.83, 0);
+      leg.position.set(side * 0.12 * w, 0.83, 0);
       g.add(leg);
       return leg;
     };
     const leftLeg = makeLeg(-1, 'leg-left');
     const rightLeg = makeLeg(1, 'leg-right');
 
-    const prop = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(0.22, 0.04, 0.16)), this.mat(0x2a2420));
-    prop.name = `prop:${data.prop || 'folio'}`;
+    const prop = this.part(parts, g, `prop:${data.prop || 'folio'}`, 'box', 0x2a2420);
     prop.position.set(seated ? 0 : 0.26, seated ? 1.08 : 1.04, seated ? 0.34 : 0.26);
-    g.add(prop);
+    prop.scale.set(0.22, 0.04, 0.16);
 
-    const hit = new THREE.Mesh(
-      this.scope.track(new THREE.CylinderGeometry(0.36, 0.36, seated ? 1.2 : 1.72, 8)),
-      this.scope.track(new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.001, depthWrite: false })),
-    );
+    const hit = new THREE.Mesh(this.hitGeometry, this.hitMaterial);
     hit.position.y = seated ? 0.72 : 0.92;
+    hit.scale.set(0.36, seated ? 1.2 : 1.72, 0.36);
+    hit.layers.set(INTERACTION_ONLY_LAYER);
     hit.userData = { kind: 'visitor', id: data.id };
     g.add(hit);
 
     return {
       data, group: g, hit, route, routeIndex: 1 % Math.max(1, route.length),
       pause: seated ? Infinity : 0, lineIndex: 0, phase: 0, farElapsed: 0,
-      leftArm, rightArm, leftLeg, rightLeg, anatomy,
+      leftArm, rightArm, leftLeg, rightLeg, anatomy, parts,
     };
   }
 
-  private mat(color: number): THREE.MeshStandardMaterial {
-    return this.scope.track(new THREE.MeshStandardMaterial({ color, roughness: 0.74, metalness: 0.01 }));
+  private part(
+    parts: VisitorPart[],
+    parent: THREE.Object3D,
+    name: string,
+    geometry: VisitorGeometryKey,
+    color: number,
+  ): THREE.Object3D {
+    const node = new THREE.Object3D();
+    node.name = name;
+    parent.add(node);
+    const instanceId = this.batch.addInstance(this.geometryIds[geometry]);
+    this.batch.setColorAt(instanceId, this.colorScratch.setHex(color));
+    parts.push({ node, instanceId });
+    return node;
+  }
+
+  private syncVisitorVisual(visitor: RuntimeVisitor): void {
+    this.group.updateWorldMatrix(true, false);
+    visitor.group.updateWorldMatrix(true, true);
+    this.batchRootInverse.copy(this.group.matrixWorld).invert();
+    for (const part of visitor.parts) {
+      this.batchMatrix.copy(this.batchRootInverse).multiply(part.node.matrixWorld);
+      this.batch.setMatrixAt(part.instanceId, this.batchMatrix);
+    }
   }
 
   dispose(): void {
     for (const fn of this.unbind) fn();
     this.group.removeFromParent();
   }
-}
-
-function countMeshes(root: THREE.Object3D): number {
-  let n = 0;
-  root.traverse((node) => { if ((node as THREE.Mesh).isMesh) n += 1; });
-  return n;
 }

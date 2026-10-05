@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import type { CollisionWorld } from './CollisionWorld';
-import type { InteractionManager } from '../interaction/InteractionManager';
+import { INTERACTION_ONLY_LAYER, type InteractionManager } from '../interaction/InteractionManager';
 import type { Journal } from '../state/Journal';
 import { InstallationStore } from '../state/InstallationStore';
 import { createTextTexture, canRenderText, createFallbackTexture } from '../assets/TextTexture';
@@ -12,6 +12,7 @@ import {
 } from '../content/installationState';
 import { buildInstallationVisual, type InstallationVisual } from './installationBuilders';
 import { INSTALLATION_PLACEMENT_BY_ID, type InstallationPlacement } from './installationPlacement';
+import { PLACEMENT_BY_EXHIBIT, ZONE_BY_ID, type ZoneId } from './layout';
 
 /**
  * THE FOURTEEN SOURCE PRIMARY INSTALLATIONS, LIVE.
@@ -31,6 +32,7 @@ export interface InstallationRuntime {
   readonly visual: InstallationVisual;
   readonly lectern: THREE.Mesh;
   readonly hit: THREE.Mesh;
+  readonly zone: ZoneId;
   state: InstallationState;
   engaged: boolean;
 }
@@ -59,6 +61,10 @@ export class SourceInstallations {
   private readonly runtimes = new Map<string, InstallationRuntime>();
   private readonly unbind: (() => void)[] = [];
   private readonly held = new Set<string>();
+  private readonly hitGeometry: THREE.SphereGeometry;
+  private readonly hitMaterial: THREE.MeshBasicMaterial;
+  private visibilityZone: ZoneId | null = null;
+  private readonly visibleZones = new Set<ZoneId>();
   private time = 0;
   /** The installation the visitor is currently operating, if any. */
   activeId: string | null = null;
@@ -73,6 +79,12 @@ export class SourceInstallations {
   ) {
     this.group.name = 'source-installations';
     this.store = store;
+    this.hitGeometry = this.scope.track(new THREE.SphereGeometry(1, 12, 8));
+    this.hitMaterial = this.scope.track(new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0.001,
+      depthWrite: false,
+    }));
 
     for (const spec of SOURCE_INSTALLATIONS) {
       const placement = INSTALLATION_PLACEMENT_BY_ID.get(spec.id);
@@ -118,6 +130,7 @@ export class SourceInstallations {
     // hold focus at a time.
     if (this.activeId && this.activeId !== id) this.disengage();
     runtime.engaged = true;
+    runtime.group.visible = true;
     this.activeId = id;
     this.store.markExamined(id);
     this.journal.recordHistory({ kind: 'installation', id }, runtime.spec.title);
@@ -132,7 +145,10 @@ export class SourceInstallations {
   disengage(): void {
     if (!this.activeId) return;
     const runtime = this.runtimes.get(this.activeId);
-    if (runtime) runtime.engaged = false;
+    if (runtime) {
+      runtime.engaged = false;
+      runtime.group.visible = this.visibilityZone === null || this.visibleZones.has(runtime.zone);
+    }
     this.activeId = null;
   }
 
@@ -184,7 +200,13 @@ export class SourceInstallations {
     }
   }
 
-  update(dt: number, reducedMotion: boolean, eye?: readonly [number, number, number]): void {
+  update(
+    dt: number,
+    reducedMotion: boolean,
+    eye?: readonly [number, number, number],
+    zone?: ZoneId,
+  ): void {
+    if (zone && zone !== this.visibilityZone) this.setVisibilityZone(zone);
     this.time += dt;
     for (const [id, runtime] of this.runtimes) {
       // Only two source installations own time-driven state. Avoid cloning and
@@ -197,11 +219,30 @@ export class SourceInstallations {
         }
       }
 
-      // Visual animation uses absolute museum time, so distant installations
-      // can sleep without losing phase and resume correctly on approach.
-      if (!eye || runtime.engaged || installationVisualIsNear(runtime, eye)) {
+      // Visual animation uses absolute museum time, so hidden/off-zone or
+      // distant installations can sleep without losing phase and resume
+      // correctly on approach.
+      if (runtime.group.visible && (!eye || runtime.engaged || installationVisualIsNear(runtime, eye))) {
         runtime.visual.tick(this.time, reducedMotion);
       }
+    }
+  }
+
+  get visibleCount(): number {
+    let count = 0;
+    for (const runtime of this.runtimes.values()) {
+      if (runtime.group.visible) count += 1;
+    }
+    return count;
+  }
+
+  private setVisibilityZone(zone: ZoneId): void {
+    this.visibilityZone = zone;
+    this.visibleZones.clear();
+    this.visibleZones.add(zone);
+    for (const neighbour of ZONE_BY_ID.get(zone)?.neighbours ?? []) this.visibleZones.add(neighbour);
+    for (const runtime of this.runtimes.values()) {
+      runtime.group.visible = runtime.engaged || this.visibleZones.has(runtime.zone);
     }
   }
 
@@ -269,11 +310,10 @@ export class SourceInstallations {
     // The interaction volume sits at the source reading point, sized by the
     // source `interactionRadius`, so focus is acquired exactly where the source
     // said the visitor stands.
-    const hit = new THREE.Mesh(
-      this.scope.track(new THREE.SphereGeometry(Math.max(0.7, placement.interactionRadius), 12, 8)),
-      this.scope.track(new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.001, depthWrite: false })),
-    );
+    const hit = new THREE.Mesh(this.hitGeometry, this.hitMaterial);
     hit.name = `installation-hit:${spec.id}`;
+    hit.scale.setScalar(Math.max(0.7, placement.interactionRadius));
+    hit.layers.set(INTERACTION_ONLY_LAYER);
     hit.position.set(
       placement.lectern[0] - placement.position[0],
       placement.lectern[1] - placement.position[1] + 1.05,
@@ -283,7 +323,11 @@ export class SourceInstallations {
     hit.userData = { kind: 'installation', id: spec.id };
     group.add(hit);
 
-    return { spec, placement, group, visual, lectern, hit, state, engaged: false };
+    const zone: ZoneId = placement.host === 'sanctuary'
+      ? 'sanctuary'
+      : PLACEMENT_BY_EXHIBIT.get(placement.host)?.wing ?? 'rotunda';
+
+    return { spec, placement, group, visual, lectern, hit, zone, state, engaged: false };
   }
 
   private buildLectern(
