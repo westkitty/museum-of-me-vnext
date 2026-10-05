@@ -5,6 +5,7 @@ import {
   DOME_APEX_Y, LEVEL_1_Y, SANCTUARY_CENTER, SANCTUARY_FLOOR_Y, SANCTUARY_HEIGHT,
   WINGS, PLACEMENTS, WING_BY_ID, faceDirection, place,
 } from '../world/layout';
+import { NIGHT_MOON_DIRECTION } from '../world/Sky';
 
 const MAX_ACTIVE_POINT_LIGHTS = 8;
 
@@ -33,7 +34,7 @@ export class Lighting {
     this.group.add(ambient);
 
     const moonlight = new THREE.DirectionalLight(0xc9e2ff, 1.55);
-    moonlight.position.set(-58, 96, 76);
+    moonlight.position.copy(NIGHT_MOON_DIRECTION).multiplyScalar(135);
     moonlight.target.position.set(0, 0, 0);
     if (quality.shadows) {
       moonlight.castShadow = true;

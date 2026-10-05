@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import type { CollisionWorld } from './CollisionWorld';
+import { NIGHT_MOON_DIRECTION } from './Sky';
 import {
   GROUND_Y, PLAZA_DEPTH, VESTIBULE_TO,
   faceDirection, place, type Vec3,
@@ -49,79 +50,115 @@ export class ArrivalGarden {
     // The shoreline is the distant water boundary, not a luminous outline.
     this.shoreline = this.mat(0x183238, 0.98);
     this.waterTime = { value: 0 };
+    const waterUniforms = {
+      ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
+      time: this.waterTime,
+      moonDirection: { value: NIGHT_MOON_DIRECTION.clone() },
+    };
     this.water = this.scope.track(new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
-      uniforms: { time: this.waterTime },
+      fog: true,
+      uniforms: waterUniforms,
       vertexShader: /* glsl */ `
-        varying vec2 vUv;
-        varying vec3 vWorldPosition;
         uniform float time;
-        float hash(vec2 p) {
-          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+        uniform vec3 moonDirection;
+        varying vec2 vLocalWater;
+        varying vec3 vWorldPosition;
+        varying vec3 vWorldNormal;
+        varying float vWaveHeight;
+        #include <fog_pars_vertex>
+
+        void accumulateWave(
+          inout float height,
+          inout vec2 gradient,
+          vec2 direction,
+          float wavelength,
+          float amplitude,
+          vec2 samplePoint
+        ) {
+          float k = 6.28318530718 / wavelength;
+          // Deep-water dispersion: longer waves travel faster instead of every
+          // band sliding at an unrelated artistic speed.
+          float omega = sqrt(9.81 * k);
+          float phase = k * dot(direction, samplePoint) - omega * time;
+          height += sin(phase) * amplitude;
+          gradient += direction * (cos(phase) * amplitude * k);
         }
-        float noise(vec2 p) {
-          vec2 i = floor(p);
-          vec2 f = smoothstep(0.0, 1.0, fract(p));
-          float a = hash(i);
-          float b = hash(i + vec2(1.0, 0.0));
-          float c = hash(i + vec2(0.0, 1.0));
-          float d = hash(i + vec2(1.0, 1.0));
-          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-        }
+
         void main() {
-          vUv = uv;
           vec3 p = position;
-          float broad = noise(p.xy * 0.038 + vec2(time * 0.012, -time * 0.009));
-          float cross = noise(p.xy * 0.081 + vec2(-time * 0.016, time * 0.013));
-          p.z += (broad - 0.5) * 0.18 + (cross - 0.5) * 0.045;
+          vec2 samplePoint = p.xy;
+          float height = 0.0;
+          vec2 gradient = vec2(0.0);
+
+          accumulateWave(height, gradient, vec2(0.940, 0.342), 78.0, 0.16, samplePoint);
+          accumulateWave(height, gradient, vec2(-0.469, 0.883), 49.0, 0.095, samplePoint);
+          accumulateWave(height, gradient, vec2(0.259, -0.966), 31.0, 0.052, samplePoint);
+          accumulateWave(height, gradient, vec2(-0.819, -0.574), 21.0, 0.028, samplePoint);
+
+          p.z += height;
+          vec3 localNormal = normalize(vec3(-gradient, 1.0));
           vec4 worldPosition = modelMatrix * vec4(p, 1.0);
+          vec4 mvPosition = viewMatrix * worldPosition;
+
+          vLocalWater = samplePoint;
           vWorldPosition = worldPosition.xyz;
-          gl_Position = projectionMatrix * viewMatrix * worldPosition;
+          vWorldNormal = normalize(mat3(modelMatrix) * localNormal);
+          vWaveHeight = height;
+          gl_Position = projectionMatrix * mvPosition;
+          #include <fog_vertex>
         }
       `,
       fragmentShader: /* glsl */ `
-        varying vec2 vUv;
-        varying vec3 vWorldPosition;
         uniform float time;
-        float hash(vec2 p) {
-          return fract(sin(dot(p, vec2(41.7, 289.3))) * 19341.173);
-        }
-        float noise(vec2 p) {
-          vec2 i = floor(p);
-          vec2 f = smoothstep(0.0, 1.0, fract(p));
-          float a = hash(i);
-          float b = hash(i + vec2(1.0, 0.0));
-          float c = hash(i + vec2(0.0, 1.0));
-          float d = hash(i + vec2(1.0, 1.0));
-          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-        }
-        float fbm(vec2 p) {
-          float value = 0.0;
-          value += noise(p) * 0.58;
-          value += noise(p * 2.03 + 17.0) * 0.27;
-          value += noise(p * 4.11 - 9.0) * 0.15;
-          return value;
-        }
+        uniform vec3 moonDirection;
+        varying vec2 vLocalWater;
+        varying vec3 vWorldPosition;
+        varying vec3 vWorldNormal;
+        varying float vWaveHeight;
+        #include <fog_pars_fragment>
+
         void main() {
-          vec2 flow = vUv * vec2(5.2, 3.4) + vec2(time * 0.012, -time * 0.009);
-          float broad = fbm(flow);
-          float cross = fbm(vUv * vec2(11.0, 7.0) + vec2(-time * 0.018, time * 0.014));
-          float field = broad * 0.78 + cross * 0.22;
-          float sheen = smoothstep(0.66, 0.86, field);
+          vec3 normal = normalize(vWorldNormal);
           vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-          float fresnel = pow(1.0 - clamp(abs(viewDir.y), 0.0, 1.0), 3.0);
-          float waveA = sin((vUv.x * 13.0 + vUv.y * 7.0) * 6.283 + time * 0.22);
-          float waveB = cos((vUv.x * 5.0 - vUv.y * 11.0) * 6.283 - time * 0.17);
-          float glint = smoothstep(0.72, 0.96, waveA * waveB * 0.5 + 0.5) * sheen;
-          vec3 deep = vec3(0.006, 0.018, 0.032);
-          vec3 reflectedSky = vec3(0.028, 0.092, 0.135);
-          vec3 horizonFlash = vec3(0.16, 0.34, 0.44);
-          vec3 colour = mix(deep, reflectedSky, broad * 0.52 + fresnel * 0.34);
-          colour += vec3(0.026, 0.082, 0.12) * sheen;
-          colour += vec3(0.018, 0.052, 0.074) * smoothstep(0.76, 0.96, cross) * 0.35;
-          colour += horizonFlash * glint * (0.08 + fresnel * 0.22);
-          gl_FragColor = vec4(colour, 0.94);
+          vec3 moonDir = normalize(moonDirection);
+
+          float facing = max(dot(normal, viewDir), 0.0);
+          float fresnel = 0.02 + 0.98 * pow(1.0 - facing, 5.0);
+          vec3 halfDir = normalize(viewDir + moonDir);
+          float moonSpecular = pow(max(dot(normal, halfDir), 0.0), 96.0);
+          float broadSpecular = pow(max(dot(normal, halfDir), 0.0), 18.0);
+
+          // Approximate the authored irregular island edge closely enough for
+          // a moving breakup line without another mesh, texture, or render pass.
+          float radius = length(vec2(vLocalWater.x, vLocalWater.y / 0.86));
+          float angle = atan(vLocalWater.y / 0.86, vLocalWater.x);
+          float shoreRadius = 132.0
+            + sin(angle * 5.0 + 0.4) * 5.5
+            + sin(angle * 9.0 - 1.2) * 3.0;
+          float shoreDistance = radius - shoreRadius;
+          float shoreBand = 1.0 - smoothstep(1.0, 10.0, max(shoreDistance, 0.0));
+          float foamBreak = 0.5 + 0.5 * sin(angle * 17.0 + radius * 0.21 - time * 0.72);
+          float crest = smoothstep(0.085, 0.19, vWaveHeight);
+          float shoreFoam = shoreBand * smoothstep(0.46, 0.78, foamBreak) * (0.32 + crest * 0.68);
+
+          float shallow = 1.0 - smoothstep(0.0, 28.0, max(shoreDistance, 0.0));
+          vec3 deep = vec3(0.004, 0.014, 0.026);
+          vec3 skyReflection = vec3(0.035, 0.105, 0.155);
+          vec3 shallowWater = vec3(0.018, 0.115, 0.145);
+          vec3 foamColour = vec3(0.31, 0.54, 0.62);
+
+          vec3 colour = mix(deep, skyReflection, 0.12 + fresnel * 0.72);
+          colour = mix(colour, shallowWater, shallow * 0.18);
+          colour += vec3(0.44, 0.66, 0.88) * broadSpecular * 0.055;
+          colour += vec3(0.84, 0.91, 1.0) * moonSpecular * (0.24 + fresnel * 0.52);
+          colour = mix(colour, foamColour, shoreFoam * 0.26);
+
+          // Fade into atmospheric distance instead of exposing a hard disk edge.
+          float outerFade = 1.0 - smoothstep(304.0, 329.0, radius);
+          gl_FragColor = vec4(colour, (0.90 + fresnel * 0.075) * outerFade);
+          #include <fog_fragment>
         }
       `,
     }));
@@ -180,8 +217,17 @@ export class ArrivalGarden {
   /** Water and shoreline are visual-only: the proven exterior ground and its
    * Sanctuary-trench cut-out remain the sole collision authority. */
   private buildIsland(): void {
-    const water = new THREE.Mesh(this.scope.track(new THREE.CircleGeometry(330, 96)), this.water);
+    // Water is an annulus rather than a hidden full disk: the island covers the
+    // centre, so omit those fragments and spend the reclaimed budget on enough
+    // radial tessellation for the analytic wave field to change silhouette and
+    // reflected normals instead of merely tinting a flat plane.
+    const water = new THREE.Mesh(
+      this.scope.track(new THREE.RingGeometry(114, 330, 96, 14)),
+      this.water,
+    );
     water.name = 'night-island-water';
+    water.userData.visualRole = 'environment-water';
+    water.userData.waveModel = 'deep-water-dispersion';
     water.rotation.x = -Math.PI / 2;
     water.position.y = GROUND_Y - 0.46;
     water.receiveShadow = false;

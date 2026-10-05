@@ -9,7 +9,7 @@ import { ExteriorIdentity } from '../src/world/ExteriorIdentity';
 import { PLACEMENTS, ROTUNDA_APOTHEM, SANCTUARY_DIR, WINGS } from '../src/world/layout';
 import { PaletteSet } from '../src/world/palette';
 import { RotundaWayfinding } from '../src/world/RotundaWayfinding';
-import { Sky } from '../src/world/Sky';
+import { NIGHT_MOON_DIRECTION, Sky } from '../src/world/Sky';
 import { WingAtmosphere } from '../src/world/WingAtmosphere';
 import { WingFurnishings } from '../src/world/WingFurnishings';
 import { WingIdentity } from '../src/world/WingIdentity';
@@ -211,31 +211,22 @@ describe('museum environment coherence', () => {
     scope.dispose();
   });
 
-  it('uses a readable procedural night sky with a world-relative physical Blood Ring', () => {
+  it('uses a readable procedural night sky with no exterior Blood Ring geometry', () => {
     const scope = new ResourceScope('environment-test');
     const sky = new Sky(scope);
     expect(sky.mesh.name).toBe('night-sky-layered-stars');
     const material = sky.mesh.material as THREE.ShaderMaterial;
     expect(material.fragmentShader).toContain('starLayer');
     expect(material.fragmentShader).toContain('galacticBand');
+    expect(material.fragmentShader).toContain('moonDisk');
+    expect(material.fragmentShader).toContain('moonHalo');
+    const skyMoon = material.uniforms.moonDirection.value as THREE.Vector3;
+    expect(skyMoon.distanceTo(NIGHT_MOON_DIRECTION)).toBeLessThan(1e-7);
+    expect(skyMoon.z).toBeLessThan(0); // visible over the museum from the south arrival
     expect(material.fragmentShader).not.toContain('bloodBand');
     expect(material.fragmentShader).not.toContain('ringAngle');
-    expect(sky.bloodRing.name).toBe('blood-ring-complete-orbital-structure');
-    expect(sky.bloodRing.geometry).toBeInstanceOf(THREE.TorusGeometry);
-    expect(sky.bloodRing.position.y).toBe(Sky.BLOOD_RING_HEIGHT);
-    expect(sky.bloodRing.position.x).toBe(0);
-    expect(sky.bloodRing.position.z).toBe(0);
-    expect(sky.bloodRing.material).toBeInstanceOf(THREE.MeshPhysicalMaterial);
-    expect(sky.bloodRingHalo.name).toBe('blood-ring-atmospheric-halo');
-    expect(sky.bloodRingHalo.material).toBeInstanceOf(THREE.MeshBasicMaterial);
-    expect((sky.bloodRingHalo.material as THREE.MeshBasicMaterial).blending).toBe(THREE.AdditiveBlending);
-    const ringMaterial = sky.bloodRing.material as THREE.MeshPhysicalMaterial;
-    expect(ringMaterial.transmission).toBeGreaterThan(0);
-    expect(ringMaterial.thickness).toBeGreaterThan(0);
-    expect(ringMaterial.flatShading).toBe(true);
-    const ringHsl = ringMaterial.color.getHSL({ h: 0, s: 0, l: 0 });
-    expect(ringHsl.h < 0.03 || ringHsl.h > 0.97).toBe(true);
-    expect(ringHsl.s).toBeGreaterThan(0.75);
+    expect((sky as unknown as Record<string, unknown>).bloodRing).toBeUndefined();
+    expect((sky as unknown as Record<string, unknown>).bloodRingHalo).toBeUndefined();
     expect(sky.horizon.getHSL({ h: 0, s: 0, l: 0 }).l).toBeGreaterThan(0.03);
     expect(sky.horizon.getHSL({ h: 0, s: 0, l: 0 }).l).toBeLessThan(0.07);
     scope.dispose();
@@ -250,11 +241,25 @@ describe('museum environment coherence', () => {
     expect(gardenRoot.getObjectByName('night-island-shoreline')).toBeTruthy();
     const water = gardenRoot.getObjectByName('night-island-water');
     expect(water).toBeTruthy();
-    const waterMaterial = (water as THREE.Mesh).material as THREE.ShaderMaterial;
-    expect(waterMaterial.fragmentShader).toContain('fbm');
+    const waterMesh = water as THREE.Mesh;
+    const waterMaterial = waterMesh.material as THREE.ShaderMaterial;
+    expect(waterMesh.geometry).toBeInstanceOf(THREE.RingGeometry);
+    const waterTriangles = waterMesh.geometry.index
+      ? waterMesh.geometry.index.count / 3
+      : waterMesh.geometry.getAttribute('position').count / 3;
+    expect(waterTriangles).toBeGreaterThanOrEqual(2_500);
+    expect(waterTriangles).toBeLessThanOrEqual(3_000);
+    expect(waterMesh.userData.visualRole).toBe('environment-water');
+    expect(waterMesh.userData.waveModel).toBe('deep-water-dispersion');
+    expect(waterMaterial.vertexShader).toContain('sqrt(9.81 * k)');
+    expect(waterMaterial.vertexShader).toContain('accumulateWave');
+    const waterMoon = waterMaterial.uniforms.moonDirection.value as THREE.Vector3;
+    expect(waterMoon.distanceTo(NIGHT_MOON_DIRECTION)).toBeLessThan(1e-7);
     expect(waterMaterial.fragmentShader).toContain('fresnel');
-    expect(waterMaterial.fragmentShader).toContain('glint');
-    expect(waterMaterial.fragmentShader).not.toContain('* 160.0');
+    expect(waterMaterial.fragmentShader).toContain('moonSpecular');
+    expect(waterMaterial.fragmentShader).toContain('shoreFoam');
+    expect(waterMaterial.fragmentShader).not.toContain('fbm');
+    expect(waterMaterial.fragmentShader).not.toContain('hash(');
     const initialWaterTime = waterMaterial.uniforms.time.value as number;
     garden.update(1, false);
     expect(waterMaterial.uniforms.time.value).toBeGreaterThan(initialWaterTime);

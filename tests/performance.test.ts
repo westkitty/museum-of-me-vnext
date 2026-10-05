@@ -9,6 +9,7 @@ import { SPAWN_POSITION, PLACEMENT_BY_EXHIBIT } from '../src/world/layout';
 import { InteractionManager } from '../src/interaction/InteractionManager';
 import { CollisionWorld } from '../src/world/CollisionWorld';
 import { SourceVisitors } from '../src/world/SourceVisitors';
+import { NIGHT_MOON_DIRECTION } from '../src/world/Sky';
 
 /**
  * Runtime cost gates. Profiling in a browser put the entrance at 986 draw calls
@@ -196,6 +197,7 @@ describe('light budget', () => {
         const caster = lighting.group.children.find((node) => (node as THREE.Light).castShadow) as THREE.DirectionalLight;
         expect(caster.shadow.normalBias).toBeGreaterThan(0);
         expect(caster.shadow.radius).toBeGreaterThan(1);
+        expect(caster.position.clone().normalize().distanceTo(NIGHT_MOON_DIRECTION)).toBeLessThan(1e-7);
       }
       lighting.dispose();
       scope.dispose();

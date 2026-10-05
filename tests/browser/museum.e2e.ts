@@ -42,6 +42,26 @@ test('boots at the exterior arrival and keyboard input reaches the real controll
     { timeout: 15_000 },
   ).toBe(true);
 
+  const exterior = await page.evaluate(() => {
+    const app = window.__museum;
+    if (!app) throw new Error('museum app missing');
+    const water = app.scene.getObjectByName('night-island-water') as { geometry?: { type?: string }; userData?: Record<string, unknown> } | undefined;
+    return {
+      bloodRing: Boolean(app.scene.getObjectByName('blood-ring-complete-orbital-structure')),
+      bloodHalo: Boolean(app.scene.getObjectByName('blood-ring-atmospheric-halo')),
+      waterGeometry: water?.geometry?.type ?? null,
+      waterRole: water?.userData?.visualRole ?? null,
+      waveModel: water?.userData?.waveModel ?? null,
+    };
+  });
+  expect(exterior).toEqual({
+    bloodRing: false,
+    bloodHalo: false,
+    waterGeometry: 'RingGeometry',
+    waterRole: 'environment-water',
+    waveModel: 'deep-water-dispersion',
+  });
+
   await expect(page.getByRole('button', { name: 'Enter the museum and capture mouse look' })).toBeVisible();
 
   const qaToggle = page.getByRole('button', { name: 'QA evidence' });

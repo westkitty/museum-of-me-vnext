@@ -1,23 +1,18 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 
+/** Moon direction is shared by sky, water and the real exterior key light. */
+export const NIGHT_MOON_DIRECTION = new THREE.Vector3(-0.43, 0.71, -0.56).normalize();
+
 /**
- * Procedural night sky for the museum grounds. Stars live in a camera-following
- * dome; the Blood Ring is a separate world-relative orbital structure.
+ * Procedural night sky for the museum grounds. The camera-following dome keeps
+ * the exterior deep and legible without adding celestial geometry or draw calls.
  */
 export class Sky {
   readonly mesh: THREE.Mesh;
-  readonly bloodRing: THREE.Mesh;
-  readonly bloodRingHalo: THREE.Mesh;
   readonly horizon = new THREE.Color(0x17304b);
   private lastParallaxX = Number.NaN;
   private lastParallaxZ = Number.NaN;
-
-  // The surface-view composition needs a broad sky sweep, not a distant
-  // hairline or a heavy torus hidden behind the building.
-  static readonly BLOOD_RING_ORBIT_RADIUS = 285;
-  static readonly BLOOD_RING_TUBE_RADIUS = 5.2;
-  static readonly BLOOD_RING_HEIGHT = 255;
 
   constructor(scope: ResourceScope) {
     const geometry = scope.track(new THREE.SphereGeometry(420, 32, 20));
@@ -32,6 +27,7 @@ export class Sky {
           ground: { value: new THREE.Color(0x071522) },
           offset: { value: 0.02 },
           parallax: { value: new THREE.Vector2() },
+          moonDirection: { value: NIGHT_MOON_DIRECTION.clone() },
         },
         vertexShader: /* glsl */ `
           varying vec3 vRay;
@@ -48,6 +44,7 @@ export class Sky {
           uniform vec3 ground;
           uniform float offset;
           uniform vec2 parallax;
+          uniform vec3 moonDirection;
           varying vec3 vRay;
 
           float hash(vec2 p) {
@@ -87,10 +84,22 @@ export class Sky {
             float bandCenter = 0.59 + sin(sky.x * 6.283 + 0.7) * 0.055;
             float galacticBand = exp(-pow((sky.y - bandCenter) * 9.0, 2.0));
             float dustKnots = 0.5 + 0.5 * sin(sky.x * 73.0 + sin(sky.y * 41.0) * 2.4);
+
+            // One shader-space moon now anchors the same direction as the
+            // exterior key light. It replaces the removed orbital geometry
+            // without spending another draw call or creating a second sky pass.
+            float moonDot = max(dot(ray, normalize(moonDirection)), 0.0);
+            float moonDisk = smoothstep(0.99955, 0.99986, moonDot);
+            float moonHalo = pow(moonDot, 96.0) * visibleSky;
+            float horizonHaze = exp(-abs(h - offset) * 8.0);
+
             colour += vec3(0.13, 0.11, 0.22) * galacticBand * (0.055 + dustKnots * 0.035) * visibleSky;
             colour += vec3(0.62, 0.68, 0.76) * distant * 0.28 * visibleSky;
             colour += vec3(0.96, 0.88, 0.72) * middle * 0.68 * visibleSky;
             colour += vec3(1.0, 0.79, 0.63) * near * 0.90 * visibleSky;
+            colour += vec3(0.035, 0.085, 0.13) * horizonHaze * 0.42;
+            colour += vec3(0.30, 0.48, 0.72) * moonHalo * 0.26;
+            colour = mix(colour, vec3(0.86, 0.92, 1.0), moonDisk * 0.94);
 
             gl_FragColor = vec4(colour, 1.0);
           }
@@ -103,78 +112,6 @@ export class Sky {
     this.mesh.renderOrder = -1;
     this.mesh.frustumCulled = false;
 
-    // The Blood Ring is one planet-scale orbit. A low-poly cross-section and
-    // flat shading expose crystal planes without breaking its silhouette into
-    // separate beads.
-    const ringGeometry = scope.track(new THREE.TorusGeometry(
-      Sky.BLOOD_RING_ORBIT_RADIUS,
-      Sky.BLOOD_RING_TUBE_RADIUS,
-      8,
-      144,
-    ));
-    const ringMaterial = scope.track(new THREE.MeshPhysicalMaterial({
-      color: 0xc30d36,
-      emissive: 0x650012,
-      emissiveIntensity: 0.9,
-      roughness: 0.12,
-      metalness: 0.12,
-      transmission: 0.03,
-      thickness: 8,
-      ior: 1.52,
-      clearcoat: 1,
-      clearcoatRoughness: 0.035,
-      attenuationColor: new THREE.Color(0x5e0013),
-      attenuationDistance: 12,
-      flatShading: true,
-      transparent: false,
-      opacity: 1,
-      side: THREE.DoubleSide,
-      depthWrite: true,
-      // The orbit sits at the scene fog boundary. Fog was replacing the red
-      // crystal with the blue horizon colour, producing the reported hoop.
-      fog: false,
-      toneMapped: false,
-    }));
-    this.bloodRing = new THREE.Mesh(ringGeometry, ringMaterial);
-    this.bloodRing.name = 'blood-ring-complete-orbital-structure';
-    this.bloodRing.position.y = Sky.BLOOD_RING_HEIGHT;
-    this.bloodRing.rotation.set(
-      // TorusGeometry starts in a vertical XY plane. A surface viewpoint
-      // needs the orbit nearly horizontal so it reads as an overhead sweep,
-      // not as a circular hoop facing the visitor.
-      THREE.MathUtils.degToRad(78),
-      THREE.MathUtils.degToRad(-8),
-      THREE.MathUtils.degToRad(16),
-    );
-    // The arrival canopy writes depth across the apparent sky. Keep this
-    // celestial landmark in the sky pass so the planetary sweep remains
-    // visible from the surface viewpoint.
-    this.bloodRing.renderOrder = -0.5;
-    ringMaterial.depthTest = false;
-    ringMaterial.depthWrite = false;
-    this.bloodRing.frustumCulled = false;
-
-    const haloGeometry = scope.track(new THREE.TorusGeometry(
-      Sky.BLOOD_RING_ORBIT_RADIUS,
-      Sky.BLOOD_RING_TUBE_RADIUS * 1.5,
-      6,
-      96,
-    ));
-    const haloMaterial = scope.track(new THREE.MeshBasicMaterial({
-      color: 0xff214f,
-      transparent: true,
-      opacity: 0.11,
-      blending: THREE.AdditiveBlending,
-      depthTest: false,
-      depthWrite: false,
-      toneMapped: false,
-    }));
-    this.bloodRingHalo = new THREE.Mesh(haloGeometry, haloMaterial);
-    this.bloodRingHalo.name = 'blood-ring-atmospheric-halo';
-    this.bloodRingHalo.position.copy(this.bloodRing.position);
-    this.bloodRingHalo.rotation.copy(this.bloodRing.rotation);
-    this.bloodRingHalo.renderOrder = -0.55;
-    this.bloodRingHalo.frustumCulled = false;
   }
 
   /** Keep the dome centred on the visitor so it never has an edge. */
