@@ -11,8 +11,17 @@ export interface HostServices {
   readonly detailScale: () => number;
   /** Load a governed asset into the exhibit's own scope. */
   readonly loadAsset: (assetId: string, scope: ResourceScope, detail: number) => Promise<THREE.Object3D>;
+  /** Precompile shaders and initialize textures while the exhibit is still hidden. */
+  readonly warmObject?: (object: THREE.Object3D) => Promise<void>;
   /** Open a locally bundled finished artifact through the Museum UI. */
   readonly openEmbeddedExperience?: (id: 'full-weasel') => void;
+}
+
+export interface ExhibitHostTiming {
+  preloadMs: number;
+  mountMs: number;
+  gpuWarmMs: number;
+  activationMs: number;
 }
 
 class IllegalTransition extends Error {
@@ -39,7 +48,16 @@ export class ExhibitHost {
   private state: ExhibitState = 'unloaded';
   private context: ExhibitContext | null = null;
   private preloadPromise: Promise<void> | null = null;
+  private gpuWarmPromise: Promise<void> | null = null;
+  private gpuWarmReady = false;
+  private mountGeneration = 0;
   private activeSince = 0;
+  readonly timing: ExhibitHostTiming = {
+    preloadMs: 0,
+    mountMs: 0,
+    gpuWarmMs: 0,
+    activationMs: 0,
+  };
   /** Resource count at the end of the last unmount. Non-zero is a leak. */
   lastLeakCount = 0;
 
@@ -68,6 +86,10 @@ export class ExhibitHost {
     return this.state === 'active';
   }
 
+  get isGpuWarm(): boolean {
+    return this.gpuWarmReady;
+  }
+
   get resourceCount(): number {
     return this.scope.size;
   }
@@ -93,12 +115,14 @@ export class ExhibitHost {
     if (this.preloadPromise) return this.preloadPromise;
     if (this.scope.isDisposed) this.scope = new ResourceScope(this.record.id);
     this.context = this.makeContext();
+    const started = performance.now();
     this.preloadPromise = this.module
       .preload(this.context)
       .then(() => {
         this.state = 'loaded';
       })
       .finally(() => {
+        this.timing.preloadMs = performance.now() - started;
         this.preloadPromise = null;
       });
     return this.preloadPromise;
@@ -109,17 +133,51 @@ export class ExhibitHost {
     if (this.state !== 'loaded') throw new IllegalTransition(this.id, this.state, 'mount');
     // Refresh the context so quality and accessibility changes take effect.
     this.context = this.makeContext();
+    const started = performance.now();
+    this.mountGeneration++;
+    this.gpuWarmReady = false;
     this.module.mount(this.context);
+    this.timing.mountMs = performance.now() - started;
     this.state = 'mounted';
+  }
+
+  /**
+   * Warm GPU state while the exhibit remains hidden. The generation check makes
+   * a late async compile harmless if streaming unmounted/rebuilt the host first.
+   */
+  async warmGpu(): Promise<void> {
+    if (this.gpuWarmReady) return;
+    if (this.state !== 'mounted' && this.state !== 'active') {
+      throw new IllegalTransition(this.id, this.state, 'warm GPU state');
+    }
+    if (this.gpuWarmPromise) return this.gpuWarmPromise;
+
+    const generation = this.mountGeneration;
+    const started = performance.now();
+    this.gpuWarmPromise = (async () => {
+      if (this.services.warmObject) await this.services.warmObject(this.group);
+      if (
+        this.mountGeneration === generation
+        && (this.state === 'mounted' || this.state === 'active')
+      ) {
+        this.gpuWarmReady = true;
+      }
+    })().finally(() => {
+      this.timing.gpuWarmMs = performance.now() - started;
+      this.gpuWarmPromise = null;
+    });
+    return this.gpuWarmPromise;
   }
 
   activate(now: number): void {
     if (this.state === 'active') return;
     if (this.state !== 'mounted') throw new IllegalTransition(this.id, this.state, 'activate');
+    const started = performance.now();
     this.group.visible = true;
     this.activeSince = now;
     this.module.activate();
     this.state = 'active';
+    this.timing.activationMs = performance.now() - started;
   }
 
   update(dt: number, eye: readonly [number, number, number], now: number): void {
@@ -144,6 +202,8 @@ export class ExhibitHost {
   unmount(): void {
     if (this.state === 'active') this.deactivate();
     if (this.state !== 'mounted') return;
+    this.mountGeneration++;
+    this.gpuWarmReady = false;
     this.module.unmount();
     this.group.clear();
     this.scope.releaseAll();
@@ -158,6 +218,8 @@ export class ExhibitHost {
   dispose(): void {
     if (this.state === 'active') this.deactivate();
     if (this.state === 'mounted') this.unmount();
+    this.mountGeneration++;
+    this.gpuWarmReady = false;
     this.module.dispose();
     this.scope.dispose();
     this.group.removeFromParent();

@@ -16,6 +16,7 @@ export class RendererHost {
   private contextLost = false;
   private disposed = false;
   private environmentWarmupStarted = false;
+  private environmentWarmupPromise: Promise<void> | null = null;
   private environmentTarget: THREE.WebGLRenderTarget | null = null;
   private readonly onResize = () => this.resize();
   private readonly onContextLost = (e: Event) => {
@@ -90,26 +91,73 @@ export class RendererHost {
     if (this.settings.shadows) this.renderer.shadowMap.needsUpdate = true;
   }
 
-  private async warmEnvironment(): Promise<void> {
-    if (this.environmentWarmupStarted || this.disposed) return;
+  private warmEnvironment(): Promise<void> {
+    if (this.environmentWarmupPromise) return this.environmentWarmupPromise;
+    if (this.disposed) return Promise.resolve();
+
     this.environmentWarmupStarted = true;
-    try {
-      const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js');
-      if (this.disposed) return;
-      const room = new RoomEnvironment();
-      const pmrem = new THREE.PMREMGenerator(this.renderer);
-      const target = pmrem.fromScene(room, 0.04);
-      room.dispose();
-      pmrem.dispose();
-      if (this.disposed) {
-        target.dispose();
+    this.environmentWarmupPromise = (async () => {
+      try {
+        const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js');
+        if (this.disposed) return;
+        const room = new RoomEnvironment();
+        const pmrem = new THREE.PMREMGenerator(this.renderer);
+        const target = pmrem.fromScene(room, 0.04);
+        room.dispose();
+        pmrem.dispose();
+        if (this.disposed) {
+          target.dispose();
+          return;
+        }
+        this.environmentTarget = target;
+        this.scene.environment = target.texture;
+      } catch (error) {
+        console.error('[RendererHost] deferred environment warmup failed', error);
+      }
+    })();
+    return this.environmentWarmupPromise;
+  }
+
+  /**
+   * Prepare an object for first visibility without rendering it. This is the
+   * r62 GPU-warm seam used by exhibit streaming under the title/plaza window.
+   */
+  async prewarmObject(root: THREE.Object3D): Promise<void> {
+    if (this.disposed || this.contextLost) return;
+
+    // Shader programs depend on scene lighting/environment, so compile only
+    // after the deferred PMREM environment has reached its canonical state.
+    await this.warmEnvironment();
+    if (this.disposed || this.contextLost) return;
+
+    const textures = new Set<THREE.Texture>();
+    const collectTexture = (value: unknown): void => {
+      if (!value) return;
+      if ((value as THREE.Texture).isTexture) {
+        textures.add(value as THREE.Texture);
         return;
       }
-      this.environmentTarget = target;
-      this.scene.environment = target.texture;
-    } catch (error) {
-      console.error('[RendererHost] deferred environment warmup failed', error);
-    }
+      if (Array.isArray(value)) {
+        for (const item of value) collectTexture(item);
+      }
+    };
+
+    root.traverse((object) => {
+      const mesh = object as THREE.Mesh;
+      if (!mesh.isMesh && !(object as THREE.Points).isPoints && !(object as THREE.Line).isLine) return;
+      const raw = (mesh as THREE.Mesh).material;
+      const materials = Array.isArray(raw) ? raw : raw ? [raw] : [];
+      for (const material of materials) {
+        for (const value of Object.values(material)) collectTexture(value);
+        const uniforms = (material as THREE.ShaderMaterial).uniforms;
+        if (uniforms) {
+          for (const uniform of Object.values(uniforms)) collectTexture(uniform.value);
+        }
+      }
+    });
+
+    for (const texture of textures) this.renderer.initTexture(texture);
+    await this.renderer.compileAsync(root, this.camera, this.scene);
   }
 
   resize(): void {

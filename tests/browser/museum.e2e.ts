@@ -86,6 +86,13 @@ test('boots at the exterior arrival and keyboard input reaches the real controll
   expect(renderBudget.visibleInstallations).toBeGreaterThan(0);
   expect(renderBudget.visibleInstallations).toBeLessThan(renderBudget.totalInstallations);
 
+  const titlePrewarm = await page.evaluate(() => window.__museum?.titlePrewarmStatus);
+  expect(titlePrewarm?.minimumDwellMs).toBe(4_000);
+  expect(titlePrewarm?.ids).toEqual(['E32', 'E33', 'E30', 'E31']);
+  expect(titlePrewarm?.total).toBe(4);
+  expect(titlePrewarm?.criticalTotal).toBe(2);
+  expect(titlePrewarm?.startedAtMs).not.toBeNull();
+
   await expect(page.getByRole('button', { name: 'Enter the museum and capture mouse look' })).toBeVisible();
 
   const qaToggle = page.getByRole('button', { name: 'QA evidence' });

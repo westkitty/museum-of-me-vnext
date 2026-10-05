@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { installExhibits, scaffoldedExhibitIds } from '../src/exhibits';
 import { createExhibit, definitionFor, registeredExhibitIds } from '../src/exhibits/registry';
 import { ExhibitHost } from '../src/exhibits/ExhibitHost';
-import { StreamingManager } from '../src/exhibits/StreamingManager';
+import { ENTRANCE_PREWARM_IDS, StreamingManager } from '../src/exhibits/StreamingManager';
 import { InteractionManager } from '../src/interaction/InteractionManager';
 import { EXHIBITS_BY_ID } from '../src/content/collection.generated';
 import { PLACEMENT_BY_EXHIBIT, type Vec3 } from '../src/world/layout';
@@ -222,6 +222,68 @@ describe('streaming', () => {
     expect(streaming.telemetry.totalMounts).toBeLessThanOrEqual(4);
     expect(streaming.telemetry.totalMounts).toBeGreaterThan(0);
     streaming.dispose();
+  });
+
+  it('prewarms the entrance pair before the threshold and budgets activation separately', async () => {
+    const built = buildMuseum();
+    const warmObject = vi.fn(async () => {});
+    const streaming = new StreamingManager(
+      built.mounts,
+      { ...services, warmObject },
+      {
+        // Deliberately too small for distance streaming: only the explicit
+        // entrance-prewarm lane can make these four hosts resident.
+        loadRadius: 1,
+        unloadRadius: 200,
+        activateRadius: 400,
+        mountsPerFrame: 1,
+        mountBudgetMs: 20,
+        warmupsPerFrame: 1,
+        activationsPerFrame: 1,
+        activationBudgetMs: 20,
+      },
+    );
+    streaming.initialise();
+    streaming.beginEntrancePrewarm();
+
+    const plaza: Vec3 = [0, 1.6, 130];
+    let warmedWhenReady: number | null = null;
+    for (let i = 0; i < 24 && streaming.telemetry.prewarmWarmed < 4; i++) {
+      streaming.evaluate(plaza, 1 / 60, 'plaza');
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      if (streaming.telemetry.prewarmReady && warmedWhenReady === null) {
+        warmedWhenReady = streaming.telemetry.prewarmWarmed;
+      }
+    }
+
+    expect(streaming.entrancePrewarmStatus.ids).toEqual([...ENTRANCE_PREWARM_IDS]);
+    expect(streaming.telemetry.prewarmTotal).toBe(4);
+    expect(streaming.telemetry.prewarmCriticalTotal).toBe(2);
+    expect(streaming.telemetry.prewarmCriticalWarmed).toBe(2);
+    expect(warmedWhenReady).toBe(2);
+    expect(streaming.telemetry.prewarmMounted).toBe(4);
+    expect(streaming.telemetry.prewarmWarmed).toBe(4);
+    expect(streaming.telemetry.prewarmReady).toBe(true);
+    expect(warmObject).toHaveBeenCalledTimes(4);
+
+    for (const id of ENTRANCE_PREWARM_IDS) {
+      expect(streaming.get(id)?.currentState).toBe('mounted');
+      expect(streaming.get(id)?.isGpuWarm).toBe(true);
+      expect(streaming.timingFor(id)?.gpuReady).toBe(true);
+    }
+
+    // All four are deliberately inside this synthetic activation radius. The
+    // separate activation budget must still expose only one new host per frame.
+    const south: Vec3 = [0, 1.6, 105];
+    streaming.evaluate(south, 1 / 60, 'south');
+    expect(streaming.telemetry.active).toBe(1);
+    streaming.evaluate(south, 1 / 60, 'south');
+    expect(streaming.telemetry.active).toBe(2);
+
+    streaming.dispose();
+    expect(streaming.totalResourceCount()).toBe(0);
   });
 });
 

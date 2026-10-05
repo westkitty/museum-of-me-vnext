@@ -28,7 +28,10 @@ import { PlayerController } from '../player/PlayerController';
 import { zoneAtXYZ, ZONE_BY_ID, isOnFlightPad, type ZoneId } from '../world/layout';
 import { START_POSITION, START_YAW } from '../world/start';
 import { installExhibits } from '../exhibits';
-import { StreamingManager } from '../exhibits/StreamingManager';
+import {
+  StreamingManager,
+  TITLE_PREWARM_MIN_DWELL_MS,
+} from '../exhibits/StreamingManager';
 import { InteractionManager } from '../interaction/InteractionManager';
 import { AudioManager } from '../audio/AudioManager';
 import { AssetManager } from '../assets/AssetManager';
@@ -174,6 +177,7 @@ export class App implements LoopCallbacks {
         detailScale: () => this.renderer.quality.detailScale,
         loadAsset: async (assetId, scope, detail) =>
           (await this.assets.load(assetId, scope, { detail })).object,
+        warmObject: (object) => this.renderer.prewarmObject(object),
         openEmbeddedExperience: (id) => {
           if (id === 'full-weasel') this.ui?.openFullWeasel();
         },
@@ -183,9 +187,16 @@ export class App implements LoopCallbacks {
         unloadRadius: this.renderer.quality.exhibitStreamRadius + 30,
         activateRadius: this.renderer.quality.exhibitStreamRadius,
         mountsPerFrame: 1,
+        mountBudgetMs: 6,
+        warmupsPerFrame: 1,
+        activationsPerFrame: 1,
+        activationBudgetMs: 3,
       },
     );
     this.streaming.initialise();
+    // r62: begin the future title-screen prewarm contract immediately. The
+    // title artwork does not exist yet; the useful four-second work window does.
+    this.streaming.beginEntrancePrewarm();
 
     this.input.on('interact', () => {
       if (this.interaction.activate()) {
@@ -279,6 +290,14 @@ export class App implements LoopCallbacks {
     return this.renderer.camera;
   }
 
+  /** Future title-screen hook: presentation can display time while this runs underneath it. */
+  get titlePrewarmStatus() {
+    return {
+      minimumDwellMs: TITLE_PREWARM_MIN_DWELL_MS,
+      ...this.streaming.entrancePrewarmStatus,
+    };
+  }
+
   setQuality(tier: QualityTier | 'auto'): void {
     this.preferences.quality = tier;
     this.renderer.setQuality(tier === 'auto' ? detectQualityTier() : tier);
@@ -288,14 +307,35 @@ export class App implements LoopCallbacks {
 
   private scheduleAmbientPopulation(announceFailure: boolean): void {
     if (this.ambientLoadTimer !== null) window.clearTimeout(this.ambientLoadTimer);
-    // Let the shell render and accept input before parsing the multi-megabyte crowd GLBs.
-    this.ambientLoadTimer = window.setTimeout(() => {
+
+    // Do not parse multi-megabyte crowd GLBs while entrance prewarm is using
+    // the future title-screen window. If all four targets finish early the crowd
+    // may proceed; otherwise preserve the full four-second title envelope for
+    // E30/E31 after the critical pair, with an eight-second starvation fallback.
+    const started = performance.now();
+    const titleWindowEnds = started + TITLE_PREWARM_MIN_DWELL_MS;
+    const fallbackDeadline = titleWindowEnds + 4_000;
+    const tryPopulate = (): void => {
+      const now = performance.now();
+      const prewarm = this.streaming.telemetry;
+      const allEntranceTargetsWarm =
+        prewarm.prewarmTotal > 0 && prewarm.prewarmWarmed === prewarm.prewarmTotal;
+      const titleWindowSpent = now >= titleWindowEnds;
+      const safeToPopulate =
+        allEntranceTargetsWarm || (prewarm.prewarmReady && titleWindowSpent);
+
+      if (!safeToPopulate && now < fallbackDeadline) {
+        this.ambientLoadTimer = window.setTimeout(tryPopulate, 200);
+        return;
+      }
       this.ambientLoadTimer = null;
       void this.visitors.setPopulation(this.assets, this.renderer.quality.ambientVisitors).catch((error) => {
         console.error('Ambient visitors unavailable; no placeholder crowd was created.', error);
         if (announceFailure) this.ui.hud.announce('Ambient visitors are unavailable on this device.');
       });
-    }, 250);
+    };
+
+    this.ambientLoadTimer = window.setTimeout(tryPopulate, 250);
   }
 
   start(): void {
