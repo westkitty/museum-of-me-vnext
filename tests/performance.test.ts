@@ -206,6 +206,23 @@ describe('source installation visibility budget', () => {
 
     const hiddenId = installations.ids().find((id) => !installations.get(id)?.group.visible);
     expect(hiddenId).toBeTruthy();
+    const hidden = installations.get(hiddenId!)!;
+    expect(hidden.hit.parent).toBe(installations.group);
+    expect(hidden.hit.visible).toBe(true);
+
+    // Off-zone visuals sleep, but their zero-render-cost interaction proxies
+    // remain routable/focusable. This protects guide jumps and deterministic QA
+    // teleports from being coupled to a stale zone-residency frame.
+    const camera = new THREE.PerspectiveCamera(65, 1, 0.1, 100);
+    const point = hidden.placement.interactionPoint;
+    camera.position.set(point[0], point[1] + 1.6, point[2]);
+    const target = hidden.hit.getWorldPosition(new THREE.Vector3());
+    camera.lookAt(target);
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld(true);
+    interaction.update(camera, 1 / 30);
+    expect(interaction.currentFocus?.exhibitId).toBe(`installation:${hiddenId}`);
+
     expect(installations.engage(hiddenId!)).toBe(true);
     expect(installations.get(hiddenId!)?.group.visible).toBe(true);
     installations.disengage();
@@ -214,7 +231,6 @@ describe('source installation visibility budget', () => {
     installations.update(0, false, [0, 1.6, 0], 'rotunda');
     expect(installations.visibleCount).toBeGreaterThan(plazaVisible);
 
-    const camera = new THREE.PerspectiveCamera();
     let cameraVisibleHitMeshes = 0;
     installations.group.traverse((node) => {
       if (

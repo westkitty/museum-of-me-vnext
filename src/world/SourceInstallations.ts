@@ -91,7 +91,9 @@ export class SourceInstallations {
       if (!placement) continue;
       const runtime = this.build(spec, placement, collisions);
       this.runtimes.set(spec.id, runtime);
-      this.group.add(runtime.group);
+      // Visual residency may hide runtime.group, but the interaction proxy must
+      // remain independently raycastable for guide/teleport/programmatic entry.
+      this.group.add(runtime.group, runtime.hit);
       this.unbind.push(this.interaction.register(`installation:${spec.id}`, {
         object: runtime.hit,
         label: `Engage ${spec.title}`,
@@ -314,14 +316,15 @@ export class SourceInstallations {
     hit.name = `installation-hit:${spec.id}`;
     hit.scale.setScalar(Math.max(0.7, placement.interactionRadius));
     hit.layers.set(INTERACTION_ONLY_LAYER);
+    // Keep the proxy in SourceInstallations root/world space rather than under
+    // the zone-culled visual group. It lives on the raycast-only layer, so this
+    // preserves interaction reach without adding a render submission.
     hit.position.set(
-      placement.lectern[0] - placement.position[0],
-      placement.lectern[1] - placement.position[1] + 1.05,
-      placement.lectern[2] - placement.position[2],
+      placement.lectern[0],
+      placement.lectern[1] + 1.05,
+      placement.lectern[2],
     );
-    hit.position.applyAxisAngle(UP, -group.rotation.y);
     hit.userData = { kind: 'installation', id: spec.id };
-    group.add(hit);
 
     const zone: ZoneId = placement.host === 'sanctuary'
       ? 'sanctuary'
