@@ -62,10 +62,14 @@ export class HUD {
           if (isActivationKey(keyEvent)) requestLock(keyEvent);
         },
       },
+      el('span', { class: 'hud__arrival-eyebrow', text: 'THE RELIQUARY OF ITERATIVE BECOMING' }),
+      el('span', { class: 'hud__arrival-pretitle', text: 'Welcome to the' }),
       el('h2', { text: 'Museum of Me' }),
-      el('p', { text: 'Click or press Enter to enter. WASD or arrow keys move, mouse looks, Q/E rotate, Shift sprints, Space jumps, F interacts.' }),
-      el('p', { text: 'No mouse? Q/E turn and Page Up/Page Down look vertically; the whole museum remains keyboard-usable.' }),
-      el('p', { text: 'Press H at any time for the full text of every exhibit.' }),
+      el('span', { class: 'hud__arrival-rule', 'aria-hidden': 'true' }),
+      el('p', { class: 'hud__arrival-invitation', text: 'An entire world of work. One place to discover it.' }),
+      el('span', { class: 'hud__arrival-action', text: 'CLICK OR PRESS ENTER TO BEGIN EXPLORING' }),
+      el('p', { class: 'hud__arrival-controls', text: 'WASD / arrow keys move · Mouse looks · Q/E rotate · Shift sprints · Space jumps · F interacts.' }),
+      el('p', { class: 'hud__arrival-accessibility', text: 'No mouse required: Page Up / Page Down look vertically. Press H for accessible exhibit texts.' }),
     );
 
     this.root = el(
