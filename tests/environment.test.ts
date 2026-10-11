@@ -247,7 +247,7 @@ describe('museum environment coherence', () => {
     scope.dispose();
   });
 
-  it('uses a readable procedural night sky with no exterior Blood Ring geometry', () => {
+  it('uses a readable procedural night sky with a vitrified Drakken Blood Ring', () => {
     const scope = new ResourceScope('environment-test');
     const sky = new Sky(scope);
     expect(sky.mesh.name).toBe('night-sky-layered-stars');
@@ -259,10 +259,10 @@ describe('museum environment coherence', () => {
     const skyMoon = material.uniforms.moonDirection.value as THREE.Vector3;
     expect(skyMoon.distanceTo(NIGHT_MOON_DIRECTION)).toBeLessThan(1e-7);
     expect(skyMoon.z).toBeLessThan(0); // visible over the museum from the south arrival
-    expect(material.fragmentShader).not.toContain('bloodBand');
-    expect(material.fragmentShader).not.toContain('ringAngle');
-    expect((sky as unknown as Record<string, unknown>).bloodRing).toBeUndefined();
-    expect((sky as unknown as Record<string, unknown>).bloodRingHalo).toBeUndefined();
+    expect(material.fragmentShader).toContain('bloodRingBody');
+    expect(material.fragmentShader).toContain('glassFacet');
+    expect(sky.mesh.userData.canonicalFeature).toBe('starsilk-drakken-blood-ring');
+    expect(material.fragmentShader).not.toContain('bloodRingHalo');
     expect(sky.horizon.getHSL({ h: 0, s: 0, l: 0 }).l).toBeGreaterThan(0.03);
     expect(sky.horizon.getHSL({ h: 0, s: 0, l: 0 }).l).toBeLessThan(0.07);
     scope.dispose();
