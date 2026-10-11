@@ -84,6 +84,23 @@ export class Sky {
             float bandCenter = 0.59 + sin(sky.x * 6.283 + 0.7) * 0.055;
             float galacticBand = exp(-pow((sky.y - bandCenter) * 9.0, 2.0));
             float dustKnots = 0.5 + 0.5 * sin(sky.x * 73.0 + sin(sky.y * 41.0) * 2.4);
+            float darkLane = 0.6 + 0.4 * sin(sky.x * 112.0 + sin(sky.y * 57.0) * 2.0);
+            float starCloud = galacticBand * (0.45 + dustKnots * 0.55) * darkLane;
+
+            // Monumental orbital filaments are part of the distant skydome,
+            // not foreground ropes, lamps, geometry or a second render pass.
+            // Their broad arc rises from the left horizon when viewed from the
+            // south arrival and remains stable as the visitor moves.
+            float orbitalHeight = 0.62 + 0.23 * sin(sky.x * 3.5 - 0.25);
+            float orbitalDistance = abs(sky.y - orbitalHeight);
+            float orbitalHalo = exp(-pow(orbitalDistance * 43.0, 2.0));
+            float orbitalCore = exp(-pow(orbitalDistance * 175.0, 2.0));
+            float orbitalThreads = 0.5 + 0.5 * sin(sky.x * 920.0 + sky.y * 57.0);
+            float orbitalShards = step(0.84, hash(floor(vec2(sky.x * 690.0, sky.y * 260.0))));
+            float orbitalVisibility = smoothstep(0.02, 0.22, h);
+            float orbitalLattice = orbitalVisibility *
+              (orbitalCore * (0.5 + orbitalThreads * 0.7)
+               + orbitalHalo * (0.18 + orbitalShards * 0.24));
 
             // One shader-space moon now anchors the same direction as the
             // exterior key light. It replaces the removed orbital geometry
@@ -93,12 +110,20 @@ export class Sky {
             float moonHalo = pow(moonDot, 96.0) * visibleSky;
             float horizonHaze = exp(-abs(h - offset) * 8.0);
 
+            // A soft luminous Milky Way and its dark dust lanes remain behind
+            // the orbital structure; this is still one GPU sky draw call.
+            colour += vec3(0.10, 0.20, 0.41) * starCloud * 0.45 * visibleSky;
             colour += vec3(0.13, 0.11, 0.22) * galacticBand * (0.055 + dustKnots * 0.035) * visibleSky;
             colour += vec3(0.62, 0.68, 0.76) * distant * 0.28 * visibleSky;
             colour += vec3(0.96, 0.88, 0.72) * middle * 0.68 * visibleSky;
             colour += vec3(1.0, 0.79, 0.63) * near * 0.90 * visibleSky;
             colour += vec3(0.035, 0.085, 0.13) * horizonHaze * 0.42;
             colour += vec3(0.30, 0.48, 0.72) * moonHalo * 0.26;
+            // Three bands of ember light suggest a vast crystalline Blood
+            // Ring, without a dynamic light, asset fetch or overdraw pass.
+            colour += vec3(0.52, 0.016, 0.027) * orbitalHalo * orbitalVisibility * 0.55;
+            colour += vec3(1.0, 0.07, 0.055) * orbitalLattice * 0.72;
+            colour += vec3(1.0, 0.35, 0.16) * orbitalCore * orbitalThreads * orbitalVisibility * 0.20;
             colour = mix(colour, vec3(0.86, 0.92, 1.0), moonDisk * 0.94);
 
             gl_FragColor = vec4(colour, 1.0);
