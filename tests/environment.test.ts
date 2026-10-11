@@ -6,6 +6,7 @@ import { Detailing } from '../src/world/Detailing';
 import { ExhibitColorFields } from '../src/world/ExhibitColorFields';
 import { ExhibitThresholds } from '../src/world/ExhibitThresholds';
 import { ExteriorIdentity } from '../src/world/ExteriorIdentity';
+import { MonumentalRotunda } from '../src/world/MonumentalRotunda';
 import { PLACEMENTS, ROTUNDA_APOTHEM, SANCTUARY_DIR, WINGS } from '../src/world/layout';
 import { PaletteSet } from '../src/world/palette';
 import { RotundaWayfinding } from '../src/world/RotundaWayfinding';
@@ -49,6 +50,20 @@ describe('monumental cinematic arrival (regression)', () => {
     let lights = 0;
     root.traverse((node) => { if (node instanceof THREE.Light) lights++; });
     expect(lights).toBe(0);
+    scope.dispose();
+    expect(scope.size).toBe(0);
+  });
+});
+
+describe('monumental Rotunda crown', () => {
+  it('creates eight octagonal crown segments and paired upper piers without lights', () => {
+    const scope = new ResourceScope('rotunda-monument');
+    const group = new MonumentalRotunda(scope).build();
+    const crowns = group.children.filter((x) => x.name.startsWith('rotunda-crown-architrave:'));
+    const piers = group.children.filter((x) => x.name.startsWith('rotunda-upper-pier:'));
+    expect(crowns).toHaveLength(8);
+    expect(piers).toHaveLength(16);
+    expect(group.children.every((node) => !(node instanceof THREE.Light))).toBe(true);
     scope.dispose();
     expect(scope.size).toBe(0);
   });
