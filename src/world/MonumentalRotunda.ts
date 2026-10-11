@@ -21,7 +21,7 @@ export class MonumentalRotunda {
   private readonly bronze: THREE.MeshStandardMaterial;
   private readonly luminous: THREE.MeshBasicMaterial;
 
-  constructor(private readonly scope: ResourceScope) {
+  constructor(scope: ResourceScope) {
     this.group.name = 'monumental-rotunda';
     this.cube = scope.track(new THREE.BoxGeometry(1, 1, 1));
     this.marble = scope.track(new THREE.MeshStandardMaterial({
