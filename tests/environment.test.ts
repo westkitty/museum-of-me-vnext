@@ -18,6 +18,37 @@ import { CollisionWorld } from '../src/world/CollisionWorld';
 import { resolveExhibitTheme } from '../src/world/ExhibitTheme';
 import { buildMuseum } from './helpers/walk';
 
+describe('monumental cinematic arrival (regression)', () => {
+  it('retains a single procedural night-sky draw while rendering the orbital monument', () => {
+    const scope = new ResourceScope('cinematic-sky');
+    const sky = new Sky(scope);
+    const shader = (sky.mesh.material as THREE.ShaderMaterial).fragmentShader;
+    expect(shader).toContain('orbitalLattice');
+    expect(shader).toContain('orbitalHalo');
+    expect(shader).toContain('starCloud');
+    expect(sky.mesh).toBeInstanceOf(THREE.Mesh);
+    expect(sky.mesh.frustumCulled).toBe(false);
+    scope.dispose();
+    expect(scope.size).toBe(0);
+  });
+
+  it('gives the arrival a tall physical-looking noncolliding portico with no extra lights', () => {
+    const scope = new ResourceScope('cinematic-portico');
+    const root = new ExteriorIdentity(scope).build();
+    const towers = root.children.filter((node) => node.name === 'monumental-portal-tower');
+    expect(towers).toHaveLength(2);
+    expect(towers.map((node) => node.position.x)).toEqual([-20.2, 20.2]);
+    expect(towers.every((node) => node.position.y > 8)).toBe(true);
+    expect(root.getObjectByName('monumental-portal-architrave')).toBeTruthy();
+    expect(root.getObjectByName('monumental-portal-amber-cornice')).toBeTruthy();
+    let lights = 0;
+    root.traverse((node) => { if (node instanceof THREE.Light) lights++; });
+    expect(lights).toBe(0);
+    scope.dispose();
+    expect(scope.size).toBe(0);
+  });
+});
+
 describe('museum environment coherence', () => {
   it('keeps the Rotunda substantially brighter than the themed wings', () => {
     const scope = new ResourceScope('environment-test');
