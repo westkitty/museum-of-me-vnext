@@ -19,12 +19,17 @@ import { resolveExhibitTheme } from '../src/world/ExhibitTheme';
 import { buildMuseum } from './helpers/walk';
 
 describe('monumental cinematic arrival (regression)', () => {
-  it('retains a single procedural night-sky draw while rendering the orbital monument', () => {
+  it('renders the Drakken Blood Ring as vitrified glass inside the single procedural sky draw', () => {
     const scope = new ResourceScope('cinematic-sky');
     const sky = new Sky(scope);
     const shader = (sky.mesh.material as THREE.ShaderMaterial).fragmentShader;
-    expect(shader).toContain('orbitalLattice');
-    expect(shader).toContain('orbitalHalo');
+    expect(shader).toContain('bloodRingBody');
+    expect(shader).toContain('glassFacet');
+    expect(shader).toContain('floatingGlass');
+    expect(shader).not.toContain('orbitalHalo');
+    expect(shader).not.toContain('bloodRingHalo');
+    expect(sky.mesh.userData.canonicalFeature).toBe('starsilk-drakken-blood-ring');
+    expect(sky.mesh.userData.bloodRingConstruction).toBe('vitrified-biospheric-scar');
     expect(shader).toContain('starCloud');
     expect(sky.mesh).toBeInstanceOf(THREE.Mesh);
     expect(sky.mesh.frustumCulled).toBe(false);
