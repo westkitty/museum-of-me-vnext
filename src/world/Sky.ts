@@ -87,20 +87,40 @@ export class Sky {
             float darkLane = 0.6 + 0.4 * sin(sky.x * 112.0 + sin(sky.y * 57.0) * 2.0);
             float starCloud = galacticBand * (0.45 + dustKnots * 0.55) * darkLane;
 
-            // Monumental orbital filaments are part of the distant skydome,
-            // not foreground ropes, lamps, geometry or a second render pass.
-            // Their broad arc rises from the left horizon when viewed from the
-            // south arrival and remains stable as the visitor moves.
-            float orbitalHeight = 0.62 + 0.23 * sin(sky.x * 3.5 - 0.25);
-            float orbitalDistance = abs(sky.y - orbitalHeight);
-            float orbitalHalo = exp(-pow(orbitalDistance * 43.0, 2.0));
-            float orbitalCore = exp(-pow(orbitalDistance * 175.0, 2.0));
-            float orbitalThreads = 0.5 + 0.5 * sin(sky.x * 920.0 + sky.y * 57.0);
-            float orbitalShards = step(0.84, hash(floor(vec2(sky.x * 690.0, sky.y * 260.0))));
-            float orbitalVisibility = smoothstep(0.02, 0.22, h);
-            float orbitalLattice = orbitalVisibility *
-              (orbitalCore * (0.5 + orbitalThreads * 0.7)
-               + orbitalHalo * (0.18 + orbitalShards * 0.24));
+            // Drakken Blood Ring: an enormous vitrified biospheric scar,
+            // not a halo, portal, energy field, or Starsilk filament.
+            // Gorevault produces atrocity feedstock; Ringthroat extrudes it
+            // toward orbit. The sky shader is a distant *visual proxy* for
+            // hard reflective deep-crimson matter, not a second 3D renderer.
+            //
+            // South arrival faces north: the scar climbs from the western
+            // horizon through the north sky, like the supplied reference.
+            float bloodRingElevation = 0.65 + 0.22 * sin((sky.x - 0.25) * 4.2 - 0.35);
+            float bloodRingDistance = sky.y - bloodRingElevation;
+            float scarGrain = sin(sky.x * 103.0) * 0.0017
+                            + sin(sky.x * 273.0 + 0.9) * 0.0009;
+            float scarHalfWidth = 0.014 + scarGrain;
+            float bloodRingBody = 1.0 - smoothstep(
+              scarHalfWidth * 0.67, scarHalfWidth, abs(bloodRingDistance)
+            );
+            float bloodRingVisibility = smoothstep(-0.025, 0.085, h)
+              * (1.0 - smoothstep(0.30, 0.48, abs(sky.x - 0.25)));
+
+            // Piecewise reflective red glass; fine fractures catch light along
+            // the band, while sparse chips float just beyond the fracture edge.
+            vec2 glassCell = floor(vec2(sky.x * 410.0,
+              bloodRingDistance * 370.0));
+            float glassFacet = hash(glassCell + vec2(11.0, 37.0));
+            float glassSeam = pow(
+              abs(sin(sky.x * 570.0 + bloodRingDistance * 155.0)), 24.0
+            );
+            float glassVein = exp(-pow(
+              (bloodRingDistance - 0.004 * sin(sky.x * 160.0)) * 330.0, 2.0
+            ));
+            float floatingGlass = step(0.982, hash(glassCell + vec2(83.0, 5.0)))
+              * (1.0 - smoothstep(scarHalfWidth * 1.2, scarHalfWidth * 3.3,
+                abs(bloodRingDistance)));
+
 
             // One shader-space moon now anchors the same direction as the
             // exterior key light. It replaces the removed orbital geometry
@@ -119,11 +139,19 @@ export class Sky {
             colour += vec3(1.0, 0.79, 0.63) * near * 0.90 * visibleSky;
             colour += vec3(0.035, 0.085, 0.13) * horizonHaze * 0.42;
             colour += vec3(0.30, 0.48, 0.72) * moonHalo * 0.26;
-            // Three bands of ember light suggest a vast crystalline Blood
-            // Ring, without a dynamic light, asset fetch or overdraw pass.
-            colour += vec3(0.52, 0.016, 0.027) * orbitalHalo * orbitalVisibility * 0.55;
-            colour += vec3(1.0, 0.07, 0.055) * orbitalLattice * 0.72;
-            colour += vec3(1.0, 0.35, 0.16) * orbitalCore * orbitalThreads * orbitalVisibility * 0.20;
+            // Dark glass occludes the stars; seams and shard edges reflect
+            // narrow red highlights. This is material, never a glowing halo.
+            vec3 scarGlass = mix(
+              vec3(0.075, 0.006, 0.012),
+              vec3(0.22, 0.016, 0.025),
+              glassFacet
+            );
+            colour = mix(colour, scarGlass,
+              bloodRingBody * bloodRingVisibility * 0.88);
+            colour += vec3(0.62, 0.055, 0.046) * bloodRingBody
+              * bloodRingVisibility * (glassSeam * 0.3 + glassVein * 0.6);
+            colour += vec3(0.46, 0.042, 0.035) * floatingGlass
+              * bloodRingVisibility * 0.72;
             colour = mix(colour, vec3(0.86, 0.92, 1.0), moonDisk * 0.94);
 
             gl_FragColor = vec4(colour, 1.0);
@@ -134,6 +162,8 @@ export class Sky {
 
     this.mesh = new THREE.Mesh(geometry, material);
     this.mesh.name = 'night-sky-layered-stars';
+    this.mesh.userData.canonicalFeature = 'starsilk-drakken-blood-ring';
+    this.mesh.userData.bloodRingConstruction = 'vitrified-biospheric-scar';
     this.mesh.renderOrder = -1;
     this.mesh.frustumCulled = false;
 
