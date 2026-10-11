@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { EnvironmentDressing } from './EnvironmentDressing';
+import { MonumentalRotunda } from './MonumentalRotunda';
 import { ExhibitColorFields } from './ExhibitColorFields';
 import { ExhibitThresholds } from './ExhibitThresholds';
 import { ExteriorIdentity } from './ExteriorIdentity';
@@ -33,6 +34,7 @@ export class PersistentEnvironment {
     const layers = [
       this.dressing.build(),
       new ExteriorIdentity(this.scope).build(),
+      new MonumentalRotunda(this.scope).build(),
       new RotundaWayfinding(this.scope).build(),
       new WingIdentity(this.scope).build(),
       new WingAtmosphere(this.scope).build(),
@@ -43,7 +45,7 @@ export class PersistentEnvironment {
     this.group.add(...layers);
 
     // Workshop-owned scene roots must retain their identity and transforms.
-    // Everything else in these eight layers is immutable after construction,
+    // Everything else in these layers is immutable after construction,
     // so collapse repeated-material meshes inside each layer to cut draw calls
     // without flattening the layer hierarchy itself.
     for (const item of this.dressing.authorableSceneRoots()) {
