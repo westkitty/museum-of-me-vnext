@@ -237,6 +237,26 @@ export class ArrivalGarden {
       this.group.add(strip);
     }
 
+    // Shallow mirrored paving inserts give the long approach a wet-stone
+    // glint without a costly planar reflection pass or a new water surface.
+    // These are non-colliding and remain below the original walking plane.
+    const reflection = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x52616a, metalness: 0.78, roughness: 0.23,
+      transparent: true, opacity: 0.64, depthWrite: false,
+    }));
+    const reflectionGeometry = this.scope.track(new THREE.PlaneGeometry(2.2, 1.55));
+    for (let i = 0; i < 9; i++) {
+      const z = z0 + (i + 0.5) * length / 9;
+      for (const side of [-1, 1]) {
+        const panel = new THREE.Mesh(reflectionGeometry, reflection);
+        panel.name = 'arrival-reflective-stone-inset';
+        panel.rotation.x = -Math.PI / 2;
+        panel.position.set(side * 2.4, GROUND_Y + 0.052, z);
+        panel.receiveShadow = false;
+        this.group.add(panel);
+      }
+    }
+
     // Four paired lantern-like obelisks frame the long view, well outside the
     // central 10.8-metre-wide path and away from the existing fountain.
     for (let i = 0; i < 4; i++) {
