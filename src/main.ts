@@ -1,4 +1,6 @@
 import placementManifest from '../data/workshop-placements.json';
+import { mountCinematicArrival } from './ui/CinematicArrival';
+import './ui/cinematic-arrival.css';
 import { App } from './app/App';
 import { MuseumPlacements } from './workshop/MuseumPlacements';
 import { PersistentEnvironment } from './world/PersistentEnvironment';
@@ -54,6 +56,7 @@ try {
 // proofs can now observe and stop the real runtime at its first stable boundary.
 window.__museum = app;
 app.start();
+mountCinematicArrival(app);
 
 if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('edit') === '1') {
   let toggleWorkshop: (() => void) | null = null;

@@ -22,6 +22,7 @@ import { EXHIBITS_BY_ID } from '../content/collection.generated';
 import { ResourceScope } from '../assets/ResourceScope';
 import { Museum } from '../world/Museum';
 import { ArrivalGarden } from '../world/ArrivalGarden';
+import { ArrivalBeacons } from '../world/ArrivalBeacons';
 import { Lighting } from '../render/Lighting';
 import { InputManager } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
@@ -91,6 +92,7 @@ export class App implements LoopCallbacks {
 
   private disposed = false;
   private workshopUpdate: (() => void) | null = null;
+  private arrivalUpdate: (() => void) | null = null;
   private ambientLoadTimer: number | null = null;
   private diagnosticSampleElapsed = 0.1;
   private lightingResidencyRevision = -1;
@@ -136,6 +138,7 @@ export class App implements LoopCallbacks {
 
     this.arrivalGarden = new ArrivalGarden(this.scope, built.collision);
     this.renderer.scene.add(this.arrivalGarden.build());
+    this.renderer.scene.add(new ArrivalBeacons(this.scope).group);
 
     this.sanctuary = new DexterSanctuary(this.scope);
     this.renderer.scene.add(this.sanctuary.group);
@@ -346,6 +349,11 @@ export class App implements LoopCallbacks {
     this.loop.stop();
   }
 
+  /** Cinematic title readiness is driven by the existing application loop. */
+  setArrivalUpdate(update: (() => void) | null): void {
+    this.arrivalUpdate = update;
+  }
+
   /** Development-only Workshop cue hook; the editor remains dynamically loaded. */
   setWorkshopUpdate(update: (() => void) | null): void {
     this.workshopUpdate = update;
@@ -408,6 +416,7 @@ export class App implements LoopCallbacks {
   }
 
   variableUpdate(dt: number): void {
+    this.arrivalUpdate?.();
     // Mouse, touch and keyboard all feed the same look, so the museum is fully
     // usable with any one of them alone.
     const keyboardLook = this.input.keyboardLookReusable(dt, this.preferences.mouseSensitivity);
@@ -479,6 +488,7 @@ export class App implements LoopCallbacks {
     this.disposed = true;
     this.loop.stop();
     this.workshopUpdate = null;
+    this.arrivalUpdate = null;
     if (this.ambientLoadTimer !== null) window.clearTimeout(this.ambientLoadTimer);
     this.ambientLoadTimer = null;
     this.ui?.dispose();
