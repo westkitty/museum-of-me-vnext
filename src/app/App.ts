@@ -22,6 +22,7 @@ import { EXHIBITS_BY_ID } from '../content/collection.generated';
 import { ResourceScope } from '../assets/ResourceScope';
 import { Museum } from '../world/Museum';
 import { ArrivalGarden } from '../world/ArrivalGarden';
+import { ArrivalBeacons } from '../world/ArrivalBeacons';
 import { Lighting } from '../render/Lighting';
 import { InputManager } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
@@ -136,6 +137,7 @@ export class App implements LoopCallbacks {
 
     this.arrivalGarden = new ArrivalGarden(this.scope, built.collision);
     this.renderer.scene.add(this.arrivalGarden.build());
+    this.renderer.scene.add(new ArrivalBeacons(this.scope).group);
 
     this.sanctuary = new DexterSanctuary(this.scope);
     this.renderer.scene.add(this.sanctuary.group);
