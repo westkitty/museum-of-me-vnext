@@ -41,6 +41,12 @@ describe('phase 01 monumental arrival', () => {
       && mesh.material.transparent);
     expect(shafts).toHaveLength(4);
     expect(new Set(shafts.map((mesh) => mesh.geometry)).size).toBe(1);
+    const markers = arrival.group.children.filter((item) => item.name === 'ceremonial-searchlight');
+    expect(markers).toHaveLength(4);
+    for (const marker of markers) {
+      expect(marker.position.z).toBeLessThan(START_POSITION[2]);
+      expect(marker.position.z).toBeGreaterThan(VESTIBULE_TO);
+    }
     scope.dispose();
   });
 });
