@@ -18,6 +18,9 @@ export class HUD {
   private readonly subtitle: HTMLElement;
   private readonly hints: HTMLElement;
   private readonly lockPrompt: HTMLElement;
+  private readonly arrivalAction: HTMLElement;
+  private arrivalReady = true;
+  private arrivalEntered = false;
   private readonly threadStatus: HTMLButtonElement;
   private buildModeButton: HTMLButtonElement | null = null;
   private pointerLocked = false;
@@ -28,7 +31,7 @@ export class HUD {
   private subtitleTimer = 0;
   private lastZone: ZoneId | null = null;
 
-  constructor(onRequestLock: () => void, onOpenThread?: () => void) {
+  constructor(onRequestLock: (touch: boolean) => void | boolean, onOpenThread?: () => void) {
     this.reticle = el('div', { class: 'hud__reticle' });
     this.cueLabel = el('span', {});
     this.cue = el('div', { class: 'hud__cue' }, el('kbd', { text: 'F' }), this.cueLabel);
@@ -45,9 +48,20 @@ export class HUD {
       el('div', { html: '<b>Y</b> study · <b>T</b> thread · <b>Ctrl+K</b> command · <b>H</b> contents · <b>O</b> settings' }),
     );
 
+    this.arrivalAction = el('span', {
+      class: 'hud__arrival-action',
+      text: 'CLICK OR PRESS ENTER TO BEGIN EXPLORING',
+      'aria-live': 'polite',
+    });
     const requestLock = (event?: Event): void => {
       event?.preventDefault();
-      onRequestLock();
+      if (!this.arrivalReady) return;
+      const touch = (typeof PointerEvent !== 'undefined'
+        && event instanceof PointerEvent && event.pointerType === 'touch')
+        || Boolean(window.matchMedia?.('(pointer: coarse)').matches);
+      if (onRequestLock(touch) === false) return;
+      this.arrivalEntered = true;
+      this.lockPrompt.hidden = true;
     };
     this.lockPrompt = el(
       'div',
@@ -67,7 +81,7 @@ export class HUD {
       el('h2', { text: 'Museum of Me' }),
       el('span', { class: 'hud__arrival-rule', 'aria-hidden': 'true' }),
       el('p', { class: 'hud__arrival-invitation', text: 'An entire world of work. One place to discover it.' }),
-      el('span', { class: 'hud__arrival-action', text: 'CLICK OR PRESS ENTER TO BEGIN EXPLORING' }),
+      this.arrivalAction,
       el('p', { class: 'hud__arrival-controls', text: 'WASD / arrow keys move · Mouse looks · Q/E rotate · Shift sprints · Space jumps · F interacts.' }),
       el('p', { class: 'hud__arrival-accessibility', text: 'No mouse required: Page Up / Page Down look vertically. Press H for accessible exhibit texts.' }),
     );
@@ -86,9 +100,21 @@ export class HUD {
     this.setLocation('plaza');
   }
 
+  /** The first title is a one-time introduction, not a modal that returns
+   * over the museum whenever pointer lock is released. */
+  setArrivalReadiness(ready: boolean): void {
+    if (this.arrivalEntered || this.arrivalReady === ready) return;
+    this.arrivalReady = ready;
+    this.lockPrompt.setAttribute('aria-disabled', String(!ready));
+    this.lockPrompt.classList.toggle('hud__lock--preparing', !ready);
+    this.arrivalAction.textContent = ready
+      ? 'CLICK OR PRESS ENTER TO BEGIN EXPLORING'
+      : 'PREPARING YOUR ARRIVAL — GALLERIES WARMING';
+  }
+
   setPointerLocked(locked: boolean): void {
     this.pointerLocked = locked;
-    this.lockPrompt.hidden = locked || this.touchMode || this.buildModeActive;
+    this.lockPrompt.hidden = locked || this.touchMode || this.buildModeActive || this.arrivalEntered;
     this.reticle.style.display = locked || this.touchMode ? '' : 'none';
   }
 
@@ -117,7 +143,7 @@ export class HUD {
       this.buildModeButton.setAttribute('aria-label', active ? 'Exit Build Mode' : 'Enter Build Mode');
       this.buildModeButton.setAttribute('aria-pressed', String(active));
     }
-    this.lockPrompt.hidden = active || this.pointerLocked || this.touchMode;
+    this.lockPrompt.hidden = active || this.pointerLocked || this.touchMode || this.arrivalEntered;
   }
 
   private touchMode = false;

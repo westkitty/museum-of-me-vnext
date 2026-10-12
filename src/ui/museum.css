@@ -879,3 +879,15 @@ html[data-contrast='high'] .hud__lock {
   .hud__lock .hud__arrival-controls,
   .hud__lock .hud__arrival-accessibility { font-size: 0.71rem; }
 }
+
+/* Opening credits share the live scene; no separate video, canvas or timer.
+   Keyboard and touch visitors receive the same prewarm-aware entry action. */
+.hud__lock--preparing { cursor: progress; }
+.hud__lock--preparing .hud__arrival-action { opacity: 0.72; border-style: dashed; }
+.hud__arrival-eyebrow { animation: reliquary-arrival-reveal 900ms ease-out both; }
+.hud__lock h2 { animation: reliquary-arrival-reveal 1150ms 120ms ease-out both; }
+.hud__lock .hud__arrival-action { animation: reliquary-arrival-reveal 950ms 350ms ease-out both; }
+@keyframes reliquary-arrival-reveal {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}

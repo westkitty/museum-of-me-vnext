@@ -22,6 +22,8 @@ import { EXHIBITS_BY_ID } from '../content/collection.generated';
 import { ResourceScope } from '../assets/ResourceScope';
 import { Museum } from '../world/Museum';
 import { ArrivalGarden } from '../world/ArrivalGarden';
+import { ArrivalBeacons } from '../world/ArrivalBeacons';
+import { canEnterArrival, sampleArrivalCamera } from '../world/ArrivalCamera';
 import { Lighting } from '../render/Lighting';
 import { InputManager } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
@@ -95,10 +97,16 @@ export class App implements LoopCallbacks {
   private diagnosticSampleElapsed = 0.1;
   private lightingResidencyRevision = -1;
   private readonly eyePositionScratch: [number, number, number] = [0, 0, 0];
+  private readonly cinematicArrivalEnabled: boolean;
+  private readonly cinematicArrivalStartMs = performance.now();
+  private cinematicArrivalEntered = false;
+  private cinematicCameraCancelled = false;
 
   constructor(opts: AppOptions) {
     this.uiRoot = opts.uiRoot;
     this.a11yRoot = opts.a11yRoot;
+    const query = new URLSearchParams(window.location.search);
+    this.cinematicArrivalEnabled = !query.has('qa') && !query.has('edit');
 
     registerCuratedAssets();
     registerQuaterniusAssets();
@@ -136,6 +144,9 @@ export class App implements LoopCallbacks {
 
     this.arrivalGarden = new ArrivalGarden(this.scope, built.collision);
     this.renderer.scene.add(this.arrivalGarden.build());
+    // Reconcile the separate cinematic-arrival experiment as a static,
+    // resource-owned architectural group. Never add another renderer or light.
+    this.renderer.scene.add(new ArrivalBeacons(this.scope).group);
 
     this.sanctuary = new DexterSanctuary(this.scope);
     this.renderer.scene.add(this.sanctuary.group);
@@ -298,6 +309,27 @@ export class App implements LoopCallbacks {
     };
   }
 
+  /** The existing E32/E33 entrance prewarm is the source of title readiness.
+   * The extra four seconds are a bounded fallback, not an indefinite gate. */
+  get arrivalReady(): boolean {
+    if (!this.cinematicArrivalEnabled || this.cinematicArrivalEntered) return true;
+    const status = this.titlePrewarmStatus;
+    const elapsed = Math.max(0, performance.now() - (status.startedAtMs ?? this.cinematicArrivalStartMs));
+    return canEnterArrival(elapsed, status.minimumDwellMs, status.ready);
+  }
+
+  get arrivalEntered(): boolean {
+    return this.cinematicArrivalEntered;
+  }
+
+  /** A successful visitor entry permanently relinquishes the title camera. */
+  enterArrival(): boolean {
+    if (!this.arrivalReady) return false;
+    this.cinematicArrivalEntered = true;
+    this.cinematicCameraCancelled = true;
+    return true;
+  }
+
   setQuality(tier: QualityTier | 'auto'): void {
     this.preferences.quality = tier;
     this.renderer.setQuality(tier === 'auto' ? detectQualityTier() : tier);
@@ -418,6 +450,17 @@ export class App implements LoopCallbacks {
       this.preferences.invertY,
     );
 
+    // Ordinary visitor input wins over the optional reveal; the visual
+    // camera never moves the player or changes collision/streaming queries.
+    if (this.cinematicArrivalEnabled && !this.cinematicCameraCancelled) {
+      const moved = Math.abs(this.player.position.x - START_POSITION[0]) > 0.05
+        || Math.abs(this.player.position.z - START_POSITION[2]) > 0.05;
+      if (moved || this.input.pointerLocked || this.input.touchActive
+        || this.input.uiCaptured || this.player.isFrozen || this.currentZone !== 'plaza') {
+        this.cinematicCameraCancelled = true;
+      }
+    }
+
     const eye = this.player.writeEyePosition(this.eyePositionScratch);
     const zone = zoneAtXYZ(eye[0], this.player.position.y + 0.1, eye[2]);
     if (zone !== this.currentZone) {
@@ -466,6 +509,17 @@ export class App implements LoopCallbacks {
 
   render(alpha: number): void {
     this.player.applyToCamera(this.camera, alpha);
+    if (this.cinematicArrivalEnabled && !this.cinematicArrivalEntered
+      && !this.cinematicCameraCancelled && !this.preferences.reducedMotion
+      && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      const prewarm = this.titlePrewarmStatus;
+      const elapsed = performance.now() - (prewarm.startedAtMs ?? this.cinematicArrivalStartMs);
+      const offset = sampleArrivalCamera(elapsed, prewarm.minimumDwellMs);
+      this.camera.position.y += offset.rise;
+      this.camera.position.z += offset.retreat;
+      this.camera.rotation.x += offset.pitch;
+      this.sky.follow(this.camera);
+    }
     this.renderer.render();
     this.diagnosticSampleElapsed += this.loop.frameTimeMs / 1000;
     if (this.diagnosticSampleElapsed >= 0.1) {
