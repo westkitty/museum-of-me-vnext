@@ -26,7 +26,8 @@ export class ArrivalBeacons {
     const baseGeometry = scope.track(new THREE.CylinderGeometry(1.25, 1.65, 3.6, 8));
     const crownGeometry = scope.track(new THREE.CylinderGeometry(0.48, 0.58, 0.18, 12));
     const beamGeometry = scope.track(new THREE.CylinderGeometry(2.6, 0.42, 105, 12, 1, true));
-    // A colossal but walk-through gateway frames the distant entrance.
+    // Frame the actual north-facing visitor view: the gateway must be between
+    // the plaza spawn (+10) and the museum entrance (0), not behind the camera.
     // Supports sit beyond the plaza parapets; its lintel clears the visitor.
     const gatewayStone = scope.track(new THREE.MeshStandardMaterial({
       color: 0x10151d, roughness: 0.86, metalness: 0.14,
@@ -37,7 +38,7 @@ export class ArrivalBeacons {
     const pierGeometry = scope.track(new THREE.BoxGeometry(4.5, 29, 4.5));
     const lintelGeometry = scope.track(new THREE.BoxGeometry(76, 4.5, 5));
     const lineGeometry = scope.track(new THREE.BoxGeometry(76, 0.15, 0.24));
-    const gatewayZ = VESTIBULE_TO + 19;
+    const gatewayZ = VESTIBULE_TO + 4;
     for (const side of [-1, 1]) {
       const pier = new THREE.Mesh(pierGeometry, gatewayStone);
       pier.position.set(side * 36, 14.5, gatewayZ);
