@@ -2,10 +2,17 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { ResourceScope } from '../src/assets/ResourceScope';
 import { ArrivalBeacons } from '../src/world/ArrivalBeacons';
+import { App } from '../src/app/App';
+import { mountCinematicArrival } from '../src/ui/CinematicArrival';
 import { START_POSITION, START_YAW } from '../src/world/start';
 import { PLAZA_HALF_WIDTH, VESTIBULE_TO } from '../src/world/layout';
 
 describe('phase 01 monumental arrival', () => {
+  it('routes title readiness through the app-owned variable update loop', () => {
+    expect(typeof App.prototype.setArrivalUpdate).toBe('function');
+    expect(typeof App.prototype.variableUpdate).toBe('function');
+    expect(typeof mountCinematicArrival).toBe('function');
+  });
   it('keeps the gateway supports outside the walkable plaza and the lintel overhead', () => {
     const scope = new ResourceScope('arrival-architecture-test');
     const arrival = new ArrivalBeacons(scope);
