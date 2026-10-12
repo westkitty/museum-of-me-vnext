@@ -287,6 +287,9 @@ export class ArrivalGarden {
       mesh.instanceMatrix.needsUpdate = true;
       mesh.computeBoundingSphere();
       this.group.add(mesh);
+      // InstancedMesh owns GPU instance buffers beyond the tracked geometry;
+      // disposal must include the mesh itself, not only its shared resources.
+      this.scope.trackObject(mesh);
     }
   }
 
