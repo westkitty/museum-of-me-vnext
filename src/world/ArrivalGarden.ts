@@ -207,7 +207,59 @@ export class ArrivalGarden {
     this.arrivalMarker([-7.5, GROUND_Y, z1 - 4]);
     this.arrivalMarker([7.5, GROUND_Y, z1 - 4]);
 
+    // Ceremonial approach: a restrained, mirrored amber rhythm and inlaid
+    // paving guide the eye toward the entrance without blocking the route.
+    // Visual-only meshes, no collision registrations or scene lights.
+    this.buildCeremonialApproach(z0, z1);
+
     return this.group;
+  }
+
+  private buildCeremonialApproach(z0: number, z1: number): void {
+    const amber = this.scope.track(new THREE.MeshBasicMaterial({
+      color: 0xffbc78, toneMapped: false,
+    }));
+    const bronze = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x8b6951, metalness: 0.58, roughness: 0.4,
+    }));
+    const stripGeometry = this.scope.track(new THREE.BoxGeometry(0.055, 0.016, 1));
+    const pillarGeometry = this.scope.track(new THREE.BoxGeometry(1, 1, 1));
+    const length = z1 - z0;
+
+    // Thin, inset wayfinding strips occupy only the existing stone surface.
+    for (const side of [-1, 1]) {
+      const strip = new THREE.Mesh(stripGeometry, bronze);
+      strip.name = 'arrival-ceremonial-bronze-inlay';
+      strip.position.set(side * 4.6, GROUND_Y + 0.056, (z0 + z1) / 2);
+      strip.scale.z = Math.max(0.5, length - 4);
+      strip.castShadow = false;
+      strip.receiveShadow = false;
+      this.group.add(strip);
+    }
+
+    // Four paired lantern-like obelisks frame the long view, well outside the
+    // central 10.8-metre-wide path and away from the existing fountain.
+    for (let i = 0; i < 4; i++) {
+      const z = z0 + (i + 0.65) * length / 4.6;
+      for (const side of [-1, 1]) {
+        const x = side * 11.8;
+        const pillar = new THREE.Mesh(pillarGeometry, bronze);
+        pillar.name = 'arrival-ceremonial-obelisk';
+        pillar.position.set(x, GROUND_Y + 1.45, z);
+        pillar.scale.set(0.5, 2.9, 0.5);
+        pillar.castShadow = false;
+        pillar.receiveShadow = false;
+        this.group.add(pillar);
+
+        const crown = new THREE.Mesh(pillarGeometry, amber);
+        crown.name = 'arrival-ceremonial-obelisk-crown';
+        crown.position.set(x, GROUND_Y + 3.03, z);
+        crown.scale.set(0.58, 0.11, 0.58);
+        crown.castShadow = false;
+        crown.receiveShadow = false;
+        this.group.add(crown);
+      }
+    }
   }
 
   authorableSceneRoots(): readonly { readonly id: string; readonly root: THREE.Object3D }[] {
