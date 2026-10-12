@@ -21,3 +21,17 @@ test('QA route bypasses the visitor title', async ({ page }) => {
   await page.goto('/?qa=1');
   await expect(page.locator('.cinematic-arrival')).toHaveCount(0);
 });
+
+
+test('keyboard visitor can dismiss the ready introduction', async ({ page }) => {
+  await page.goto('/');
+  const intro = page.getByRole('dialog', { name: 'Welcome to the Museum of Me' });
+  const enter = intro.getByRole('button', { name: 'Enter the museum' });
+  await expect(enter).toBeEnabled({ timeout: 15_000 });
+  await enter.focus();
+  await page.keyboard.press('Tab');
+  await expect(enter).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(intro).toHaveCount(0);
+  expect(await page.evaluate(() => window.__museum?.input.uiCaptured)).toBe(false);
+});
