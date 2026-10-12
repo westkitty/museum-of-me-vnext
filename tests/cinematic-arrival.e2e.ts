@@ -35,3 +35,13 @@ test('keyboard visitor can dismiss the ready introduction', async ({ page }) => 
   await expect(intro).toHaveCount(0);
   expect(await page.evaluate(() => window.__museum?.input.uiCaptured)).toBe(false);
 });
+
+
+test('prewarming introduction owns keyboard focus before entry is enabled', async ({ page }) => {
+  await page.goto('/');
+  const intro = page.getByRole('dialog', { name: 'Welcome to the Museum of Me' });
+  await expect(intro).toBeVisible({ timeout: 30_000 });
+  await expect(intro).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(intro).toBeFocused();
+});
