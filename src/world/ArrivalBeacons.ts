@@ -54,7 +54,8 @@ export class ArrivalBeacons {
     this.group.add(lightLine);
 
     for (const side of [-1, 1]) {
-      for (const distance of [9, 24]) {
+      // Both rows must be in front of the north-facing plaza spawn (+10).
+      for (const distance of [4, 9]) {
         const marker = new THREE.Group();
         marker.name = 'ceremonial-searchlight';
         marker.position.set(side * 25, 0, VESTIBULE_TO + distance);
