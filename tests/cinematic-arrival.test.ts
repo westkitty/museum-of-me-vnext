@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { ResourceScope } from '../src/assets/ResourceScope';
 import { ArrivalBeacons } from '../src/world/ArrivalBeacons';
+import { START_POSITION, START_YAW } from '../src/world/start';
 import { PLAZA_HALF_WIDTH, VESTIBULE_TO } from '../src/world/layout';
 
 describe('phase 01 monumental arrival', () => {
@@ -18,6 +19,12 @@ describe('phase 01 monumental arrival', () => {
     }
     expect(lintel!.position.y).toBeGreaterThan(20);
     expect(lintel!.position.x).toBe(0);
+    // With yaw zero the visitor looks toward decreasing Z. The gateway must
+    // actually frame the entrance ahead, not sit behind the opening camera.
+    expect(START_YAW).toBe(0);
+    expect(lintel!.position.z).toBeLessThan(START_POSITION[2]);
+    expect(lintel!.position.z).toBeGreaterThan(VESTIBULE_TO);
+    expect(Math.abs(lintel!.position.x - START_POSITION[0])).toBeLessThan(1);
     scope.dispose();
   });
 
