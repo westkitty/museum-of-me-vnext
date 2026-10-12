@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import { ResourceScope } from '../src/assets/ResourceScope';
 import { EnvironmentDressing } from '../src/world/EnvironmentDressing';
@@ -361,7 +361,10 @@ describe('museum environment coherence', () => {
     expect(Math.abs(rotation.x)).toBeCloseTo(Math.SQRT1_2, 3);
     expect([...root.children].some((node) => (node as THREE.Light).isLight)).toBe(false);
     expect(collision.size).toBeGreaterThan(0); // preexisting trees, benches and fountain
+    const disposeSpies = meshes.map((mesh) => vi.spyOn(mesh, 'dispose'));
     scope.dispose();
+    for (const spy of disposeSpies) expect(spy).toHaveBeenCalledOnce();
+    expect(scope.size).toBe(0);
   });
 
   it('keeps the NW Sanctuary threshold as one clear signed passage', () => {
