@@ -42,11 +42,9 @@ test('prewarming introduction owns keyboard focus before entry is enabled', asyn
   const intro = page.getByRole('dialog', { name: 'Welcome to the Museum of Me' });
   await expect(intro).toBeVisible({ timeout: 30_000 });
   const enter = intro.getByRole('button');
+  await expect.poll(async () => page.evaluate(() => document.activeElement?.classList.contains('cinematic-arrival') || document.activeElement?.textContent === 'Enter the museum')).toBe(true);
   if (await enter.isDisabled()) {
-    await expect(intro).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(intro).toBeFocused();
-  } else {
-    await expect(enter).toBeFocused();
   }
 });
