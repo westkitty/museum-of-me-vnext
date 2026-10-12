@@ -17,7 +17,8 @@ describe('persistent environment budget and lifecycle', () => {
     const root = environment.build();
 
     expect(root.name).toBe('persistent-environment');
-    expect(root.children).toHaveLength(8);
+    expect(root.children).toHaveLength(9);
+    expect(root.getObjectByName('monumental-rotunda')).toBeDefined();
     expect(environment.mergeReport.before).toBeGreaterThan(environment.mergeReport.after);
     expect(environment.mergeReport.merged).toBeGreaterThan(250);
     for (const item of environment.authorableSceneRoots()) {
