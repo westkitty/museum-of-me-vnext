@@ -1,4 +1,51 @@
 import { expect, test } from '@playwright/test';
+import { readFile, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { serializeWorkshopManifest, validateWorkshopManifest } from '../../src/workshop/schema';
+
+
+const placementFile = resolve(process.cwd(), 'data/workshop-placements.json');
+let placementBeforeTest: Buffer | null = null;
+let exactTestSave: string | null = null;
+
+// The dedicated standalone authoring proof needs the saved objects until it
+// builds and checks them. Ordinary npm run test:e2e must leave source untouched.
+const retainForStandaloneProof = process.env.MUSEUM_WORKSHOP_E2E_PRESERVE_SAVE === '1';
+
+test.beforeEach(async ({ page }) => {
+  placementBeforeTest = await readFile(placementFile);
+  exactTestSave = null;
+  const source = validateWorkshopManifest(JSON.parse(placementBeforeTest.toString('utf8')) as unknown);
+  if (!source.ok || !source.value ||
+    source.value.objects.length !== 0 || (source.value.sceneOverrides?.length ?? 0) !== 0) {
+    throw new Error('Workshop browser test requires an empty placement fixture; refusing to overwrite authored placements.');
+  }
+
+  // Capture only the legitimate page-originating save, not the deliberate
+  // cross-origin rejection. This gives cleanup a byte-exact ownership proof.
+  page.on('request', (request) => {
+    if (request.method() !== 'POST' || !request.url().endsWith('/__museum-workshop/save')) return;
+    try {
+      const parsed = validateWorkshopManifest(request.postDataJSON() as unknown);
+      if (parsed.ok && parsed.value) exactTestSave = serializeWorkshopManifest(parsed.value);
+    } catch {
+      // Unexpected payload must never authorize restoration over another writer.
+    }
+  });
+});
+
+test.afterEach(async () => {
+  if (placementBeforeTest === null || retainForStandaloneProof) return;
+  const current = await readFile(placementFile);
+  if (current.equals(placementBeforeTest)) return;
+  if (exactTestSave === null || current.toString('utf8') !== exactTestSave) {
+    throw new Error('Workshop placement source changed unexpectedly; preserving it rather than overwriting other work.');
+  }
+  await writeFile(placementFile, placementBeforeTest);
+  if (!(await readFile(placementFile)).equals(placementBeforeTest)) {
+    throw new Error('Workshop test cleanup did not restore the exact source bytes.');
+  }
+});
 
 async function stopSoftwareRenderLoop(page: import('@playwright/test').Page): Promise<void> {
   // The CI runner has no representative GPU. As with the production browser

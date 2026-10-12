@@ -52,7 +52,10 @@ const failures = [];
 let report = null;
 
 try {
-  await page.goto(pathToFileURL(resolve(htmlPath)).href, { waitUntil: 'domcontentloaded', timeout: BOOT_TIMEOUT_MS });
+  // Source-QA intentionally bypasses the visitor-only pre-entry modal.
+  const fileUrl = pathToFileURL(resolve(htmlPath));
+  fileUrl.searchParams.set('qa', '1');
+  await page.goto(fileUrl.href, { waitUntil: 'domcontentloaded', timeout: BOOT_TIMEOUT_MS });
   // Wait for the real application's initialized subsystems, not merely the
   // existence of its global handle. A ready handle alone can race the first
   // streaming/interaction tick under software WebGL on slow CI runners.

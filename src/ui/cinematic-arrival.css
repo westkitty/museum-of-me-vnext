@@ -27,6 +27,8 @@
   max-width: 38rem;
   font: 400 clamp(.95rem, 1.7vw, 1.15rem)/1.6 var(--font-ui);
 }
+.cinematic-arrival h1:focus-visible { outline: 2px solid #e9c39e; outline-offset: .35rem; }
+.cinematic-arrival button:focus-visible { outline: 3px solid #e9c39e; outline-offset: 4px; }
 .cinematic-arrival button {
   padding: 1rem 2rem;
   border: 1px solid #e9c39e;

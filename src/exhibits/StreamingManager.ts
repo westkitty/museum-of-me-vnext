@@ -386,9 +386,16 @@ export class StreamingManager {
       } else if (!inRelevantZone || (distanceSq > this.unloadRadiusSq && !prewarmHold)) {
         if (state === 'active' || state === 'mounted') {
           this.activeHosts.delete(host);
-          host.unmount();
-          this.telemetry.totalUnmounts++;
-          this.residencyRevision++;
+          if (this.warming.has(id)) {
+            // compileAsync still polls these shader materials. Keep them alive
+            // until its promise settles; unmount on the next residency pass.
+            // Deactivation is safe because it does not dispose resources.
+            if (state === 'active') host.deactivate();
+          } else {
+            host.unmount();
+            this.telemetry.totalUnmounts++;
+            this.residencyRevision++;
+          }
         }
         this.queued.delete(id);
         this.warmQueued.delete(id);

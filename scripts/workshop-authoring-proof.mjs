@@ -4,7 +4,7 @@
  * proves the saved objects in the offline standalone runtime, and restores the
  * developer's original manifest bytes before returning.
  */
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -14,9 +14,20 @@ const root = join(import.meta.dirname, '..');
 const source = join(root, 'data', 'workshop-placements.json');
 const release = join(root, 'release', 'The_Reliquary_of_Iterative_Becoming.html');
 const original = await readFile(source);
+// The authored proof rebuilds the public standalone with disposable test
+// objects. Preserve the original export bytes as well as authored source.
+let originalRelease = null;
+try {
+  originalRelease = await readFile(release);
+} catch (error) {
+  if (error.code !== 'ENOENT') throw error;
+}
 
 function run(command, args) {
-  const result = spawnSync(command, args, { cwd: root, stdio: 'inherit', env: process.env });
+  // The authored-standalone verification must see the saved E2E objects. The
+  // wrapper itself restores original bytes in its finally block afterward.
+  const env = { ...process.env, MUSEUM_WORKSHOP_E2E_PRESERVE_SAVE: '1' };
+  const result = spawnSync(command, args, { cwd: root, stdio: 'inherit', env });
   if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} failed with status ${result.status}`);
 }
 
@@ -63,4 +74,10 @@ try {
   await verifyAuthoredStandalone();
 } finally {
   await writeFile(source, original);
+  if (originalRelease === null) {
+    // A missing export must remain missing after a test-only build.
+    await rm(release, { force: true });
+  } else {
+    await writeFile(release, originalRelease);
+  }
 }

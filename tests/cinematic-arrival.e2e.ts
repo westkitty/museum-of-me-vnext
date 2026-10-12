@@ -15,6 +15,8 @@ test('visitor enters the real museum through the cinematic arrival', async ({ pa
   }));
   expect(state.running).toBe(true);
   expect(state.captured).toBe(false);
+  expect(await page.evaluate(() => ['museum-canvas', 'ui-root', 'a11y-root']
+    .every((id) => document.getElementById(id)?.inert === false))).toBe(true);
 });
 
 test('QA route bypasses the visitor title', async ({ page }) => {
@@ -42,9 +44,18 @@ test('prewarming introduction owns keyboard focus before entry is enabled', asyn
   const intro = page.getByRole('dialog', { name: 'Welcome to the Museum of Me' });
   await expect(intro).toBeVisible({ timeout: 30_000 });
   const enter = intro.getByRole('button');
-  await expect.poll(async () => page.evaluate(() => document.activeElement?.classList.contains('cinematic-arrival') || document.activeElement?.textContent === 'Enter the museum')).toBe(true);
+  // Containment rather than brittle text-node matching under slow software WebGL.
+  await expect.poll(async () => page.evaluate(() =>
+    Boolean(document.querySelector('.cinematic-arrival')?.contains(document.activeElement)),
+  ), { timeout: 20_000 }).toBe(true);
+  expect(await page.evaluate(() => ['museum-canvas', 'ui-root', 'a11y-root']
+    .every((id) => document.getElementById(id)?.inert === true))).toBe(true);
   if (await enter.isDisabled()) {
     await page.keyboard.press('Tab');
-    await expect(intro).toBeFocused();
+    await expect.poll(async () => page.evaluate(() => {
+      const active = document.activeElement;
+      const dialog = document.querySelector('.cinematic-arrival');
+      return Boolean(dialog?.contains(active) && ['H1', 'BUTTON'].includes(active?.tagName ?? ''));
+    }), { timeout: 20_000 }).toBe(true);
   }
 });

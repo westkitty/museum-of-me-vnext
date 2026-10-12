@@ -13,7 +13,9 @@ if (!existsSync(htmlPath)) {
   process.exit(1);
 }
 
-const fileUrl = pathToFileURL(resolve(htmlPath)).href;
+// Exercise embedded museum controls without the visitor title modal.
+const fileUrl = pathToFileURL(resolve(htmlPath));
+fileUrl.searchParams.set('qa', '1');
 const browser = await chromium.launch({
   args: ['--use-gl=angle', '--use-angle=swiftshader-webgl', '--enable-webgl', '--allow-file-access-from-files'],
 });
@@ -32,7 +34,7 @@ try {
   // The production standalone is a self-contained 16 MB HTML file. Software-WebGL
   // initialization can exceed the ordinary browser-test timeout under local load;
   // retain the real boot assertion with a bounded standalone-specific allowance.
-  await page.goto(fileUrl, { waitUntil: 'domcontentloaded', timeout: BOOT_TIMEOUT_MS });
+  await page.goto(fileUrl.href, { waitUntil: 'domcontentloaded', timeout: BOOT_TIMEOUT_MS });
   await page.waitForFunction(() => Boolean(window.__museum), null, { timeout: BOOT_TIMEOUT_MS });
   const canvas = await page.locator('#museum-canvas').isVisible();
   const zone = await page.evaluate(() => window.__museum?.currentZone);

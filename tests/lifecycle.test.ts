@@ -285,6 +285,56 @@ describe('streaming', () => {
     streaming.dispose();
     expect(streaming.totalResourceCount()).toBe(0);
   });
+
+  it('retains an off-zone host while asynchronous GPU warm still owns its materials', async () => {
+    const built = buildMuseum();
+    let releaseWarm: (() => void) | undefined;
+    const pendingWarm = new Promise<void>((resolve) => {
+      releaseWarm = () => resolve();
+    });
+    const warmObject = vi.fn(() => pendingWarm);
+    const streaming = new StreamingManager(
+      built.mounts,
+      { ...services, warmObject },
+      {
+        loadRadius: 1,
+        unloadRadius: 200,
+        activateRadius: 5,
+        mountsPerFrame: 1,
+        mountBudgetMs: 20,
+        warmupsPerFrame: 1,
+      },
+    );
+    streaming.initialise();
+    streaming.beginEntrancePrewarm(['E32']);
+
+    const plaza: Vec3 = [0, 1.6, 130];
+    for (let i = 0; i < 16 && warmObject.mock.calls.length === 0; i++) {
+      streaming.evaluate(plaza, 1 / 60, 'plaza');
+      await Promise.resolve();
+      await Promise.resolve();
+    }
+
+    const host = streaming.get('E32')!;
+    expect(warmObject).toHaveBeenCalledTimes(1);
+    expect(host.currentState).toBe('mounted');
+    expect(host.resourceCount).toBeGreaterThan(0);
+
+    // Leaving the wing before shader compilation settles must not destroy
+    // the materials while Three.js compileAsync still polls their programs.
+    const north: Vec3 = [0, 1.6, -100];
+    streaming.evaluate(north, 1 / 60, 'north');
+    expect(host.currentState).toBe('mounted');
+    expect(host.resourceCount).toBeGreaterThan(0);
+
+    releaseWarm?.();
+    for (let i = 0; i < 12; i++) await Promise.resolve();
+    streaming.evaluate(north, 1 / 60, 'north');
+    expect(host.currentState).toBe('loaded');
+    expect(host.resourceCount).toBe(0);
+    streaming.dispose();
+  });
+
 });
 
 describe('construction status', () => {

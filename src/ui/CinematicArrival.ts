@@ -17,6 +17,7 @@ export function mountCinematicArrival(app: App): void {
   eyebrow.className = 'cinematic-arrival__eyebrow';
   eyebrow.textContent = 'THE RELIQUARY OF ITERATIVE BECOMING';
   const heading = document.createElement('h1');
+  heading.tabIndex = -1;
   heading.textContent = 'Welcome to the';
   const name = document.createElement('em');
   name.textContent = ' Museum of Me';
@@ -35,12 +36,18 @@ export function mountCinematicArrival(app: App): void {
   content.append(eyebrow, heading, description, enter);
   root.append(content);
   document.body.append(root);
-  // Keep initial keyboard focus inside the modal while the action is disabled.
-  root.focus({ preventScroll: true });
+
+  // Suppress interaction with the underlying museum while this modal is active.
+  const background = ['museum-canvas', 'ui-root', 'a11y-root']
+    .map((id) => document.getElementById(id))
+    .filter((element): element is HTMLElement => element instanceof HTMLElement);
+  const priorInert = background.map((element) => element.inert);
+  background.forEach((element) => { element.inert = true; });
 
   app.input.releasePointerLock();
   app.input.uiCaptured = true;
   app.player.setFrozen(true);
+  heading.focus({ preventScroll: true });
   // Respect the real entrance streaming contract rather than assuming four
   // seconds always means GPU preparation has completed. Do not trap visitors
   // indefinitely on slow or unsupported devices.
@@ -67,18 +74,19 @@ export function mountCinematicArrival(app: App): void {
   };
   app.setArrivalUpdate(check);
   const finish = () => {
-    if (entered || enter.disabled) return;
+    if (entered || enter.disabled || !app.enterArrival()) return;
     entered = true;
     app.setArrivalUpdate(null);
-    app.enterArrival();
     app.ui.hud.completeArrival();
     root.remove();
+    background.forEach((element, i) => { element.inert = priorInert[i]; });
     app.input.uiCaptured = false;
     app.player.setFrozen(false);
     previousFocus?.focus({ preventScroll: true });
   };
   enter.addEventListener('click', finish, { once: true });
   root.addEventListener('keydown', (event) => {
+    event.stopPropagation();
     if (event.key === 'Escape') {
       event.preventDefault();
       if (!enter.disabled) finish();
@@ -86,7 +94,7 @@ export function mountCinematicArrival(app: App): void {
     if (event.key === 'Tab') {
       // The introductory dialog has one actionable control.
       event.preventDefault();
-      if (!enter.disabled) enter.focus({ preventScroll: true });
+      (enter.disabled ? heading : enter).focus({ preventScroll: true });
     }
   });
 }
