@@ -1,5 +1,6 @@
 import placementManifest from '../data/workshop-placements.json';
 import { mountCinematicArrival } from './ui/CinematicArrival';
+import './ui/cinematic-arrival.css';
 import { App } from './app/App';
 import { MuseumPlacements } from './workshop/MuseumPlacements';
 import { PersistentEnvironment } from './world/PersistentEnvironment';
