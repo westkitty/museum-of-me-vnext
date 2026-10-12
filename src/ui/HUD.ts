@@ -18,6 +18,7 @@ export class HUD {
   private readonly subtitle: HTMLElement;
   private readonly hints: HTMLElement;
   private readonly lockPrompt: HTMLElement;
+  private readonly resumeLook: HTMLButtonElement;
   private readonly arrivalAction: HTMLElement;
   private arrivalReady = true;
   private arrivalEntered = false;
@@ -62,7 +63,22 @@ export class HUD {
       if (onRequestLock(touch) === false) return;
       this.arrivalEntered = true;
       this.lockPrompt.hidden = true;
+      // The role=button intro is hidden after entry; release keyboard focus so
+      // global movement bindings are not blocked by a hidden semantic control.
+      if (document.activeElement === this.lockPrompt) this.lockPrompt.blur();
+      this.setPointerLocked(this.pointerLocked);
     };
+    this.resumeLook = el('button', {
+      class: 'hud__resume-look',
+      type: 'button',
+      hidden: true,
+      'aria-label': 'Resume mouse look',
+      text: 'CLICK TO RESUME MOUSE LOOK',
+      onclick: (event: Event) => {
+        event.preventDefault();
+        onRequestLock(false);
+      },
+    }) as HTMLButtonElement;
     this.lockPrompt = el(
       'div',
       {
@@ -96,6 +112,7 @@ export class HUD {
       this.hints,
       this.subtitle,
       this.lockPrompt,
+      this.resumeLook,
     );
     this.setLocation('plaza');
   }
@@ -115,6 +132,7 @@ export class HUD {
   setPointerLocked(locked: boolean): void {
     this.pointerLocked = locked;
     this.lockPrompt.hidden = locked || this.touchMode || this.buildModeActive || this.arrivalEntered;
+    this.resumeLook.hidden = !this.arrivalEntered || locked || this.touchMode || this.buildModeActive;
     this.reticle.style.display = locked || this.touchMode ? '' : 'none';
   }
 
@@ -144,6 +162,7 @@ export class HUD {
       this.buildModeButton.setAttribute('aria-pressed', String(active));
     }
     this.lockPrompt.hidden = active || this.pointerLocked || this.touchMode || this.arrivalEntered;
+    this.resumeLook.hidden = !this.arrivalEntered || active || this.pointerLocked || this.touchMode;
   }
 
   private touchMode = false;
@@ -157,6 +176,7 @@ export class HUD {
       return;
     }
     this.lockPrompt.hidden = true;
+    this.resumeLook.hidden = true;
     this.reticle.style.display = '';
     this.hints.innerHTML =
       '<div>Left half to walk · right half to look</div><div>Tap the centre dot to interact</div>';

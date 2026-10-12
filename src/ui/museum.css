@@ -891,3 +891,23 @@ html[data-contrast='high'] .hud__lock {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Post-title pointer-lock recovery: do not resurrect the full-screen title.
+   Touch and Build Mode suppress this small, keyboard-operable affordance. */
+.hud__resume-look {
+  position: absolute;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  right: max(1rem, env(safe-area-inset-right));
+  z-index: 3;
+  pointer-events: auto;
+  border: 1px solid rgba(244, 209, 164, 0.8);
+  border-radius: 3px;
+  padding: 0.62rem 0.9rem;
+  background: rgba(8, 10, 16, 0.94);
+  color: #f9e8cf;
+  font: 600 0.7rem/1.4 var(--font-ui);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+.hud__resume-look[hidden] { display: none; }
+.hud__resume-look:hover { background: #39251e; }

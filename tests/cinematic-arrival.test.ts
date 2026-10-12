@@ -18,7 +18,7 @@ describe('cinematic arrival (single-loop)', () => {
     const start = sampleArrivalCamera(0, 4000);
     const middle = sampleArrivalCamera(2000, 4000);
     const end = sampleArrivalCamera(4000, 4000);
-    expect(start).toEqual({ rise: 9, retreat: 18, pitch: 0.46 });
+    expect(start).toEqual({ rise: 6.5, retreat: 18, pitch: 0.16 });
     expect(middle.rise).toBeGreaterThan(0);
     expect(middle.rise).toBeLessThan(start.rise);
     expect(middle.retreat).toBeLessThan(start.retreat);

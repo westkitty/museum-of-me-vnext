@@ -22,8 +22,8 @@ export function sampleArrivalCamera(elapsedMs: number, durationMs: number): Arri
   const eased = t * t * (3 - 2 * t);
   const remainder = 1 - eased;
   return {
-    rise: 9 * remainder,
+    rise: 6.5 * remainder,
     retreat: 18 * remainder,
-    pitch: 0.46 * remainder,
+    pitch: 0.16 * remainder,
   };
 }

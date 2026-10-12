@@ -3,7 +3,7 @@ import { PaletteSet } from './palette';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { buildWingSign } from '../exhibits/Furniture';
 import { buildBench } from '../assets/generators';
-import { WINGS_BY_ID, EXHIBITS_BY_ID } from '../content/collection.generated';
+import { WINGS_BY_ID, EXHIBITS_BY_ID, COLLECTION } from '../content/collection.generated';
 import {
   WINGS, PLACEMENTS, OCTAGON_FACES, ROTUNDA_APOTHEM, LEVEL_1_Y, GROUND_Y,
   DOME_SPRING_Y, faceDirection, rightOf, place, VESTIBULE_TO, VESTIBULE_FROM,
@@ -315,7 +315,7 @@ export class Detailing {
     // reading as one cluttered, overlapping sign rather than two.
     const welcome = buildWingSign(
       this.scope,
-      'Sixty-four projects, thirty-five exhibits',
+      `${COLLECTION.projects.length} projects, ${COLLECTION.exhibits.length} exhibits`,
       'The Rotunda is straight ahead. Press M for a map.',
     );
     welcome.scale.setScalar(0.82);

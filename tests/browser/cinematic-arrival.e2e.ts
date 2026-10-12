@@ -31,6 +31,14 @@ test('first visitor title uses the existing HUD, real prewarm and live scene', a
     frozen: window.__museum?.player.isFrozen,
   }));
   expect(entered).toEqual({ entered: true, zone: 'plaza', frozen: false });
+  // A rejected/released pointer lock must not bring back the huge intro or
+  // strand desktop visitors without a visible recapture control.
+  await page.evaluate(() => {
+    window.__museum?.input.releasePointerLock();
+    window.__museum?.ui.hud.setPointerLocked(false);
+  });
+  await expect(title).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Resume mouse look' })).toBeVisible();
 });
 
 test('QA and Workshop paths bypass the visitor title dwell', async ({ page }) => {
