@@ -48,9 +48,9 @@ export function mountCinematicArrival(app: App): void {
   const minimum = app.titlePrewarmStatus.minimumDwellMs;
   const maxWait = minimum + 4000;
   let entered = false;
-  const check = window.setInterval(() => {
+  const check = () => {
     if (!root.isConnected) {
-      window.clearInterval(check);
+      app.setArrivalUpdate(null);
       return;
     }
     const elapsed = performance.now() - started;
@@ -60,15 +60,16 @@ export function mountCinematicArrival(app: App): void {
       enter.textContent = 'Preparing the galleries…';
       return;
     }
-    window.clearInterval(check);
+    app.setArrivalUpdate(null);
     enter.disabled = false;
     enter.textContent = 'Enter the museum';
     enter.focus({ preventScroll: true });
-  }, 200);
+  };
+  app.setArrivalUpdate(check);
   const finish = () => {
     if (entered || enter.disabled) return;
     entered = true;
-    window.clearInterval(check);
+    app.setArrivalUpdate(null);
     root.remove();
     app.input.uiCaptured = false;
     app.player.setFrozen(false);
