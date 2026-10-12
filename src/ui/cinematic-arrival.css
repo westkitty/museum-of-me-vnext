@@ -1,0 +1,48 @@
+/* Cinematic arrival: the real Three.js world remains visible underneath. */
+.cinematic-arrival {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  text-align: center;
+  color: #f6ebdb;
+  background: linear-gradient(180deg, rgba(2,4,12,.18), rgba(3,5,13,.45) 50%, rgba(2,3,9,.82));
+}
+.cinematic-arrival__content { max-width: 58rem; }
+.cinematic-arrival__eyebrow {
+  font: 600 .75rem/1.6 var(--font-ui);
+  letter-spacing: .24em;
+  color: #e9c39e;
+}
+.cinematic-arrival h1 {
+  margin: 1.3rem 0;
+  font: 400 clamp(2.6rem, 8vw, 7rem)/1.06 var(--font-body);
+  text-shadow: 0 6px 30px #000;
+}
+.cinematic-arrival h1 em { display: block; font-style: normal; color: #f4d1a4; }
+.cinematic-arrival__description {
+  margin: 0 auto 2rem;
+  max-width: 38rem;
+  font: 400 clamp(.95rem, 1.7vw, 1.15rem)/1.6 var(--font-ui);
+}
+.cinematic-arrival button {
+  padding: 1rem 2rem;
+  border: 1px solid #e9c39e;
+  background: rgba(8,9,15,.82);
+  color: #fff0db;
+  font: 600 .8rem var(--font-ui);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.cinematic-arrival button:disabled { opacity: .65; cursor: wait; }
+.cinematic-arrival button:hover:not(:disabled) { background: #51261e; }
+@media (max-width: 600px) {
+  .cinematic-arrival__eyebrow { letter-spacing: .12em; }
+}
+@media (forced-colors: active) {
+  .cinematic-arrival { background: Canvas; color: CanvasText; }
+  .cinematic-arrival button { background: ButtonFace; color: ButtonText; border-color: ButtonText; }
+}

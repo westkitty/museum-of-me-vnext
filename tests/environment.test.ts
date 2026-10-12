@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import { ResourceScope } from '../src/assets/ResourceScope';
 import { EnvironmentDressing } from '../src/world/EnvironmentDressing';
@@ -6,6 +6,7 @@ import { Detailing } from '../src/world/Detailing';
 import { ExhibitColorFields } from '../src/world/ExhibitColorFields';
 import { ExhibitThresholds } from '../src/world/ExhibitThresholds';
 import { ExteriorIdentity } from '../src/world/ExteriorIdentity';
+import { MonumentalRotunda } from '../src/world/MonumentalRotunda';
 import { PLACEMENTS, ROTUNDA_APOTHEM, SANCTUARY_DIR, WINGS } from '../src/world/layout';
 import { PaletteSet } from '../src/world/palette';
 import { RotundaWayfinding } from '../src/world/RotundaWayfinding';
@@ -17,6 +18,56 @@ import { ArrivalGarden } from '../src/world/ArrivalGarden';
 import { CollisionWorld } from '../src/world/CollisionWorld';
 import { resolveExhibitTheme } from '../src/world/ExhibitTheme';
 import { buildMuseum } from './helpers/walk';
+
+describe('monumental cinematic arrival (regression)', () => {
+  it('renders the Drakken Blood Ring as vitrified glass inside the single procedural sky draw', () => {
+    const scope = new ResourceScope('cinematic-sky');
+    const sky = new Sky(scope);
+    const shader = (sky.mesh.material as THREE.ShaderMaterial).fragmentShader;
+    expect(shader).toContain('bloodRingBody');
+    expect(shader).toContain('glassFacet');
+    expect(shader).toContain('floatingGlass');
+    expect(shader).not.toContain('orbitalHalo');
+    expect(shader).not.toContain('bloodRingHalo');
+    expect(sky.mesh.userData.canonicalFeature).toBe('starsilk-drakken-blood-ring');
+    expect(sky.mesh.userData.bloodRingConstruction).toBe('vitrified-biospheric-scar');
+    expect(shader).toContain('starCloud');
+    expect(sky.mesh).toBeInstanceOf(THREE.Mesh);
+    expect(sky.mesh.frustumCulled).toBe(false);
+    scope.dispose();
+    expect(scope.size).toBe(0);
+  });
+
+  it('gives the arrival a tall physical-looking noncolliding portico with no extra lights', () => {
+    const scope = new ResourceScope('cinematic-portico');
+    const root = new ExteriorIdentity(scope).build();
+    const towers = root.children.filter((node) => node.name === 'monumental-portal-tower');
+    expect(towers).toHaveLength(2);
+    expect(towers.map((node) => node.position.x)).toEqual([-20.2, 20.2]);
+    expect(towers.every((node) => node.position.y > 8)).toBe(true);
+    expect(root.getObjectByName('monumental-portal-architrave')).toBeTruthy();
+    expect(root.getObjectByName('monumental-portal-amber-cornice')).toBeTruthy();
+    let lights = 0;
+    root.traverse((node) => { if (node instanceof THREE.Light) lights++; });
+    expect(lights).toBe(0);
+    scope.dispose();
+    expect(scope.size).toBe(0);
+  });
+});
+
+describe('monumental Rotunda crown', () => {
+  it('creates eight octagonal crown segments and paired upper piers without lights', () => {
+    const scope = new ResourceScope('rotunda-monument');
+    const group = new MonumentalRotunda(scope).build();
+    const crowns = group.children.filter((x) => x.name.startsWith('rotunda-crown-architrave:'));
+    const piers = group.children.filter((x) => x.name.startsWith('rotunda-upper-pier:'));
+    expect(crowns).toHaveLength(8);
+    expect(piers).toHaveLength(16);
+    expect(group.children.every((node) => !(node instanceof THREE.Light))).toBe(true);
+    scope.dispose();
+    expect(scope.size).toBe(0);
+  });
+});
 
 describe('museum environment coherence', () => {
   it('keeps the Rotunda substantially brighter than the themed wings', () => {
@@ -211,7 +262,7 @@ describe('museum environment coherence', () => {
     scope.dispose();
   });
 
-  it('uses a readable procedural night sky with no exterior Blood Ring geometry', () => {
+  it('uses a readable procedural night sky with a vitrified Drakken Blood Ring', () => {
     const scope = new ResourceScope('environment-test');
     const sky = new Sky(scope);
     expect(sky.mesh.name).toBe('night-sky-layered-stars');
@@ -223,10 +274,10 @@ describe('museum environment coherence', () => {
     const skyMoon = material.uniforms.moonDirection.value as THREE.Vector3;
     expect(skyMoon.distanceTo(NIGHT_MOON_DIRECTION)).toBeLessThan(1e-7);
     expect(skyMoon.z).toBeLessThan(0); // visible over the museum from the south arrival
-    expect(material.fragmentShader).not.toContain('bloodBand');
-    expect(material.fragmentShader).not.toContain('ringAngle');
-    expect((sky as unknown as Record<string, unknown>).bloodRing).toBeUndefined();
-    expect((sky as unknown as Record<string, unknown>).bloodRingHalo).toBeUndefined();
+    expect(material.fragmentShader).toContain('bloodRingBody');
+    expect(material.fragmentShader).toContain('glassFacet');
+    expect(sky.mesh.userData.canonicalFeature).toBe('starsilk-drakken-blood-ring');
+    expect(material.fragmentShader).not.toContain('bloodRingHalo');
     expect(sky.horizon.getHSL({ h: 0, s: 0, l: 0 }).l).toBeGreaterThan(0.03);
     expect(sky.horizon.getHSL({ h: 0, s: 0, l: 0 }).l).toBeLessThan(0.07);
     scope.dispose();
@@ -269,6 +320,51 @@ describe('museum environment coherence', () => {
     expect(collision.size).toBeGreaterThan(0); // garden trees/benches retain their own proven blockers
     expect((gardenRoot.getObjectByName('night-island-shoreline') as THREE.Mesh).userData.visualRole).toBe('water-boundary');
     scope.dispose();
+  });
+
+  it('batches all ceremonial arrival dressing into four visually equivalent instances', () => {
+    const scope = new ResourceScope('arrival-batch-test');
+    const collision = new CollisionWorld();
+    const root = new ArrivalGarden(scope, collision).build();
+    const expected = new Map([
+      ['arrival-ceremonial-bronze-inlay', 2],
+      ['arrival-reflective-stone-inset', 18],
+      ['arrival-ceremonial-obelisk', 8],
+      ['arrival-ceremonial-obelisk-crown', 8],
+    ]);
+    const meshes = root.children.filter((child) =>
+      child.name.startsWith('arrival-') && (child as THREE.InstancedMesh).isInstancedMesh,
+    ) as THREE.InstancedMesh[];
+    expect(meshes).toHaveLength(4);
+    for (const batch of meshes) {
+      expect(batch.count).toBe(expected.get(batch.name));
+      expect(batch.castShadow).toBe(false);
+      expect(batch.receiveShadow).toBe(false);
+      expect(batch.boundingSphere).not.toBeNull();
+    }
+    const matrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    const rotation = new THREE.Quaternion();
+    const scale = new THREE.Vector3();
+    const pillars = meshes.find((mesh) => mesh.name === 'arrival-ceremonial-obelisk')!;
+    for (let i = 0; i < pillars.count; i++) {
+      pillars.getMatrixAt(i, matrix);
+      matrix.decompose(position, rotation, scale);
+      expect(Math.abs(position.x)).toBeCloseTo(11.8, 3);
+      expect(scale.x).toBeCloseTo(0.5, 3);
+      expect(scale.y).toBeCloseTo(2.9, 3);
+    }
+    const panels = meshes.find((mesh) => mesh.name === 'arrival-reflective-stone-inset')!;
+    panels.getMatrixAt(0, matrix);
+    matrix.decompose(position, rotation, scale);
+    expect(Math.abs(position.x)).toBeCloseTo(2.4, 3);
+    expect(Math.abs(rotation.x)).toBeCloseTo(Math.SQRT1_2, 3);
+    expect([...root.children].some((node) => (node as THREE.Light).isLight)).toBe(false);
+    expect(collision.size).toBeGreaterThan(0); // preexisting trees, benches and fountain
+    const disposeSpies = meshes.map((mesh) => vi.spyOn(mesh, 'dispose'));
+    scope.dispose();
+    for (const spy of disposeSpies) expect(spy).toHaveBeenCalledOnce();
+    expect(scope.size).toBe(0);
   });
 
   it('keeps the NW Sanctuary threshold as one clear signed passage', () => {

@@ -53,7 +53,15 @@ let report = null;
 
 try {
   await page.goto(pathToFileURL(resolve(htmlPath)).href, { waitUntil: 'domcontentloaded', timeout: BOOT_TIMEOUT_MS });
-  await page.waitForFunction(() => Boolean(window.__museum), null, { timeout: BOOT_TIMEOUT_MS });
+  // Wait for the real application's initialized subsystems, not merely the
+  // existence of its global handle. A ready handle alone can race the first
+  // streaming/interaction tick under software WebGL on slow CI runners.
+  await page.waitForFunction(() => {
+    const app = window.__museum;
+    return Boolean(app && app.player && app.input && app.streaming
+      && app.streaming.hosts && app.sourceInstallations
+      && app.interaction && app.journal && app.study);
+  }, null, { timeout: BOOT_TIMEOUT_MS });
 
   // Prove the real WebGL application booted at the exterior arrival, then stop
   // the render loop so software rendering does not compete with the protocol.
