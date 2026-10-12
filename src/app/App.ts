@@ -92,6 +92,7 @@ export class App implements LoopCallbacks {
 
   private disposed = false;
   private workshopUpdate: (() => void) | null = null;
+  private arrivalUpdate: (() => void) | null = null;
   private ambientLoadTimer: number | null = null;
   private diagnosticSampleElapsed = 0.1;
   private lightingResidencyRevision = -1;
@@ -348,6 +349,11 @@ export class App implements LoopCallbacks {
     this.loop.stop();
   }
 
+  /** Cinematic title readiness is driven by the existing application loop. */
+  setArrivalUpdate(update: (() => void) | null): void {
+    this.arrivalUpdate = update;
+  }
+
   /** Development-only Workshop cue hook; the editor remains dynamically loaded. */
   setWorkshopUpdate(update: (() => void) | null): void {
     this.workshopUpdate = update;
@@ -410,6 +416,7 @@ export class App implements LoopCallbacks {
   }
 
   variableUpdate(dt: number): void {
+    this.arrivalUpdate?.();
     // Mouse, touch and keyboard all feed the same look, so the museum is fully
     // usable with any one of them alone.
     const keyboardLook = this.input.keyboardLookReusable(dt, this.preferences.mouseSensitivity);
@@ -481,6 +488,7 @@ export class App implements LoopCallbacks {
     this.disposed = true;
     this.loop.stop();
     this.workshopUpdate = null;
+    this.arrivalUpdate = null;
     if (this.ambientLoadTimer !== null) window.clearTimeout(this.ambientLoadTimer);
     this.ambientLoadTimer = null;
     this.ui?.dispose();
