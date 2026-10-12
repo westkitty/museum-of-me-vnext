@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-async function bootMuseum(page: Page, path = '/'): Promise<string[]> {
+async function bootMuseum(page: Page, path = '/?qa=1'): Promise<string[]> {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {

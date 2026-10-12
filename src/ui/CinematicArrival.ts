@@ -70,6 +70,8 @@ export function mountCinematicArrival(app: App): void {
     if (entered || enter.disabled) return;
     entered = true;
     app.setArrivalUpdate(null);
+    app.enterArrival();
+    app.ui.hud.completeArrival();
     root.remove();
     app.input.uiCaptured = false;
     app.player.setFrozen(false);

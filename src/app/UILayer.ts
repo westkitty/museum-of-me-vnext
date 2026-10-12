@@ -48,7 +48,13 @@ export class UILayer {
     const { uiRoot, a11yRoot, input, interaction } = app;
     const qaEnabled = new URLSearchParams(window.location.search).get('qa') === '1';
 
-    this.hud = new HUD(() => input.requestPointerLock(), () => this.visitThread.open());
+    this.hud = new HUD((touch) => {
+      if (!app.enterArrival()) return false;
+      if (touch) input.touchActive = true;
+      else input.requestPointerLock();
+      return true;
+    }, () => this.visitThread.open());
+    this.hud.setArrivalReadiness(app.arrivalReady);
     this.map = new MapPanel(
       app.journal,
       () => [app.player.position.x, app.player.position.y, app.player.position.z],
@@ -412,6 +418,7 @@ export class UILayer {
   /** Once per frame from the single loop. */
   update(dt: number): void {
     this.hud.setTouchMode(this.app.input.touchActive);
+    this.hud.setArrivalReadiness(this.app.arrivalReady);
     this.hud.update(dt);
     this.hud.setLocation(this.app.currentZone);
 

@@ -15,6 +15,8 @@ export class ExteriorIdentity {
   private readonly azure: THREE.MeshStandardMaterial;
   private readonly beam: THREE.MeshBasicMaterial;
   private readonly glass: THREE.MeshStandardMaterial;
+  private readonly bronze: THREE.MeshStandardMaterial;
+  private readonly amber: THREE.MeshBasicMaterial;
 
   constructor(private readonly scope: ResourceScope) {
     this.group.name = 'exterior-museum-identity';
@@ -33,11 +35,24 @@ export class ExteriorIdentity {
       transparent: true,
       opacity: 0.48,
     }));
+    this.bronze = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x936d4d, roughness: 0.36, metalness: 0.72,
+      emissive: 0x392011, emissiveIntensity: 0.16,
+    }));
+    this.amber = this.scope.track(new THREE.MeshBasicMaterial({
+      color: 0xffc388, toneMapped: false,
+    }));
   }
 
   build(): THREE.Group {
     const d = faceDirection('s');
     const z = place(d, VESTIBULE_TO + 0.72, 0, GROUND_Y)[2];
+
+    // A monumental portico is layered behind the actual doorway. Every added
+    // element is visual-only and leaves collision, navigation and the verified
+    // vestibule aperture unchanged. The warm inlays act as architectural
+    // illumination without consuming additional live-light/shadow budgets.
+    this.buildMonumentalPortico(z);
 
     // A wider upper cornice gives the entrance a readable civic silhouette from
     // the far edge of the arrival garden.
@@ -109,6 +124,47 @@ export class ExteriorIdentity {
     }
 
     return this.group;
+  }
+
+  /** Architectural spectacle whose geometry never participates in collision. */
+  private buildMonumentalPortico(z: number): void {
+    // Two 18-metre towers establish the building's visual horizon at arrival.
+    for (const side of [-1, 1]) {
+      const x = side * 20.2;
+      this.ornament('monumental-portal-tower', [x, 8.6, z - 0.35], [2.45, 8.6, 2.55], this.stone);
+      this.ornament('monumental-portal-tower-cap', [x, 17.45, z - 0.2], [3.08, 0.6, 2.9], this.warmStone);
+      this.ornament('monumental-portal-tower-reveal', [side * 17.68, 8.55, z + 1.08], [0.12, 7.2, 0.11], this.bronze);
+      this.ornament('monumental-portal-warm-inlay', [side * 17.51, 7.85, z + 1.24], [0.045, 5.8, 0.05], this.amber);
+
+      // Broad setbacks provide near-to-far architectural layers.
+      this.ornament('monumental-wing-mass', [side * 28.3, 5.15, z - 2.6], [5.2, 5.15, 3.0], this.warmStone);
+      this.ornament('monumental-wing-parapet', [side * 28.3, 10.65, z - 2.4], [5.5, 0.42, 3.2], this.stone);
+      for (const offset of [-3.3, 0, 3.3]) {
+        this.ornament('monumental-wing-pilaster', [side * 28.3 + offset, 5.0, z + 0.46],
+          [0.34, 4.55, 0.35], this.bronze);
+      }
+    }
+
+    // The large horizontal silhouette sits above the existing facade crest,
+    // preserving the visual/physical identity of the actual entrance.
+    this.ornament('monumental-portal-architrave', [0, 15.4, z - 0.1], [18.6, 0.82, 1.15], this.stone);
+    this.ornament('monumental-portal-bronze-cornice', [0, 16.3, z + 0.62], [18.75, 0.09, 0.46], this.bronze);
+    this.ornament('monumental-portal-amber-cornice', [0, 15.02, z + 1.02], [15.2, 0.035, 0.05], this.amber);
+
+    // Pier rhythm emphasizes the scale of the passage without creating any
+    // physical obstacle or extra window/light/interaction semantics.
+    for (const side of [-1, 1]) {
+      this.ornament('monumental-entrance-pier', [side * 7.0, 7.0, z + 0.56],
+        [0.65, 6.85, 0.55], this.warmStone);
+      this.ornament('monumental-entrance-pier-glint', [side * 7.72, 7.0, z + 0.82],
+        [0.05, 6.2, 0.06], this.amber);
+    }
+  }
+
+  private ornament(name: string, center: Vec3, half: Vec3, material: THREE.Material): void {
+    const mesh = this.box(name, center, half, material);
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
   }
 
   private mat(color: number, roughness: number, metalness = 0): THREE.MeshStandardMaterial {

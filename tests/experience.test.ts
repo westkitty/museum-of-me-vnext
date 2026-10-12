@@ -196,8 +196,8 @@ describe('sky', () => {
     expect(sky.mesh.frustumCulled).toBe(false);
     const material = sky.mesh.material as THREE.ShaderMaterial;
     expect(material.fragmentShader).toContain('starLayer');
-    expect(material.fragmentShader).not.toContain('bloodBand');
-    expect(material.fragmentShader).not.toContain('ringAngle');
+    expect(material.fragmentShader).toContain('bloodRingBody');
+    expect(material.fragmentShader).toContain('glassFacet');
     expect(material.uniforms.parallax.value.toArray()).toEqual([0.09, -0.18]);
     const parallax = material.uniforms.parallax.value.clone();
     camera.position.x += 0.1;

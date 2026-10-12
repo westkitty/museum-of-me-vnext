@@ -806,3 +806,108 @@ html[data-contrast='high'] .journal-empty { border-color: #fff; }
 .thread-focus input, .thread-focus select { width: 100%; min-height: 42px; padding: .55rem .65rem; border: 1px solid rgba(255,255,255,.16); border-radius: 3px; background: #12111a; color: var(--parchment); font: inherit; }
 @media (max-width: 720px) { .thread-focus { grid-template-columns: 1fr; } .thread-focus input, .thread-focus select { min-height: 44px; } }
 @media (forced-colors: active) { .thread-focus input, .thread-focus select { border: 1px solid CanvasText; background: Canvas; color: CanvasText; } }
+
+/* Monumental arrival: the live WebGL scene stays visible and prewarms behind
+   this semantic, keyboard-operable title instead of playing a false screenshot. */
+.hud__lock {
+  background-image: none;
+  background:
+    linear-gradient(180deg, rgba(2, 5, 13, 0.20) 0%, rgba(2, 5, 13, 0.08) 39%,
+      rgba(2, 5, 13, 0.36) 65%, rgba(2, 5, 13, 0.86) 100%);
+  align-content: end;
+  justify-content: center;
+  gap: clamp(0.25rem, 1vh, 0.85rem);
+  padding: clamp(1.5rem, 5vh, 4rem) clamp(1.2rem, 4vw, 4rem) clamp(2rem, 6vh, 5rem);
+  text-shadow: 0 2px 20px #000, 0 1px 3px #000;
+}
+.hud__lock h2 {
+  color: #f6efdf;
+  font: 400 clamp(2.8rem, 8.5vw, 8.5rem)/1.02 var(--font-body);
+  letter-spacing: -0.032em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.hud__arrival-eyebrow {
+  display: block;
+  font: 600 clamp(0.63rem, 1.08vw, 0.88rem)/1.4 var(--font-ui);
+  letter-spacing: 0.34em;
+  color: #e9c69d;
+}
+.hud__arrival-pretitle {
+  font: italic 400 clamp(1rem, 2.25vw, 2rem)/1.2 var(--font-body);
+  color: #f1e4d3;
+}
+.hud__arrival-rule {
+  display: block;
+  height: 1px;
+  width: min(24rem, 50vw);
+  margin: 0.7rem auto;
+  background: linear-gradient(90deg, transparent, #d0ac82, transparent);
+}
+.hud__lock .hud__arrival-invitation {
+  font: 400 clamp(0.92rem, 1.55vw, 1.2rem)/1.6 var(--font-body);
+  color: #f1e7d7;
+}
+.hud__arrival-action {
+  display: inline-block;
+  justify-self: center;
+  margin: 0.8rem 0 0.3rem;
+  padding: 0.92rem 1.65rem;
+  border: 1px solid rgba(245, 197, 145, 0.82);
+  background: rgba(15, 18, 27, 0.70);
+  font: 600 0.74rem/1.4 var(--font-ui);
+  letter-spacing: 0.15em;
+  color: #ffdfb8;
+}
+.hud__lock .hud__arrival-controls,
+.hud__lock .hud__arrival-accessibility {
+  color: #e2d9cd;
+  font: 400 0.75rem/1.4 var(--font-ui);
+}
+html[data-transparency='reduced'] .hud__lock,
+html[data-contrast='high'] .hud__lock {
+  background: rgba(0, 0, 0, 0.92);
+}
+@media (max-height: 570px) {
+  .hud__lock { gap: 0.22rem; padding-top: 0.8rem; padding-bottom: 0.8rem; }
+  .hud__lock h2 { font-size: clamp(2rem, 6vw, 3.4rem); }
+  .hud__arrival-rule, .hud__arrival-invitation { display: none; }
+}
+@media (max-width: 520px) {
+  .hud__lock h2 { font-size: clamp(2.5rem, 12vw, 4.5rem); }
+  .hud__arrival-eyebrow { letter-spacing: 0.18em; }
+  .hud__lock .hud__arrival-controls,
+  .hud__lock .hud__arrival-accessibility { font-size: 0.71rem; }
+}
+
+/* Opening credits share the live scene; no separate video, canvas or timer.
+   Keyboard and touch visitors receive the same prewarm-aware entry action. */
+.hud__lock--preparing { cursor: progress; }
+.hud__lock--preparing .hud__arrival-action { opacity: 0.72; border-style: dashed; }
+.hud__arrival-eyebrow { animation: reliquary-arrival-reveal 900ms ease-out both; }
+.hud__lock h2 { animation: reliquary-arrival-reveal 1150ms 120ms ease-out both; }
+.hud__lock .hud__arrival-action { animation: reliquary-arrival-reveal 950ms 350ms ease-out both; }
+@keyframes reliquary-arrival-reveal {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Post-title pointer-lock recovery: do not resurrect the full-screen title.
+   Touch and Build Mode suppress this small, keyboard-operable affordance. */
+.hud__resume-look {
+  position: absolute;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  right: max(1rem, env(safe-area-inset-right));
+  z-index: 3;
+  pointer-events: auto;
+  border: 1px solid rgba(244, 209, 164, 0.8);
+  border-radius: 3px;
+  padding: 0.62rem 0.9rem;
+  background: rgba(8, 10, 16, 0.94);
+  color: #f9e8cf;
+  font: 600 0.7rem/1.4 var(--font-ui);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+.hud__resume-look[hidden] { display: none; }
+.hud__resume-look:hover { background: #39251e; }

@@ -207,7 +207,90 @@ export class ArrivalGarden {
     this.arrivalMarker([-7.5, GROUND_Y, z1 - 4]);
     this.arrivalMarker([7.5, GROUND_Y, z1 - 4]);
 
+    // Ceremonial approach: a restrained, mirrored amber rhythm and inlaid
+    // paving guide the eye toward the entrance without blocking the route.
+    // Visual-only meshes, no collision registrations or scene lights.
+    this.buildCeremonialApproach(z0, z1);
+
     return this.group;
+  }
+
+  private buildCeremonialApproach(z0: number, z1: number): void {
+    const amber = this.scope.track(new THREE.MeshBasicMaterial({
+      color: 0xffbc78, toneMapped: false,
+    }));
+    const bronze = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x8b6951, metalness: 0.58, roughness: 0.4,
+    }));
+    const reflection = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x52616a, metalness: 0.78, roughness: 0.23,
+      transparent: true, opacity: 0.64, depthWrite: false,
+    }));
+    const stripGeometry = this.scope.track(new THREE.BoxGeometry(0.055, 0.016, 1));
+    const pillarGeometry = this.scope.track(new THREE.BoxGeometry(1, 1, 1));
+    const reflectionGeometry = this.scope.track(new THREE.PlaneGeometry(2.2, 1.55));
+    const length = z1 - z0;
+
+    // These 36 static visual objects used to cost up to 36 draw submissions.
+    // Four InstancedMeshes keep the same world transforms and three materials
+    // while reducing the maximum submission cost to four (before culling).
+    // Neither instances nor their shared geometry own collision or lights.
+    const strips = new THREE.InstancedMesh(stripGeometry, bronze, 2);
+    strips.name = 'arrival-ceremonial-bronze-inlay';
+    const panels = new THREE.InstancedMesh(reflectionGeometry, reflection, 18);
+    panels.name = 'arrival-reflective-stone-inset';
+    const pillars = new THREE.InstancedMesh(pillarGeometry, bronze, 8);
+    pillars.name = 'arrival-ceremonial-obelisk';
+    const crowns = new THREE.InstancedMesh(pillarGeometry, amber, 8);
+    crowns.name = 'arrival-ceremonial-obelisk-crown';
+
+    const transform = new THREE.Object3D();
+    const set = (
+      mesh: THREE.InstancedMesh, index: number, x: number, y: number, z: number,
+      scaleX: number, scaleY: number, scaleZ: number, rotationX = 0,
+    ): void => {
+      transform.position.set(x, y, z);
+      transform.rotation.set(rotationX, 0, 0);
+      transform.scale.set(scaleX, scaleY, scaleZ);
+      transform.updateMatrix();
+      mesh.setMatrixAt(index, transform.matrix);
+    };
+
+    for (const [index, side] of [-1, 1].entries()) {
+      set(strips, index, side * 4.6, GROUND_Y + 0.056, (z0 + z1) / 2,
+        1, 1, Math.max(0.5, length - 4));
+    }
+
+    // Shallow, non-colliding paving inserts, not a new reflection pass.
+    for (let i = 0; i < 9; i++) {
+      const z = z0 + (i + 0.5) * length / 9;
+      for (const [sideIndex, side] of [-1, 1].entries()) {
+        set(panels, i * 2 + sideIndex, side * 2.4, GROUND_Y + 0.052, z,
+          1, 1, 1, -Math.PI / 2);
+      }
+    }
+
+    // Paired obelisks remain outside the central 10.8-metre-wide walkway.
+    for (let i = 0; i < 4; i++) {
+      const z = z0 + (i + 0.65) * length / 4.6;
+      for (const [sideIndex, side] of [-1, 1].entries()) {
+        const index = i * 2 + sideIndex;
+        const x = side * 11.8;
+        set(pillars, index, x, GROUND_Y + 1.45, z, 0.5, 2.9, 0.5);
+        set(crowns, index, x, GROUND_Y + 3.03, z, 0.58, 0.11, 0.58);
+      }
+    }
+
+    for (const mesh of [strips, panels, pillars, crowns]) {
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
+      this.group.add(mesh);
+      // InstancedMesh owns GPU instance buffers beyond the tracked geometry;
+      // disposal must include the mesh itself, not only its shared resources.
+      this.scope.trackObject(mesh);
+    }
   }
 
   authorableSceneRoots(): readonly { readonly id: string; readonly root: THREE.Object3D }[] {

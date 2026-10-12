@@ -36,6 +36,20 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: real browser visitor-path gate
         run: npm run test:e2e
+      - name: Capture cinematic review screenshots (non-acceptance evidence)
+        if: github.event_name == 'pull_request' && github.head_ref == 'feature/cinematic-monumental-museum-2026-10-11'
+        continue-on-error: true
+        env:
+          PW_TEST_SCREENSHOT_NO_FONTS_READY: '1'
+        run: node scripts/capture-cinematic-evidence.mjs
+      - name: Upload cinematic review evidence
+        if: always() && github.event_name == 'pull_request' && github.head_ref == 'feature/cinematic-monumental-museum-2026-10-11'
+        uses: actions/upload-artifact@v4
+        with:
+          name: museum-cinematic-visual-${{ github.sha }}
+          path: test-results/cinematic-review/
+          if-no-files-found: warn
+          retention-days: 7
 
   workshop:
     needs: gate

@@ -2,12 +2,35 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { ResourceScope } from '../src/assets/ResourceScope';
 import { ArrivalBeacons } from '../src/world/ArrivalBeacons';
+import { canEnterArrival, sampleArrivalCamera } from '../src/world/ArrivalCamera';
 import { App } from '../src/app/App';
 import { mountCinematicArrival } from '../src/ui/CinematicArrival';
 import { START_POSITION, START_YAW } from '../src/world/start';
 import { PLAZA_HALF_WIDTH, VESTIBULE_TO } from '../src/world/layout';
 
 describe('phase 01 monumental arrival', () => {
+  it('enforces the minimum prewarm dwell and bounded fallback', () => {
+    expect(canEnterArrival(3999, 4000, true)).toBe(false);
+    expect(canEnterArrival(4000, 4000, true)).toBe(true);
+    expect(canEnterArrival(4000, 4000, false)).toBe(false);
+    expect(canEnterArrival(7999, 4000, false)).toBe(false);
+    expect(canEnterArrival(8000, 4000, false)).toBe(true);
+  });
+
+  it('converges monotonically from sky/crane framing to the untouched visitor eye', () => {
+    const start = sampleArrivalCamera(0, 4000);
+    const middle = sampleArrivalCamera(2000, 4000);
+    const end = sampleArrivalCamera(4000, 4000);
+    expect(start).toEqual({ rise: 6.5, retreat: 18, pitch: 0.16 });
+    expect(middle.rise).toBeGreaterThan(0);
+    expect(middle.rise).toBeLessThan(start.rise);
+    expect(middle.retreat).toBeLessThan(start.retreat);
+    expect(middle.pitch).toBeLessThan(start.pitch);
+    expect(end).toEqual({ rise: 0, retreat: 0, pitch: 0 });
+    expect(sampleArrivalCamera(8000, 4000)).toEqual(end);
+  });
+
+
   it('routes title readiness through the app-owned variable update loop', () => {
     expect(typeof App.prototype.setArrivalUpdate).toBe('function');
     expect(typeof App.prototype.variableUpdate).toBe('function');
