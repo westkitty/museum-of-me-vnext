@@ -222,63 +222,71 @@ export class ArrivalGarden {
     const bronze = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x8b6951, metalness: 0.58, roughness: 0.4,
     }));
-    const stripGeometry = this.scope.track(new THREE.BoxGeometry(0.055, 0.016, 1));
-    const pillarGeometry = this.scope.track(new THREE.BoxGeometry(1, 1, 1));
-    const length = z1 - z0;
-
-    // Thin, inset wayfinding strips occupy only the existing stone surface.
-    for (const side of [-1, 1]) {
-      const strip = new THREE.Mesh(stripGeometry, bronze);
-      strip.name = 'arrival-ceremonial-bronze-inlay';
-      strip.position.set(side * 4.6, GROUND_Y + 0.056, (z0 + z1) / 2);
-      strip.scale.z = Math.max(0.5, length - 4);
-      strip.castShadow = false;
-      strip.receiveShadow = false;
-      this.group.add(strip);
-    }
-
-    // Shallow mirrored paving inserts give the long approach a wet-stone
-    // glint without a costly planar reflection pass or a new water surface.
-    // These are non-colliding and remain below the original walking plane.
     const reflection = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x52616a, metalness: 0.78, roughness: 0.23,
       transparent: true, opacity: 0.64, depthWrite: false,
     }));
+    const stripGeometry = this.scope.track(new THREE.BoxGeometry(0.055, 0.016, 1));
+    const pillarGeometry = this.scope.track(new THREE.BoxGeometry(1, 1, 1));
     const reflectionGeometry = this.scope.track(new THREE.PlaneGeometry(2.2, 1.55));
+    const length = z1 - z0;
+
+    // These 36 static visual objects used to cost up to 36 draw submissions.
+    // Four InstancedMeshes keep the same world transforms and three materials
+    // while reducing the maximum submission cost to four (before culling).
+    // Neither instances nor their shared geometry own collision or lights.
+    const strips = new THREE.InstancedMesh(stripGeometry, bronze, 2);
+    strips.name = 'arrival-ceremonial-bronze-inlay';
+    const panels = new THREE.InstancedMesh(reflectionGeometry, reflection, 18);
+    panels.name = 'arrival-reflective-stone-inset';
+    const pillars = new THREE.InstancedMesh(pillarGeometry, bronze, 8);
+    pillars.name = 'arrival-ceremonial-obelisk';
+    const crowns = new THREE.InstancedMesh(pillarGeometry, amber, 8);
+    crowns.name = 'arrival-ceremonial-obelisk-crown';
+
+    const transform = new THREE.Object3D();
+    const set = (
+      mesh: THREE.InstancedMesh, index: number, x: number, y: number, z: number,
+      scaleX: number, scaleY: number, scaleZ: number, rotationX = 0,
+    ): void => {
+      transform.position.set(x, y, z);
+      transform.rotation.set(rotationX, 0, 0);
+      transform.scale.set(scaleX, scaleY, scaleZ);
+      transform.updateMatrix();
+      mesh.setMatrixAt(index, transform.matrix);
+    };
+
+    for (const [index, side] of [-1, 1].entries()) {
+      set(strips, index, side * 4.6, GROUND_Y + 0.056, (z0 + z1) / 2,
+        1, 1, Math.max(0.5, length - 4));
+    }
+
+    // Shallow, non-colliding paving inserts, not a new reflection pass.
     for (let i = 0; i < 9; i++) {
       const z = z0 + (i + 0.5) * length / 9;
-      for (const side of [-1, 1]) {
-        const panel = new THREE.Mesh(reflectionGeometry, reflection);
-        panel.name = 'arrival-reflective-stone-inset';
-        panel.rotation.x = -Math.PI / 2;
-        panel.position.set(side * 2.4, GROUND_Y + 0.052, z);
-        panel.receiveShadow = false;
-        this.group.add(panel);
+      for (const [sideIndex, side] of [-1, 1].entries()) {
+        set(panels, i * 2 + sideIndex, side * 2.4, GROUND_Y + 0.052, z,
+          1, 1, 1, -Math.PI / 2);
       }
     }
 
-    // Four paired lantern-like obelisks frame the long view, well outside the
-    // central 10.8-metre-wide path and away from the existing fountain.
+    // Paired obelisks remain outside the central 10.8-metre-wide walkway.
     for (let i = 0; i < 4; i++) {
       const z = z0 + (i + 0.65) * length / 4.6;
-      for (const side of [-1, 1]) {
+      for (const [sideIndex, side] of [-1, 1].entries()) {
+        const index = i * 2 + sideIndex;
         const x = side * 11.8;
-        const pillar = new THREE.Mesh(pillarGeometry, bronze);
-        pillar.name = 'arrival-ceremonial-obelisk';
-        pillar.position.set(x, GROUND_Y + 1.45, z);
-        pillar.scale.set(0.5, 2.9, 0.5);
-        pillar.castShadow = false;
-        pillar.receiveShadow = false;
-        this.group.add(pillar);
-
-        const crown = new THREE.Mesh(pillarGeometry, amber);
-        crown.name = 'arrival-ceremonial-obelisk-crown';
-        crown.position.set(x, GROUND_Y + 3.03, z);
-        crown.scale.set(0.58, 0.11, 0.58);
-        crown.castShadow = false;
-        crown.receiveShadow = false;
-        this.group.add(crown);
+        set(pillars, index, x, GROUND_Y + 1.45, z, 0.5, 2.9, 0.5);
+        set(crowns, index, x, GROUND_Y + 3.03, z, 0.58, 0.11, 0.58);
       }
+    }
+
+    for (const mesh of [strips, panels, pillars, crowns]) {
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
+      this.group.add(mesh);
     }
   }
 

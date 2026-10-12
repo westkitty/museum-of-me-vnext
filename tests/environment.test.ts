@@ -322,6 +322,48 @@ describe('museum environment coherence', () => {
     scope.dispose();
   });
 
+  it('batches all ceremonial arrival dressing into four visually equivalent instances', () => {
+    const scope = new ResourceScope('arrival-batch-test');
+    const collision = new CollisionWorld();
+    const root = new ArrivalGarden(scope, collision).build();
+    const expected = new Map([
+      ['arrival-ceremonial-bronze-inlay', 2],
+      ['arrival-reflective-stone-inset', 18],
+      ['arrival-ceremonial-obelisk', 8],
+      ['arrival-ceremonial-obelisk-crown', 8],
+    ]);
+    const meshes = root.children.filter((child) =>
+      child.name.startsWith('arrival-') && (child as THREE.InstancedMesh).isInstancedMesh,
+    ) as THREE.InstancedMesh[];
+    expect(meshes).toHaveLength(4);
+    for (const batch of meshes) {
+      expect(batch.count).toBe(expected.get(batch.name));
+      expect(batch.castShadow).toBe(false);
+      expect(batch.receiveShadow).toBe(false);
+      expect(batch.boundingSphere).not.toBeNull();
+    }
+    const matrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    const rotation = new THREE.Quaternion();
+    const scale = new THREE.Vector3();
+    const pillars = meshes.find((mesh) => mesh.name === 'arrival-ceremonial-obelisk')!;
+    for (let i = 0; i < pillars.count; i++) {
+      pillars.getMatrixAt(i, matrix);
+      matrix.decompose(position, rotation, scale);
+      expect(Math.abs(position.x)).toBeCloseTo(11.8, 3);
+      expect(scale.x).toBeCloseTo(0.5, 3);
+      expect(scale.y).toBeCloseTo(2.9, 3);
+    }
+    const panels = meshes.find((mesh) => mesh.name === 'arrival-reflective-stone-inset')!;
+    panels.getMatrixAt(0, matrix);
+    matrix.decompose(position, rotation, scale);
+    expect(Math.abs(position.x)).toBeCloseTo(2.4, 3);
+    expect(Math.abs(rotation.x)).toBeCloseTo(Math.SQRT1_2, 3);
+    expect([...root.children].some((node) => (node as THREE.Light).isLight)).toBe(false);
+    expect(collision.size).toBeGreaterThan(0); // preexisting trees, benches and fountain
+    scope.dispose();
+  });
+
   it('keeps the NW Sanctuary threshold as one clear signed passage', () => {
     const built = buildMuseum();
     const sign = built.root.getObjectByName('sanctuary-threshold-sign');
