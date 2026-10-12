@@ -10,6 +10,7 @@ export function mountCinematicArrival(app: App): void {
   root.setAttribute('aria-label', 'Museum of Me introduction');
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-modal', 'true');
+  root.tabIndex = -1;
   const content = document.createElement('div');
   content.className = 'cinematic-arrival__content';
   const eyebrow = document.createElement('p');
@@ -34,6 +35,8 @@ export function mountCinematicArrival(app: App): void {
   content.append(eyebrow, heading, description, enter);
   root.append(content);
   document.body.append(root);
+  // Keep initial keyboard focus inside the modal while the action is disabled.
+  root.focus({ preventScroll: true });
 
   app.input.releasePointerLock();
   app.input.uiCaptured = true;
