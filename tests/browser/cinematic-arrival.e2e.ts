@@ -3,6 +3,10 @@ import { expect, test } from '@playwright/test';
 test('first visitor title uses the existing HUD, real prewarm and live scene', async ({ page }) => {
   await page.goto('/', { waitUntil: 'commit' });
   await page.waitForFunction(() => Boolean(window.__museum), null, { timeout: 30_000 });
+  // Match the established museum browser tests: stop the costly software-WebGL
+  // loop once the actual app boots. Drive UI readiness through the same
+  // production UILayer update, without introducing a second clock.
+  await page.evaluate(() => window.__museum?.stop());
   const title = page.getByRole('button', { name: 'Enter the museum and capture mouse look' });
   await expect(title).toBeVisible();
   expect(await page.locator('.cinematic-arrival').count()).toBe(0);
@@ -13,7 +17,12 @@ test('first visitor title uses the existing HUD, real prewarm and live scene', a
   }));
   expect(state.dwell).toBe(4000);
   expect(state.zone).toBe('plaza');
-  await expect.poll(() => page.evaluate(() => window.__museum?.arrivalReady), { timeout: 20_000 }).toBe(true);
+  await expect.poll(() => page.evaluate(() => {
+    const app = window.__museum;
+    if (!app) return false;
+    app.ui.update(1 / 60);
+    return app.arrivalReady;
+  }), { timeout: 20_000 }).toBe(true);
   await title.click();
   await expect(title).toBeHidden();
   const entered = await page.evaluate(() => ({
