@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('visitor enters the real museum through the cinematic arrival', async ({ page }) => {
   await page.goto('/');
-  const intro = page.getByRole('region', { name: 'Museum of Me introduction' });
+  const intro = page.getByRole('dialog', { name: 'Welcome to the Museum of Me' });
   await expect(intro).toBeVisible({ timeout: 30_000 });
   const enter = intro.getByRole('button', { name: 'Enter the museum' });
   await expect(enter).toBeEnabled({ timeout: 15_000 });
