@@ -5,8 +5,11 @@ export function mountCinematicArrival(app: App): void {
   const params = new URLSearchParams(window.location.search);
   if (params.has('qa') || params.has('edit')) return;
   const root = document.createElement('section');
+  const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   root.className = 'cinematic-arrival';
   root.setAttribute('aria-label', 'Museum of Me introduction');
+  root.setAttribute('role', 'dialog');
+  root.setAttribute('aria-modal', 'true');
   const content = document.createElement('div');
   content.className = 'cinematic-arrival__content';
   const eyebrow = document.createElement('p');
@@ -24,6 +27,8 @@ export function mountCinematicArrival(app: App): void {
   enter.type = 'button';
   enter.disabled = true;
   enter.textContent = 'Preparing your arrival…';
+  heading.id = 'cinematic-arrival-heading';
+  root.setAttribute('aria-labelledby', heading.id);
   content.append(eyebrow, heading, description, enter);
   root.append(content);
   document.body.append(root);
@@ -51,11 +56,13 @@ export function mountCinematicArrival(app: App): void {
     window.clearInterval(check);
     enter.disabled = false;
     enter.textContent = 'Enter the museum';
+    enter.focus({ preventScroll: true });
   }, 200);
   enter.addEventListener('click', () => {
     window.clearInterval(check);
     root.remove();
     app.input.uiCaptured = false;
     app.player.setFrozen(false);
+    previousFocus?.focus({ preventScroll: true });
   }, { once: true });
 }
