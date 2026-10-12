@@ -14,7 +14,7 @@ describe('phase 01 monumental arrival', () => {
     expect(lintel).toBeDefined();
     for (const pier of piers) {
       expect(Math.abs(pier.position.x)).toBeGreaterThan(PLAZA_HALF_WIDTH);
-      expect(pier.position.z).toBe(VESTIBULE_TO + 19);
+      expect(pier.position.z).toBe(VESTIBULE_TO + 4);
     }
     expect(lintel!.position.y).toBeGreaterThan(20);
     expect(lintel!.position.x).toBe(0);
