@@ -31,13 +31,29 @@ export function mountCinematicArrival(app: App): void {
   app.input.releasePointerLock();
   app.input.uiCaptured = true;
   app.player.setFrozen(true);
-  const dwell = window.setTimeout(() => {
-    if (!root.isConnected) return;
+  // Respect the real entrance streaming contract rather than assuming four
+  // seconds always means GPU preparation has completed. Do not trap visitors
+  // indefinitely on slow or unsupported devices.
+  const started = performance.now();
+  const minimum = app.titlePrewarmStatus.minimumDwellMs;
+  const check = window.setInterval(() => {
+    if (!root.isConnected) {
+      window.clearInterval(check);
+      return;
+    }
+    const elapsed = performance.now() - started;
+    const status = app.titlePrewarmStatus;
+    if (elapsed < minimum) return;
+    if (!status.ready && elapsed < minimum + 4000) {
+      enter.textContent = 'Preparing the galleries…';
+      return;
+    }
+    window.clearInterval(check);
     enter.disabled = false;
     enter.textContent = 'Enter the museum';
-  }, 4000);
+  }, 200);
   enter.addEventListener('click', () => {
-    window.clearTimeout(dwell);
+    window.clearInterval(check);
     root.remove();
     app.input.uiCaptured = false;
     app.player.setFrozen(false);
