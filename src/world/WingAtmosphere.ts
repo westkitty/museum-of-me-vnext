@@ -61,6 +61,37 @@ export class WingAtmosphere {
       this.group.add(panel);
     }
 
+    // Monumental rhythm: tall, shallow bronze ribs and a continuous crown
+    // establish architectural scale without obstructing exhibits or paths.
+    // All are static and mergeable; no additional real-time lights.
+    const ribMaterial = this.scope.track(new THREE.MeshStandardMaterial({
+      color: trimColor, metalness: 0.62, roughness: 0.46,
+    }));
+    const ribGeometry = this.scope.track(new THREE.BoxGeometry(0.14, 1, 0.14));
+    const ribCount = Math.max(3, Math.min(8, Math.floor(span / 12)));
+    for (let i = 0; i < ribCount; i++) {
+      const along = wing.hallFrom + (i + 0.5) * span / ribCount;
+      for (const side of [-1, 1]) {
+        const at = place(d, along, side * (wing.hallHalfWidth - 0.16), wing.floorY);
+        const rib = new THREE.Mesh(ribGeometry, ribMaterial);
+        rib.name = `wing-monumental-rib:${wing.id}`;
+        rib.position.set(at[0], wing.floorY + wing.hallHeight * 0.5, at[2]);
+        rib.scale.set(1, Math.max(1, wing.hallHeight - 0.9), 1);
+        rib.rotation.y = angle;
+        this.group.add(rib);
+      }
+    }
+    const crownGeometry = this.scope.track(new THREE.BoxGeometry(0.10, 0.12, span));
+    for (const side of [-1, 1]) {
+      const at = place(d, wing.hallFrom + span / 2,
+        side * (wing.hallHalfWidth - 0.15), wing.floorY);
+      const crown = new THREE.Mesh(crownGeometry, muted);
+      crown.name = `wing-monumental-crown:${wing.id}`;
+      crown.position.set(at[0], wing.floorY + wing.hallHeight - 0.55, at[2]);
+      crown.rotation.y = angle;
+      this.group.add(crown);
+    }
+
     if (wing.id === 'north') this.buildNorthSparkles(wing, glow);
   }
 
