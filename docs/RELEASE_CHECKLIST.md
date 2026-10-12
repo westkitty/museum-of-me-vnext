@@ -1,10 +1,10 @@
-# Release Gate
+# Museum of Me — Pre-1.0 Development and Acceptance Gate
 
-The plan's §39 gate, applied to the current release candidate. Automated evidence and human/device evidence are deliberately kept separate.
+**Controlling status (October 12, 2026): ACTIVE DEVELOPMENT / PRE-1.0.** A green implementation is not a release declaration. The authoritative code is GitHub `main` at `4a464ebd5c6d09265e559b7b1299f025c399aa56`. Its GitHub Actions run [38310708395](https://github.com/westkitty/museum-of-me-vnext/actions/runs/38310708395) passed all four jobs: `gate`, `browser`, `standalone`, and `workshop`. The automated contract covers **73 project identities, 35 bespoke physical exhibits, six wings, 14 source installations, and 17 authored visitors**.
 
-Current release/implementation line: `release/v1.0.0`. PR #3 integrated `feature/museum-workshop-core-2026-08-26` after exact pre-merge head `f6751de8e83017ec3a3a085d2b8d1f02d9b2cac7` passed pull-request workflow run #321 in all four jobs: `gate`, `browser`, `standalone`, and `workshop`. The integration merge commit was `65142465336ee4603a07dd56333813f4f55befb0`.
+**Hosted state:** The public GitHub Pages preview still serves `pages-preview` SHA `e6b0a5f63ae37a9ef0d915f7bec6d9567206aa89`, not the green `main` build. Advancing it is a separate owner-controlled publication action. Human visual/device acceptance is pending.
 
-The post-merge truth-layer reconciliation changes only release/state documentation. Its resulting release head must receive its own exact-head automated proof before publication consideration. `main` remains the older unpublished default-branch baseline.
+**Historical milestone note:** The earlier `release/v1.0.0` branch and PR #1 title reflected a subsequently rejected 1.0 interpretation. PR #1 merged into `main` on September 3, 2026; it is not an open release blocker. PR #3 and its test receipts remain historical engineering evidence, not current release authority. The underlying §39 acceptance categories below remain useful, but must be evaluated against current source and the human evidence record.
 
 ## Architecture
 
@@ -20,9 +20,9 @@ The post-merge truth-layer reconciliation changes only release/state documentati
 | Item | State | Evidence |
 |---|---|---|
 | 35 / 35 visitor-facing exhibits pass | ✅ | `tests/exhibit-quality.test.ts` exercises physical presence, bay fit, controls, interpretation, reduced-motion behavior, reset, streaming cycles, and ownership boundaries. |
-| 64 / 64 project mappings pass | ✅ | `npm run validate:mapping` requires every project identity to be represented exactly once through the frozen 35-exhibit mapping. |
+| 73 / 73 current project identities mapped | ✅ | `npm run validate:mapping` requires each current project identity to be represented exactly once across 35 stable exhibits; the older 64-identity inventory remains historical. |
 | 35 / 35 bespoke implementations | ✅ | `npm run validate:exhibits`. |
-| Whole-museum QA report is complete | ✅ | `npm run qa` reports 35 exhibits, 64 project identities, 35 bespoke implementations, and requires the whole-museum guard suites. |
+| Whole-museum automated QA report | ✅ | Exact-head CI validates 35 exhibits, 73 project identities and 35 bespoke implementations; this does not replace human visual acceptance. |
 
 ## Assets and privacy
 
@@ -52,7 +52,7 @@ The post-merge truth-layer reconciliation changes only release/state documentati
 | Load/unload lifecycle stable | ✅ | Repeated traversal/lifecycle tests require bounded residency and balanced disposal. |
 | Persistent environment bounded | ✅ | Always-resident refinement systems are measured by explicit mesh/triangle/material/light/resource budgets and dispose to zero tracked resources. |
 | Quality tiers work | ✅ | Auto-detection, settings override, DPR limits, shadow/crowd reductions, and budget contracts are covered. |
-| Real production-browser boot + semantic visitor path | ✅ automated contract | Pull-request workflow run #321 passed the production browser job on the integrated feature head; the final post-reconciliation release head must also be green before publication. |
+| Real production-browser boot + semantic visitor path | ✅ automated contract | Exact-head GitHub Actions run #38310708395 passed 16/16 Chromium browser scenarios on current `main`; human representative-device behavior remains separate. |
 | Museum Workshop authoring path | ✅ automated contract | Pull-request workflow run #321 passed the dedicated development-only Workshop job after correcting a stale test assertion so X/Z edits explicitly preserve the registered shrub's original Y. Runtime authoring behavior was not weakened. |
 | Offline standalone path | ✅ automated contract | Pull-request workflow run #321 passed the fresh standalone build and offline verification on the integrated feature head. |
 | Human QA evidence recorder | ✅ automated tool contract | `?qa=1` exposes read-only diagnostics plus a session-only manual recorder for Pass/Needs work judgments, telemetry snapshots, notes, and Markdown report generation. Browser CI proves the tool operates; it does not satisfy the human judgments it records. |
@@ -72,24 +72,24 @@ The post-merge truth-layer reconciliation changes only release/state documentati
 | Release runbook prepared | ✅ | `docs/RELEASE_RUNBOOK.md`. |
 | Durable human QA evidence structure | ✅ source | `validation/reports/HUMAN_QA_CHECKLIST.md` defines the decisive route and `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md` defines the durable record. The in-museum recorder can generate the same kind of Markdown evidence. |
 | Human visual/device QA | ⬜ | No completed representative-device evidence record exists yet. Automated/headless evidence cannot promote these perceptual/device checks. |
-| Hosted production verification | ⬜ | No production deployment has been authorized or performed. |
+| Current `main` hosted verification | ⬜ | A previous public GitHub Pages preview is live at `e6b0a5f`; new `main` at `4a464eb` has not been deployed or verified as hosted. |
 
-## Git state
+## Git state — authoritative 2026-10-12 snapshot
 
 | Branch | Role |
 |---|---|
-| `main` | remote default branch and PR #1 base; older unpublished baseline, not current implementation truth. |
-| `feat/foundation` | historical implementation lineage. |
-| `release/v1.0.0` | current release and implementation line after PR #3 integration. |
-| `feature/museum-workshop-core-2026-08-26` | integrated feature lineage; no longer the separate release candidate. |
+| `main` | Current 73-project development implementation, `4a464eb`; exact-head GitHub Actions 4/4 green. |
+| `pages-preview` | Existing public GitHub Pages preview, `e6b0a5f` (57 commits behind `main` at this snapshot). It does not auto-follow `main`. |
+| `release/v1.0.0` | Historical, incorrectly named development/release line, not an accepted 1.0 milestone. |
+| `feat/foundation` and `feature/museum-workshop-core-2026-08-26` | Historical implementation lineage, not active publication candidates. |
 
-PR #1 remains open from `release/v1.0.0` to `main` and now tracks the caught-up release line. No merge, auto-merge, release tag, or publication is implied by a green automated gate.
+PR #1 **merged on September 3, 2026**; no open-PR merge step is required for the present `main`. Commit names and branch labels do not override owner-confirmed **PRE-1.0** status.
 
-## Remaining actions, exactly
+## Remaining acceptance actions
 
-1. Require the final post-reconciliation `release/v1.0.0` head to pass the exact-head automated jobs (`gate`, `browser`, `standalone`, and `workshop`).
-2. Complete the representative-device pass in `validation/reports/HUMAN_QA_CHECKLIST.md` and preserve a completed Markdown evidence record using the in-museum `?qa=1` recorder or `validation/reports/HUMAN_QA_EVIDENCE_TEMPLATE.md`. No acceptance item may remain accidentally Pending.
-3. Run `npm run verify:human-evidence -- <completed-human-qa.md>`; repair only concrete **Needs work** observations and rerun exact-head automated gates if code changes.
-4. Make an explicit owner decision to merge reviewed PR #1 into `main` and authorize publication.
-5. Deploy the resulting reviewed `main` commit, run `npm run verify:hosted -- <production-url>`, and verify the real browser/device path.
-6. Tag the verified deployed commit as `v1.0.0`; do not tag a known-bad or merely pre-deploy commit.
+1. Preserve passing exact-head CI for the current candidate. The October 12 run `38310708395` already passed all four automated jobs.
+2. Perform the private real-device visitor walkthrough using `validation/reports/HUMAN_QA_CHECKLIST.md`; record the nine human acceptance judgments and at least six location-specific telemetry snapshots, plus audio, pointer-lock and visual observations.
+3. Preserve the completed recorder Markdown and screen capture, then run `npm run verify:human-evidence -- <completed-human-qa.md>`. Pending or Needs-work observations are not automatic passes.
+4. Repair confirmed human-facing defects only; rerun the affected checks and all exact-head CI jobs after any implementation changes.
+5. Explicitly decide whether to promote the reviewed code to the *existing public preview* (`pages-preview` or manual Pages dispatch). Verify the deployed revision and rendered experience; a green `main` push alone never deploys it.
+6. Make any future 1.0 declaration and tag only after separate owner acceptance. Do **not** infer `v1.0.0` from this checklist, earlier PR titles, or historical branch names.

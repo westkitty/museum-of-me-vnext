@@ -17,13 +17,13 @@ The project owner explicitly corrected that milestone claim:
 
 ## Current development baseline
 
-The latest integrated code on `main` is the starting implementation baseline. New work is being developed on bounded development branches and must preserve known-good traversal, collision, resource ownership, accessibility, offline behavior, Workshop conservation, authored visitor conversations, source-installation paths, Dexter Sanctuary boundaries, and the deferred local Full Weasel integration unless a later owner decision explicitly changes one of those contracts.
+**Verified October 12, 2026 baseline:** GitHub `main` at `4a464ebd5c6d09265e559b7b1299f025c399aa56` is the current implementation truth. GitHub Actions run `38310708395` passed all four exact-head jobs: development gate (644 tests), real Chromium visitor suite (16 tests), offline source verification (14 installations / 17 visitors, no remote requests), and Workshop. The collection maps 73 projects to 35 stable physical exhibits in six wings. The public GitHub Pages preview is still older branch `pages-preview` at `e6b0a5f`; human visual/device acceptance remains pending. Preserve traversal, collision, resource ownership, accessibility, offline behavior, Workshop conservation, authored visitor conversations, Dexter Sanctuary boundaries, and the local Full Weasel integration unless the owner deliberately revises those contracts.
 
-The first post-correction development branch is:
+The first post-correction development branch was (historical lineage):
 
 `development/collection-revision-2-2026-09-03`
 
-Its purpose is to bring the museum's collection and exhibit interactions closer to the projects that actually exist now.
+Its historical purpose was to bring the museum's collection and exhibit interactions closer to the projects that exist now. Its improvements are reflected in later merged `main` work.
 
 ## Collection policy after the correction
 
