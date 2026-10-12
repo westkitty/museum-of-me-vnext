@@ -23,9 +23,11 @@ export function mountCinematicArrival(app: App): void {
   const description = document.createElement('p');
   description.className = 'cinematic-arrival__description';
   description.textContent = 'An explorable collection of worlds, systems, stories, and becoming.';
+  description.id = 'cinematic-arrival-description';
   const enter = document.createElement('button');
   enter.type = 'button';
   enter.disabled = true;
+  enter.setAttribute('aria-describedby', 'cinematic-arrival-description');
   enter.textContent = 'Preparing your arrival…';
   heading.id = 'cinematic-arrival-heading';
   root.setAttribute('aria-labelledby', heading.id);
@@ -41,6 +43,8 @@ export function mountCinematicArrival(app: App): void {
   // indefinitely on slow or unsupported devices.
   const started = performance.now();
   const minimum = app.titlePrewarmStatus.minimumDwellMs;
+  const maxWait = minimum + 4000;
+  let entered = false;
   const check = window.setInterval(() => {
     if (!root.isConnected) {
       window.clearInterval(check);
@@ -49,7 +53,7 @@ export function mountCinematicArrival(app: App): void {
     const elapsed = performance.now() - started;
     const status = app.titlePrewarmStatus;
     if (elapsed < minimum) return;
-    if (!status.ready && elapsed < minimum + 4000) {
+    if (!status.ready && elapsed < maxWait) {
       enter.textContent = 'Preparing the galleries…';
       return;
     }
@@ -58,11 +62,25 @@ export function mountCinematicArrival(app: App): void {
     enter.textContent = 'Enter the museum';
     enter.focus({ preventScroll: true });
   }, 200);
-  enter.addEventListener('click', () => {
+  const finish = () => {
+    if (entered || enter.disabled) return;
+    entered = true;
     window.clearInterval(check);
     root.remove();
     app.input.uiCaptured = false;
     app.player.setFrozen(false);
     previousFocus?.focus({ preventScroll: true });
-  }, { once: true });
+  };
+  enter.addEventListener('click', finish, { once: true });
+  root.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      if (!enter.disabled) finish();
+    }
+    if (event.key === 'Tab') {
+      // The introductory dialog has one actionable control.
+      event.preventDefault();
+      if (!enter.disabled) enter.focus({ preventScroll: true });
+    }
+  });
 }
