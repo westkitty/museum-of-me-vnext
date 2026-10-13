@@ -28,6 +28,10 @@ test('QA route bypasses the visitor title', async ({ page }) => {
 test('keyboard visitor can dismiss the ready introduction', async ({ page }) => {
   await page.goto('/');
   const intro = page.getByRole('dialog', { name: 'Welcome to the Museum of Me' });
+  // The first production visitor test already allows 30 seconds for software-WebGL
+  // initialization. The keyboard path must make the same cold-start allowance,
+  // while still requiring a real dialog and an enabled entry action.
+  await expect(intro).toBeVisible({ timeout: 30_000 });
   const enter = intro.getByRole('button', { name: 'Enter the museum' });
   await expect(enter).toBeEnabled({ timeout: 15_000 });
   await enter.focus();
