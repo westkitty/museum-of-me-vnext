@@ -74,8 +74,15 @@ export class InputManager {
   /** True once any touch has been seen; switches the HUD to touch affordances. */
   touchActive = false;
 
-  /** True while any modal DOM surface has focus; movement is suppressed. */
-  uiCaptured = false;
+  /** True while a modal owns input; entering capture discards stale gestures. */
+  private capturedByUi = false;
+
+  get uiCaptured(): boolean { return this.capturedByUi; }
+
+  set uiCaptured(captured: boolean) {
+    if (captured && !this.capturedByUi) this.resetTransient();
+    this.capturedByUi = captured;
+  }
 
   private readonly canvas: HTMLElement;
 

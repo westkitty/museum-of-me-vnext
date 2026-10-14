@@ -253,6 +253,24 @@ describe('interrupted touch recovery', () => {
     expect(input.touchDeltaX).toBe(15);
   });
 
+  it('releases active fingers immediately when a modal opens, even without another touch event', () => {
+    touch('touchstart', 7, 200, 400);
+    touch('touchmove', 7, 270, 400);
+    touch('touchstart', 8, 900, 300);
+    touch('touchmove', 8, 930, 300);
+    expect(input.touchMoveX).toBe(1);
+    expect(input.touchDeltaX).toBe(30);
+    input.uiCaptured = true;
+    expect(input.touchMoveX).toBe(0);
+    expect(input.touchDeltaX).toBe(0);
+    input.uiCaptured = false;
+    touch('touchmove', 7, 270, 400);
+    expect(input.touchMoveX).toBe(0);
+    touch('touchstart', 9, 200, 400);
+    touch('touchmove', 9, 235, 400);
+    expect(input.touchMoveX).toBeCloseTo(0.5);
+  });
+
   it('does not resume stale movement while a modal captures touch', () => {
     touch('touchstart', 5, 200, 400);
     touch('touchmove', 5, 270, 400);
