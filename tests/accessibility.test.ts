@@ -223,6 +223,49 @@ describe('keyboard-only operation', () => {
   });
 });
 
+describe('interrupted touch recovery', () => {
+  function touch(type: string, identifier: number, x: number, y: number): void {
+    canvas.fire(type, {
+      changedTouches: [{ identifier, clientX: x, clientY: y }],
+      preventDefault: () => {},
+    });
+  }
+
+  it('allows a new movement finger after a transient reset', () => {
+    touch('touchstart', 1, 200, 400);
+    touch('touchmove', 1, 270, 400);
+    expect(input.touchMoveX).toBe(1);
+    input.resetTransient();
+    expect(input.touchMoveX).toBe(0);
+    touch('touchstart', 2, 200, 400);
+    touch('touchmove', 2, 235, 400);
+    expect(input.touchMoveX).toBeCloseTo(0.5);
+  });
+
+  it('releases look ownership and motion on window blur', () => {
+    touch('touchstart', 3, 900, 300);
+    touch('touchmove', 3, 940, 300);
+    expect(input.touchDeltaX).toBe(40);
+    (window as unknown as { __fire(t: string, e: unknown): void }).__fire('blur', {});
+    expect(input.touchDeltaX).toBe(0);
+    touch('touchstart', 4, 900, 300);
+    touch('touchmove', 4, 915, 300);
+    expect(input.touchDeltaX).toBe(15);
+  });
+
+  it('does not resume stale movement while a modal captures touch', () => {
+    touch('touchstart', 5, 200, 400);
+    touch('touchmove', 5, 270, 400);
+    input.uiCaptured = true;
+    touch('touchmove', 5, 280, 400);
+    expect(input.touchMoveX).toBe(0);
+    input.uiCaptured = false;
+    touch('touchstart', 6, 200, 400);
+    touch('touchmove', 6, 235, 400);
+    expect(input.touchMoveX).toBeCloseTo(0.5);
+  });
+});
+
 describe('touch-only operation', () => {
   it('treats the left half as a stick and the right half as look', () => {
     canvas.fire('touchstart', {

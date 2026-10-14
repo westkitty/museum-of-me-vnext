@@ -199,6 +199,10 @@ export class InputManager {
     this.touchDeltaY = 0;
     this.touchMoveX = 0;
     this.touchMoveY = 0;
+    // An interrupted gesture may never deliver touchend/touchcancel.
+    // Release ownership so the next finger can claim either control.
+    this.moveTouchId = null;
+    this.lookTouchId = null;
   }
 
   /**
@@ -272,8 +276,7 @@ export class InputManager {
   };
 
   private readonly onBlur = (): void => {
-    this.held.clear();
-    this.edgeHeldCodes.clear();
+    this.resetTransient();
   };
 
   private readonly onPointerLockChange = (): void => {
@@ -304,7 +307,10 @@ export class InputManager {
 
   private readonly onTouchStart = (e: TouchEvent): void => {
     this.touchActive = true;
-    if (this.uiCaptured) return;
+    if (this.uiCaptured) {
+      this.resetTransient();
+      return;
+    }
     for (const touch of Array.from(e.changedTouches)) {
       const left = touch.clientX < window.innerWidth / 2;
       if (left && this.moveTouchId === null) {
@@ -319,7 +325,10 @@ export class InputManager {
   };
 
   private readonly onTouchMove = (e: TouchEvent): void => {
-    if (this.uiCaptured) return;
+    if (this.uiCaptured) {
+      this.resetTransient();
+      return;
+    }
     for (const touch of Array.from(e.changedTouches)) {
       if (touch.identifier === this.moveTouchId) {
         const radius = 70;
