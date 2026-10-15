@@ -43,7 +43,22 @@ export interface LoadOptions {
  * manifest record, a provenance entry, a budget, and a disposal path. There is
  * no second way to get geometry into the scene.
  */
+export interface AssetLoadTiming {
+  readonly id: string;
+  readonly kind: string;
+  readonly elapsedMs: number;
+  readonly reportedBytes: number;
+}
+
 export class AssetManager {
+  private readonly history: AssetLoadTiming[] = [];
+  get loadTimings(): readonly AssetLoadTiming[] { return this.history; }
+
+  private recordTiming(id: string, kind: string, elapsedMs: number, reportedBytes: number): void {
+    this.history.push({ id, kind, elapsedMs, reportedBytes });
+    if (this.history.length > 64) this.history.shift();
+  }
+
   private readonly generators = new Map<string, ProceduralGenerator>();
   private readonly inFlight = new Map<string, Promise<LoadedAsset>>();
   private readonly bytesById = new Map<string, number>();
@@ -126,13 +141,17 @@ export class AssetManager {
       const object = generator(scope, detail);
       scope.trackObject(object);
       object.name = object.name || id;
-      return { id, object, animations: [], bytes: 0, loadMs: performance.now() - started };
+      const loadMs = performance.now() - started;
+      this.recordTiming(id, 'procedural', loadMs, 0);
+      return { id, object, animations: [], bytes: 0, loadMs };
     }
 
     const loaded = await this.loadFile(record, scope, opts);
     const bytes = this.bytesById.get(id) ?? 0;
     this.checkBudget(record, bytes);
-    return { ...loaded, id, bytes, loadMs: performance.now() - started };
+    const loadMs = performance.now() - started;
+    this.recordTiming(id, record.kind, loadMs, bytes);
+    return { ...loaded, id, bytes, loadMs };
   }
 
   private async loadFile(record: AssetRecord, scope: ResourceScope, opts: LoadOptions): Promise<LoadedAsset> {
@@ -196,6 +215,7 @@ export class AssetManager {
     this.generators.clear();
     this.inFlight.clear();
     this.bytesById.clear();
+    this.history.length = 0;
     this.fileLoaderReady = null;
     this.renderer = null;
     this.ktx2 = null;

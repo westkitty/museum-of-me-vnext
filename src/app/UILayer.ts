@@ -39,6 +39,9 @@ export class UILayer {
   readonly study: StudyPanel;
   readonly command: CommandPalette;
   readonly fullWeasel: FullWeaselPanel;
+  private hudElapsed = 0;
+  private embeddedPaused = false;
+  private disposing = false;
   readonly dexgptGuide: MuseumGuidePanel;
   readonly visitThread: VisitThreadPanel;
 
@@ -123,6 +126,13 @@ export class UILayer {
       ],
     );
     this.fullWeasel = new FullWeaselPanel();
+    this.unbind.push(this.fullWeasel.onClose(() => {
+      if (this.disposing) return;
+      this.app.streaming.setBackgroundPaused(false);
+      if (!this.embeddedPaused) return;
+      this.embeddedPaused = false;
+      this.app.resumeFromEmbedded();
+    }));
     this.dexgptGuide = new MuseumGuidePanel(new DeterministicMuseumGuide(app.journal, app.visitThread), (id) => this.mapGuide(id));
     this.visitThread = new VisitThreadPanel(
       app.visitThread,
@@ -219,7 +229,13 @@ export class UILayer {
 
   /** Called only by the E27 control through its bounded ExhibitContext hook. */
   openFullWeasel(): void {
+    if (this.fullWeasel.isOpen) return;
     this.fullWeasel.open();
+    this.app.streaming.setBackgroundPaused(true);
+    if (this.app.loop.isRunning) {
+      this.embeddedPaused = true;
+      this.app.stop();
+    }
   }
 
   /** Wire the development-only Workshop affordance through the HUD. */
@@ -428,9 +444,13 @@ export class UILayer {
 
   /** Once per frame from the single loop. */
   update(dt: number): void {
+    this.hudElapsed += dt;
+    if (this.hudElapsed < 1 / 30) return;
+    const elapsed = this.hudElapsed;
+    this.hudElapsed = 0;
     this.hud.setTouchMode(this.app.input.touchActive);
     this.hud.setArrivalReadiness(this.app.arrivalReady);
-    this.hud.update(dt);
+    this.hud.update(elapsed);
     this.hud.setLocation(this.app.currentZone);
 
     if (!this.diagnostics.root.hidden) {
@@ -440,9 +460,14 @@ export class UILayer {
         audio: this.app.audio.isRunning ? 'on' : 'off',
         pointer: this.app.input.pointerLocked ? 'locked' : 'free',
         loads: this.app.streaming.telemetry.pendingLoads,
+        mountMs: this.app.streaming.telemetry.lastMountMs.toFixed(1),
+        warmMs: this.app.streaming.telemetry.lastWarmMs.toFixed(1),
+        shaderMs: this.app.renderer.warmTelemetry.lastCompileWallMs.toFixed(1),
+        textureMs: this.app.renderer.warmTelemetry.lastTextureInitCpuMs.toFixed(1),
+        dpr: this.app.renderer.effectivePixelRatio.toFixed(2),
         exhibit: this.app.currentExhibitId ?? '—',
       };
-      this.diagnostics.update(dt, extra);
+      this.diagnostics.update(elapsed, extra);
     }
   }
 
@@ -462,6 +487,7 @@ export class UILayer {
   }
 
   dispose(): void {
+    this.disposing = true;
     this.app.renderer.canvas.removeEventListener('touchstart', this.onTouchStart);
     this.app.renderer.canvas.removeEventListener('touchmove', this.onTouchMove);
     this.app.renderer.canvas.removeEventListener('touchcancel', this.onTouchCancel);
