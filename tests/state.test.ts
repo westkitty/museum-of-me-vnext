@@ -126,4 +126,49 @@ describe('journal', () => {
     expect(j.hasHeard('astrid')).toBe(true);
     expect(j.hasHeard('bram'), 'bram was heard after the backup snapshot').toBe(false);
   });
+
+  it('replacement import clears a guide target omitted by the replacement', () => {
+    const j = new Journal(memoryStorage());
+    j.setGuideTarget({ kind: 'exhibit', id: 'E07' });
+    j.recordHistory({ kind: 'exhibit', id: 'E07' }, 'Previous exhibit');
+    j.addCheckpoint('Old checkpoint');
+
+    const replacement = new Journal(memoryStorage()).exportPayload();
+    expect(j.importPayload(replacement, { replace: true })).toBe(true);
+    expect(j.guideTarget).toBeUndefined();
+    expect(j.visitHistory()).toHaveLength(0);
+    expect(j.listCheckpoints()).toHaveLength(0);
+  });
+
+  it('previous-save restoration clears newer history and checkpoints absent in an older backup', () => {
+    const store = memoryStorage();
+    const j = new Journal(store);
+    j.addCheckpoint('Newer checkpoint');
+    j.recordHistory({ kind: 'visitor', id: 'bram' }, 'Bram');
+    // An older valid journal may not contain the optional fields at all.
+    store.setItem('museum-of-me:journal:backup', JSON.stringify({ version: 2, entries: {} }));
+
+    expect(j.restorePrevious()).toBe(true);
+    expect(j.visitHistory()).toHaveLength(0);
+    expect(j.listCheckpoints()).toHaveLength(0);
+  });
+
+  it('rejects malformed and unsupported future backups without destroying the current journal', () => {
+    const store = memoryStorage();
+    const j = new Journal(store);
+    j.markVisited('E08');
+    j.addCheckpoint('Before attempted recovery');
+    const before = j.exportPayload();
+
+    for (const payload of [
+      { version: 999, entries: {} },
+      { version: 2 },
+      { version: 2, entries: [] },
+      null,
+    ]) {
+      store.setItem('museum-of-me:journal:backup', JSON.stringify(payload));
+      expect(j.restorePrevious()).toBe(false);
+      expect(j.exportPayload()).toEqual(before);
+    }
+  });
 });

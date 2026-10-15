@@ -28,4 +28,16 @@ describe('center touch interaction', () => {
     t.cancel();
     expect(t.end([finger(3, 500, 400)])).toBe(false);
   });
+
+  it('rejects an extended stationary hold without punishing an ordinary slow tap', () => {
+    let now = 10;
+    const t = new CenterTapTracker(() => now);
+    t.start([finger(1, 500, 400)], 1, 1000, 800);
+    now += 800;
+    expect(t.end([finger(1, 502, 400)])).toBe(true);
+
+    t.start([finger(2, 500, 400)], 1, 1000, 800);
+    now += 2000;
+    expect(t.end([finger(2, 500, 400)])).toBe(false);
+  });
 });

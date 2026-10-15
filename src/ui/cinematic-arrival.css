@@ -10,7 +10,7 @@
   color: #f6ebdb;
   background: linear-gradient(180deg, rgba(2,4,12,.18), rgba(3,5,13,.45) 50%, rgba(2,3,9,.82));
 }
-.cinematic-arrival__content { max-width: 58rem; }
+.cinematic-arrival__content { max-width: 58rem; max-height: 100%; overflow-y: auto; }
 .cinematic-arrival__eyebrow {
   font: 600 .75rem/1.6 var(--font-ui);
   letter-spacing: .24em;
@@ -23,9 +23,20 @@
 }
 .cinematic-arrival h1 em { display: block; font-style: normal; color: #f4d1a4; }
 .cinematic-arrival__description {
-  margin: 0 auto 2rem;
+  margin: 0 auto 1.2rem;
   max-width: 38rem;
   font: 400 clamp(.95rem, 1.7vw, 1.15rem)/1.6 var(--font-ui);
+}
+.cinematic-arrival__orientation {
+  max-width: 35rem;
+  margin: 0 auto 1.6rem;
+  color: #e1d4c8;
+  font: 400 .85rem/1.55 var(--font-ui);
+}
+.cinematic-arrival__orientation--touch { display: none; }
+@media (pointer: coarse) {
+  .cinematic-arrival__orientation:not(.cinematic-arrival__orientation--touch) { display: none; }
+  .cinematic-arrival__orientation--touch { display: block; }
 }
 .cinematic-arrival h1:focus-visible { outline: 2px solid #e9c39e; outline-offset: .35rem; }
 .cinematic-arrival button:focus-visible { outline: 3px solid #e9c39e; outline-offset: 4px; }
@@ -42,7 +53,10 @@
 .cinematic-arrival button:disabled { opacity: .65; cursor: wait; }
 .cinematic-arrival button:hover:not(:disabled) { background: #51261e; }
 @media (max-width: 600px) {
+  .cinematic-arrival { padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom)); }
   .cinematic-arrival__eyebrow { letter-spacing: .12em; }
+  .cinematic-arrival h1 { margin: .8rem 0; }
+  .cinematic-arrival__orientation { font-size: .8rem; }
 }
 @media (forced-colors: active) {
   .cinematic-arrival { background: Canvas; color: CanvasText; }

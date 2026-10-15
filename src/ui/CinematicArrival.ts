@@ -24,8 +24,14 @@ export function mountCinematicArrival(app: App): void {
   heading.append(name);
   const description = document.createElement('p');
   description.className = 'cinematic-arrival__description';
-  description.textContent = 'An explorable collection of worlds, systems, stories, and becoming.';
+  description.textContent = 'Six wings. Thirty-five exhibits. No prescribed route — just worlds, systems, and stories you can walk into.';
   description.id = 'cinematic-arrival-description';
+  const orientation = document.createElement('p');
+  orientation.className = 'cinematic-arrival__orientation';
+  orientation.textContent = 'Walk with WASD or arrow keys, look with the mouse, and press F to interact. Keyboard-only visitors can turn with Q/E and look up or down with Page Up/Page Down.';
+  const touchOrientation = document.createElement('p');
+  touchOrientation.className = 'cinematic-arrival__orientation cinematic-arrival__orientation--touch';
+  touchOrientation.textContent = 'Touch: move on the left, look on the right, and tap the centre reticle to interact.';
   const enter = document.createElement('button');
   enter.type = 'button';
   enter.disabled = true;
@@ -33,7 +39,7 @@ export function mountCinematicArrival(app: App): void {
   enter.textContent = 'Preparing your arrival…';
   heading.id = 'cinematic-arrival-heading';
   root.setAttribute('aria-labelledby', heading.id);
-  content.append(eyebrow, heading, description, enter);
+  content.append(eyebrow, heading, description, orientation, touchOrientation, enter);
   root.append(content);
   document.body.append(root);
 
@@ -73,7 +79,7 @@ export function mountCinematicArrival(app: App): void {
     enter.focus({ preventScroll: true });
   };
   app.setArrivalUpdate(check);
-  const finish = () => {
+  const finish = (event?: Event) => {
     if (entered || enter.disabled || !app.enterArrival()) return;
     entered = true;
     app.setArrivalUpdate(null);
@@ -83,6 +89,17 @@ export function mountCinematicArrival(app: App): void {
     app.input.uiCaptured = false;
     app.player.setFrozen(false);
     previousFocus?.focus({ preventScroll: true });
+    // The same trusted mouse click should enter first-person look, rather
+    // than making visitors click a second time. Keyboard entry deliberately
+    // retains free focus; touch never attempts desktop pointer lock.
+    if (window.matchMedia?.('(pointer: coarse)').matches) {
+      // UILayer derives the HUD touch presentation from InputManager each
+      // frame. Set that owner state, or the next frame reopens mouse controls.
+      app.input.touchActive = true;
+      app.ui.hud.setTouchMode(true);
+    } else if (event instanceof MouseEvent && event.detail > 0) {
+      app.input.requestPointerLock();
+    }
   };
   enter.addEventListener('click', finish, { once: true });
   root.addEventListener('keydown', (event) => {

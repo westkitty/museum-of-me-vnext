@@ -186,7 +186,7 @@ export class Journal {
   importPayload(value: unknown, { replace = false } = {}): boolean {
     if (!value || typeof value !== 'object') return false;
     const parsed = value as JournalPayload;
-    if (typeof parsed.entries !== 'object' || parsed.entries === null) return false;
+    if (typeof parsed.entries !== 'object' || parsed.entries === null || Array.isArray(parsed.entries)) return false;
     const version = Number(parsed.version);
     if (Number.isFinite(version) && version > JOURNAL_VERSION) return false;
     if (replace) {
@@ -195,6 +195,7 @@ export class Journal {
       this.supplementary.clear();
       this.checkpoints = [];
       this.history = [];
+      this.guideTarget = undefined;
     }
     this.applyParsed(parsed);
     this.save();
@@ -207,6 +208,10 @@ export class Journal {
     if (!raw) return false;
     try {
       const parsed = JSON.parse(raw) as JournalPayload;
+      if (!parsed || typeof parsed !== 'object'
+        || !parsed.entries || typeof parsed.entries !== 'object' || Array.isArray(parsed.entries)) return false;
+      const version = Number(parsed.version);
+      if (Number.isFinite(version) && version > JOURNAL_VERSION) return false;
       // applyParsed() only adds to heard/supplementary and conditionally
       // overwrites guideTarget -- it merges onto existing state rather than
       // replacing it. A "restore" that skips clearing these three first keeps
@@ -216,6 +221,8 @@ export class Journal {
       this.entries.clear();
       this.heard.clear();
       this.supplementary.clear();
+      this.checkpoints = [];
+      this.history = [];
       this.guideTarget = undefined;
       this.applyParsed(parsed);
       this.save();
