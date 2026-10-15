@@ -911,3 +911,96 @@ html[data-contrast='high'] .hud__lock {
 }
 .hud__resume-look[hidden] { display: none; }
 .hud__resume-look:hover { background: #39251e; }
+
+
+/* ── The Reliquary's finish: restrained gilt over dark mineral surfaces ────
+   These details sit on top of the live world; they never cover input or add a
+   post-processing pass. Reduced-motion/contrast modes remain authoritative. */
+.hud__reticle {
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  background: #f3e8d3;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .7), 0 0 11px rgba(181, 206, 216, .35);
+}
+.hud__reticle::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border: 1px solid rgba(237, 215, 176, .63);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .28);
+  transition: border-color 140ms ease, transform 140ms ease;
+}
+.hud__reticle--active::before {
+  border-color: var(--gold-bright);
+  transform: scale(.8);
+}
+.hud__cue {
+  padding: .58rem 1rem;
+  background: linear-gradient(125deg, rgba(13, 22, 30, .96), rgba(24, 18, 23, .94));
+  border-color: rgba(221, 184, 120, .64);
+  box-shadow: inset 0 1px 0 rgba(252, 232, 194, .10), 0 12px 35px rgba(0, 0, 0, .35);
+}
+.hud__cue--visible { border-left: 2px solid var(--gold-bright); }
+.hud__location {
+  padding: .42rem 0 .42rem 1rem;
+  border-left: 2px solid rgba(231, 198, 140, .68);
+  background: linear-gradient(90deg, rgba(6, 14, 22, .65), rgba(6, 14, 22, 0));
+  min-width: 9rem;
+}
+.hud__location strong { font-size: 1.13rem; letter-spacing: .01em; }
+.hud__subtitle {
+  border-top: 1px solid rgba(230, 198, 148, .64);
+  background: linear-gradient(110deg, rgba(9, 16, 25, .96), rgba(26, 19, 23, .94));
+  box-shadow: 0 10px 38px rgba(0, 0, 0, .40);
+}
+html:not([data-contrast='high']):not([data-transparency='reduced']) .panel__body {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 7% -4%, rgba(192, 145, 84, .085), transparent 45%),
+    linear-gradient(150deg, #1b2029 0%, #10151d 48%, #0d1119 100%);
+  border-color: rgba(214, 175, 111, .53);
+  box-shadow: inset 0 1px 0 rgba(245, 225, 190, .12), 0 28px 95px rgba(0, 0, 0, .78);
+}
+.panel__body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 2.4rem;
+  right: 2.4rem;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(242, 206, 146, .72), transparent);
+  pointer-events: none;
+}
+.panel__head h2 { letter-spacing: -.012em; text-wrap: balance; }
+.panel__card {
+  background: linear-gradient(130deg, rgba(221, 204, 176, .055), rgba(12, 19, 27, .32));
+  border-top-color: rgba(221, 204, 176, .2);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 226, .035);
+  transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
+}
+.panel__card:hover {
+  transform: translateY(-1px);
+  border-top-color: rgba(233, 202, 155, .52);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 226, .065), 0 4px 14px rgba(0, 0, 0, .24);
+}
+.panel__card:active { transform: translateY(0); }
+.panel__close, .hud__resume-look {
+  box-shadow: inset 0 1px 0 rgba(255, 237, 205, .08), 0 3px 12px rgba(0, 0, 0, .25);
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+.panel__close:hover, .hud__resume-look:hover { border-color: var(--gold-bright); }
+@media (pointer: coarse) {
+  .panel button, .hud__resume-look { min-height: 44px; }
+}
+@media (max-width: 640px) {
+  .panel__body::before { left: 1rem; right: 1rem; }
+  .hud__location { left: max(.7rem, env(safe-area-inset-left)); bottom: max(.8rem, env(safe-area-inset-bottom)); }
+  .hud__cue { max-width: calc(100vw - 1.5rem); }
+}
+@media (forced-colors: active) {
+  .hud__reticle::before { border: 2px solid CanvasText; box-shadow: none; }
+  .panel__body::before { display: none; }
+  .hud__location { background: Canvas; border-color: CanvasText; }
+}

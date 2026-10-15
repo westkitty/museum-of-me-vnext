@@ -216,7 +216,11 @@ describe('museum environment coherence', () => {
       if (node.name.startsWith('exhibit-theme-wall-upright:')) uprights++;
     });
 
-    expect(fields.children).toHaveLength(PLACEMENTS.length);
+    expect(fields.children).toHaveLength(PLACEMENTS.length + 1);
+    const relief = fields.getObjectByName('gallery-relief-accents') as THREE.InstancedMesh;
+    expect(relief.isInstancedMesh).toBe(true);
+    expect(relief.count).toBe(PLACEMENTS.length * 4);
+    expect(relief.instanceColor).not.toBeNull();
     expect(floors).toBe(PLACEMENTS.length);
     expect(walls).toBe(PLACEMENTS.length);
     expect(headers).toBe(PLACEMENTS.length);

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { PLACEMENTS, WING_BY_ID, type ExhibitPlacement } from './layout';
 import { resolveExhibitTheme } from './ExhibitTheme';
+import { architecturalStoneFinish } from './SurfaceFinish';
 
 /**
  * Small persistent colour fields inside all 35 exhibit bays.
@@ -13,6 +14,7 @@ import { resolveExhibitTheme } from './ExhibitTheme';
  */
 export class ExhibitColorFields {
   readonly group = new THREE.Group();
+  private readonly reliefs: { matrix: THREE.Matrix4; color: THREE.Color }[] = [];
 
   constructor(private readonly scope: ResourceScope) {
     this.group.name = 'exhibit-color-fields';
@@ -20,14 +22,15 @@ export class ExhibitColorFields {
 
   build(): THREE.Group {
     for (const placement of PLACEMENTS) this.buildField(placement);
+    this.buildReliefAccents();
     return this.group;
   }
 
   private buildField(placement: ExhibitPlacement): void {
     const wing = WING_BY_ID.get(placement.wing)!;
     const theme = resolveExhibitTheme(placement.exhibitId, placement.wing);
-    const primary = this.material(theme.floor, 0.66, 0.08, 0.74);
-    const wall = this.material(theme.wall, 0.78, 0.02, 0.9);
+    const primary = this.material(theme.floor, 0.66, 0.08, 0.74, true);
+    const wall = this.material(theme.wall, 0.78, 0.02, 0.9, true);
     const trim = this.material(theme.trim, 0.5, 0.16, 0.88);
 
     const field = new THREE.Group();
@@ -81,6 +84,29 @@ export class ExhibitColorFields {
     rail.rotation.y = angle;
     field.add(rail);
 
+    // Art-directed, inset brass/colour witness marks are instanced across all
+    // 35 bays in one material/draw. They frame the story without replacing or
+    // attaching to any streamed hero exhibit.
+    const pose = new THREE.Object3D();
+    const color = new THREE.Color(theme.trim);
+    for (const side of [-1, 1] as const) {
+      const lateral = side * width * 0.37;
+      for (const [localX, localY, scaleX, scaleY] of [
+        [lateral, height * 0.71, 0.042, 1.18],
+        [lateral - side * 0.38, height * 0.71 + 0.6, 0.76, 0.042],
+      ]) {
+        pose.position.set(
+          bx + Math.cos(angle) * localX + hallNormalX * 0.12,
+          wing.floorY + localY + 0.18,
+          bz - Math.sin(angle) * localX + hallNormalZ * 0.12,
+        );
+        pose.rotation.set(0, angle, 0);
+        pose.scale.set(scaleX, scaleY, 0.045);
+        pose.updateMatrix();
+        this.reliefs.push({ matrix: pose.matrix.clone(), color });
+      }
+    }
+
     for (const side of [-1, 1] as const) {
       const upright = new THREE.Mesh(
         this.scope.track(new THREE.BoxGeometry(0.13, height + 0.15, 0.13)),
@@ -97,14 +123,30 @@ export class ExhibitColorFields {
     }
   }
 
-  private material(color: number, roughness: number, metalness: number, opacity: number): THREE.MeshStandardMaterial {
+  private buildReliefAccents(): void {
+    // One batched draw, no per-frame animation, no emissive scene lights.
+    const geom = this.scope.track(new THREE.BoxGeometry(1, 1, 1));
+    const metal = this.scope.track(new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, opacity: 0.48,
+      depthWrite: false, toneMapped: false,
+    }));
+    const relief = this.scope.track(new THREE.InstancedMesh(geom, metal, this.reliefs.length));
+    relief.name = 'gallery-relief-accents';
+    relief.renderOrder = 2;
+    for (let i = 0; i < this.reliefs.length; i++) {
+      relief.setMatrixAt(i, this.reliefs[i].matrix);
+      relief.setColorAt(i, this.reliefs[i].color);
+    }
+    relief.instanceMatrix.needsUpdate = true;
+    relief.computeBoundingSphere();
+    this.group.add(relief);
+  }
+
+  private material(color: number, roughness: number, metalness: number, opacity: number, mineral = false): THREE.MeshStandardMaterial {
+    const finish = mineral ? architecturalStoneFinish(this.scope) : null;
     return this.scope.track(new THREE.MeshStandardMaterial({
-      color,
-      roughness,
-      metalness,
-      transparent: true,
-      opacity,
-      depthWrite: true,
+      color, roughness, metalness, transparent: true, opacity, depthWrite: true,
+      ...(finish ? { map: finish, roughnessMap: finish } : {}),
     }));
   }
 }

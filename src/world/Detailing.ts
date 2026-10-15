@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PaletteSet } from './palette';
+import { architecturalStoneFinish } from './SurfaceFinish';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { buildWingSign } from '../exhibits/Furniture';
 import { buildBench } from '../assets/generators';
@@ -41,6 +42,9 @@ export class Detailing {
     const p = this.pal.get('rotunda');
     const halfSide = side(ROTUNDA_APOTHEM) / 2;
     const coveGlow = this.accentGlow(p.accent, 0.34);
+    const sealBacking = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x555f60, roughness: 0.83, metalness: 0.12,
+    }));
 
     for (const face of OCTAGON_FACES) {
       const dir = faceDirection(face);
@@ -117,6 +121,7 @@ export class Detailing {
         bench.rotation.y = Math.atan2(dir[0], dir[2]);
         parent.add(bench);
         this.scope.trackObject(bench);
+        this.detailRotundaArchiveSeal(parent, face, dir, p.trim, sealBacking);
       }
     }
 
@@ -154,6 +159,60 @@ export class Detailing {
     kioskSign.rotation.x = -Math.PI / 5;
     kiosk.add(kioskSign);
     this.scope.track(kioskSign.geometry);
+  }
+
+  /**
+   * Readable architectural punctuation on the only three lower blind faces.
+   * A discreet eight-direction archive compass gives the Rotunda scale without
+   * blocking a wing threshold, the NW Dexter approach, or the circulation ring.
+   * Static, mergeable, material-only; no light, collider, animation, or text.
+   */
+  private detailRotundaArchiveSeal(
+    parent: THREE.Group, face: (typeof OCTAGON_FACES)[number], dir: Vec3,
+    bronze: THREE.Material, stone: THREE.Material,
+  ): void {
+    const seal = new THREE.Group();
+    seal.name = `rotunda-archive-seal:${face}`;
+    // Set the relief ahead of the inner wall face (the wall has thickness),
+    // otherwise its outer rings are depth-occluded and only the raised hub shows.
+    const at = place(dir, ROTUNDA_APOTHEM - 0.71, 0, GROUND_Y + 4.7);
+    seal.position.set(at[0], at[1], at[2]);
+    // Local +Z faces into the Rotunda rather than pointing into the wall.
+    seal.rotation.y = Math.atan2(-dir[0], -dir[2]);
+    parent.add(seal);
+
+    const backing = new THREE.Mesh(
+      this.scope.track(new THREE.CircleGeometry(1.88, 8)),
+      stone,
+    );
+    backing.name = `rotunda-archive-seal-backing:${face}`;
+    // Match the rings' exact wall-facing plane; rotating an octagonal cylinder
+    // tilted the front cap and visually displaced it from the compass marks.
+    backing.rotation.z = Math.PI / 8;
+    backing.position.z = 0.03;
+    seal.add(backing);
+
+    for (const [radius, thickness] of [[1.58, 0.08], [1.26, 0.045]] as const) {
+      const ring = new THREE.Mesh(
+        this.scope.track(new THREE.RingGeometry(radius - thickness, radius, 48)),
+        bronze,
+      );
+      ring.position.z = 0.077;
+      seal.add(ring);
+    }
+
+    const stroke = this.scope.track(new THREE.BoxGeometry(0.09, 0.42, 0.035));
+    for (let i = 0; i < 8; i++) {
+      const angle = i * Math.PI / 4;
+      const tick = new THREE.Mesh(stroke, bronze);
+      tick.position.set(Math.sin(angle) * 1.07, Math.cos(angle) * 1.07, 0.10);
+      tick.rotation.z = -angle;
+      seal.add(tick);
+    }
+
+    const hub = new THREE.Mesh(this.scope.track(new THREE.OctahedronGeometry(0.29, 0)), bronze);
+    hub.position.z = 0.16;
+    seal.add(hub);
   }
 
   private detailBalcony(parent: THREE.Group): void {
@@ -245,17 +304,47 @@ export class Detailing {
       }
     }
 
-    // A floor runner down the centre of the hall.
+    // An oversized full-bright accent strip made the entire hall read like a
+    // fluorescent conveyor belt, overwhelming the exhibits. A darker honed
+    // mineral runner gives the visitor a path without flattening the palette.
+    // Paired inlaid signals keep each wing's colour legible at a distance.
     const runnerFrom = place(dir, wing.hallFrom, 0, y);
     const runnerTo = place(dir, wing.hallTo, 0, y);
     const runnerLength = Math.hypot(runnerTo[0] - runnerFrom[0], runnerTo[2] - runnerFrom[2]);
+    const runnerWidth = wing.hallHalfWidth * 0.9;
+    const runnerColor = (p.floor as THREE.MeshStandardMaterial).color.clone()
+      .lerp((p.accent as THREE.MeshStandardMaterial).color, 0.16);
+    const finish = architecturalStoneFinish(this.scope);
+    const runnerMat = this.scope.track(new THREE.MeshStandardMaterial({
+      color: runnerColor, roughness: 0.72, metalness: 0.12,
+      map: finish, roughnessMap: finish,
+    }));
     const runner = new THREE.Mesh(
-      this.scope.track(new THREE.BoxGeometry(runnerLength, 0.02, wing.hallHalfWidth * 0.9)),
-      p.accent,
+      this.scope.track(new THREE.BoxGeometry(runnerLength, 0.02, runnerWidth)),
+      runnerMat,
     );
+    runner.name = `wing-honed-runner:${wing.id}`;
     runner.position.set((runnerFrom[0] + runnerTo[0]) / 2, y + 0.03, (runnerFrom[2] + runnerTo[2]) / 2);
     runner.rotation.y = Math.atan2(-(runnerTo[2] - runnerFrom[2]), runnerTo[0] - runnerFrom[0]);
     parent.add(runner);
+
+    const signal = this.scope.track(new THREE.MeshBasicMaterial({
+      color: (p.accent as THREE.MeshStandardMaterial).color,
+      transparent: true, opacity: wing.id === 'north' ? 0.57 : 0.48,
+      depthWrite: false, toneMapped: false,
+    }));
+    const signalGeo = this.scope.track(new THREE.BoxGeometry(runnerLength, 0.012, 0.055));
+    for (const s of [-1, 1] as const) {
+      const rail = new THREE.Mesh(signalGeo, signal);
+      rail.name = `wing-runner-inlay:${wing.id}:${s < 0 ? 'left' : 'right'}`;
+      rail.position.copy(runner.position);
+      rail.position.y += 0.021;
+      const localOffset = s * (runnerWidth / 2 - 0.09);
+      rail.position.x += Math.sin(runner.rotation.y) * localOffset;
+      rail.position.z += Math.cos(runner.rotation.y) * localOffset;
+      rail.rotation.y = runner.rotation.y;
+      parent.add(rail);
+    }
 
     // Threshold framing and a title over every bay opening, so an exhibit can
     // be identified from the hall without walking into it.

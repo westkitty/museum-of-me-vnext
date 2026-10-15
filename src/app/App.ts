@@ -25,6 +25,7 @@ import { ArrivalGarden } from '../world/ArrivalGarden';
 import { ArrivalBeacons } from '../world/ArrivalBeacons';
 import { canEnterArrival, sampleArrivalCamera } from '../world/ArrivalCamera';
 import { Lighting } from '../render/Lighting';
+import { AtmosphereDirector } from '../render/AtmosphereDirector';
 import { InputManager } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
 import { zoneAtXYZ, ZONE_BY_ID, isOnFlightPad, type ZoneId } from '../world/layout';
@@ -63,6 +64,7 @@ export class App implements LoopCallbacks {
   readonly museum: Museum;
   readonly arrivalGarden: ArrivalGarden;
   readonly lighting: Lighting;
+  readonly atmosphere: AtmosphereDirector;
   readonly input: InputManager;
   readonly player: PlayerController;
   readonly interaction = new InteractionManager();
@@ -170,6 +172,7 @@ export class App implements LoopCallbacks {
     // The fog's colour is the sky's horizon, so distance reads as air rather
     // than as the building fading into a void.
     this.renderer.scene.fog = new THREE.Fog(this.sky.horizon.getHex(), 70, 300);
+    this.atmosphere = new AtmosphereDirector(this.renderer.scene, this.renderer.renderer);
 
     this.input = new InputManager(opts.canvas);
     this.player = new PlayerController(built.collision, this.input);
@@ -477,6 +480,7 @@ export class App implements LoopCallbacks {
       if (label) this.ui?.mirror.announce(`Entering ${label}.`);
     }
 
+    this.atmosphere.update(zone, dt, this.preferences.reducedMotion);
     this.streaming.evaluate(eye, dt, zone);
     this.interaction.update(this.camera, dt);
     this.workshopUpdate?.();

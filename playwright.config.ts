@@ -27,6 +27,11 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: {
+          // Opt-in local fallback when Playwright's managed Chromium cache is
+          // unavailable. CI intentionally keeps the normal managed browser.
+          ...(process.env.MUSEUM_BROWSER_EXECUTABLE
+            ? { executablePath: process.env.MUSEUM_BROWSER_EXECUTABLE }
+            : {}),
           args: ['--use-gl=angle', '--use-angle=swiftshader-webgl', '--enable-webgl'],
         },
       },

@@ -31,12 +31,19 @@ test('desktop entry never captures mouse implicitly; mouse-look remains a separa
       return native.call(this);
     };
   });
-  await page.goto('/');
+  // Navigation only needs the first response. Waiting for every asset to
+  // finish can starve the browser driver under software WebGL.
+  await page.goto('/', { waitUntil: 'commit' });
   const intro = page.getByRole('dialog', { name: 'Welcome to the Museum of Me' });
   await expect(intro.getByText('Six wings. Thirty-five exhibits.', { exact: false })).toBeVisible({ timeout: 30_000 });
   await expect(intro.getByText('Walk with WASD or arrow keys', { exact: false })).toBeVisible();
+  await expect(intro.getByText('After entering, select Resume mouse look', { exact: false })).toBeVisible();
   const enter = intro.getByRole('button', { name: 'Enter the museum' });
   await expect(enter).toBeEnabled({ timeout: 20_000 });
+  // The real app already rendered and completed its title prewarm. Prevent
+  // software-WebGL frames from starving the browser protocol while asserting
+  // DOM entry and keyboard input (the normal game loop is covered elsewhere).
+  await page.evaluate(() => window.__museum?.stop());
   await enter.click();
   await expect(intro).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Resume mouse look' })).toBeVisible();

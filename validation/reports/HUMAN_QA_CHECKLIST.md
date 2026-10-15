@@ -55,7 +55,7 @@ For each changed room, record **Pass** or **Needs work** separately for: spatial
 
 ## Device interaction
 
-- [ ] Capture pointer lock with mouse and with keyboard activation of the entry prompt; record diagnostics changing from `pointer free` to `pointer locked`.
+- [ ] On an ordinary non-QA visit, let the cinematic introduction finish preparing and activate **Enter the museum**. Confirm entry itself does **not** unexpectedly capture/lock the mouse, that keyboard movement works, and that **Resume mouse look** is visible on desktop. Activate that separate control by mouse and by keyboard; record diagnostics changing from `pointer free` to `pointer locked`. Do not infer physical-device feel from Chromium's automated tests.
 - [ ] Verify mouse look, Q/E turn and Page Up/Page Down vertical keyboard look.
 - [ ] Press Escape or otherwise lose pointer lock; verify controls recover cleanly and recapture works, with diagnostics returning to `pointer locked` after recapture.
 - [ ] Verify normal first-person movement, flight-pad affordance/launch/landing, and the curved grand stairs' visual smoothness and ascent/descent feel.

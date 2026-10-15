@@ -6,8 +6,8 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 52,
-  "last_updated": "2026-09-15",
+  "state_revision": 54,
+  "last_updated": "2026-10-15",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
 -->
@@ -15,11 +15,13 @@
 ## 1. Identity and scope
 
 - **Implementation root:** `/Users/andrew/museum of me/museum-of-me-vnext`
-- **Active branch:** `development/collection-revision-2-2026-09-03`
+- **Current implementation line:** GitHub `main`; its latest fully CI-verified baseline as of 2026-10-14 is `7968fc998d0a5bc1366e99ba003c31cfcf4a75b0`. Any later candidate needs independent exact-head CI verification. The former `release/v1.0.0` and `development/collection-revision-2-2026-09-03` branches are historical lineage, not current implementation authority.
 - **Governed scope:** this repository only; preserved legacy Reliquary artifacts remain read-only.
-- **Official plan boundary:** `docs/MUSEUM_VNEXT_BUILD_PLAN.md` ends at Phase 14 — Deployment and Release. There are no official Phase 15/16 entries. Additional work is therefore bounded Phase-14 release-readiness work, not invented numbered construction phases.
+- **Official plan boundary:** `docs/MUSEUM_VNEXT_BUILD_PLAN.md` ends at historical Phase 14 — Deployment and Release. The original numbered plan remains design/history, not current maturity or a declaration of release readiness. New work is pre-1.0 development governed by observed deficiencies, explicit owner choices, protected runtime contracts, and evidence; do not invent official numbered phases.
 
 ## 2. Current verified baseline
+
+- **Last fully CI-verified implementation baseline (2026-10-14, newer than dated historical entries below):** `westkitty/museum-of-me-vnext` `main` commit `7968fc998d0a5bc1366e99ba003c31cfcf4a75b0` passed all four jobs on exact-head [GitHub Actions run 38665599880](https://github.com/westkitty/museum-of-me-vnext/actions/runs/38665599880): canonical gate (656/656 Vitest tests), real Chromium browser suite (18/18), development-only Workshop, and offline standalone. The current living collection represents **73 project identities in 35 stable exhibit slots across six wings**, with a separate Dexter Sanctuary; the preserved historical 64-project mapping remains a snapshot, not a current inventory limit. The previous exact-head `d51ac7b` CI failure (2/18 browser cases timed out) was repaired in `7968fc9` by retaining **explicit**, rather than automatic, desktop mouse-look capture after cinematic entry. Real-hardware pointer-lock feel, human visual acceptance, representative-device FPS, and hosted Pages at this SHA remain **UNKNOWN/UNVERIFIED**. **Product status: ACTIVE DEVELOPMENT / PRE-1.0.** Local `main` and remote origin were clean/synchronized at last repository check. The canonical append-only project Bible is `westkitty/ChatGPT_Bible_Repo/bibles/Museum_of_Me_Bible.md`.
 
 - Controls: canonical run #36 PASS.
 - Exterior start + continuous outside-to-inside route: run #50 PASS.
@@ -59,7 +61,7 @@
 - The `INSTALLATION_THESES` silhouette and required-part contract is byte-identical in CURATED and Version B and outranks either builder's own part naming.
 - Exact old-hall installation coordinates are implementation detail: the two source authorities disagree on 14/14 of them. Room grouping, activation radius, reading zone, interaction radius and camera safe distance are governing and are preserved exactly.
 - ESLint 9 flat config does not read `.gitignore`. Generated output directories must be listed in `eslint.config.js` explicitly.
-- Frozen 64-project → 35-exhibit mapping remains exact.
+- The preserved **historical** 2026-08-19 mapping remains frozen at 64 project identities → 35 exhibit slots; `data/exhibit-mapping.current.json` governs the later **living 73-project / 35-slot collection** when present. Preserve every project's current unique mapping and the same 35 bespoke exhibit contracts.
 - No visitor-facing private data/placeholders.
 - Dexter Sanctuary remains outside the 35 and non-mascotised.
 - Layout/collision dimensions remain governed by `src/world/layout.ts`; continuous traversal is mandatory.
@@ -180,7 +182,7 @@
 
 ## 8. Active decisions / prohibitions
 
-- Continue from `release/v1.0.0`; do not implement against stale `main`.
+- **Current authority (2026-10-14):** continue on verified GitHub `main`; its old historical description as 'stale' and the instruction to work from `release/v1.0.0` are explicitly **SUPERSEDED**. Read current Git state, canonical Bible, and `docs/DEVELOPMENT_STATUS.md` before changing branch assumptions. Keep the project PRE-1.0 until explicit owner acceptance.
 - Do not deploy, publish, merge PR #1, enable auto-merge, or tag without explicit instruction.
 - Phase-14 preparation is not Phase-14 completion; live deployment and post-deploy verification remain absent.
 - Reference images guide colour/design language only.
@@ -196,6 +198,10 @@
 
 | Claim | State | Evidence |
 |---|---|---|
+| Current `main` implementation baseline, 73-project living collection and PRE-1.0 status | verified-source + exact-head CI | `7968fc9`, `docs/DEVELOPMENT_STATUS.md`, GitHub Actions run #38665599880; human/product acceptance separate |
+| Exact-head browser entry, touch-size, guide, Journal, Workshop visitor paths | verified-automated-browser | 18/18 Chromium E2E cases in GitHub Actions run #38665599880; no physical device acceptance inferred |
+| Canonical gate, standalone verification and development-only Workshop | verified-automated | all four run #38665599880 jobs SUCCESS; 656/656 Vitest tests, standalone and Workshop jobs |
+| Physical mouse-look feel, representative tablet/device, exterior/wing visual acceptance, hosted SHA | **pending-human / pending deployment evidence** | still requires representative hardware observations and separate publication decision |
 | Requested controls | verified-automated | run #36 PASS; revalidated through #238 |
 | Outside spawn + continuous entry | verified-automated | run #50 PASS; production browser path revalidated through #238 |
 | Garden + daylight | verified-automated | run #60 PASS; environment regression through #238 |
@@ -247,7 +253,7 @@
 
 ## 10. Current change scope
 
-Phase-14 release-readiness only: protect the hand-maintained human QA contract from automated regeneration and add a deterministic completeness check for the eventual human evidence record without automating or inferring the human judgments themselves. Layout, collision, exhibit contracts/content, frozen mapping, streaming semantics, Sanctuary semantics and deployment state remain protected.
+**Current scope (2026-10-14): pre-1.0 experience improvement and evidence-led reliability.** The former 'Phase-14 release-readiness only' instruction applied to an older work unit and is **SUPERSEDED** as the active scope, not deleted from history. Continue from the current `main`/canonical Bible, protect layout/collision, 35 exhibit hero contracts, 73-identity current mapping, source installations, optional exploration, the Dexter Sanctuary, streaming/resource lifecycle, Workshop authoring, accessible input, and offline delivery. Prioritize concrete visitor-path defects and real-device/human evidence; do not infer aesthetic signoff from tests or silently deploy/tag the museum.
 
 **r31 addendum:** eight collision/traversal defects repaired (see §2). One item of owner-directed new scope outside the frozen build plan: the rotunda centre plinth is now a walkable flight pad (see the invariant in §3). The 64/35 mapping, all 35 bespoke exhibit hero objects, the Sanctuary, and source-parity/visitor-conversation behaviour are untouched by either.
 
@@ -475,3 +481,19 @@ Git identity/remote reverified: `/Users/bigmac/museum-awe-slice-20261012`, `main
 Prior checks directly applicable to that implementation: `npm run gate` **644/644 PASS**, full Chromium visitor `npm run test:e2e` **16/16 PASS**, local standalone `npm run verify:standalone` **14/14 authored installations and 17/17 visitors PASS**, zero external requests, Dexter Sanctuary actual traversal; targeted Workshop Chromium, scripted authored-standalone and exact-byte original manifest + exported HTML restoration PASS. CI-equivalent `VITE_PUBLIC_BASE=/museum-of-me-vnext/ npm run build:pages` and `npm run verify:pages-dist` PASS. The committed code remains **PRE-1.0** and has not received human/perceptual or representative mobile-hardware signoff.
 
 **Pages boundary:** Existing deployment workflow `.github/workflows/deploy-pages.yml` only publishes on manual dispatch or an explicit push to `pages-preview`; a normal `main` push will not automatically deploy. This work must not create/update `pages-preview`, trigger manual deployment, tag a release, or claim hosted delivery under the limited authorization to stage, commit, push and verify.
+
+
+**r67 addendum — 2026-10-14 active-main authority and first-visit acceptance correction (LOCAL VALIDATION VERIFIED; DELIVERY NOT INFERRED):** The preceding `r51` release-line guidance in this file was historically accurate in its time but is no longer active. Direct current Git inspection proves development `main` and clean remote baseline `7968fc998d0a5bc1366e99ba003c31cfcf4a75b0`. GitHub Actions exact-head [run 38665599880](https://github.com/westkitty/museum-of-me-vnext/actions/runs/38665599880) has completed **SUCCESS in all four jobs**: gate (656/656 Vitest cases), browser (18/18 real Chromium cases), Workshop, and offline standalone. Older `release/v1.0.0` and collection-revision branch claims in past addenda remain preserved history; active sections now explicitly govern **main**, distinguish the old frozen 64-project snapshot from the current 73-identity/35-slot collection, and enforce **ACTIVE DEVELOPMENT / PRE-1.0**, not a release milestone. Both `docs/DEVELOPMENT_STATUS.md` and this operational state now call `7968fc9` the **last fully CI-verified** baseline, rather than automatically promoting future commits.
+
+- **First-visit UX, IMPLEMENTED/LOCAL BROWSER VERIFIED:** `src/ui/CinematicArrival.ts` now tells desktop visitors to select **Resume mouse look** *after* entering before attempting mouse steering. This accurately describes the opt-in pointer-capture fix made in `7968fc9` and does not change runtime input behavior. A matching `tests/cinematic-arrival.e2e.ts` assertion proves the correct visible introduction and separates explicit desktop look from the touch path. Focused real Chromium tests **2/2 PASS** (desktop intro/capture contract; 390x844 coarse-pointer presentation), while representative physical hardware is still unverified.
+- **Human-QA handoff, SOURCE CORRECTED:** `validation/reports/HUMAN_QA_CHECKLIST.md` now explicitly asks the human to test ordinary cinematic-entry dismissal, initially free mouse, keyboard movement, separate mouse-look opt-in, keyboard activation, and diagnostics state. This is a *test procedure* only and does not manufacture human acceptance.
+- **Full local verification:** `npm run gate` EXIT 0, **34/34 Vitest files and 656/656 unit tests**, typecheck, lint, content, mapping, privacy, frame-loop, hotpaths, asset, exhibit, source-parity, QA, production build, budget and dist PASS. `git diff --check` PASS. Changed scope is precisely `OPERATIONAL_STATE.md`, `docs/DEVELOPMENT_STATUS.md`, `validation/reports/HUMAN_QA_CHECKLIST.md`, `src/ui/CinematicArrival.ts`, and `tests/cinematic-arrival.e2e.ts`; no exhibits, world/collision/geometry, Workshop authoring, canonical Starsilk, dependencies, rendered assets, or Pages publication touched.
+- **Delivery and unknowns:** This addendum describes the local validated candidate at writing. Its own eventual Git SHA and CI outcome must be verified separately; do not assume run #38665599880 covers later changes. No claim of a new v1.0 milestone, human aesthetic approval, physical tablet FPS or hosted deployment.
+
+
+**r68 addendum — 2026-10-15 six-wing visual direction and playable rendering uplift (IMPLEMENTED LOCALLY; AUTOMATED VERIFICATION PASS WITH BROWSER-SUITE LIMIT):** Current owner-approved scope is a visual improvement pass on the existing Museum, not a replacement or a claim of 1.0. Starting synchronized source `main` SHA `7968fc998d0a5bc1366e99ba003c31cfcf4a75b0`; this entry was written before any new git delivery and does not claim push or CI. The five previously uncommitted r67 documentation/entry-guidance files were preserved while building this candidate.
+
+- **IMPLEMENTED:** Deterministic 128x128 tileable, locally generated honed-mineral texture shared through `ResourceScope` (`src/world/SurfaceFinish.ts`) on museum floors, walls, ceilings, and all 35 themed exhibit wall/floor fields. `src/world/Detailing.ts` replaces each of six fluorescent/saturated wide hall runners with darker palette-coherent mineral surfaces and two thin accent guide rails, and adds compass reliefs on exactly three blind Rotunda walls. Visual-only geometry adds no collision. `src/world/ExhibitColorFields.ts` adds 140 small colour-coded gallery relief accents batched as one `InstancedMesh`, preserving all installed hero objects. `src/render/AtmosphereDirector.ts` blends existing Three Fog parameters and restrained exposure per Rotunda/plaza/sanctuary/six wings (reduced-motion snaps) in App's existing update; no new light, new renderer, second RAF or post-processing. `src/ui/museum.css` coordinates HUD, dialogs, focus/press/touch styles. `docs/VISUAL_DIRECTION.md` records intent, boundaries and non-goals. Test files guard surface/colour identity, resource disposal, atmosphere, runners, seals, all gallery reliefs and live WebGL scene. `MUSEUM_BROWSER_EXECUTABLE` is an opt-in local QA-only Playwright browser fallback; GitHub CI remains unchanged when unset. Prior local introductory help explicitly describes separate desktop mouse-look capture.
+- **VERIFIED LOCAL:** canonical `npm run gate` PASS with 35/35 Vitest files, 662/662 tests, TypeScript, lint, content/mapping/privacy/frame-loop/hotpath/assets/source-parity/QA, 9.16 MB initial bundle under 20 MB, production dist PASS. Real Brave-controlled WebGL scene test PASS, including 140 batched gallery accents, six hall runners, three Rotunda seals and all nine atmosphere settings. Individually inspected actual-renderer screenshots of plaza, Rotunda and both levels/six wings, then corrected an overbright North runner and Rotunda relief occlusion. `npm run build:standalone` PASS, standalone HTML SHA-256 `96d0c5a9315b172045817fd3b7fb31905941d6f5181ff545e65b98c9ecebc100`, static/offline PASS, actual offline browser PASS (`plaza`, 17 visitors, 53 requests), source QA PASS **14/14 installations and 17/17 visitors**, zero remote requests. A generated 14-row `meshCount` report-only drift was saved to `/tmp/museum-aaa-runtime-source-qa-20261014.json`, and the tracked JSON restored from clean HEAD rather than quietly staging noise.
+- **BROWSER LIMIT (not full pass):** One serial local Brave run finished **18/19** Playwright journeys; the desktop cinematic entry case hit the 120-second software-WebGL/driver timeout. A bounded test-harness correction uses `waitUntil: 'commit'` for navigation and stops the already prewarmed app renderer before DOM-only entry assertions. The *formerly failing* case then passed individually 1/1 in Brave (41.1 seconds). The complete 19-scenario suite has **not** been rerun after that harness fix; exact-head CI remains required before reporting full-browser verification.
+- **UNKNOWN/UNVERIFIED:** human approval of the overall art direction, matched hardware FPS, long-duration memory/thermal measurements, individual hero-object AAA finishing, physical touch and pointer-lock feel, hosted Pages at the candidate revision, exact-head CI, release/version maturity. Preserve 73 current project identities, 35 existing bays, 6 wings, 14 source installations, 17 authored visitors, E27 locally embedded experience, Dexter Sanctuary, Workshop conservation, input and optional exploration. **Status PRE-1.0.**

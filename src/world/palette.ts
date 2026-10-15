@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import type { ZoneId } from './layout';
+import { architecturalStoneFinish } from './SurfaceFinish';
 
 /**
  * Museum-wide colour grammar. The Rotunda and balcony are the bright neutral
@@ -57,20 +58,22 @@ export class PaletteSet {
     if (cached) return cached;
     const hex = HEX[zone] ?? HEX.shell;
     const p: Palette = {
-      floor: this.mat(hex.floor, 0.94),
-      wall: this.mat(hex.wall, 0.9),
+      floor: this.mat(hex.floor, 0.94, 0, true),
+      wall: this.mat(hex.wall, 0.9, 0, true),
       trim: this.mat(hex.trim, 0.55, 0.25),
-      ceiling: this.mat(hex.ceiling, 1),
+      ceiling: this.mat(hex.ceiling, 1, 0, true),
       accent: this.mat(hex.accent, 0.45, 0.35),
     };
     this.cache.set(zone, p);
     return p;
   }
 
-  private mat(color: number, roughness: number, metalness = 0): THREE.Material {
-    return this.scope.track(
-      new THREE.MeshStandardMaterial({ color, roughness, metalness, flatShading: false }),
-    );
+  private mat(color: number, roughness: number, metalness = 0, mineral = false): THREE.Material {
+    const finish = mineral ? architecturalStoneFinish(this.scope) : null;
+    return this.scope.track(new THREE.MeshStandardMaterial({
+      color, roughness, metalness, flatShading: false,
+      ...(finish ? { map: finish, roughnessMap: finish } : {}),
+    }));
   }
 
   /** Glass for the dome and clerestories. */

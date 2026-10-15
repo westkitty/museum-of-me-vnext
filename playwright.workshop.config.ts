@@ -27,6 +27,8 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: {
+          ...(process.env.MUSEUM_BROWSER_EXECUTABLE
+            ? { executablePath: process.env.MUSEUM_BROWSER_EXECUTABLE } : {}),
           args: ['--use-gl=angle', '--use-angle=swiftshader-webgl', '--enable-webgl'],
         },
       },

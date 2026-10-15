@@ -36,6 +36,8 @@ if (!existsSync(htmlPath)) {
 mkdirSync(outDir, { recursive: true });
 
 const browser = await chromium.launch({
+  ...(process.env.MUSEUM_BROWSER_EXECUTABLE
+    ? { executablePath: process.env.MUSEUM_BROWSER_EXECUTABLE } : {}),
   args: ['--use-gl=angle', '--use-angle=swiftshader-webgl', '--enable-webgl', '--allow-file-access-from-files'],
 });
 const context = await browser.newContext();

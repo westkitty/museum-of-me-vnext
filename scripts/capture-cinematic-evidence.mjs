@@ -46,6 +46,8 @@ try {
 
   browser = await chromium.launch({
     headless: true,
+    ...(process.env.MUSEUM_BROWSER_EXECUTABLE
+      ? { executablePath: process.env.MUSEUM_BROWSER_EXECUTABLE } : {}),
     args: ['--use-gl=angle', '--use-angle=swiftshader-webgl', '--enable-webgl'],
   });
   const viewports = [

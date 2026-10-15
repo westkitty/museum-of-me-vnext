@@ -28,7 +28,7 @@ export function mountCinematicArrival(app: App): void {
   description.id = 'cinematic-arrival-description';
   const orientation = document.createElement('p');
   orientation.className = 'cinematic-arrival__orientation';
-  orientation.textContent = 'Walk with WASD or arrow keys, look with the mouse, and press F to interact. Keyboard-only visitors can turn with Q/E and look up or down with Page Up/Page Down.';
+  orientation.textContent = 'Walk with WASD or arrow keys. After entering, select Resume mouse look to turn with the mouse; press F to interact. Keyboard-only visitors can turn with Q/E and look up or down with Page Up/Page Down.';
   const touchOrientation = document.createElement('p');
   touchOrientation.className = 'cinematic-arrival__orientation cinematic-arrival__orientation--touch';
   touchOrientation.textContent = 'Touch: move on the left, look on the right, and tap the centre reticle to interact.';
