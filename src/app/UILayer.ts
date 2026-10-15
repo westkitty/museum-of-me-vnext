@@ -1,4 +1,5 @@
 import { HUD } from '../ui/HUD';
+import { CenterTapTracker } from './CenterTapTracker';
 import { MapPanel } from '../ui/MapPanel';
 import { JournalPanel } from '../ui/JournalPanel';
 import { DeepPanel } from '../ui/DeepPanel';
@@ -43,6 +44,7 @@ export class UILayer {
 
   private readonly unbind: (() => void)[] = [];
   private lastThreadStop: string | null = null;
+  private readonly centerTap = new CenterTapTracker();
 
   constructor(private readonly app: App) {
     const { uiRoot, a11yRoot, input, interaction } = app;
@@ -205,6 +207,9 @@ export class UILayer {
       }),
     );
 
+    this.app.renderer.canvas.addEventListener('touchstart', this.onTouchStart);
+    this.app.renderer.canvas.addEventListener('touchmove', this.onTouchMove);
+    this.app.renderer.canvas.addEventListener('touchcancel', this.onTouchCancel);
     this.app.renderer.canvas.addEventListener('touchend', this.onTouchInteract);
     document.addEventListener('pointerlockchange', this.onPointerLock);
     window.addEventListener('message', this.onEmbeddedMessage);
@@ -241,13 +246,19 @@ export class UILayer {
     }
   };
 
+  private readonly onTouchStart = (e: TouchEvent): void => {
+    this.centerTap.start(e.changedTouches, e.touches.length, window.innerWidth, window.innerHeight);
+  };
+
+  private readonly onTouchMove = (e: TouchEvent): void => {
+    this.centerTap.move(e.changedTouches, e.touches.length);
+  };
+
+  private readonly onTouchCancel = (): void => { this.centerTap.cancel(); };
+
   private readonly onTouchInteract = (e: TouchEvent): void => {
-    if (this.anyPanelOpen) return;
-    const touch = e.changedTouches[0];
-    if (!touch) return;
-    const cx = window.innerWidth / 2;
-    const cy = window.innerHeight / 2;
-    if (Math.hypot(touch.clientX - cx, touch.clientY - cy) > 90) return;
+    const tap = this.centerTap.end(e.changedTouches);
+    if (!tap || this.anyPanelOpen || this.app.input.uiCaptured) return;
     if (this.app.interaction.activate()) {
       const focus = this.app.interaction.currentFocus;
       if (focus) {
@@ -451,6 +462,9 @@ export class UILayer {
   }
 
   dispose(): void {
+    this.app.renderer.canvas.removeEventListener('touchstart', this.onTouchStart);
+    this.app.renderer.canvas.removeEventListener('touchmove', this.onTouchMove);
+    this.app.renderer.canvas.removeEventListener('touchcancel', this.onTouchCancel);
     this.app.renderer.canvas.removeEventListener('touchend', this.onTouchInteract);
     document.removeEventListener('pointerlockchange', this.onPointerLock);
     window.removeEventListener('message', this.onEmbeddedMessage);
