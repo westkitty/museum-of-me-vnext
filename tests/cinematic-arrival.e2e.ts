@@ -1,11 +1,14 @@
 import { expect, test } from '@playwright/test';
 
 test('visitor enters the real museum through the cinematic arrival', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'commit' });
   const intro = page.getByRole('dialog', { name: 'Welcome to the Museum of Me' });
   await expect(intro).toBeVisible({ timeout: 30_000 });
   const enter = intro.getByRole('button', { name: 'Enter the museum' });
   await expect(enter).toBeEnabled({ timeout: 15_000 });
+  // Verify the real ready introduction first; pause only continuous rendering
+  // for deterministic entry-state assertions on software-WebGL CI runners.
+  await page.evaluate(() => window.__museum?.stop());
   await enter.click();
   await expect(intro).toHaveCount(0);
   const state = await page.evaluate(() => ({

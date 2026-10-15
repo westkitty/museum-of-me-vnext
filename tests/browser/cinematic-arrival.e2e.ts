@@ -12,6 +12,10 @@ test('first visitor title uses the accessible dialog, real prewarm and live scen
   }));
   expect(state).toEqual({ dwell: 4000, zone: 'plaza' });
   await expect(title).toBeEnabled({ timeout: 20_000 });
+  // The real scene has already initialized and prewarmed. Stop only the render
+  // loop during post-entry DOM/state assertions so software-WebGL frames cannot
+  // starve Playwright's page.evaluate after the introduction closes.
+  await page.evaluate(() => window.__museum?.stop());
   await title.click();
   await expect(intro).toHaveCount(0);
   const entered = await page.evaluate(() => ({
