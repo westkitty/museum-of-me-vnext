@@ -79,7 +79,7 @@ export function mountCinematicArrival(app: App): void {
     enter.focus({ preventScroll: true });
   };
   app.setArrivalUpdate(check);
-  const finish = (event?: Event) => {
+  const finish = () => {
     if (entered || enter.disabled || !app.enterArrival()) return;
     entered = true;
     app.setArrivalUpdate(null);
@@ -89,16 +89,15 @@ export function mountCinematicArrival(app: App): void {
     app.input.uiCaptured = false;
     app.player.setFrozen(false);
     previousFocus?.focus({ preventScroll: true });
-    // The same trusted mouse click should enter first-person look, rather
-    // than making visitors click a second time. Keyboard entry deliberately
-    // retains free focus; touch never attempts desktop pointer lock.
+    // The Enter button grants access; it does not secretly capture the mouse.
+    // Explicit mouse-look opt-in remains in the persistent HUD. Requesting
+    // pointer lock during dialog dismissal caused browser-driver stalls on
+    // the clean Linux CI runner even though standalone behavior was healthy.
     if (window.matchMedia?.('(pointer: coarse)').matches) {
       // UILayer derives the HUD touch presentation from InputManager each
-      // frame. Set that owner state, or the next frame reopens mouse controls.
+      // frame. Set the owner state or mouse controls reappear next frame.
       app.input.touchActive = true;
       app.ui.hud.setTouchMode(true);
-    } else if (event instanceof MouseEvent && event.detail > 0) {
-      app.input.requestPointerLock();
     }
   };
   enter.addEventListener('click', finish, { once: true });

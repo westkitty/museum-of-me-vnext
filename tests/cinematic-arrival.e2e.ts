@@ -19,9 +19,9 @@ test('visitor enters the real museum through the cinematic arrival', async ({ pa
     .every((id) => document.getElementById(id)?.inert === false))).toBe(true);
 });
 
-test('mouse arrival requests pointer look in the entry click and retains a recovery control', async ({ page }) => {
-  // Instrument the real browser API without substituting a successful result.
-  // Headless environments can deny a valid lock request; the fallback must work.
+test('desktop entry never captures mouse implicitly; mouse-look remains a separate choice', async ({ page }) => {
+  // Observe the native API call without replacing its behavior. Initial entry
+  // must not request capture; otherwise software-WebGL CI can stall input.
   await page.addInitScript(() => {
     const stats = window as typeof window & { __pointerRequests?: number };
     stats.__pointerRequests = 0;
@@ -39,17 +39,16 @@ test('mouse arrival requests pointer look in the entry click and retains a recov
   await expect(enter).toBeEnabled({ timeout: 20_000 });
   await enter.click();
   await expect(intro).toHaveCount(0);
-  const result = await page.evaluate(() => ({
-    coarse: window.matchMedia('(pointer: coarse)').matches,
-    attempted: (window as typeof window & { __pointerRequests?: number }).__pointerRequests,
-    locked: document.pointerLockElement?.id === 'museum-canvas',
-    fallback: !(document.querySelector<HTMLButtonElement>('.hud__resume-look')?.hidden ?? true),
-  }));
-  expect(result.coarse).toBe(false);
-  expect(result.attempted).toBe(1);
-  expect(result.locked || result.fallback).toBe(true);
-  if (result.locked) await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: 'Resume mouse look' })).toBeVisible();
+  expect(await page.evaluate(() => ({
+    coarse: window.matchMedia('(pointer: coarse)').matches,
+    attempts: (window as typeof window & { __pointerRequests?: number }).__pointerRequests,
+    locked: Boolean(document.pointerLockElement),
+    captured: window.__museum?.input.uiCaptured,
+  }))).toEqual({ coarse: false, attempts: 0, locked: false, captured: false });
+  await page.keyboard.down('w');
+  expect(await page.evaluate(() => window.__museum?.input.isDown('forward'))).toBe(true);
+  await page.keyboard.up('w');
 });
 
 test('coarse-pointer arrival exposes touch instructions without mouse-only recovery chrome', async ({ browser }) => {
