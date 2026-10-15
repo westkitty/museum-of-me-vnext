@@ -45,6 +45,9 @@ const CELL = 12;
 export class CollisionWorld {
   private readonly colliders: Collider[] = [];
   private readonly grid = new Map<string, number[]>();
+  private readonly nearby: Collider[] = [];
+  private seen = new Uint32Array(1024);
+  private visitStamp = 0;
 
   static key(x: number, z: number): string {
     return `${Math.floor(x / CELL)},${Math.floor(z / CELL)}`;
@@ -83,19 +86,33 @@ export class CollisionWorld {
   clear(): void {
     this.colliders.length = 0;
     this.grid.clear();
+    this.nearby.length = 0;
+    this.seen.fill(0);
+    this.visitStamp = 0;
   }
 
   /** Colliders whose cells overlap the square of `radius` around (x, z). */
   private near(x: number, z: number, radius: number): Collider[] {
-    const out: Collider[] = [];
-    const seen = new Set<number>();
+    // Every caller consumes this synchronously; none nests another near() call.
+    const out = this.nearby;
+    out.length = 0;
+    if (this.seen.length < this.colliders.length) {
+      const grown = new Uint32Array(Math.max(this.colliders.length, this.seen.length * 2));
+      grown.set(this.seen);
+      this.seen = grown;
+    }
+    this.visitStamp = (this.visitStamp + 1) >>> 0;
+    if (this.visitStamp === 0) {
+      this.seen.fill(0);
+      this.visitStamp = 1;
+    }
     for (let cx = Math.floor((x - radius) / CELL); cx <= Math.floor((x + radius) / CELL); cx++) {
       for (let cz = Math.floor((z - radius) / CELL); cz <= Math.floor((z + radius) / CELL); cz++) {
         const bucket = this.grid.get(`${cx},${cz}`);
         if (!bucket) continue;
         for (const i of bucket) {
-          if (seen.has(i)) continue;
-          seen.add(i);
+          if (this.seen[i] === this.visitStamp) continue;
+          this.seen[i] = this.visitStamp;
           out.push(this.colliders[i]);
         }
       }

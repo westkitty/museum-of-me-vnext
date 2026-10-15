@@ -26,6 +26,8 @@ export class InteractionManager {
   private readonly raycaster = new THREE.Raycaster();
   private readonly raycastObjects: THREE.Object3D[] = [];
   private readonly raycastHits: THREE.Intersection[] = [];
+  private readonly worldCentre = new THREE.Vector3();
+  private readonly worldScale = new THREE.Vector3();
   private raycastElapsed = INTERACTION_SAMPLE_INTERVAL;
   private controlsDirty = true;
   private focused: RegisteredControl | null = null;
@@ -94,7 +96,7 @@ export class InteractionManager {
 
     this.raycastObjects.length = 0;
     for (const object of this.controls.keys()) {
-      if (isVisible(object)) this.raycastObjects.push(object);
+      if (isVisible(object) && this.withinConservativeReach(object)) this.raycastObjects.push(object);
     }
     if (this.raycastObjects.length === 0) {
       this.setFocus(null);
@@ -127,6 +129,24 @@ export class InteractionManager {
   /** Pointer motion while interact is held, for drag-style controls. */
   drag(dx: number, dy: number): void {
     this.focused?.drag?.(dx, dy);
+  }
+
+  private withinConservativeReach(object: THREE.Object3D): boolean {
+    const mesh = object as THREE.Mesh;
+    // Group targets can own arbitrarily large descendant controls: preserve
+    // them until a group-specific spatial contract is available.
+    if (!mesh.isMesh) return true;
+    const geometry = mesh.geometry;
+    if (!geometry) return true;
+    if (!geometry.boundingSphere) geometry.computeBoundingSphere();
+    const bound = geometry.boundingSphere;
+    if (!bound) return true;
+    object.updateWorldMatrix(true, false);
+    this.worldCentre.copy(bound.center).applyMatrix4(object.matrixWorld);
+    object.getWorldScale(this.worldScale);
+    const radius = bound.radius * Math.max(this.worldScale.x, this.worldScale.y, this.worldScale.z);
+    return this.worldCentre.distanceToSquared(this.raycaster.ray.origin)
+      <= (radius + this.reach + 1.5) ** 2;
   }
 
   get controlCount(): number {

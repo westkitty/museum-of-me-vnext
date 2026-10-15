@@ -10,12 +10,24 @@ import type { Journal } from '../state/Journal';
  * Fifteen shallow finished wall cases from the Reliquary supplementary contract.
  * They sit on rotunda interior faces so they do not occupy exhibit bays.
  */
+interface SupplementaryTexture {
+  readonly pos: Vec3;
+  readonly title: string;
+  readonly stage: string;
+  readonly summary: string;
+  readonly preview: THREE.Texture;
+  readonly material: THREE.MeshStandardMaterial;
+  full: THREE.Texture | null;
+}
+
 export class SupplementaryCases {
   readonly group = new THREE.Group();
   private readonly unbind: (() => void)[] = [];
+  private readonly readableTextures: SupplementaryTexture[] = [];
+  private textureElapsed = 0;
 
   constructor(
-    scope: ResourceScope,
+    private readonly scope: ResourceScope,
     interaction: InteractionManager,
     journal: Journal,
     onOpen: (id: string, title: string, summary: string) => void,
@@ -55,6 +67,48 @@ export class SupplementaryCases {
     return SOURCE_SUPPLEMENTARY.length;
   }
 
+  get highResolutionResidentCount(): number {
+    return this.readableTextures.filter((entry) => entry.full !== null).length;
+  }
+
+  /** Keep at most two near-field 1024x640 canvases resident at a time. */
+  update(viewerX: number, viewerZ: number, dt: number): void {
+    this.textureElapsed += dt;
+    if (this.textureElapsed < 0.2 || !canRenderText()) return;
+    this.textureElapsed = 0;
+
+    const wanted = this.readableTextures
+      .map((entry, index) => ({
+        index,
+        distanceSq: (entry.pos[0] - viewerX) ** 2 + (entry.pos[2] - viewerZ) ** 2,
+      }))
+      .filter((item) => item.distanceSq < 12 * 12)
+      .sort((a, b) => a.distanceSq - b.distanceSq)
+      .slice(0, 2);
+    let upgraded = false;
+    for (let index = 0; index < this.readableTextures.length; index++) {
+      const entry = this.readableTextures[index];
+      const near = wanted.some((item) => item.index === index);
+      if (near && !entry.full && !upgraded) {
+        upgraded = true;
+        const full = createTextTexture(this.scope, [entry.stage, entry.summary], {
+          width: 1024, height: 640, background: '#1c1914', color: '#e8e1d2',
+          title: entry.title, titleColor: '#d4bd7a', titleSize: 48,
+          bodySize: 26, padding: 48,
+        });
+        entry.full = full;
+        entry.material.map = full;
+        entry.material.needsUpdate = true;
+      } else if (!near && entry.full) {
+        entry.material.map = entry.preview;
+        entry.material.needsUpdate = true;
+        entry.full.dispose();
+        this.scope.untrack(entry.full);
+        entry.full = null;
+      }
+    }
+  }
+
   private buildCase(
     scope: ResourceScope,
     title: string,
@@ -80,20 +134,31 @@ export class SupplementaryCases {
     trim.position.z = -0.03;
     const map = canRenderText()
       ? createTextTexture(scope, [stage, summary], {
-          width: 1024, height: 640, background: '#1c1914', color: '#e8e1d2',
-          title, titleColor: '#d4bd7a', titleSize: 48, bodySize: 26, padding: 48,
+          width: 384, height: 240, background: '#1c1914', color: '#e8e1d2',
+          title, titleColor: '#d4bd7a', titleSize: 18, bodySize: 10, padding: 18,
         })
       : createFallbackTexture(scope, 0x1c1914);
+    const material = scope.track(new THREE.MeshStandardMaterial({ map, roughness: 0.9 }));
     const plate = new THREE.Mesh(
       scope.track(new THREE.PlaneGeometry(1.42, 1.02)),
-      scope.track(new THREE.MeshStandardMaterial({ map, roughness: 0.9 })),
+      material,
     );
+    plate.name = 'supplementary-plate';
     plate.position.z = 0.05;
+    this.readableTextures.push({ pos, title, stage, summary, preview: map, material, full: null });
     g.add(trim, backing, plate);
     return g;
   }
 
   dispose(): void {
+    for (const entry of this.readableTextures) {
+      if (entry.full) {
+        entry.full.dispose();
+        this.scope.untrack(entry.full);
+        entry.full = null;
+      }
+    }
+    this.readableTextures.length = 0;
     for (const fn of this.unbind) fn();
     this.group.removeFromParent();
   }

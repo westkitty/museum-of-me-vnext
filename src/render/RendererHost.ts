@@ -13,11 +13,15 @@ export class RendererHost {
   readonly canvas: HTMLCanvasElement;
 
   private settings: QualitySettings;
+  private resolutionScale = 1;
   private contextLost = false;
   private disposed = false;
   private environmentWarmupStarted = false;
   private environmentWarmupPromise: Promise<void> | null = null;
   private environmentTarget: THREE.WebGLRenderTarget | null = null;
+  readonly warmTelemetry = {
+    objects: 0, textures: 0, lastTextureInitCpuMs: 0, lastCompileWallMs: 0,
+  };
   private readonly onResize = () => this.resize();
   private readonly onContextLost = (e: Event) => {
     e.preventDefault();
@@ -73,8 +77,21 @@ export class RendererHost {
 
   setQuality(tier: QualityTier): void {
     this.settings = QUALITY[tier];
+    this.resolutionScale = 1;
     this.applyShadowSettings();
     this.resize();
+  }
+
+  /** Pixel budget can change without changing simulation, geometry or assets. */
+  setResolutionScale(scale: number): void {
+    const next = Math.max(0.75, Math.min(1, Number.isFinite(scale) ? scale : 1));
+    if (Math.abs(next - this.resolutionScale) < 0.025) return;
+    this.resolutionScale = next;
+    this.resize();
+  }
+
+  get effectivePixelRatio(): number {
+    return Math.min(window.devicePixelRatio || 1, this.settings.maxPixelRatio) * this.resolutionScale;
   }
 
   private applyShadowSettings(): void {
@@ -156,8 +173,14 @@ export class RendererHost {
       }
     });
 
+    const textureStart = performance.now();
     for (const texture of textures) this.renderer.initTexture(texture);
+    this.warmTelemetry.lastTextureInitCpuMs = performance.now() - textureStart;
+    const compileStart = performance.now();
     await this.renderer.compileAsync(root, this.camera, this.scene);
+    this.warmTelemetry.lastCompileWallMs = performance.now() - compileStart;
+    this.warmTelemetry.textures += textures.size;
+    this.warmTelemetry.objects += 1;
   }
 
   resize(): void {
@@ -166,8 +189,7 @@ export class RendererHost {
     // size instead of rendering into nothing.
     const w = Math.max(1, window.innerWidth || this.canvas.clientWidth || 1);
     const h = Math.max(1, window.innerHeight || this.canvas.clientHeight || 1);
-    const dpr = Math.min(window.devicePixelRatio || 1, this.settings.maxPixelRatio);
-    this.renderer.setPixelRatio(dpr);
+    this.renderer.setPixelRatio(this.effectivePixelRatio);
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();

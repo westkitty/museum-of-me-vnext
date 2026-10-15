@@ -17,6 +17,8 @@ export interface LoopCallbacks {
   variableUpdate(dt: number): void;
   /** Interpolation factor 0..1 between the last two fixed states, then draw. */
   render(alpha: number): void;
+  /** Invoked after a real presented frame; never creates a second frame loop. */
+  afterFrame?(wallMs: number, fixedMs: number, variableMs: number, renderCpuMs: number, fixedSteps: number): void;
 }
 
 export const FIXED_STEP = 1 / 60;
@@ -33,12 +35,15 @@ export class Loop {
   /** Optional render-rate cap in Hz. Simulation still uses the fixed step. */
   private frameCapHz = 0;
   private lastRenderTime = Number.NEGATIVE_INFINITY;
+  private lastPresentTime = Number.NEGATIVE_INFINITY;
 
   private frameCount = 0;
   private fpsWindowStart = 0;
   private measuredFps = 0;
   /** Last wall-clock frame duration, exposed for the existing diagnostics path. */
   frameTimeMs = 0;
+  /** Unclamped elapsed time between presented browser callbacks, including real stalls. */
+  wallFrameTimeMs = 0;
 
   constructor(private readonly cb: LoopCallbacks) {}
 
@@ -65,6 +70,8 @@ export class Loop {
     // that a fresh, much shorter window after restart divides by -- the FPS
     // reading briefly spikes to a bogus, inflated value.
     this.frameCount = 0;
+    this.lastRenderTime = Number.NEGATIVE_INFINITY;
+    this.lastPresentTime = Number.NEGATIVE_INFINITY;
     this.rafId = requestAnimationFrame(this.tick);
   }
 
@@ -81,9 +88,11 @@ export class Loop {
     let delta = (now - this.lastTime) / 1000;
     this.lastTime = now;
     if (!Number.isFinite(delta) || delta < 0) delta = 0;
+    this.wallFrameTimeMs = delta * 1000;
     if (delta > MAX_FRAME_DELTA) delta = MAX_FRAME_DELTA;
     this.frameTimeMs = delta * 1000;
 
+    const fixedStarted = performance.now();
     this.accumulator += delta;
     let steps = 0;
     while (this.accumulator >= FIXED_STEP && steps < MAX_STEPS_PER_FRAME) {
@@ -92,13 +101,22 @@ export class Loop {
       steps++;
     }
     if (steps === MAX_STEPS_PER_FRAME) this.accumulator = 0;
+    const fixedMs = performance.now() - fixedStarted;
 
+    const variableStarted = performance.now();
     this.cb.variableUpdate(delta);
+    const variableMs = performance.now() - variableStarted;
     if (this.frameCapHz > 0 && now - this.lastRenderTime < 1000 / this.frameCapHz) {
       return;
     }
     this.lastRenderTime = now;
+    const presentedMs = this.lastPresentTime === Number.NEGATIVE_INFINITY
+      ? this.wallFrameTimeMs : now - this.lastPresentTime;
+    this.lastPresentTime = now;
+    const renderStarted = performance.now();
     this.cb.render(this.accumulator / FIXED_STEP);
+    const renderCpuMs = performance.now() - renderStarted;
+    this.cb.afterFrame?.(presentedMs, fixedMs, variableMs, renderCpuMs, steps);
 
     this.frameCount++;
     if (now - this.fpsWindowStart >= 500) {

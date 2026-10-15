@@ -25,15 +25,21 @@ if (!canvas || !uiRoot || !a11yRoot) {
 
 let app: App;
 let placements: MuseumPlacements;
+const bootstrapStarted = performance.now();
+let coreBootMs = 0;
+let environmentBootMs = 0;
 try {
   app = new App({ canvas, uiRoot, a11yRoot });
+  coreBootMs = performance.now() - bootstrapStarted;
 
   // All always-resident polish lives behind one measurable lifecycle boundary.
   // It shares the application ResourceScope and never owns collision, loops or
   // exhibit lifecycle resources.
   const environmentBuilder = new PersistentEnvironment(app.scope);
   const environment = environmentBuilder.build();
+  environmentBootMs = performance.now() - bootstrapStarted - coreBootMs;
   app.scene.add(environment);
+  app.setEnvironmentVisibility((zone, deep, wings) => environmentBuilder.updateVisibility(zone, deep, wings));
 
   const sceneRegistry = new AuthorableSceneRegistry([
     ...app.arrivalGarden.authorableSceneRoots(),
@@ -55,6 +61,15 @@ try {
 // Expose the constructed app before starting the continuous render loop. Browser
 // proofs can now observe and stop the real runtime at its first stable boundary.
 window.__museum = app;
+// Expose startup phase timings in opt-in QA only, never as inferred GPU time.
+if (new URLSearchParams(window.location.search).has('qa')) {
+  console.info('[Museum boot]', JSON.stringify({
+    coreMs: Math.round(coreBootMs),
+    environmentMs: Math.round(environmentBootMs),
+    finishingMs: Math.round(performance.now() - bootstrapStarted - coreBootMs - environmentBootMs),
+    totalMs: Math.round(performance.now() - bootstrapStarted),
+  }));
+}
 app.start();
 mountCinematicArrival(app);
 

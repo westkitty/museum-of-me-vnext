@@ -8,6 +8,10 @@ export interface FrameStats {
   geometries: number;
   textures: number;
   frameTimeMs: number;
+  fixedCpuMs: number;
+  variableCpuMs: number;
+  renderCpuMs: number;
+  fixedSteps: number;
   activeExhibits: number;
   streamingResident: number;
   playerPosition: [number, number, number];
@@ -27,13 +31,18 @@ export class Diagnostics {
     geometries: 0,
     textures: 0,
     frameTimeMs: 0,
+    fixedCpuMs: 0,
+    variableCpuMs: 0,
+    renderCpuMs: 0,
+    fixedSteps: 0,
     activeExhibits: 0,
     streamingResident: 0,
     playerPosition: [0, 0, 0],
     wing: '—',
   };
 
-  private static readonly HISTORY_SIZE = 240;
+  /** A full minute of frame pacing at 60Hz, not the old 10Hz HUD snapshots. */
+  private static readonly HISTORY_SIZE = 3600;
   private readonly fpsHistory = new Float64Array(Diagnostics.HISTORY_SIZE);
   private readonly frameTimeHistory = new Float64Array(Diagnostics.HISTORY_SIZE);
   private historyCount = 0;
@@ -49,14 +58,46 @@ export class Diagnostics {
     this.stats.programs = info.programs?.length ?? 0;
     this.stats.geometries = info.memory.geometries;
     this.stats.textures = info.memory.textures;
+    // Renderer state is sampled at a relaxed cadence; frame pacing is not.
     this.stats.frameTimeMs = frameTimeMs;
+  }
 
-    this.fpsHistory[this.historyCursor] = fps;
-    this.frameTimeHistory[this.historyCursor] = frameTimeMs;
+  /** Capture every presented frame, independently from the 100ms simulation clamp. */
+  recordFrame(wallMs: number, fixedMs = 0, variableMs = 0, renderCpuMs = 0, fixedSteps = 0): void {
+    if (!Number.isFinite(wallMs) || wallMs <= 0) return;
+    this.stats.frameTimeMs = wallMs;
+    this.stats.fixedCpuMs = fixedMs;
+    this.stats.variableCpuMs = variableMs;
+    this.stats.renderCpuMs = renderCpuMs;
+    this.stats.fixedSteps = fixedSteps;
+    this.fpsHistory[this.historyCursor] = 1000 / wallMs;
+    this.frameTimeHistory[this.historyCursor] = wallMs;
     this.historyCursor = (this.historyCursor + 1) % Diagnostics.HISTORY_SIZE;
     this.historyCount = Math.min(Diagnostics.HISTORY_SIZE, this.historyCount + 1);
     this.sortedFps = null;
     this.sortedFrameTimes = null;
+  }
+
+  get frameCount(): number { return this.historyCount; }
+
+  /** Snapshot contains exactly measured fields; CPU render duration is not GPU time. */
+  get performanceSummary() {
+    return {
+      samples: this.historyCount,
+      p50Ms: this.frameTimeP50,
+      p95Ms: this.frameTimeP95,
+      p99Ms: this.frameTimeP99,
+      low1Fps: this.fpsLow1,
+      lastFixedCpuMs: this.stats.fixedCpuMs,
+      lastVariableCpuMs: this.stats.variableCpuMs,
+      lastRenderCpuMs: this.stats.renderCpuMs,
+      lastFixedSteps: this.stats.fixedSteps,
+      draws: this.stats.drawCalls,
+      triangles: this.stats.triangles,
+      textures: this.stats.textures,
+      geometries: this.stats.geometries,
+      zone: this.stats.wing,
+    };
   }
 
   /** 1st-percentile FPS over the recent window — the number that reflects hitching. */

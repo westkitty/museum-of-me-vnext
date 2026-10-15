@@ -350,6 +350,15 @@ export class ArrivalGarden {
 
   /** Called from the existing variable-step loop. Reduced motion keeps the
    * water still; this visual-only animation never owns a frame loop. */
+  /** Low tier draws opaque distant water, eliminating transparent overdraw. */
+  setWaterQuality(tier: 'low' | 'medium' | 'high'): void {
+    const transparent = tier !== 'low';
+    if (this.water.transparent === transparent) return;
+    this.water.transparent = transparent;
+    this.water.depthWrite = !transparent;
+    this.water.needsUpdate = true;
+  }
+
   update(dt: number, reducedMotion: boolean): void {
     if (!reducedMotion) this.waterTime.value += Math.min(dt, 0.1);
   }

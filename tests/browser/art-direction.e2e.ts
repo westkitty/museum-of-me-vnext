@@ -25,7 +25,7 @@ test('the real playable museum renders shared gallery finishes and transitions a
       }
     });
 
-    const relief = app.renderer.scene.getObjectByName('gallery-relief-accents') as { count?: number; isInstancedMesh?: boolean } | undefined;
+    const relief = app.renderer.scene.getObjectByName('gallery-relief-accents') as { count?: number; instanceMatrix?: { count?: number }; isInstancedMesh?: boolean } | undefined;
     const positions: Array<{ zone: string; fogNear: number; fogFar: number; exposure: number }> = [];
     for (const zone of ['plaza', 'rotunda', 'north', 'east', 'south', 'west', 'media', 'infra', 'sanctuary'] as const) {
       app.atmosphere.update(zone, 1 / 60, true);
@@ -41,7 +41,8 @@ test('the real playable museum renders shared gallery finishes and transitions a
     const blindSeals = ['ne', 'se', 'sw']
       .every((face) => Boolean(app.renderer.scene.getObjectByName(`rotunda-archive-seal:${face}`)));
     const result = {
-      mineralMeshes, textureCount: textures.size, reliefInstances: relief?.count ?? 0,
+      mineralMeshes, textureCount: textures.size,
+      reliefInstances: relief?.count ?? 0, reliefCapacity: relief?.instanceMatrix?.count ?? 0,
       allRunners, blindSeals,
       drawCalls: app.renderer.renderer.info.render.calls,
       triangles: app.renderer.renderer.info.render.triangles,
@@ -84,7 +85,12 @@ test('the real playable museum renders shared gallery finishes and transitions a
   expect(state.mineralMeshes).toBeGreaterThan(30);
   expect(state.textureCount).toBe(1);
   expect(state.instanced).toBe(true);
-  expect(state.reliefInstances).toBe(140);
+  // Full 140-location data remains resident, but viewport/portal culling
+  // submits only the relevant subset. This preserves the source art without
+  // forcing unseen accent instances through every visitor frame.
+  expect(state.reliefCapacity).toBe(140);
+  expect(state.reliefInstances).toBeGreaterThan(0);
+  expect(state.reliefInstances).toBeLessThanOrEqual(state.reliefCapacity);
   expect(state.allRunners).toBe(true);
   expect(state.blindSeals).toBe(true);
   expect(state.drawCalls).toBeGreaterThan(0);

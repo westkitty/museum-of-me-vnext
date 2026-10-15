@@ -8,6 +8,8 @@ const RELEVANT_WINGS_BY_ZONE = new Map<ZoneId, ReadonlySet<string>>(
   [...ZONE_BY_ID].map(([id, zone]) => [id, new Set<string>([id, ...zone.neighbours])]),
 );
 const NO_RELEVANT_WINGS: ReadonlySet<string> = new Set();
+/** CPU construction census exceeded 16ms for these three; prefetch earlier. */
+const HEAVY_PRELOAD_IDS: ReadonlySet<string> = new Set(['E01', 'E02', 'E04']);
 
 /** Arrival order from the plaza: outer south pair first, then the next pair inward. */
 export const ENTRANCE_PREWARM_IDS = ['E32', 'E33', 'E30', 'E31'] as const;
@@ -119,6 +121,12 @@ export class StreamingManager {
     prewarmReady: false,
   };
 
+  private idleMountHandle: number | null = null;
+  private idleWarmHandle: number | null = null;
+  private backgroundPaused = false;
+  private disposed = false;
+  private readonly latestEye: [number, number, number] = [0, 0, 0];
+  private latestZone: ZoneId = 'plaza';
   private readonly mountQueue: string[] = [];
   private mountQueueHead = 0;
   private readonly priorityMountQueue: string[] = [];
@@ -150,10 +158,10 @@ export class StreamingManager {
     activationQueueMs: number;
   }>();
 
-  private readonly loadRadiusSq: number;
-  private readonly unloadRadiusSq: number;
-  private readonly activateRadiusSq: number;
-  private readonly deactivateRadiusSq: number;
+  private loadRadiusSq: number;
+  private unloadRadiusSq: number;
+  private activateRadiusSq: number;
+  private deactivateRadiusSq: number;
   /** Changes only when an exhibit crosses the mounted/unmounted residency boundary. */
   residencyRevision = 0;
   private now = 0;
@@ -166,6 +174,37 @@ export class StreamingManager {
     this.loadRadiusSq = budget.loadRadius * budget.loadRadius;
     this.unloadRadiusSq = budget.unloadRadius * budget.unloadRadius;
     this.activateRadiusSq = budget.activateRadius * budget.activateRadius;
+    this.deactivateRadiusSq = this.activateRadiusSq * 1.25 * 1.25;
+  }
+
+  /** Stop costly idle mounts/shader work while an embedded 3D experience owns the GPU. */
+  get isBackgroundPaused(): boolean { return this.backgroundPaused; }
+
+  setBackgroundPaused(paused: boolean): void {
+    if (this.disposed || this.backgroundPaused === paused) return;
+    this.backgroundPaused = paused;
+    if (!paused || typeof window === 'undefined' || typeof window.cancelIdleCallback !== 'function') return;
+    if (this.idleMountHandle !== null) {
+      window.cancelIdleCallback(this.idleMountHandle);
+      this.idleMountHandle = null;
+    }
+    if (this.idleWarmHandle !== null) {
+      window.cancelIdleCallback(this.idleWarmHandle);
+      this.idleWarmHandle = null;
+    }
+  }
+
+  /** A live quality change must reconfigure residency without recreating hosts. */
+  setRadii(loadRadius: number, unloadRadius: number, activateRadius: number): void {
+    if (!(loadRadius > activateRadius && unloadRadius > loadRadius && activateRadius > 0)) {
+      throw new RangeError('Invalid exhibit streaming radii');
+    }
+    this.budget.loadRadius = loadRadius;
+    this.budget.unloadRadius = unloadRadius;
+    this.budget.activateRadius = activateRadius;
+    this.loadRadiusSq = loadRadius * loadRadius;
+    this.unloadRadiusSq = unloadRadius * unloadRadius;
+    this.activateRadiusSq = activateRadius * activateRadius;
     this.deactivateRadiusSq = this.activateRadiusSq * 1.25 * 1.25;
   }
 
@@ -366,6 +405,10 @@ export class StreamingManager {
    * CPU construction, GPU warmup and activation are independently bounded.
    */
   evaluate(eye: Vec3, dt: number, zone: ZoneId): void {
+    this.latestEye[0] = eye[0];
+    this.latestEye[1] = eye[1];
+    this.latestEye[2] = eye[2];
+    this.latestZone = zone;
     this.now += dt;
     const relevantWings = RELEVANT_WINGS_BY_ZONE.get(zone) ?? NO_RELEVANT_WINGS;
     this.activationCandidates.length = 0;
@@ -377,7 +420,8 @@ export class StreamingManager {
       const inOwnWing = zone === host.record.wing;
       const prewarmHold = this.isPrewarmHold(id, zone);
 
-      if (inRelevantZone && distanceSq <= this.loadRadiusSq) {
+      if (inRelevantZone && (distanceSq <= this.loadRadiusSq
+        || (HEAVY_PRELOAD_IDS.has(id) && distanceSq <= this.unloadRadiusSq))) {
         if (state === 'unloaded') {
           this.requestPreload(id, this.prewarmTargets.has(id));
         } else if (state === 'loaded') {
@@ -406,7 +450,8 @@ export class StreamingManager {
       if (
         host.currentState === 'mounted'
         && !host.isGpuWarm
-        && (prewarmHold || (inRelevantZone && distanceSq <= this.loadRadiusSq))
+        && (prewarmHold || (inRelevantZone && (distanceSq <= this.loadRadiusSq
+          || (HEAVY_PRELOAD_IDS.has(id) && distanceSq <= this.unloadRadiusSq))))
       ) {
         // Also acts as the retry path if a previous asynchronous warm failed.
         this.enqueueWarm(id, this.prewarmTargets.has(id));
@@ -444,6 +489,30 @@ export class StreamingManager {
   }
 
   private drainMountQueue(
+    eye: Vec3,
+    zone: ZoneId,
+    relevantWings: ReadonlySet<string>,
+  ): void {
+    if (this.backgroundPaused || this.disposed || this.queued.size === 0) return;
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+      if (this.idleMountHandle !== null) return;
+      // A mount may not be preemptible, but it can at least begin after the
+      // browser declares idle headroom, rather than inside the rAF callback.
+      this.idleMountHandle = window.requestIdleCallback((deadline) => {
+        this.idleMountHandle = null;
+        if (this.disposed || this.backgroundPaused) return;
+        if (!deadline.didTimeout && deadline.timeRemaining() < 5) return;
+        this.drainMountQueueImmediate(
+          this.latestEye, this.latestZone,
+          RELEVANT_WINGS_BY_ZONE.get(this.latestZone) ?? NO_RELEVANT_WINGS,
+        );
+      }, { timeout: 350 });
+      return;
+    }
+    this.drainMountQueueImmediate(eye, zone, relevantWings);
+  }
+
+  private drainMountQueueImmediate(
     eye: Vec3,
     zone: ZoneId,
     relevantWings: ReadonlySet<string>,
@@ -487,6 +556,22 @@ export class StreamingManager {
   }
 
   private drainWarmQueue(): void {
+    if (this.backgroundPaused || this.disposed || this.warmQueued.size === 0) return;
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+      if (this.idleWarmHandle !== null || this.warming.size > 0) return;
+      this.idleWarmHandle = window.requestIdleCallback((deadline) => {
+        this.idleWarmHandle = null;
+        if (this.disposed || this.backgroundPaused) return;
+        if (!deadline.didTimeout && deadline.timeRemaining() < 3) return;
+        this.drainWarmQueueImmediate();
+      }, { timeout: 350 });
+      return;
+    }
+    this.drainWarmQueueImmediate();
+  }
+
+  private drainWarmQueueImmediate(): void {
+    if (this.backgroundPaused || this.disposed) return;
     const startsPerFrame = Math.max(1, this.budget.warmupsPerFrame ?? 1);
     // Parallel shader compilation is already asynchronous; serializing host
     // dispatch prevents four large exhibits from all submitting compile work at once.
@@ -638,6 +723,13 @@ export class StreamingManager {
   }
 
   dispose(): void {
+    this.disposed = true;
+    if (typeof window !== 'undefined' && typeof window.cancelIdleCallback === 'function') {
+      if (this.idleMountHandle !== null) window.cancelIdleCallback(this.idleMountHandle);
+      if (this.idleWarmHandle !== null) window.cancelIdleCallback(this.idleWarmHandle);
+      this.idleMountHandle = null;
+      this.idleWarmHandle = null;
+    }
     for (const h of this.hosts.values()) h.dispose();
     this.hosts.clear();
     this.mountQueue.length = 0;

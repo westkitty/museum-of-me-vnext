@@ -19,11 +19,15 @@ import type { ResourceScope } from '../assets/ResourceScope';
  */
 export class Filament {
   readonly group = new THREE.Group();
-  private readonly segments: THREE.Mesh[] = [];
+  /** One draw submission for all segments, including when the curve moves. */
+  readonly instances: THREE.InstancedMesh;
+  private readonly sampled: THREE.Vector3[];
   private readonly up = new THREE.Vector3(0, 1, 0);
   private readonly dir = new THREE.Vector3();
   private readonly mid = new THREE.Vector3();
   private readonly quat = new THREE.Quaternion();
+  private readonly scale = new THREE.Vector3(1, 1, 1);
+  private readonly matrix = new THREE.Matrix4();
 
   constructor(
     scope: ResourceScope,
@@ -31,36 +35,49 @@ export class Filament {
     radius: number,
     material: THREE.Material,
   ) {
-    // One unit-length cylinder, reused by every segment.
-    const geo = scope.track(new THREE.CylinderGeometry(radius, radius, 1, 6, 1, true));
-    for (let i = 0; i < count; i++) {
-      const seg = new THREE.Mesh(geo, material);
-      seg.matrixAutoUpdate = true;
-      this.segments.push(seg);
-      this.group.add(seg);
-    }
+    if (!Number.isInteger(count) || count < 1) throw new RangeError('Filament segment count must be positive');
+    // Shared geometry plus per-segment matrices: previously every segment was
+    // a separate Mesh and draw, even though its material/geometry were identical.
+    const geometry = scope.track(new THREE.CylinderGeometry(radius, radius, 1, 6, 1, true));
+    this.instances = scope.track(new THREE.InstancedMesh(geometry, material, count));
+    this.instances.name = 'filament-instanced-segments';
+    this.instances.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.sampled = Array.from({ length: count + 1 }, () => new THREE.Vector3());
+    this.group.add(this.instances);
+    // Complete initial matrices before any renderer can submit the object.
+    this.scale.set(0, 0, 0);
+    this.matrix.compose(this.mid.set(0, 0, 0), this.quat.identity(), this.scale);
+    for (let i = 0; i < count; i++) this.instances.setMatrixAt(i, this.matrix);
+    this.instances.instanceMatrix.needsUpdate = true;
   }
 
-  /** Lay the filament along a curve. Cheap enough to call every frame. */
+  /**
+   * Resample in-place without allocating Meshes or temporary sample arrays.
+   * Parametric sampling preserves the same cubic curve geometry while avoiding
+   * the 200+ integration evaluations required by getSpacedPoints per update.
+   */
   follow(curve: THREE.Curve<THREE.Vector3>): void {
-    const points = curve.getSpacedPoints(this.count);
+    for (let i = 0; i <= this.count; i++) curve.getPoint(i / this.count, this.sampled[i]);
     for (let i = 0; i < this.count; i++) {
-      const a = points[i];
-      const b = points[i + 1];
+      const a = this.sampled[i];
+      const b = this.sampled[i + 1];
       this.dir.subVectors(b, a);
       const length = this.dir.length();
       if (length < 1e-6) {
-        this.segments[i].visible = false;
-        continue;
+        this.scale.set(0, 0, 0);
+      } else {
+        this.mid.addVectors(a, b).multiplyScalar(0.5);
+        this.dir.multiplyScalar(1 / length);
+        this.quat.setFromUnitVectors(this.up, this.dir);
+        this.scale.set(1, length, 1);
       }
-      this.segments[i].visible = true;
-      this.mid.addVectors(a, b).multiplyScalar(0.5);
-      this.dir.normalize();
-      this.quat.setFromUnitVectors(this.up, this.dir);
-      this.segments[i].position.copy(this.mid);
-      this.segments[i].quaternion.copy(this.quat);
-      this.segments[i].scale.set(1, length, 1);
+      this.matrix.compose(this.mid, this.quat, this.scale);
+      this.instances.setMatrixAt(i, this.matrix);
     }
+    this.instances.instanceMatrix.needsUpdate = true;
+    // Static scene visibility stays effective even after animation moves the
+    // segments; we never rely on a bounding sphere from their initial zeros.
+    this.instances.computeBoundingSphere();
   }
 
   setVisible(visible: boolean): void {

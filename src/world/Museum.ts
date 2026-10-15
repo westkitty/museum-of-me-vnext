@@ -9,7 +9,7 @@ import {
   ROTUNDA_APOTHEM, ROTUNDA_WALL, LEVEL_1_Y, BALCONY_INNER_APOTHEM,
   DOME_SPRING_Y, DOME_APEX_Y, GROUND_Y,
   OCTAGON_FACES, faceDirection, rightOf, place, add, stairArcPoint,
-  WINGS, type WingSpec, type OctagonFace, type Vec3,
+  WINGS, type WingSpec, type OctagonFace, type Vec3, type ZoneId,
   SOUTH, VESTIBULE_FROM, VESTIBULE_TO, PLAZA_DEPTH, PLAZA_HALF_WIDTH,
   SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_FLOOR_Y,
   SANCTUARY_RAMP_HALF_WIDTH, SANCTUARY_RADIUS, SANCTUARY_HEIGHT, SANCTUARY_CENTER,
@@ -58,6 +58,8 @@ export class Museum {
   readonly collision = new CollisionWorld();
   readonly exhibitMounts = new Map<string, THREE.Group>();
   readonly zoneGroups = new Map<string, THREE.Group>();
+  /** Render-side visibility only: never changes collision or interaction state. */
+  readonly visibleWingIds = new Set<string>();
 
   private readonly kit: GeometryKit;
   private readonly pal: PaletteSet;
@@ -84,7 +86,7 @@ export class Museum {
     // Collapse the static architecture into one mesh per material. Collision
     // was already recorded during construction, so this changes only how the
     // building is drawn, never where its walls are.
-    const merge = mergeStatic(this.root, this.scope);
+    const merge = mergeStatic(this.root, this.scope, { preserveTopLevel: true, cellSize: 192 });
 
     return {
       root: this.root,
@@ -93,6 +95,73 @@ export class Museum {
       zoneGroups: this.zoneGroups,
       merge,
     };
+  }
+
+  /**
+   * Architectural zones are separate rendering roots after spatial merging.
+   * Deep inside one wing, solid corridor bends occlude distant wings. Keep all
+   * wing roots visible at the Rotunda, balcony and arrival where open sight
+   * lines matter; never touch collision or interactable source state.
+   */
+  updateVisibility(
+    zone: ZoneId,
+    eyeX: number,
+    eyeZ: number,
+    enabled = true,
+    yaw?: number,
+    fovDegrees = 75,
+  ): boolean {
+    // Keep sightlines through opposite axial halls. Culling applies to static
+    // wing artwork only, not visitor states, controls, collisions or wayfinding.
+    const deep = Math.hypot(eyeX, eyeZ) > 48;
+    const cull = enabled && (zone === 'plaza' || (deep && (
+      zone === 'north' || zone === 'east' || zone === 'south'
+      || zone === 'west' || zone === 'media' || zone === 'infra'
+      || zone === 'sanctuary'
+    )));
+    const opposite: Partial<Record<ZoneId, ZoneId>> = {
+      north: 'south', south: 'north', east: 'west', west: 'east',
+    };
+    const upper = zone === 'media' || zone === 'infra';
+    const canPortalCull = enabled && zone === 'rotunda' && Number.isFinite(yaw);
+    const facingX = canPortalCull ? Math.sin(yaw!) : 0;
+    const facingZ = canPortalCull ? -Math.cos(yaw!) : -1;
+    this.visibleWingIds.clear();
+    let anyPortalHidden = false;
+
+    for (const wing of WINGS) {
+      const group = this.zoneGroups.get(wing.id);
+      if (!group) continue;
+      let visible = !cull || wing.id === zone || wing.id === opposite[zone]
+        || (zone === 'plaza' && (wing.id === 'south' || wing.id === 'north'))
+        || (upper && wing.level === 1)
+        || (!upper && zone !== 'sanctuary' && zone !== 'plaza' && wing.level === 1);
+
+      if (visible && canPortalCull) {
+        // A gallery cannot appear through the rotunda wall when its actual
+        // doorway is beyond the camera's horizontal field of view. Expand
+        // that field by the doorway's real angular half-width plus margin,
+        // so even wide-FOV visitors never see an opening pop out of existence.
+        const dir = faceDirection(wing.face);
+        const portalX = dir[0] * 20 - eyeX;
+        const portalZ = dir[2] * 20 - eyeZ;
+        const distance = Math.max(1, Math.hypot(portalX, portalZ));
+        const portalHalfAngle = Math.atan2(wing.archWidth / 2 + 3, distance);
+        const visibleHalfAngle = Math.min(
+          Math.PI, fovDegrees * Math.PI / 360 + portalHalfAngle + 0.2,
+        );
+        const dot = (portalX * facingX + portalZ * facingZ) / distance;
+        if (dot < Math.cos(visibleHalfAngle)) {
+          visible = false;
+          anyPortalHidden = true;
+        }
+      }
+      group.visible = visible;
+      if (visible) this.visibleWingIds.add(wing.id);
+    }
+    // The Rotunda and Sanctuary roots themselves are always present; only
+    // portal-connected wing render roots can be culled.
+    return cull || anyPortalHidden;
   }
 
   private zoneGroup(id: string): THREE.Group {

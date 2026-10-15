@@ -11,90 +11,136 @@ export interface MergeReport {
 /** Marks an object and its subtree as never to be merged. */
 export const NO_MERGE = 'noMerge';
 
+export interface MergeOptions {
+  /** Width/depth of one cullable static batch in metres. */
+  readonly cellSize?: number;
+  /** Keep original zone-root ownership and visibility. */
+  readonly preserveTopLevel?: boolean;
+}
+
+interface Bucket {
+  parent: THREE.Object3D;
+  meshes: THREE.Mesh[];
+  geometries: THREE.BufferGeometry[];
+  key: string;
+}
+
 /**
- * Collapse static architecture into one mesh per material.
+ * Spatially bounded static geometry batching.
  *
- * The museum's detailing produces hundreds of small meshes — pilasters, jambs,
- * cornices, benches, signage frames — that never move and share a handful of
- * materials. Each one is a draw call, and profiling put the entrance at 986 of
- * them, which is the single largest runtime cost in the building.
+ * The old implementation merged every mesh with the same material into one
+ * world-scale buffer. That reduced submissions but could retain distant wings
+ * whenever any part of a giant bounding sphere entered the camera frustum.
+ * This partitions geometry into material + spatial cell + owning top-level
+ * museum zone, retaining per-wing visibility and ordinary frustum culling.
  *
- * Merging is safe here precisely because this geometry is static: it is built
- * once from `layout.ts` and never transformed again. Anything that does move,
- * and every exhibit mount, is excluded.
+ * Collision remains authored before this rendering-only pass.
  */
-export function mergeStatic(root: THREE.Object3D, scope: ResourceScope): MergeReport {
-  const byMaterial = new Map<THREE.Material, { geometries: THREE.BufferGeometry[]; meshes: THREE.Mesh[] }>();
+export function mergeStatic(root: THREE.Object3D, scope: ResourceScope, options: MergeOptions = {}): MergeReport {
+  const cellSize = options.cellSize ?? 192;
+  const heightSize = 24;
+  const byMaterial = new Map<THREE.Material, Map<string, Bucket>>();
+  const centre = new THREE.Vector3();
+  const bounds = new THREE.Box3();
   let before = 0;
+  root.updateWorldMatrix(true, true);
 
   root.traverse((node) => {
     const mesh = node as THREE.Mesh;
     if (!mesh.isMesh) return;
     before++;
-
-    // Skip anything explicitly excluded, anything under an exhibit mount, and
-    // anything with a material array (merging those needs group support).
     if (isExcluded(mesh)) return;
     const material = mesh.material;
     if (Array.isArray(material) || !material) return;
     if (!mesh.geometry || !mesh.geometry.getAttribute('position')) return;
-    // Instanced and skinned meshes are already batched or animated.
-    if ((mesh as unknown as { isInstancedMesh?: boolean }).isInstancedMesh) return;
-    if ((mesh as unknown as { isSkinnedMesh?: boolean }).isSkinnedMesh) return;
+    if ((mesh as THREE.InstancedMesh).isInstancedMesh) return;
+    if ((mesh as THREE.SkinnedMesh).isSkinnedMesh) return;
 
-    const entry = byMaterial.get(material) ?? { geometries: [], meshes: [] };
-    entry.meshes.push(mesh);
-    byMaterial.set(material, entry);
+    if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+    if (!mesh.geometry.boundingBox) return;
+    bounds.copy(mesh.geometry.boundingBox).applyMatrix4(mesh.matrixWorld);
+    // Keep enormous floors, sky pieces and monolithic structural spans intact;
+    // combining one with smaller pieces would produce an unhelpfully huge bound.
+    const spanX = bounds.max.x - bounds.min.x;
+    const spanY = bounds.max.y - bounds.min.y;
+    const spanZ = bounds.max.z - bounds.min.z;
+    if (spanX > cellSize * 1.5 || spanY > heightSize * 1.75 || spanZ > cellSize * 1.5) return;
+    bounds.getCenter(centre);
+
+    let parent: THREE.Object3D = root;
+    if (options.preserveTopLevel) {
+      let candidate: THREE.Object3D = mesh;
+      while (candidate.parent && candidate.parent !== root) candidate = candidate.parent;
+      if (candidate !== mesh && candidate.parent === root) parent = candidate;
+    }
+    const key = String(Math.floor(centre.x / cellSize))
+      + ':' + String(Math.floor(centre.y / heightSize))
+      + ':' + String(Math.floor(centre.z / cellSize))
+      + ':' + (options.preserveTopLevel ? parent.uuid : 'all');
+    let byCell = byMaterial.get(material);
+    if (!byCell) {
+      byCell = new Map();
+      byMaterial.set(material, byCell);
+    }
+    let bucket = byCell.get(key);
+    if (!bucket) {
+      bucket = { parent, meshes: [], geometries: [], key };
+      byCell.set(key, bucket);
+    }
+    bucket.meshes.push(mesh);
   });
 
   let merged = 0;
-  for (const [material, entry] of byMaterial) {
-    // A single mesh is already one draw call; merging it saves nothing.
-    if (entry.meshes.length < 2) continue;
+  for (const [material, cells] of byMaterial) {
+    for (const entry of cells.values()) {
+      if (entry.meshes.length < 2) continue;
 
-    for (const mesh of entry.meshes) {
-      mesh.updateWorldMatrix(true, false);
-      const geometry = mesh.geometry.clone();
-      geometry.applyMatrix4(mesh.matrixWorld);
-      // mergeGeometries requires identical attribute sets.
-      stripToCommon(geometry);
-      entry.geometries.push(geometry);
-    }
-
-    const indexedCount = entry.geometries.reduce((count, geometry) => count + (geometry.index ? 1 : 0), 0);
-    if (indexedCount > 0 && indexedCount < entry.geometries.length) {
-      for (let i = 0; i < entry.geometries.length; i++) {
-        const geometry = entry.geometries[i];
-        if (!geometry.index) continue;
-        const nonIndexed = geometry.toNonIndexed();
-        geometry.dispose();
-        entry.geometries[i] = nonIndexed;
+      for (const mesh of entry.meshes) {
+        mesh.updateWorldMatrix(true, false);
+        const geometry = mesh.geometry.clone();
+        geometry.applyMatrix4(mesh.matrixWorld);
+        stripToCommon(geometry);
+        entry.geometries.push(geometry);
       }
+
+      const indexedCount = entry.geometries.reduce((count, geometry) => count + (geometry.index ? 1 : 0), 0);
+      if (indexedCount > 0 && indexedCount < entry.geometries.length) {
+        for (let i = 0; i < entry.geometries.length; i++) {
+          const geometry = entry.geometries[i];
+          if (!geometry.index) continue;
+          const nonIndexed = geometry.toNonIndexed();
+          geometry.dispose();
+          entry.geometries[i] = nonIndexed;
+        }
+      }
+
+      const combined = mergeGeometries(entry.geometries, false);
+      for (const geometry of entry.geometries) geometry.dispose();
+      if (!combined) continue;
+
+      // Source geometry was converted to world-space before merging. Convert
+      // back into the owning group so Workshop-safe zone visibility is retained.
+      entry.parent.updateWorldMatrix(true, false);
+      const inverseParent = entry.parent.matrixWorld.clone().invert();
+      combined.applyMatrix4(inverseParent);
+      combined.computeBoundingSphere();
+
+      const mergedMesh = new THREE.Mesh(scope.track(combined), material);
+      mergedMesh.name = 'merged:' + material.uuid.slice(0, 8) + ':' + entry.key;
+      mergedMesh.userData.spatialBatch = true;
+      mergedMesh.matrixAutoUpdate = false;
+      mergedMesh.receiveShadow = true;
+      mergedMesh.castShadow = false;
+      entry.parent.add(mergedMesh);
+      for (const mesh of entry.meshes) mesh.removeFromParent();
+      merged += entry.meshes.length;
     }
-
-    const combined = mergeGeometries(entry.geometries, false);
-    for (const geometry of entry.geometries) geometry.dispose();
-    if (!combined) continue;
-
-    const mergedMesh = new THREE.Mesh(scope.track(combined), material);
-    mergedMesh.name = `merged:${material.uuid.slice(0, 8)}`;
-    mergedMesh.matrixAutoUpdate = false;
-    mergedMesh.receiveShadow = true;
-    root.add(mergedMesh);
-
-    for (const mesh of entry.meshes) {
-      mesh.removeFromParent();
-      // The geometry is owned by the museum's scope and may be shared between
-      // meshes, so it is not disposed here — the scope handles it on teardown.
-    }
-    merged += entry.meshes.length;
   }
 
   let after = 0;
   root.traverse((node) => {
     if ((node as THREE.Mesh).isMesh) after++;
   });
-
   return { before, after, merged };
 }
 
@@ -109,12 +155,9 @@ function isExcluded(mesh: THREE.Mesh): boolean {
   return false;
 }
 
-/** Keep only the attributes every mesh in the museum shares. */
 function stripToCommon(geometry: THREE.BufferGeometry): void {
   for (const name of Object.keys(geometry.attributes)) {
-    if (name !== 'position' && name !== 'normal' && name !== 'uv') {
-      geometry.deleteAttribute(name);
-    }
+    if (name !== 'position' && name !== 'normal' && name !== 'uv') geometry.deleteAttribute(name);
   }
   if (!geometry.getAttribute('normal')) geometry.computeVertexNormals();
   if (!geometry.getAttribute('uv')) {

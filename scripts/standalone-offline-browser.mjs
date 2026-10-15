@@ -7,7 +7,9 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const htmlPath = join(root, 'release', 'The_Reliquary_of_Iterative_Becoming.html');
-const BOOT_TIMEOUT_MS = 60_000;
+// Software WebGL loads an embedded multi-megabyte script and may exceed 60 s.
+// This is a bounded test allowance, not an actual visitor startup target.
+const BOOT_TIMEOUT_MS = 90_000;
 if (!existsSync(htmlPath)) {
   console.error('standalone-offline-browser: missing release HTML');
   process.exit(1);

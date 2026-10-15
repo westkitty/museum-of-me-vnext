@@ -20,6 +20,7 @@ interface Observer { readonly mesh: THREE.Group; }
 const AMBIENT_MIXER_INTERVAL = 1 / 30;
 const FAR_AMBIENT_DISTANCE_SQ = 70 * 70;
 const FAR_AMBIENT_UPDATE_INTERVAL = 0.1;
+const AMBIENT_VISIBILITY_SQ = 150 * 150;
 type AmbientAssetLoader = Pick<AssetManager, 'load'>;
 interface VisitorPrototypes {
   readonly men: LoadedAsset;
@@ -99,6 +100,13 @@ export class AmbientVisitors {
       return;
     }
     this.mixerElapsed += dt;
+    if (viewerX !== undefined && viewerZ !== undefined) {
+      for (const observer of this.observers) {
+        const dx = observer.mesh.position.x - viewerX;
+        const dz = observer.mesh.position.z - viewerZ;
+        observer.mesh.visible = dx * dx + dz * dz <= AMBIENT_VISIBILITY_SQ;
+      }
+    }
     const mixerStep = this.mixerElapsed >= AMBIENT_MIXER_INTERVAL ? this.mixerElapsed : 0;
     if (mixerStep > 0) this.mixerElapsed = 0;
     for (const walker of this.walkers) {
@@ -109,7 +117,9 @@ export class AmbientVisitors {
       if (viewerX !== undefined && viewerZ !== undefined) {
         const dxView = walker.mesh.position.x - viewerX;
         const dzView = walker.mesh.position.z - viewerZ;
-        far = dxView * dxView + dzView * dzView > FAR_AMBIENT_DISTANCE_SQ;
+        const distanceSq = dxView * dxView + dzView * dzView;
+        walker.mesh.visible = distanceSq <= AMBIENT_VISIBILITY_SQ;
+        far = distanceSq > FAR_AMBIENT_DISTANCE_SQ;
         if (far) {
           walker.farElapsed += dt;
           if (walker.farElapsed + Number.EPSILON * 8 < FAR_AMBIENT_UPDATE_INTERVAL) continue;

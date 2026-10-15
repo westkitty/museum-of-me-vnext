@@ -10,6 +10,7 @@ import { WingAtmosphere } from './WingAtmosphere';
 import { WingFurnishings } from './WingFurnishings';
 import { WingIdentity } from './WingIdentity';
 import { mergeStatic, NO_MERGE } from './MergeStatic';
+import type { ZoneId } from './layout';
 
 /**
  * Owns the always-resident visual refinement layer added after the architectural
@@ -24,10 +25,13 @@ export class PersistentEnvironment {
   readonly group = new THREE.Group();
   readonly mergeReport = { before: 0, after: 0, merged: 0 };
   private readonly dressing: EnvironmentDressing;
+  private readonly colorFields: ExhibitColorFields;
+  private visibilityKey = '';
 
   constructor(private readonly scope: ResourceScope) {
     this.group.name = 'persistent-environment';
     this.dressing = new EnvironmentDressing(scope);
+    this.colorFields = new ExhibitColorFields(scope);
   }
 
   build(): THREE.Group {
@@ -40,7 +44,7 @@ export class PersistentEnvironment {
       new WingAtmosphere(this.scope).build(),
       new WingFurnishings(this.scope).build(),
       new ExhibitThresholds(this.scope).build(),
-      new ExhibitColorFields(this.scope).build(),
+      this.colorFields.build(),
     ];
     this.group.add(...layers);
 
@@ -52,12 +56,35 @@ export class PersistentEnvironment {
       item.root.userData[NO_MERGE] = true;
     }
     for (const layer of layers) {
-      const report = mergeStatic(layer, this.scope);
+      const report = mergeStatic(layer, this.scope, { cellSize: 1000 });
       this.mergeReport.before += report.before;
       this.mergeReport.after += report.after;
       this.mergeReport.merged += report.merged;
     }
     return this.group;
+  }
+
+  /** Retain one material draw while excluding wing accents behind portals. */
+  updateVisibility(zone: ZoneId, deep: boolean, visibleWings?: ReadonlySet<string>): void {
+    // Shared setup tests can invoke this without a scene visibility contract.
+    const keep = visibleWings ?? (() => {
+      if (!deep) return null;
+      const opposite: Partial<Record<ZoneId, ZoneId>> = {
+        north: 'south', south: 'north', east: 'west', west: 'east',
+      };
+      const proposed = new Set<string>([zone]);
+      if (zone === 'plaza') { proposed.add('south'); proposed.add('north'); }
+      const other = opposite[zone];
+      if (other) proposed.add(other);
+      if (zone !== 'sanctuary' && zone !== 'plaza') {
+        proposed.add('media'); proposed.add('infra');
+      }
+      return proposed;
+    })();
+    const key = keep ? Array.from(keep).sort().join(',') : 'all';
+    if (key === this.visibilityKey) return;
+    this.visibilityKey = key;
+    this.colorFields.setVisibleWings(keep);
   }
 
   authorableSceneRoots(): readonly { readonly id: string; readonly root: THREE.Object3D }[] {

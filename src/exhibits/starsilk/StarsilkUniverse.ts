@@ -36,6 +36,7 @@ export class StarsilkUniverse extends ExhibitBase {
   private dials = this.tracked<Dial>();
   private worlds = this.tracked<THREE.Mesh>();
   private lastChanged = -1;
+  private lastWeaveSignature = -1;
 
   private readonly matrix = new THREE.Matrix4();
   private readonly position = new THREE.Vector3();
@@ -203,6 +204,14 @@ export class StarsilkUniverse extends ExhibitBase {
       ];
       this.filaments[i].follow(new THREE.CatmullRomCurve3(points));
     });
+
+    // Stars and world translations are functions of thread tension, not of
+    // time; only the filaments sway every frame. Avoid 260 redundant GPU matrix
+    // writes when no visitor has changed any thread.
+    const signature = this.tensions.reduce((value, tension, index) => value + tension * 3 ** index, 0)
+      + (instant ? 81 : 0);
+    if (signature === this.lastWeaveSignature) return;
+    this.lastWeaveSignature = signature;
 
     // Consequence: the star field contracts, spreads or shears with the weave.
     const total = this.tensions.reduce((s, v) => s + v, 0) / (THREADS.length * (TENSION_NAMES.length - 1));

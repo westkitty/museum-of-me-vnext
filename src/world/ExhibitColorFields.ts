@@ -14,7 +14,8 @@ import { architecturalStoneFinish } from './SurfaceFinish';
  */
 export class ExhibitColorFields {
   readonly group = new THREE.Group();
-  private readonly reliefs: { matrix: THREE.Matrix4; color: THREE.Color }[] = [];
+  private readonly reliefs: { matrix: THREE.Matrix4; color: THREE.Color; wing: ExhibitPlacement['wing'] }[] = [];
+  private reliefMesh: THREE.InstancedMesh | null = null;
 
   constructor(private readonly scope: ResourceScope) {
     this.group.name = 'exhibit-color-fields';
@@ -103,7 +104,7 @@ export class ExhibitColorFields {
         pose.rotation.set(0, angle, 0);
         pose.scale.set(scaleX, scaleY, 0.045);
         pose.updateMatrix();
-        this.reliefs.push({ matrix: pose.matrix.clone(), color });
+        this.reliefs.push({ matrix: pose.matrix.clone(), color, wing: placement.wing });
       }
     }
 
@@ -139,7 +140,26 @@ export class ExhibitColorFields {
     }
     relief.instanceMatrix.needsUpdate = true;
     relief.computeBoundingSphere();
+    this.reliefMesh = relief;
     this.group.add(relief);
+  }
+
+  /** Draw only the selected wing's marks when its corridor blocks the others. */
+  setVisibleWings(wings: ReadonlySet<string> | null): void {
+    const relief = this.reliefMesh;
+    if (!relief) return;
+    const displayed = wings
+      ? this.reliefs.filter((item) => wings.has(item.wing))
+      : this.reliefs;
+    if (relief.count === displayed.length && !wings) return;
+    for (let i = 0; i < displayed.length; i++) {
+      relief.setMatrixAt(i, displayed[i].matrix);
+      relief.setColorAt(i, displayed[i].color);
+    }
+    relief.count = displayed.length;
+    relief.instanceMatrix.needsUpdate = true;
+    if (relief.instanceColor) relief.instanceColor.needsUpdate = true;
+    relief.computeBoundingSphere();
   }
 
   private material(color: number, roughness: number, metalness: number, opacity: number, mineral = false): THREE.MeshStandardMaterial {

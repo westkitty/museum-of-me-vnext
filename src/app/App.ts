@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Loop, type LoopCallbacks } from './Loop';
 import { Diagnostics } from './Diagnostics';
 import { RendererHost } from '../render/RendererHost';
+import { AdaptiveResolution } from '../render/AdaptiveResolution';
 import { detectQualityTier, type QualityTier } from '../render/QualityTiers';
 import { loadPreferencesResult, savePreferences, type VisitorPreferences } from '../state/Preferences';
 import { Journal } from '../state/Journal';
@@ -59,6 +60,7 @@ export class App implements LoopCallbacks {
   readonly renderer: RendererHost;
   readonly loop: Loop;
   readonly diagnostics = new Diagnostics();
+  private readonly adaptiveResolution = new AdaptiveResolution();
   readonly journal: Journal;
   readonly scope = new ResourceScope('app');
   readonly museum: Museum;
@@ -95,6 +97,8 @@ export class App implements LoopCallbacks {
 
   private disposed = false;
   private workshopUpdate: (() => void) | null = null;
+  private environmentVisibility: ((zone: ZoneId, deep: boolean, wings: ReadonlySet<string>) => void) | null = null;
+  private readonly roomCullingEnabled: boolean;
   private arrivalUpdate: (() => void) | null = null;
   private ambientLoadTimer: number | null = null;
   private diagnosticSampleElapsed = 0.1;
@@ -110,6 +114,8 @@ export class App implements LoopCallbacks {
     this.a11yRoot = opts.a11yRoot;
     const query = new URLSearchParams(window.location.search);
     this.cinematicArrivalEnabled = !query.has('qa') && !query.has('edit');
+    // Workshop must see all authorable objects even when editing far-away bays.
+    this.roomCullingEnabled = !(import.meta.env.DEV && query.has('edit'));
 
     registerCuratedAssets();
     registerQuaterniusAssets();
@@ -147,6 +153,7 @@ export class App implements LoopCallbacks {
 
     this.arrivalGarden = new ArrivalGarden(this.scope, built.collision);
     this.renderer.scene.add(this.arrivalGarden.build());
+    this.arrivalGarden.setWaterQuality(this.renderer.quality.tier);
     // Reconcile the separate cinematic-arrival experiment as a static,
     // resource-owned architectural group. Never add another renderer or light.
     this.renderer.scene.add(new ArrivalBeacons(this.scope).group);
@@ -282,7 +289,7 @@ export class App implements LoopCallbacks {
     this.scheduleAmbientPopulation(true);
     this.lifecycle = new Lifecycle(this.loop, this.input, this.renderer, () => this.preferences, (message) => {
       this.ui.hud.announce(message);
-    });
+    }, () => !this.ui.fullWeasel.isOpen);
   }
 
   /** Human-readable name of the space the visitor is in. */
@@ -337,6 +344,10 @@ export class App implements LoopCallbacks {
   setQuality(tier: QualityTier | 'auto'): void {
     this.preferences.quality = tier;
     this.renderer.setQuality(tier === 'auto' ? detectQualityTier() : tier);
+    this.adaptiveResolution.reset();
+    const radius = this.renderer.quality.exhibitStreamRadius;
+    this.streaming.setRadii(radius + 14, radius + 30, radius);
+    this.arrivalGarden.setWaterQuality(this.renderer.quality.tier);
     this.scheduleAmbientPopulation(false);
     savePreferences(this.preferences);
   }
@@ -382,6 +393,13 @@ export class App implements LoopCallbacks {
     this.loop.stop();
   }
 
+  /** Resume after a self-contained museum exhibit relinquishes the foreground. */
+  resumeFromEmbedded(): void {
+    if (this.disposed || typeof document !== 'undefined' && document.hidden
+      || this.renderer.isContextLost || this.lifecycle?.isSuspended) return;
+    this.loop.start();
+  }
+
   /** Title readiness follows the existing frame loop. */
   setArrivalUpdate(update: (() => void) | null): void {
     this.arrivalUpdate = update;
@@ -390,6 +408,10 @@ export class App implements LoopCallbacks {
   /** Development-only Workshop cue hook; the editor remains dynamically loaded. */
   setWorkshopUpdate(update: (() => void) | null): void {
     this.workshopUpdate = update;
+  }
+
+  setEnvironmentVisibility(update: ((zone: ZoneId, deep: boolean, wings: ReadonlySet<string>) => void) | null): void {
+    this.environmentVisibility = update;
   }
 
   // ── LoopCallbacks ─────────────────────────────────────────────────────────
@@ -480,7 +502,13 @@ export class App implements LoopCallbacks {
       if (label) this.ui?.mirror.announce(`Entering ${label}.`);
     }
 
+    this.sourceArtwork.update(eye[0], eye[2], dt);
+    this.supplementary.update(eye[0], eye[2], dt);
     this.atmosphere.update(zone, dt, this.preferences.reducedMotion);
+    const deep = this.museum.updateVisibility(
+      zone, eye[0], eye[2], this.roomCullingEnabled, this.player.yaw, this.preferences.fieldOfView,
+    );
+    this.environmentVisibility?.(zone, deep, this.museum.visibleWingIds);
     this.streaming.evaluate(eye, dt, zone);
     this.interaction.update(this.camera, dt);
     this.workshopUpdate?.();
@@ -535,7 +563,17 @@ export class App implements LoopCallbacks {
     this.diagnosticSampleElapsed += this.loop.frameTimeMs / 1000;
     if (this.diagnosticSampleElapsed >= 0.1) {
       this.diagnosticSampleElapsed = 0;
-      this.diagnostics.sample(this.renderer.renderer, this.loop.fps, this.loop.frameTimeMs);
+      this.diagnostics.sample(this.renderer.renderer, this.loop.fps, this.loop.wallFrameTimeMs);
+    }
+  }
+
+  /** Single loop's post-render hook captures unclamped frame pacing at presentation rate. */
+  afterFrame(wallMs: number, fixedMs: number, variableMs: number, renderCpuMs: number, fixedSteps: number): void {
+    this.diagnostics.recordFrame(wallMs, fixedMs, variableMs, renderCpuMs, fixedSteps);
+    if (this.preferences.quality === 'auto' && this.preferences.frameCap !== '30'
+      && this.loop.isRunning && !this.ui?.fullWeasel.isOpen) {
+      const next = this.adaptiveResolution.update(wallMs, fixedMs + variableMs + renderCpuMs);
+      if (next !== null) this.renderer.setResolutionScale(next);
     }
   }
 
@@ -545,6 +583,7 @@ export class App implements LoopCallbacks {
     this.loop.stop();
     this.workshopUpdate = null;
     this.arrivalUpdate = null;
+    this.environmentVisibility = null;
     if (this.ambientLoadTimer !== null) window.clearTimeout(this.ambientLoadTimer);
     this.ambientLoadTimer = null;
     this.ui?.dispose();
@@ -556,6 +595,7 @@ export class App implements LoopCallbacks {
     this.flightPadAtmosphere.dispose();
     this.sourceVisitors.dispose();
     this.supplementary.dispose();
+    this.sourceArtwork.dispose();
     this.sourceInstallations.dispose();
     this.lifecycle?.dispose();
     this.streaming.dispose();
