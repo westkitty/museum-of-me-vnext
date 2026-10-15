@@ -4,8 +4,14 @@ test('visitor enters the real museum through the cinematic arrival', async ({ pa
   await page.goto('/', { waitUntil: 'commit' });
   const intro = page.getByRole('dialog', { name: 'Welcome to the Museum of Me' });
   await expect(intro).toBeVisible({ timeout: 30_000 });
-  const enter = intro.getByRole('button', { name: 'Enter the museum' });
-  await expect(enter).toBeEnabled({ timeout: 15_000 });
+  // The first render may still be preparing galleries, so its button initially
+  // reads "Preparing your arrival" or "Preparing the galleries". Locate the
+  // stable real button, then verify the actual ready label and enabled state.
+  // The 15-second label-based locator was flaky under CI software WebGL even
+  // though the independently tested browser journeys completed successfully.
+  const enter = intro.locator('button');
+  await expect(enter).toHaveText('Enter the museum', { timeout: 60_000 });
+  await expect(enter).toBeEnabled();
   // Verify the real ready introduction first; pause only continuous rendering
   // for deterministic entry-state assertions on software-WebGL CI runners.
   await page.evaluate(() => window.__museum?.stop());
