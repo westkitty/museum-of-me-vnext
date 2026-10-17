@@ -132,6 +132,11 @@ export function mergeStatic(root: THREE.Object3D, scope: ResourceScope, options:
       mergedMesh.receiveShadow = true;
       mergedMesh.castShadow = false;
       entry.parent.add(mergedMesh);
+      // Three.js r185 only computes world matrices when needsUpdate is set.
+      // This mesh has matrixAutoUpdate=false, so seed its frozen world matrix
+      // explicitly from the owning immutable zone transform.
+      mergedMesh.matrixWorld.copy(entry.parent.matrixWorld);
+      mergedMesh.matrixWorldAutoUpdate = false;
       for (const mesh of entry.meshes) mesh.removeFromParent();
       merged += entry.meshes.length;
     }

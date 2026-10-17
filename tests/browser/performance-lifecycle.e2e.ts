@@ -36,23 +36,47 @@ test('doorway visibility, streamed artwork and embedded rendering lifecycle', as
 
   // A source-authorized raster is created on approach and becomes non-resident
   // when leaving. No arbitrary off-origin images are introduced.
-  const sourcePos = await page.evaluate(() => {
+  const sourceBefore = await page.evaluate(() => {
     const app = window.__museum!;
     const pending = (app.sourceArtwork as unknown as {
-      pending: Array<{ position: [number, number, number] }>;
+      pending: Array<{ position: [number, number, number]; material: {
+        version: number; map: { uuid: string; isDataTexture?: boolean } | null;
+      } }>;
     }).pending;
     if (!pending?.length) throw new Error('curated source raster positions missing');
     app.sourceArtwork.update(10_000, 10_000, 1);
-    const first = pending[0].position;
-    app.sourceArtwork.update(first[0], first[2], 1);
-    return first;
+    const first = pending[0];
+    const placeholderId = first.material.map?.uuid;
+    const shaderVersion = first.material.version;
+    const isPreviewTexture = first.material.map?.isDataTexture === true;
+    app.sourceArtwork.update(first.position[0], first.position[2], 1);
+    return { position: first.position, placeholderId, shaderVersion, isPreviewTexture };
   });
-  expect(sourcePos).toHaveLength(3);
+  expect(sourceBefore.position).toHaveLength(3);
+  expect(sourceBefore.isPreviewTexture).toBe(true);
   await expect.poll(() => page.evaluate(
     () => window.__museum!.sourceArtwork.residentCount,
   ), { timeout: 15_000 }).toBeGreaterThan(0);
+  const loadedVersion = await page.evaluate(() => {
+    const app = window.__museum!;
+    const entry = (app.sourceArtwork as unknown as {
+      pending: Array<{ material: { version: number; map: { uuid: string } | null } }>;
+    }).pending[0];
+    return { version: entry.material.version, mapId: entry.material.map?.uuid };
+  });
+  expect(loadedVersion.version).toBe(sourceBefore.shaderVersion);
+  expect(loadedVersion.mapId).not.toBe(sourceBefore.placeholderId);
   await page.evaluate(() => window.__museum!.sourceArtwork.update(10_000, 10_000, 1));
   expect(await page.evaluate(() => window.__museum!.sourceArtwork.residentCount)).toBe(0);
+  const unloadedVersion = await page.evaluate(() => {
+    const entry = (window.__museum!.sourceArtwork as unknown as {
+      pending: Array<{ material: { version: number; map: { uuid: string } | null } }>;
+    }).pending[0];
+    return { version: entry.material.version, mapId: entry.material.map?.uuid };
+  });
+  // Same mapped shader variant throughout load/unload: no material recompile.
+  expect(unloadedVersion.version).toBe(sourceBefore.shaderVersion);
+  expect(unloadedVersion.mapId).toBe(sourceBefore.placeholderId);
 
   const richCases = await page.evaluate(() => {
     const app = window.__museum!;

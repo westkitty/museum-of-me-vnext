@@ -25,6 +25,7 @@ const RELEASE_RADIUS_SQ = 165 * 165;
 export class SourceArtwork {
   readonly group = new THREE.Group();
   private readonly loader = new THREE.TextureLoader();
+  private readonly placeholder: THREE.DataTexture;
   private readonly pending: PendingArtwork[] = [];
   private elapsed = 0;
   private disposed = false;
@@ -34,6 +35,17 @@ export class SourceArtwork {
     exhibitMounts: ReadonlyMap<string, THREE.Group>,
   ) {
     this.group.name = 'source-artwork';
+    // A shared one-pixel raster keeps the USE_MAP shader variant stable on
+    // approach/eviction; texture swaps alone need no material recompile.
+    const placeholder = new THREE.DataTexture(
+      new Uint8Array([138, 122, 92, 255]), 1, 1, THREE.RGBAFormat,
+    );
+    placeholder.colorSpace = THREE.SRGBColorSpace;
+    placeholder.generateMipmaps = false;
+    placeholder.magFilter = THREE.NearestFilter;
+    placeholder.minFilter = THREE.NearestFilter;
+    placeholder.needsUpdate = true;
+    this.placeholder = this.scope.track(placeholder);
     registerCuratedAssets();
     for (const placement of PLACEMENTS) {
       const raster = sourceArtworkForExhibit(placement.exhibitId);
@@ -70,9 +82,7 @@ export class SourceArtwork {
         entry.generation++;
         entry.texture = null;
         entry.loading = false;
-        entry.material.map = null;
-        entry.material.color.setHex(0x8a7a5c);
-        entry.material.needsUpdate = true;
+        entry.material.map = this.placeholder;
         texture.dispose();
         this.scope.untrack(texture);
       }
@@ -86,9 +96,9 @@ export class SourceArtwork {
         () => {
           if (this.disposed || generation !== entry.generation) return;
           entry.loading = false;
+          // Both old and new maps are textures, so the shader's MAP define
+          // remains identical and material.needsUpdate is unnecessary.
           entry.material.map = texture;
-          entry.material.color.setHex(0xffffff);
-          entry.material.needsUpdate = true;
         },
         undefined,
         (error) => {
@@ -131,7 +141,7 @@ export class SourceArtwork {
     );
     backing.position.z = 0.02;
     const material = this.scope.track(new THREE.MeshStandardMaterial({
-      roughness: 0.86, color: 0x8a7a5c,
+      roughness: 0.86, color: 0xffffff, map: this.placeholder,
     }));
     const plane = new THREE.Mesh(
       this.scope.track(new THREE.PlaneGeometry(w, heightM)),
@@ -147,7 +157,9 @@ export class SourceArtwork {
   }
 
   get residentCount(): number {
-    return this.pending.filter((entry) => !!entry.material.map).length;
+    return this.pending.filter(
+      (entry) => entry.texture !== null && !entry.loading && entry.material.map === entry.texture,
+    ).length;
   }
 
   dispose(): void {

@@ -22,6 +22,7 @@ interface RuntimeVisitor {
   lineIndex: number;
   phase: number;
   farElapsed: number;
+  visualElapsed: number;
   leftArm: THREE.Object3D;
   rightArm: THREE.Object3D;
   leftLeg: THREE.Object3D;
@@ -32,6 +33,9 @@ interface RuntimeVisitor {
 
 const FAR_VISITOR_DISTANCE_SQ = 70 * 70;
 const FAR_VISITOR_UPDATE_INTERVAL = 0.1;
+const NEAR_VISUAL_INTERVAL = 1 / 30;
+const CONVERSATION_VISUAL_INTERVAL = 1 / 60;
+const CONVERSATION_DISTANCE_SQ = 12 * 12;
 const SOURCE_VISITOR_INSTANCE_COUNT = SOURCE_VISITORS.reduce(
   (sum, visitor) => sum + 19 + (visitor.staff ? 1 : 0),
   0,
@@ -77,6 +81,8 @@ export class SourceVisitors {
     this.batch = batch;
     this.geometryIds = geometryIds;
     this.group.add(this.batch);
+    this.group.updateWorldMatrix(true, false);
+    this.batchRootInverse.copy(this.group.matrixWorld).invert();
 
     // One shared hit primitive replaces 17 duplicate cylinders/materials. The
     // camera never renders layer 1, but InteractionManager raycasts it.
@@ -191,15 +197,20 @@ export class SourceVisitors {
   }
 
   update(dt: number, reducedMotion: boolean, viewerX?: number, viewerZ?: number): void {
+    let rootInverseCurrent = false;
     for (const v of this.visitors) {
       v.phase += dt;
       if (v.data.seated || reducedMotion) continue;
 
       let simDt = dt;
+      let visualInterval = NEAR_VISUAL_INTERVAL;
       if (viewerX !== undefined && viewerZ !== undefined) {
         const dxView = v.group.position.x - viewerX;
         const dzView = v.group.position.z - viewerZ;
-        if (dxView * dxView + dzView * dzView > FAR_VISITOR_DISTANCE_SQ) {
+        const distanceSq = dxView * dxView + dzView * dzView;
+        // Preserve expressive 60Hz animation in conversational proximity.
+        if (distanceSq <= CONVERSATION_DISTANCE_SQ) visualInterval = CONVERSATION_VISUAL_INTERVAL;
+        if (distanceSq > FAR_VISITOR_DISTANCE_SQ) {
           v.farElapsed += dt;
           if (v.farElapsed + Number.EPSILON * 8 < FAR_VISITOR_UPDATE_INTERVAL) continue;
           simDt = v.farElapsed;
@@ -248,7 +259,19 @@ export class SourceVisitors {
       v.rightLeg.rotation.x = -swing;
       v.leftArm.rotation.x = -swing * 0.7;
       v.rightArm.rotation.x = swing * 0.7;
-      this.syncVisitorVisual(v);
+      // Movement, collision and interaction proxies stay at fixed 60Hz.
+      // Rewriting ~19 body matrices per visitor is presentation-only and
+      // becomes a 30Hz near-field update, while far visitors stay ~10Hz.
+      v.visualElapsed += simDt;
+      if (v.visualElapsed + Number.EPSILON * 8 >= visualInterval) {
+        if (!rootInverseCurrent) {
+          this.group.updateWorldMatrix(true, false);
+          this.batchRootInverse.copy(this.group.matrixWorld).invert();
+          rootInverseCurrent = true;
+        }
+        this.syncVisitorVisual(v);
+        v.visualElapsed = 0;
+      }
     }
   }
 
@@ -420,7 +443,7 @@ export class SourceVisitors {
 
     return {
       data, group: g, hit, route, routeIndex: 1 % Math.max(1, route.length),
-      pause: seated ? Infinity : 0, lineIndex: 0, phase: 0, farElapsed: 0,
+      pause: seated ? Infinity : 0, lineIndex: 0, phase: 0, farElapsed: 0, visualElapsed: 0,
       leftArm, rightArm, leftLeg, rightLeg, anatomy, parts,
     };
   }
@@ -442,9 +465,7 @@ export class SourceVisitors {
   }
 
   private syncVisitorVisual(visitor: RuntimeVisitor): void {
-    this.group.updateWorldMatrix(true, false);
     visitor.group.updateWorldMatrix(true, true);
-    this.batchRootInverse.copy(this.group.matrixWorld).invert();
     for (const part of visitor.parts) {
       this.batchMatrix.copy(this.batchRootInverse).multiply(part.node.matrixWorld);
       this.batch.setMatrixAt(part.instanceId, this.batchMatrix);

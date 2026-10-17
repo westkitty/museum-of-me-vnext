@@ -78,12 +78,16 @@ export class SupplementaryCases {
     this.textureElapsed = 0;
 
     const wanted = this.readableTextures
-      .map((entry, index) => ({
-        index,
-        distanceSq: (entry.pos[0] - viewerX) ** 2 + (entry.pos[2] - viewerZ) ** 2,
-      }))
-      .filter((item) => item.distanceSq < 12 * 12)
-      .sort((a, b) => a.distanceSq - b.distanceSq)
+      .map((entry, index) => {
+        const distanceSq = (entry.pos[0] - viewerX) ** 2 + (entry.pos[2] - viewerZ) ** 2;
+        return { index, distanceSq,
+          // Prefer current texture until another case is materially closer.
+          priority: distanceSq - (entry.full ? 16 : 0),
+          keepRadiusSq: (entry.full ? 15 : 12) ** 2,
+        };
+      })
+      .filter((item) => item.distanceSq < item.keepRadiusSq)
+      .sort((a, b) => a.priority - b.priority)
       .slice(0, 2);
     let upgraded = false;
     for (let index = 0; index < this.readableTextures.length; index++) {
@@ -97,11 +101,9 @@ export class SupplementaryCases {
           bodySize: 26, padding: 48,
         });
         entry.full = full;
-        entry.material.map = full;
-        entry.material.needsUpdate = true;
+        entry.material.map = full; // Same shader MAP variant as preview.
       } else if (!near && entry.full) {
         entry.material.map = entry.preview;
-        entry.material.needsUpdate = true;
         entry.full.dispose();
         this.scope.untrack(entry.full);
         entry.full = null;

@@ -42,6 +42,8 @@ const MAX_STROKES = 6;
 
 export class CreativeTools extends ExhibitBase {
   private strokes = this.tracked<Filament>();
+  private strokeCurves = this.tracked<THREE.CatmullRomCurve3>();
+  private strokeRedrawElapsed = 0;
   private strokeUsed = this.tracked<boolean>();
   private nodes = this.tracked<THREE.Mesh>();
   private factoryLamps = this.tracked<THREE.Mesh>();
@@ -104,6 +106,9 @@ export class CreativeTools extends ExhibitBase {
       stroke.setVisible(false);
       this.group.add(stroke.group);
       this.strokes.push(stroke);
+      this.strokeCurves.push(new THREE.CatmullRomCurve3(
+        Array.from({ length: 7 }, () => new THREE.Vector3()),
+      ));
       this.strokeUsed.push(false);
     }
 
@@ -251,16 +256,15 @@ export class CreativeTools extends ExhibitBase {
       if (!this.strokeUsed[i]) continue;
       const from = this.nodes[i % this.nodes.length].position;
       const to = this.nodes[(i + 2) % this.nodes.length].position;
-      const points: THREE.Vector3[] = [];
+      const curve = this.strokeCurves[i];
       const steps = 6;
       for (let s = 0; s <= steps; s++) {
-        const p = from.clone().lerp(to, s / steps);
+        const p = curve.points[s].copy(from).lerp(to, s / steps);
         const bend = Math.sin((s / steps) * Math.PI) * (0.42 - this.target * 0.16);
         p.y += bend + 0.02;
         p.x += Math.sin((s / steps) * t.k) * bend * 0.5;
-        points.push(p);
       }
-      this.strokes[i].follow(new THREE.CatmullRomCurve3(points));
+      this.strokes[i].follow(curve);
     }
   }
 
@@ -283,11 +287,18 @@ export class CreativeTools extends ExhibitBase {
         this.nodes[i].rotation.y += dt * (0.2 + i * 0.05);
         this.nodes[i].position.y = 1.12 + Math.sin(this.elapsed * 1.2 + i) * 0.015;
       }
-      this.redraw();
+      // User actions still redraw immediately; ambient motion is perceptually
+      // smooth at 30Hz and needs half the curve sampling/GPU matrix uploads.
+      this.strokeRedrawElapsed += dt;
+      if (this.strokeRedrawElapsed + Number.EPSILON * 8 >= 1 / 30) {
+        this.strokeRedrawElapsed = 0;
+        this.redraw();
+      }
     }
   }
 
   protected override onReset(): void {
+    this.strokeRedrawElapsed = 0;
     this.target = 0;
     this.strokeCount = 0;
     this.factoryStage = 0;
