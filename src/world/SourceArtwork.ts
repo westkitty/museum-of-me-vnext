@@ -77,14 +77,22 @@ export class SourceArtwork {
       const dz = entry.position[2] - z;
       const distanceSq = dx * dx + dz * dz;
 
-      if (distanceSq > RELEASE_RADIUS_SQ && entry.texture) {
-        const texture = entry.texture;
-        entry.generation++;
-        entry.texture = null;
-        entry.loading = false;
-        entry.material.map = this.placeholder;
-        texture.dispose();
-        this.scope.untrack(texture);
+      if (distanceSq > RELEASE_RADIUS_SQ) {
+        // Clear stale/late image state even if an async loader has already
+        // dropped its entry.texture. A nonresident gallery must show exactly
+        // our single shared fallback map, never retain a detached GPU image.
+        if (entry.texture || entry.loading || entry.material.map !== this.placeholder) {
+          const texture = entry.texture;
+          entry.generation++;
+          entry.texture = null;
+          entry.loading = false;
+          entry.material.map = this.placeholder;
+          if (texture) {
+            texture.dispose();
+            this.scope.untrack(texture);
+          }
+        }
+        continue;
       }
 
       if (submitted || distanceSq > LOAD_RADIUS_SQ || entry.texture || entry.loading) continue;
@@ -94,7 +102,7 @@ export class SourceArtwork {
       const texture = this.loader.load(
         entry.url,
         () => {
-          if (this.disposed || generation !== entry.generation) return;
+          if (this.disposed || generation !== entry.generation || entry.texture !== texture) return;
           entry.loading = false;
           // Both old and new maps are textures, so the shader's MAP define
           // remains identical and material.needsUpdate is unnecessary.
@@ -105,6 +113,7 @@ export class SourceArtwork {
           if (generation !== entry.generation) return;
           console.warn('[Artwork] local curated image unavailable', entry.url, error);
           entry.loading = false;
+          entry.material.map = this.placeholder;
           if (entry.texture === texture) {
             entry.texture = null;
             texture.dispose();

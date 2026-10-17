@@ -54,9 +54,14 @@ test('doorway visibility, streamed artwork and embedded rendering lifecycle', as
   });
   expect(sourceBefore.position).toHaveLength(3);
   expect(sourceBefore.isPreviewTexture).toBe(true);
-  await expect.poll(() => page.evaluate(
-    () => window.__museum!.sourceArtwork.residentCount,
-  ), { timeout: 15_000 }).toBeGreaterThan(0);
+  // Wait for this exact authored image rather than the aggregate resident
+  // count, which can also be satisfied by an unrelated background image load.
+  await expect.poll(() => page.evaluate(() => {
+    const entry = (window.__museum!.sourceArtwork as unknown as {
+      pending: Array<{ texture: object | null; loading: boolean; material: { map: object | null } }>;
+    }).pending[0];
+    return entry.texture !== null && !entry.loading && entry.material.map === entry.texture;
+  }), { timeout: 15_000 }).toBe(true);
   const loadedVersion = await page.evaluate(() => {
     const app = window.__museum!;
     const entry = (app.sourceArtwork as unknown as {
@@ -77,6 +82,35 @@ test('doorway visibility, streamed artwork and embedded rendering lifecycle', as
   // Same mapped shader variant throughout load/unload: no material recompile.
   expect(unloadedVersion.version).toBe(sourceBefore.shaderVersion);
   expect(unloadedVersion.mapId).toBe(sourceBefore.placeholderId);
+
+  // Reproduce the reported Linux-CI failure mode deterministically: a late
+  // callback or error state can leave a material referencing a detached map
+  // while the entry's texture slot is already empty. The next far-field pass
+  // must repair that state and retain the original shader variant.
+  const orphanRecovery = await page.evaluate(() => {
+    const app = window.__museum!;
+    const artwork = app.sourceArtwork as unknown as {
+      placeholder: { uuid: string };
+      pending: Array<{ texture: object | null; loading: boolean; material: {
+        version: number;
+        map: { uuid: string; clone(): { uuid: string; dispose(): void } } | null;
+      } }>;
+    };
+    const entry = artwork.pending[0];
+    const detached = entry.material.map!.clone();
+    entry.texture = null;
+    entry.loading = false;
+    entry.material.map = detached as unknown as typeof entry.material.map;
+    app.sourceArtwork.update(10_000, 10_000, 1);
+    const result = {
+      restored: entry.material.map === artwork.placeholder,
+      shaderVersion: entry.material.version,
+    };
+    detached.dispose();
+    return result;
+  });
+  expect(orphanRecovery.restored).toBe(true);
+  expect(orphanRecovery.shaderVersion).toBe(sourceBefore.shaderVersion);
 
   const richCases = await page.evaluate(() => {
     const app = window.__museum!;

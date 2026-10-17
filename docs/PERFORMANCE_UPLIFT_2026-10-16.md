@@ -54,3 +54,11 @@ An earlier baseline CPU sample measured 3,339.5 ms under apparent transient cont
 **Remaining uncertainty:** No matched physical MacBook/Brave or tablet FPS or thermal/long-session proof. Successful local CPU tests do not prove perceptible GPU improvement.
 
 **Delivery at authoring:** Not yet committed, pushed or published; update canonical Project Bible after actual provider receipts. Museum remains **PRE-1.0**.
+
+## Adversarial browser gate and correction (2026-10-16)
+
+**CI failure discovered after initial publication:** GitHub Pages run [38998892560](https://github.com/westkitty/museum-of-me-vnext/actions/runs/38998892560), first uplift SHA e82aa9241d7915d4b0c222fe4acafde25a9215fd, ran 20 Chromium journeys: **19 passed, 1 failed** at tests/browser/performance-lifecycle.e2e.ts:79. The artwork material had a different map UUID after unloading than its shared placeholder, despite zero reported resident image count. Development CI independently passed. The Pages build/deploy did NOT finish, so the first uplift SHA was not live.
+
+**Bounded real-state repair:** The original far-field branch restored its placeholder only when entry.texture was non-null. That could leave a material referencing a stale map when the tracked texture slot was empty. The new path reconciles map, tracked load state, generation token, and disposal even for a detached map; stale async callbacks are invalidated and successful callbacks must still match the current entry texture. The browser test waits for this specific authored raster rather than any image counted by global residency and injects a detached-map state to prove far-field repair. Original source images and mapped shader variant are preserved.
+
+**Verification state:** Local TypeScript and real Chromium focused test PASS, new complete gate and new-sha CI/Pages still to verify. Physical MacBook/Android FPS and long-session memory remain unknown. This is not 1.0.
