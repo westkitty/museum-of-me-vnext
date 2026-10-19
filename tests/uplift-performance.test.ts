@@ -47,7 +47,7 @@ it('grounds all 17 animated authored visitors in one tracked contact-shadow draw
  const material=shadows.material as THREE.MeshBasicMaterial;
  expect(material.alphaMap?.name).toBe('museum-shared-soft-radial-mask');
  expect(material.depthWrite).toBe(false);
- const mask=material.alphaMap!.image.data as Uint8Array;
+ const mask=(material.alphaMap!.image as { data: Uint8Array }).data;
  expect(mask).toHaveLength(64*64*4);
  expect(mask[4*((32*64)+32)+1]).toBeGreaterThan(mask[1]);
  const before=new THREE.Matrix4();
