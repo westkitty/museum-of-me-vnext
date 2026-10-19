@@ -216,6 +216,7 @@ export class HUD {
   setLocation(zone: ZoneId): void {
     if (zone === this.lastZone) return;
     this.lastZone = zone;
+    this.location.dataset.zone = zone;
     const record = ZONE_BY_ID.get(zone);
     const wing = WINGS_BY_ID.get(zone as never);
     this.location.replaceChildren(
