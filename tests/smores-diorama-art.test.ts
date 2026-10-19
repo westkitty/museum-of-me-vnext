@@ -31,20 +31,43 @@ it('keeps S’mores rolling and collecting while sharing its miniature-town draw
     expect(roofs.count).toBe(26);
     expect(windows.count).toBe(52);
     expect(roads.count).toBe(36);
-    const pickups: THREE.Mesh[] = [];
+    const pickups: THREE.InstancedMesh[] = [];
     group.traverse((node) => {
-      const mesh = node as THREE.Mesh;
-      if (mesh.isMesh && mesh.geometry.name.startsWith('smores-collectible:')) pickups.push(mesh);
+      const mesh = node as THREE.InstancedMesh;
+      if (mesh.isInstancedMesh && mesh.name.startsWith('smores-pickup-batch:')) pickups.push(mesh);
     });
-    expect(pickups).toHaveLength(54);
+    expect(pickups.length).toBeGreaterThanOrEqual(4);
+    expect(pickups.length).toBeLessThanOrEqual(5);
+    expect(pickups.reduce((count, pickup) => count + pickup.count, 0)).toBe(54);
     expect(new Set(pickups.map((pickup) => pickup.geometry.name)).size).toBeGreaterThan(3);
+    expect(pickups.every((pickup) => pickup.instanceMatrix.usage === THREE.DynamicDrawUsage)).toBe(true);
     expect(group.getObjectByName('smores-layered-katamari-ball')?.children).toHaveLength(3);
     const roll = controls.find((c) => c.label === 'Roll the ball');
     expect(roll).toBeDefined();
     const before = module.getAccessibleContent().state;
+    // The test deliberately puts one real collectible on the authored
+    // figure-eight so collection and the GPU instance both have to move.
+    const runtime = module as unknown as {
+      items: THREE.Vector3[];
+      itemTier: number[];
+      itemBatchSlots: number[];
+      pickupBatches: Array<THREE.InstancedMesh | null>;
+      collected: boolean[];
+    };
+    const capIndex = runtime.itemTier.indexOf(0);
+    expect(capIndex).toBeGreaterThanOrEqual(0);
+    runtime.items[capIndex].set(0, 0.09, 0);
     roll!.activate();
     for (let i = 0; i < 120; i++) host.update(1 / 60, [0, 1.6, 4], i / 60);
+    expect(runtime.collected[capIndex]).toBe(true);
+    const capMatrix = new THREE.Matrix4();
+    runtime.pickupBatches[0]!.getMatrixAt(runtime.itemBatchSlots[capIndex], capMatrix);
+    expect(new THREE.Vector3().setFromMatrixPosition(capMatrix).distanceTo(runtime.items[capIndex])).toBeLessThan(0.0001);
     expect(module.getAccessibleContent().state).not.toBe(before);
+    host.reset();
+    expect(runtime.collected[capIndex]).toBe(false);
+    runtime.pickupBatches[0]!.getMatrixAt(runtime.itemBatchSlots[capIndex], capMatrix);
+    expect(new THREE.Vector3().setFromMatrixPosition(capMatrix).distanceTo(runtime.items[capIndex])).toBeLessThan(0.0001);
     host.unmount();
     expect(host.resourceCount).toBe(0);
     expect(host.group.children).toHaveLength(0);

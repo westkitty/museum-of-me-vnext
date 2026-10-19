@@ -37,8 +37,13 @@ const PATH_STEPS = 160;
 export class SmoresKatamari extends ExhibitBase {
   private diorama!: THREE.Group;
   private ball!: THREE.Mesh;
-  private items = this.tracked<THREE.Mesh>();
+  // Positions remain the exact gameplay authority; the GPU reads five
+  // dynamic pickup batches instead of visiting 54 individual render meshes.
+  private items = this.tracked<THREE.Vector3>();
   private itemTier = this.tracked<number>();
+  private itemBatchSlots = this.tracked<number>();
+  private pickupBatches = this.tracked<THREE.InstancedMesh | null>();
+  private readonly pickupPose = new THREE.Object3D();
   private collected = this.tracked<boolean>();
   private homes = this.tracked<THREE.Vector3>();
   private radius = 0.06;
@@ -203,21 +208,37 @@ export class SmoresKatamari extends ExhibitBase {
     // ── collectibles ──
     const itemGeos = COLLECTIBLES.map((c, tier) => buildCollectibleSilhouette(scope, tier, c.size));
     const itemMaterial = this.standard(0xffffff, { roughness: 0.67, vertexColors: true });
+    const tierCounts = COLLECTIBLES.map(() => 0);
     for (let i = 0; i < this.scaled(ITEM_COUNT); i++) {
       const tier = Math.floor(random() * COLLECTIBLES.length);
-      const item = new THREE.Mesh(itemGeos[tier], itemMaterial);
       const home = new THREE.Vector3(
         (random() - 0.5) * 4.2,
         COLLECTIBLES[tier].size + 0.03,
         (random() - 0.5) * 3.0,
       );
-      item.position.copy(home);
-      this.diorama.add(item);
-      this.items.push(item);
+      this.items.push(home.clone());
       this.itemTier.push(tier);
+      this.itemBatchSlots.push(tierCounts[tier]++);
       this.collected.push(false);
       this.homes.push(home);
     }
+    for (let tier = 0; tier < COLLECTIBLES.length; tier++) {
+      const count = tierCounts[tier];
+      if (count === 0) {
+        this.pickupBatches.push(null);
+        continue;
+      }
+      const batch = new THREE.InstancedMesh(itemGeos[tier], itemMaterial, count);
+      batch.name = 'smores-pickup-batch:' + tier;
+      batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      // Only the streaming exhibit host controls visibility. A collected
+      // pickup can leave its original world bounds while orbiting the ball.
+      batch.frustumCulled = false;
+      this.diorama.add(batch);
+      scope.trackObject(batch);
+      this.pickupBatches.push(batch);
+    }
+    this.syncPickupVisuals();
 
     // ── the ball ──
     this.ball = new THREE.Mesh(
@@ -278,6 +299,23 @@ export class SmoresKatamari extends ExhibitBase {
     return this.collected.filter(Boolean).length;
   }
 
+  /** Present the authoritative pickup positions in five batched GPU draws. */
+  private syncPickupVisuals(): void {
+    const pose = this.pickupPose;
+    pose.rotation.set(0, 0, 0);
+    pose.scale.set(1, 1, 1);
+    for (let i = 0; i < this.items.length; i++) {
+      const batch = this.pickupBatches[this.itemTier[i]];
+      if (!batch) continue;
+      pose.position.copy(this.items[i]);
+      pose.updateMatrix();
+      batch.setMatrixAt(this.itemBatchSlots[i], pose.matrix);
+    }
+    for (const batch of this.pickupBatches) {
+      if (batch) batch.instanceMatrix.needsUpdate = true;
+    }
+  }
+
   /** A fixed figure-eight through the town, so the level is the same every time. */
   private pathAt(t: number): THREE.Vector3 {
     const a = t * Math.PI * 2;
@@ -305,7 +343,7 @@ export class SmoresKatamari extends ExhibitBase {
         const size = COLLECTIBLES[this.itemTier[i]].size;
         // Only things smaller than the ball can be picked up.
         if (size > this.radius * 0.85) continue;
-        const distance = item.position.distanceTo(this.ball.position);
+        const distance = item.distanceTo(this.ball.position);
         if (distance < this.radius + size + 0.03) {
           this.collected[i] = true;
           this.radius = Math.min(0.62, this.radius + size * 0.32);
@@ -324,7 +362,7 @@ export class SmoresKatamari extends ExhibitBase {
       if (!this.collected[i]) continue;
       const item = this.items[i];
       const a = i * 2.4 + this.elapsed * (this.reducedMotion ? 0 : 0.8);
-      item.position.set(
+      item.set(
         this.ball.position.x + Math.sin(a) * this.radius * 0.9,
         this.ball.position.y + Math.cos(a * 1.3) * this.radius * 0.9,
         this.ball.position.z + Math.cos(a) * this.radius * 0.9,
@@ -332,6 +370,7 @@ export class SmoresKatamari extends ExhibitBase {
     }
 
     this.ball.scale.setScalar(this.radius);
+    if (this.rolling) this.syncPickupVisuals();
   }
 
   protected override onReset(): void {
@@ -340,13 +379,14 @@ export class SmoresKatamari extends ExhibitBase {
     this.radius = 0.06;
     for (let i = 0; i < this.items.length; i++) {
       this.collected[i] = false;
-      this.items[i].position.copy(this.homes[i]);
+      this.items[i].copy(this.homes[i]);
     }
     if (this.ball) {
       this.ball.scale.setScalar(this.radius);
       this.ball.position.set(-2.0, this.radius + 0.03, 1.3);
       this.ball.rotation.set(0, 0, 0);
     }
+    this.syncPickupVisuals();
   }
 
   protected override describeState(): string {
