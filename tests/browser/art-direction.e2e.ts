@@ -28,6 +28,10 @@ test('the real playable museum renders shared gallery finishes and transitions a
     const relief = app.renderer.scene.getObjectByName('gallery-relief-accents') as { count?: number; instanceMatrix?: { count?: number }; isInstancedMesh?: boolean } | undefined;
     const stageRims = app.renderer.scene.getObjectByName('gallery-floor-inlaid-rims') as
       { count?: number; instanceMatrix?: { count?: number }; isInstancedMesh?: boolean } | undefined;
+    const galleryPools = app.renderer.scene.getObjectByName('gallery-curatorial-light-pools') as
+      { count?: number; instanceMatrix?: { count?: number }; isInstancedMesh?: boolean } | undefined;
+    const contactShadows = app.renderer.scene.getObjectByName('authored-visitor-contact-shadows') as
+      { count?: number; isInstancedMesh?: boolean } | undefined;
     const flightGlyphs = app.renderer.scene.getObjectByName('flight-pad-rotating-glyphs') as
       { count?: number; isInstancedMesh?: boolean } | undefined;
     const positions: Array<{ zone: string; fogNear: number; fogFar: number; exposure: number }> = [];
@@ -49,6 +53,10 @@ test('the real playable museum renders shared gallery finishes and transitions a
       reliefInstances: relief?.count ?? 0, reliefCapacity: relief?.instanceMatrix?.count ?? 0,
       stageRimInstances: stageRims?.count ?? 0,
       stageRimCapacity: stageRims?.instanceMatrix?.count ?? 0,
+      galleryPoolCapacity: galleryPools?.instanceMatrix?.count ?? 0,
+      galleryPoolInstances: galleryPools?.count ?? 0,
+      contactShadowInstances: contactShadows?.count ?? 0,
+      contactShadowsInstanced: Boolean(contactShadows?.isInstancedMesh),
       glyphInstances: flightGlyphs?.count ?? 0,
       glyphInstanced: Boolean(flightGlyphs?.isInstancedMesh),
       allRunners, blindSeals,
@@ -99,6 +107,11 @@ test('the real playable museum renders shared gallery finishes and transitions a
   expect(state.reliefCapacity).toBe(140);
   expect(state.reliefInstances).toBeGreaterThan(0);
   expect(state.reliefInstances).toBeLessThanOrEqual(state.reliefCapacity);
+  expect(state.galleryPoolCapacity).toBe(35);
+  expect(state.galleryPoolInstances).toBeGreaterThan(0);
+  expect(state.galleryPoolInstances).toBeLessThanOrEqual(35);
+  expect(state.contactShadowsInstanced).toBe(true);
+  expect(state.contactShadowInstances).toBe(17);
   expect(state.stageRimCapacity).toBe(35);
   expect(state.stageRimInstances).toBeGreaterThan(0);
   expect(state.stageRimInstances).toBeLessThanOrEqual(35);

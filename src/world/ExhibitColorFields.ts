@@ -3,6 +3,7 @@ import type { ResourceScope } from '../assets/ResourceScope';
 import { PLACEMENTS, WING_BY_ID, type ExhibitPlacement } from './layout';
 import { resolveExhibitTheme } from './ExhibitTheme';
 import { architecturalStoneFinish } from './SurfaceFinish';
+import { radialFloorMask } from './RadialFloorMask';
 
 /**
  * Small persistent colour fields inside all 35 exhibit bays.
@@ -18,6 +19,8 @@ export class ExhibitColorFields {
   private reliefMesh: THREE.InstancedMesh | null = null;
   private readonly rims: { matrix: THREE.Matrix4; color: THREE.Color; wing: ExhibitPlacement['wing'] }[] = [];
   private rimMesh: THREE.InstancedMesh | null = null;
+  private readonly pools: { matrix: THREE.Matrix4; color: THREE.Color; wing: ExhibitPlacement['wing'] }[] = [];
+  private poolMesh: THREE.InstancedMesh | null = null;
 
   constructor(private readonly scope: ResourceScope) {
     this.group.name = 'exhibit-color-fields';
@@ -136,6 +139,19 @@ export class ExhibitColorFields {
       color: new THREE.Color(theme.trim),
       wing: placement.wing,
     });
+
+    // A feathered wash on the same stage gives each authored hero a subtle
+    // visual anchor. The wash is a projected floor colour, never a real light
+    // or an additional interaction/collision surface.
+    const poolPose = new THREE.Object3D();
+    poolPose.position.set(placement.anchor[0], wing.floorY + 0.061, placement.anchor[2]);
+    poolPose.rotation.x = -Math.PI / 2;
+    poolPose.updateMatrix();
+    this.pools.push({
+      matrix: poolPose.matrix.clone(),
+      color: new THREE.Color(theme.trim),
+      wing: placement.wing,
+    });
   }
 
   private buildReliefAccents(): void {
@@ -173,16 +189,37 @@ export class ExhibitColorFields {
     rims.computeBoundingSphere();
     this.rimMesh = rims;
     this.group.add(rims);
+
+    const washGeometry = this.scope.track(new THREE.PlaneGeometry(4.2, 4.2));
+    const washMaterial = this.scope.track(new THREE.MeshBasicMaterial({
+      color: 0xffffff, alphaMap: radialFloorMask(this.scope),
+      transparent: true, opacity: 0.20, depthWrite: false,
+      blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    }));
+    const washes = this.scope.track(new THREE.InstancedMesh(washGeometry, washMaterial, this.pools.length));
+    washes.name = 'gallery-curatorial-light-pools';
+    washes.renderOrder = 1;
+    for (let i = 0; i < this.pools.length; i++) {
+      washes.setMatrixAt(i, this.pools[i].matrix);
+      washes.setColorAt(i, this.pools[i].color);
+    }
+    washes.instanceMatrix.needsUpdate = true;
+    washes.computeBoundingSphere();
+    this.poolMesh = washes;
+    this.group.add(washes);
   }
 
-  /** Keep both batched gallery accents in the exact same portal-culling set. */
+  /** Keep all three gallery batches within the exact same portal-culling set. */
   setVisibleWings(wings: ReadonlySet<string> | null): void {
     const relief = this.reliefMesh;
     const rims = this.rimMesh;
-    if (!relief || !rims) return;
-    if (!wings && relief.count === this.reliefs.length && rims.count === this.rims.length) return;
+    const pools = this.poolMesh;
+    if (!relief || !rims || !pools) return;
+    if (!wings && relief.count === this.reliefs.length
+      && rims.count === this.rims.length && pools.count === this.pools.length) return;
     const marks = wings ? this.reliefs.filter((item) => wings.has(item.wing)) : this.reliefs;
     const rings = wings ? this.rims.filter((item) => wings.has(item.wing)) : this.rims;
+    const washes = wings ? this.pools.filter((item) => wings.has(item.wing)) : this.pools;
     for (let i = 0; i < marks.length; i++) {
       relief.setMatrixAt(i, marks[i].matrix);
       relief.setColorAt(i, marks[i].color);
@@ -199,6 +236,14 @@ export class ExhibitColorFields {
     rims.instanceMatrix.needsUpdate = true;
     if (rims.instanceColor) rims.instanceColor.needsUpdate = true;
     rims.computeBoundingSphere();
+    for (let i = 0; i < washes.length; i++) {
+      pools.setMatrixAt(i, washes[i].matrix);
+      pools.setColorAt(i, washes[i].color);
+    }
+    pools.count = washes.length;
+    pools.instanceMatrix.needsUpdate = true;
+    if (pools.instanceColor) pools.instanceColor.needsUpdate = true;
+    pools.computeBoundingSphere();
   }
 
   private material(color: number, roughness: number, metalness: number, opacity: number, mineral = false): THREE.MeshStandardMaterial {

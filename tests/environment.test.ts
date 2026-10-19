@@ -218,7 +218,10 @@ describe('museum environment coherence', () => {
       if (node.name.startsWith('exhibit-theme-wall-upright:')) uprights++;
     });
 
-    expect(fields.children).toHaveLength(PLACEMENTS.length + 2);
+    expect(fields.children).toHaveLength(PLACEMENTS.length + 3);
+    const washes = fields.getObjectByName('gallery-curatorial-light-pools') as THREE.InstancedMesh;
+    expect(washes.isInstancedMesh).toBe(true);
+    expect(washes.count).toBe(PLACEMENTS.length);
     const stageRims = fields.getObjectByName('gallery-floor-inlaid-rims') as THREE.InstancedMesh;
     expect(stageRims.isInstancedMesh).toBe(true);
     expect(stageRims.count).toBe(PLACEMENTS.length);

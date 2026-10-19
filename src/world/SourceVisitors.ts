@@ -4,6 +4,7 @@ import type { CollisionWorld } from './CollisionWorld';
 import { INTERACTION_ONLY_LAYER, type InteractionManager } from '../interaction/InteractionManager';
 import { SOURCE_VISITORS, visitorRouteForVNext, type SourceVisitor } from '../content/sourceParity';
 import type { Vec3 } from './layout';
+import { radialFloorMask } from './RadialFloorMask';
 
 type VisitorGeometryKey = 'box' | 'torso' | 'upperArm' | 'lowerArm' | 'upperLeg' | 'lowerLeg' | 'head' | 'orb' | 'hair';
 
@@ -13,6 +14,7 @@ interface VisitorPart {
 }
 
 interface RuntimeVisitor {
+  shadowIndex: number;
   data: SourceVisitor;
   group: THREE.Group;
   hit: THREE.Object3D;
@@ -58,6 +60,7 @@ function rgb(c: number[] | undefined, fallback: number): number {
 export class SourceVisitors {
   readonly group = new THREE.Group();
   readonly batch: THREE.BatchedMesh;
+  readonly shadows: THREE.InstancedMesh;
   private readonly visitors: RuntimeVisitor[] = [];
   private readonly unbind: (() => void)[] = [];
   private readonly collisionProbeX = { x: 0, y: 0, z: 0 };
@@ -65,6 +68,7 @@ export class SourceVisitors {
   private readonly batchRootInverse = new THREE.Matrix4();
   private readonly batchMatrix = new THREE.Matrix4();
   private readonly colorScratch = new THREE.Color();
+  private readonly shadowPose = new THREE.Object3D();
   private readonly geometryIds: Record<VisitorGeometryKey, number>;
   private readonly hitGeometry: THREE.CylinderGeometry;
   private readonly hitMaterial: THREE.MeshBasicMaterial;
@@ -80,7 +84,27 @@ export class SourceVisitors {
     const { batch, geometryIds } = this.buildBatch();
     this.batch = batch;
     this.geometryIds = geometryIds;
-    this.group.add(this.batch);
+
+    // One faint, grounded contact shadow per visitor. Instance transforms
+    // follow the established body-visual cadence; collision and 60Hz paths
+    // remain untouched. The same procedural alpha texture serves galleries.
+    const shadowGeometry = this.scope.track(new THREE.PlaneGeometry(1.55, 1.12));
+    shadowGeometry.rotateX(-Math.PI / 2);
+    const shadowMaterial = this.scope.track(new THREE.MeshBasicMaterial({
+      color: 0x091017, alphaMap: radialFloorMask(this.scope),
+      transparent: true, opacity: 0.43, depthWrite: false,
+      side: THREE.DoubleSide,
+    }));
+    this.shadows = this.scope.track(new THREE.InstancedMesh(
+      shadowGeometry, shadowMaterial, SOURCE_VISITORS.length,
+    ));
+    this.shadows.name = 'authored-visitor-contact-shadows';
+    this.shadows.renderOrder = 1;
+    this.shadows.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    // Visitors follow existing authored routes; avoid a stale shared bounding
+    // sphere clipping shadow instances as they migrate between gallery zones.
+    this.shadows.frustumCulled = false;
+    this.group.add(this.batch, this.shadows);
     this.group.updateWorldMatrix(true, false);
     this.batchRootInverse.copy(this.group.matrixWorld).invert();
 
@@ -93,8 +117,8 @@ export class SourceVisitors {
       depthWrite: false,
     }));
 
-    for (const data of SOURCE_VISITORS) {
-      const runtime = this.build(data);
+    for (const [index, data] of SOURCE_VISITORS.entries()) {
+      const runtime = this.build(data, index);
       this.visitors.push(runtime);
       this.group.add(runtime.group);
       this.syncVisitorVisual(runtime);
@@ -319,7 +343,7 @@ export class SourceVisitors {
     return { batch, geometryIds };
   }
 
-  private build(data: SourceVisitor): RuntimeVisitor {
+  private build(data: SourceVisitor, shadowIndex: number): RuntimeVisitor {
     const g = new THREE.Group();
     g.name = `visitor:${data.id}`;
     const route = visitorRouteForVNext(data.id);
@@ -442,7 +466,7 @@ export class SourceVisitors {
     g.add(hit);
 
     return {
-      data, group: g, hit, route, routeIndex: 1 % Math.max(1, route.length),
+      shadowIndex, data, group: g, hit, route, routeIndex: 1 % Math.max(1, route.length),
       pause: seated ? Infinity : 0, lineIndex: 0, phase: 0, farElapsed: 0, visualElapsed: 0,
       leftArm, rightArm, leftLeg, rightLeg, anatomy, parts,
     };
@@ -470,6 +494,13 @@ export class SourceVisitors {
       this.batchMatrix.copy(this.batchRootInverse).multiply(part.node.matrixWorld);
       this.batch.setMatrixAt(part.instanceId, this.batchMatrix);
     }
+
+    const position = visitor.group.position;
+    this.shadowPose.position.set(position.x, position.y + 0.028, position.z);
+    this.shadowPose.scale.set(visitor.data.width, 1, visitor.data.width);
+    this.shadowPose.updateMatrix();
+    this.shadows.setMatrixAt(visitor.shadowIndex, this.shadowPose.matrix);
+    this.shadows.instanceMatrix.needsUpdate = true;
   }
 
   dispose(): void {

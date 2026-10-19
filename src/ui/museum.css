@@ -1004,3 +1004,17 @@ html:not([data-contrast='high']):not([data-transparency='reduced']) .panel__body
   .panel__body::before { display: none; }
   .hud__location { background: Canvas; border-color: CanvasText; }
 }
+
+/* Locational wayfinding echoes the wing's established world palette without
+   removing textual labels or relying on colour alone. */
+.hud__location { --location-signal: rgba(231, 198, 140, .68); border-left-color: var(--location-signal); }
+.hud__location[data-zone='north'] { --location-signal: var(--wing-north); }
+.hud__location[data-zone='east'] { --location-signal: var(--wing-east); }
+.hud__location[data-zone='south'] { --location-signal: var(--wing-south); }
+.hud__location[data-zone='west'] { --location-signal: var(--wing-west); }
+.hud__location[data-zone='media'] { --location-signal: var(--wing-media); }
+.hud__location[data-zone='infra'] { --location-signal: var(--wing-infra); }
+html[data-contrast='high'] .hud__location[data-zone] { border-left-color: #fff; }
+@media (forced-colors: active) {
+  .hud__location[data-zone] { border-left-color: CanvasText; }
+}

@@ -51,3 +51,12 @@ Real browser: `tests/browser/art-direction.e2e.ts` checks the live scene's share
 The canonical `npm run gate` covers typecheck, lint, unit tests, mapping/content/privacy/frame-loop/hotpaths/assets/exhibits/source parity, production build and transfer budgets. Offline verification separately exercises real source installations and authored visitors.
 
 **Unverified:** subjective finish/lighting/readability, physical tablet frame pacing, long-running GPU behavior, contact shadows and fine ambient character animation, hero-by-hero visual acceptance, gamepad behavior if any, and public Pages deployment of the current commit. Do not claim these from generated screenshots or passing automated tests. Additional per-hero visual overhaul belongs in later evidence-led slices, not a fake one-click AAA completion declaration.
+
+
+## 2026-10-19 continued visual pass (isolated branch; validation pending)
+
+**Intent, not a 1.0 declaration.** Building on `visual/reliquary-finish-2026-10-19`, introduce a shared locally generated 64x64 soft alpha mask for two actual-world improvements: one subtly tinted, spatially culled gallery floor wash per 35 exhibit stages; one faint moving contact shadow per 17 distinct authored visitors. The gallery wash is presentation-only additive colour; it does not cast dynamic scene light or change project artwork. Visitor shadows use the existing body-visual update cadence and do not change 60Hz routes/collision/interaction. The location HUD now carries six existing wing palette signals while retaining explicit location text.
+
+**Resource contract:** One shared per-scope alpha texture, one gallery instance draw with current portal culling, one visitor shadow instance draw, zero new lights, dependencies, animation loops, collision surfaces, remote assets, or save/asset authority changes. Low-tier devices retain the existing renderer tier, DPR guard and static look; physical frame-time impact is not claimed before measurement. The ongoing campaign's earlier flight-pad, six-wing fixtures and inlaid gallery rims are preserved.
+
+**Proof contract:** Unit tests validate mask edge and centre, shared identity/disposal, 35-to-north-culling-to-35 recovery, 17 visitor instances, and scene source-contract; existing `npm run gate`, `npm run test:e2e`, `npm run test:workshop`, and offline standalone paths remain mandatory. Human per-exhibit aesthetics, physical MacBook/Brave and Android performance and exact hosted Pages revision remain **UNKNOWN / UNVERIFIED** until independent receipts exist.
