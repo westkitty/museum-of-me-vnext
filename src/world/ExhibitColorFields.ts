@@ -16,6 +16,8 @@ export class ExhibitColorFields {
   readonly group = new THREE.Group();
   private readonly reliefs: { matrix: THREE.Matrix4; color: THREE.Color; wing: ExhibitPlacement['wing'] }[] = [];
   private reliefMesh: THREE.InstancedMesh | null = null;
+  private readonly rims: { matrix: THREE.Matrix4; color: THREE.Color; wing: ExhibitPlacement['wing'] }[] = [];
+  private rimMesh: THREE.InstancedMesh | null = null;
 
   constructor(private readonly scope: ResourceScope) {
     this.group.name = 'exhibit-color-fields';
@@ -122,6 +124,18 @@ export class ExhibitColorFields {
       upright.rotation.y = angle;
       field.add(upright);
     }
+
+    // Inlaid metal boundary: a gallery stage, not a flat coloured placeholder.
+    // Each room has one matrix, submitted in the same cullable instanced batch.
+    const rimPose = new THREE.Object3D();
+    rimPose.position.set(placement.anchor[0], wing.floorY + 0.066, placement.anchor[2]);
+    rimPose.rotation.x = -Math.PI / 2;
+    rimPose.updateMatrix();
+    this.rims.push({
+      matrix: rimPose.matrix.clone(),
+      color: new THREE.Color(theme.trim),
+      wing: placement.wing,
+    });
   }
 
   private buildReliefAccents(): void {
@@ -142,24 +156,49 @@ export class ExhibitColorFields {
     relief.computeBoundingSphere();
     this.reliefMesh = relief;
     this.group.add(relief);
+
+    const rimGeometry = this.scope.track(new THREE.RingGeometry(2.30, 2.39, 56));
+    const rimMaterial = this.scope.track(new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, opacity: 0.7,
+      depthWrite: false, side: THREE.DoubleSide,
+    }));
+    const rims = this.scope.track(new THREE.InstancedMesh(rimGeometry, rimMaterial, this.rims.length));
+    rims.name = 'gallery-floor-inlaid-rims';
+    rims.renderOrder = 2;
+    for (let i = 0; i < this.rims.length; i++) {
+      rims.setMatrixAt(i, this.rims[i].matrix);
+      rims.setColorAt(i, this.rims[i].color);
+    }
+    rims.instanceMatrix.needsUpdate = true;
+    rims.computeBoundingSphere();
+    this.rimMesh = rims;
+    this.group.add(rims);
   }
 
-  /** Draw only the selected wing's marks when its corridor blocks the others. */
+  /** Keep both batched gallery accents in the exact same portal-culling set. */
   setVisibleWings(wings: ReadonlySet<string> | null): void {
     const relief = this.reliefMesh;
-    if (!relief) return;
-    const displayed = wings
-      ? this.reliefs.filter((item) => wings.has(item.wing))
-      : this.reliefs;
-    if (relief.count === displayed.length && !wings) return;
-    for (let i = 0; i < displayed.length; i++) {
-      relief.setMatrixAt(i, displayed[i].matrix);
-      relief.setColorAt(i, displayed[i].color);
+    const rims = this.rimMesh;
+    if (!relief || !rims) return;
+    if (!wings && relief.count === this.reliefs.length && rims.count === this.rims.length) return;
+    const marks = wings ? this.reliefs.filter((item) => wings.has(item.wing)) : this.reliefs;
+    const rings = wings ? this.rims.filter((item) => wings.has(item.wing)) : this.rims;
+    for (let i = 0; i < marks.length; i++) {
+      relief.setMatrixAt(i, marks[i].matrix);
+      relief.setColorAt(i, marks[i].color);
     }
-    relief.count = displayed.length;
+    relief.count = marks.length;
     relief.instanceMatrix.needsUpdate = true;
     if (relief.instanceColor) relief.instanceColor.needsUpdate = true;
     relief.computeBoundingSphere();
+    for (let i = 0; i < rings.length; i++) {
+      rims.setMatrixAt(i, rings[i].matrix);
+      rims.setColorAt(i, rings[i].color);
+    }
+    rims.count = rings.length;
+    rims.instanceMatrix.needsUpdate = true;
+    if (rims.instanceColor) rims.instanceColor.needsUpdate = true;
+    rims.computeBoundingSphere();
   }
 
   private material(color: number, roughness: number, metalness: number, opacity: number, mineral = false): THREE.MeshStandardMaterial {

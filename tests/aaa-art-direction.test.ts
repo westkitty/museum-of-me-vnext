@@ -61,7 +61,12 @@ describe('museum-wide premium architectural finish', () => {
     expect(origin.length()).toBeGreaterThan(1);
     expect(relief.material).toBeInstanceOf(THREE.MeshBasicMaterial);
     expect((relief.material as THREE.MeshBasicMaterial).depthWrite).toBe(false);
-    expect(fields.children).toHaveLength(PLACEMENTS.length + 1);
+    expect(fields.children).toHaveLength(PLACEMENTS.length + 2);
+    const rims = fields.getObjectByName('gallery-floor-inlaid-rims') as THREE.InstancedMesh;
+    expect(rims.isInstancedMesh).toBe(true);
+    expect(rims.count).toBe(PLACEMENTS.length);
+    expect(rims.geometry).toBeInstanceOf(THREE.RingGeometry);
+    expect(rims.instanceColor).not.toBeNull();
     expect(fields.children.filter((child) => child.name.startsWith('exhibit-color-field:'))).toHaveLength(35);
     let lights = 0;
     fields.traverse((item) => { if (item instanceof THREE.Light) lights++; });
