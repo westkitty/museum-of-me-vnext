@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="dark"/>
+<title>Museum of Me · Spatial Workbench</title>
+<style>
+:root{--ink:#0d1419;--panel:#141d22;--panel2:#19242a;--border:#344248;--muted:#9baeb2;--paper:#e9e2d1;--gold:#dfc48b;--bright:#f7f0dc;--good:#89bcb0;--hot:#e0a68a;--shadow:rgba(0,0,0,.28);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{box-sizing:border-box}html,body{margin:0;height:100%;min-height:100%;background:var(--ink);color:var(--paper)}button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.45}button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--gold);outline-offset:3px}button{border:1px solid var(--border);border-radius:5px;padding:8px 11px;color:var(--paper);background:var(--panel2);transition:background .15s,border-color .15s}button:hover:not(:disabled){background:#24343c;border-color:#7d938f}button[aria-pressed="true"],button.active{border-color:var(--gold);background:#3d392e;color:var(--bright)}input,textarea,select{min-width:0;border:1px solid var(--border);border-radius:5px;background:#0e171b;color:var(--bright);padding:10px}input::placeholder,textarea::placeholder{color:#748991}textarea{resize:vertical;min-height:130px;line-height:1.5}a{color:var(--gold)}.app{height:100dvh;min-height:610px;display:flex;flex-direction:column;overflow:hidden}.mast{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 19px;border-bottom:1px solid var(--border);background:#111a1e}.brand{display:flex;align-items:center;gap:14px;min-width:0}.seal{width:39px;height:39px;border:1px solid #ad9567;border-radius:50%;display:grid;place-items:center;color:var(--gold);font-family:Georgia,serif;font-size:23px;flex-shrink:0;box-shadow:inset 0 0 0 4px #1a2529}.brand h1{font:400 22px/1 Georgia,"Times New Roman",serif;letter-spacing:.01em;margin:0 0 4px}.eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:750}.mast-meta{font-size:11px;color:var(--muted);text-align:right;line-height:1.5}.mast-meta strong{color:var(--paper);font-weight:600}.mobile-tabs{display:none}.workspace{display:grid;grid-template-columns:270px minmax(0,1fr) 330px;flex:1;min-height:0}.sidebar{display:flex;flex-direction:column;min-height:0;background:var(--panel);border-right:1px solid var(--border)}.inspector{border-right:0;border-left:1px solid var(--border)}.shead{padding:18px 18px 13px;border-bottom:1px solid var(--border)}.shead h2{font:400 22px/1.1 Georgia,serif;margin:6px 0}.tiny{font-size:11px;color:var(--muted);line-height:1.5}.searchbar{display:grid;gap:9px;padding:12px 13px;border-bottom:1px solid var(--border)}.searchbar input{width:100%}.scroll{overflow:auto;min-height:0;flex:1}.wing-filter{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 15px 7px;color:var(--muted);font-size:11px;letter-spacing:.09em;text-transform:uppercase}.wing-filter select{padding:5px 7px;width:135px;font-size:12px;letter-spacing:normal;text-transform:none}.exhibit-list{display:grid;padding:7px 9px 18px;gap:4px}.exhibit-entry{width:100%;text-align:left;padding:9px 8px 9px 11px;display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:7px;align-items:center;border-radius:4px;border:1px solid transparent;background:transparent;position:relative}.exhibit-entry:before{content:"";position:absolute;width:3px;left:0;top:8px;bottom:8px;background:var(--wing);opacity:.7}.exhibit-entry:hover,.exhibit-entry[aria-current="true"]{background:#233037;border-color:#445d63}.exhibit-entry[aria-current="true"]{box-shadow:inset 0 0 0 1px #a7a18c}.eid{font-size:11px;font-weight:800;color:var(--wing)}.ename{font-size:12px;line-height:1.35;color:var(--paper)}.etag{border:1px solid #48545a;border-radius:3px;padding:2px 4px;font-size:10px;color:var(--muted)}.left-foot{border-top:1px solid var(--border);padding:11px 15px;font-size:11px;color:var(--muted)}.count{font-variant-numeric:tabular-nums;color:var(--gold)}
+.map-column{min-width:0;min-height:0;display:flex;flex-direction:column;background:#0b151b;position:relative}.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 13px;border-bottom:1px solid var(--border);background:#101b20;z-index:2}.toolbar-group{display:flex;align-items:center;gap:3px;border-right:1px solid #425056;padding-right:9px;margin-right:2px}.toolbar-group:last-child{border-right:0}.toolbar button{padding:7px 10px;font-size:12px}.floor-pick{font-size:12px}.tool-name{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}.spacer{flex:1}.map-frame{position:relative;flex:1;min-height:0;overflow:hidden;background:radial-gradient(circle at 50% 48%,#14242c 0,#0d1b21 60%,#0a1418 100%)}#mapSvg{width:100%;height:100%;display:block;touch-action:none;cursor:grab}#mapSvg.panning{cursor:grabbing}#mapSvg.pin-mode{cursor:crosshair}#mapSvg.move-mode{cursor:crosshair}#mapSvg .structure{stroke:#91a4a0;stroke-linecap:square;stroke-linejoin:miter;fill:none}#mapSvg .struct-fill{stroke:none}#mapSvg .wall{stroke:#a6b4b1;stroke-width:.62;fill:none;stroke-linecap:square}#mapSvg .wall-subtle{stroke:#687d80;stroke-width:.35;fill:none}#mapSvg .portal{stroke:#dbc69c;stroke-width:1.1;stroke-linecap:round}#mapSvg .room-label{font-family:Georgia,serif;font-size:5.5px;fill:#e2ded0;text-anchor:middle;pointer-events:none}#mapSvg .minor-label{font-size:3.8px;fill:#91a5a7;letter-spacing:.04em;pointer-events:none;text-anchor:middle}#mapSvg .bay-text{font-size:3.4px;fill:#e6e5df;text-anchor:middle;font-weight:700;pointer-events:none}#mapSvg .bay-subtext{font-size:2.35px;fill:#c5d0cd;text-anchor:middle;pointer-events:none}#mapSvg .bay-hit{cursor:pointer;outline:none}#mapSvg .bay-hit:hover .bay-outline,#mapSvg .bay-hit:focus .bay-outline{stroke:#f8deb0;stroke-width:1.5}#mapSvg .bay-hit:focus-visible .bay-outline{stroke:#fff6df;stroke-width:2}#mapSvg .bay-hit.selected .bay-outline{stroke:#f8d38b;stroke-width:1.55}#mapSvg .bay-hit.match .bay-outline{stroke:#f0d18a}#mapSvg .bay-outline{fill:none;stroke-width:.55}#mapSvg .bay-hit.filtered{opacity:.14}#mapSvg .bay-hit.filtered{pointer-events:none}#mapSvg .pin-marker{cursor:pointer}#mapSvg .pin-marker:hover circle,#mapSvg .pin-marker.selected circle{stroke:#fff5d8;stroke-width:.9}#mapSvg .old-point{fill:#f0cc82}#mapSvg .proposed-point{fill:#0e171b;stroke:#f0cc82;stroke-width:1.2;cursor:grab}#mapSvg .source-point{fill:#0c1619;stroke:#e4a684;stroke-width:.95}#mapSvg .source-point:hover{fill:#e4a684;cursor:pointer}#mapSvg .stair{stroke:#d8c69f;stroke-width:1.1;fill:none;stroke-dasharray:1.2 1.1}#mapSvg .measure-path{stroke:#e8c684;stroke-width:.8;stroke-dasharray:2 1;fill:none}#mapSvg .route{stroke:#9cb0bc;stroke-width:.8;stroke-dasharray:2 1.2;fill:none;opacity:.75}#mapSvg .centerline{stroke:#6d979e;stroke-width:.25;stroke-dasharray:2 2;fill:none;opacity:.9;pointer-events:none}.plan-flags{position:absolute;left:14px;top:16px;pointer-events:none;display:grid;gap:4px}.plan-flags strong{font-family:Georgia,serif;font-weight:400;font-size:21px;color:#f5e7c7}.plan-flags span{font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:#a2b7b8}.map-bottom{position:absolute;left:12px;right:12px;bottom:12px;display:flex;align-items:flex-end;justify-content:space-between;pointer-events:none;gap:9px}.map-bottom>div{pointer-events:auto}.legend-box,.coords-box{border:1px solid #40545b;background:#111c22ed;border-radius:5px;padding:9px 12px;box-shadow:0 8px 22px #0005;font-size:11px}.legend-box{display:grid;gap:5px}.legend-list{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px}.legend-list span{display:inline-flex;gap:6px;align-items:center}.legend-list i{width:10px;height:10px;display:inline-block;border-radius:2px;border:1px solid #ffffff42}.coords-box{display:grid;gap:7px;min-width:140px;text-align:right}.scale{height:6px;border-top:2px solid var(--paper);border-left:2px solid var(--paper);border-right:2px solid var(--paper);align-self:flex-end;min-width:20px;max-width:140px}.status-bar{border-top:1px solid var(--border);background:#111b20;padding:7px 13px;display:flex;gap:12px;align-items:center;justify-content:space-between;color:var(--muted);font-size:11px}.status-bar b{color:#e2c68d}.inspector .scroll{padding:15px 18px 22px}.inspector h3{font:400 21px/1.18 Georgia,serif;margin:8px 0 12px}.meta-kicker{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:800}.pill{display:inline-flex;align-items:center;gap:5px;font-size:10px;text-transform:uppercase;letter-spacing:.07em;padding:4px 7px;border:1px solid #536064;border-radius:3px;color:#cbd4d0}.meta-list{display:grid;grid-template-columns:1fr auto;gap:8px 10px;font-size:12px;padding:13px 0;border-block:1px solid var(--border);margin:12px 0 16px}.meta-list dt{color:var(--muted)}.meta-list dd{margin:0;color:var(--paper);text-align:right;font-variant-numeric:tabular-nums}.inspector section{margin-bottom:20px}.sec-title{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:7px;margin-bottom:11px;font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--gold);font-weight:750}.records{list-style:none;margin:0;padding:0;display:grid;gap:6px}.records li{border-left:2px solid #658687;background:#1b292e;padding:7px 9px;font-size:12px;line-height:1.4}.records small{display:block;color:var(--muted);font-size:10px;margin-top:2px}.form-group{display:grid;gap:6px;margin:11px 0}.form-group label{color:var(--muted);font-size:11px}.form-group textarea,.form-group select{width:100%}.input-row{display:flex;gap:7px;flex-wrap:wrap}.input-row>*{flex:1}.tinted{background:#202c30;padding:11px;border:1px solid #3f555b;border-radius:6px}.tinted p{margin:0;color:var(--muted);font-size:11px;line-height:1.55}.empty-state{display:grid;align-content:center;gap:16px;min-height:330px;color:var(--muted)}.empty-state .big{font:400 30px/1.2 Georgia,serif;color:var(--paper)}.inspector .info{color:var(--muted);font-size:12px;line-height:1.6}.note{font-size:11px;color:var(--muted);line-height:1.55}.checkbox-line{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--paper);margin:9px 0}.checkbox-line input{width:16px;height:16px;accent-color:#e0c283}.footer-meta{padding:10px 15px;border-top:1px solid var(--border);font-size:10px;color:var(--muted)}.data-actions{display:flex;gap:6px;flex-wrap:wrap;padding:10px 12px;border-top:1px solid var(--border)}.data-actions button{font-size:11px;flex:1;min-width:100px}.data-actions input{display:none}.tool-overlay{position:absolute;right:17px;top:14px;max-width:265px;background:#17252cfa;border:1px solid #576b6e;padding:11px 13px;border-radius:5px;color:#e9e0ce;font-size:12px;line-height:1.45;box-shadow:0 12px 30px #0007;pointer-events:none}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.warning{border-left:2px solid #d9a479;padding-left:9px;color:#d5c5ae}.stack{display:grid;gap:8px}.icon-dot{display:inline-block;width:8px;height:8px;border-radius:50%;vertical-align:middle;margin-right:4px}.coaster{border-top:1px solid #46575c;margin:13px 0 0;padding-top:12px}.link-row{display:flex;justify-content:space-between;align-items:center;gap:10px}.kbd{display:inline-block;border:1px solid #536168;border-bottom-width:2px;padding:2px 5px;border-radius:3px;font-size:10px;background:#1c282d}.mobile-only{display:none}
+@media(max-width:1120px){.workspace{grid-template-columns:225px minmax(0,1fr) 290px}.brand h1{font-size:19px}.toolbar{gap:5px}.toolbar button{padding:7px 8px}}
+@media(max-width:850px){.app{height:100dvh;min-height:0}.mast{padding:10px 12px}.mast-meta{display:none}.workspace{position:relative;display:flex}.sidebar{position:absolute;z-index:7;inset:0 auto 0 0;width:min(85vw,360px);box-shadow:8px 0 40px #0008;transform:translateX(-110%);transition:transform .2s;visibility:hidden}.inspector{inset:0 0 0 auto;transform:translateX(110%);box-shadow:-8px 0 40px #0008;border-left:1px solid var(--border)}.sidebar.open{transform:translateX(0);visibility:visible}.map-column{width:100%}.mobile-tabs{display:flex;gap:5px;padding:7px 10px;border-bottom:1px solid var(--border);background:#111b20}.mobile-tabs button{font-size:11px;padding:6px 8px}.mobile-only{display:inline-flex}.toolbar{padding:7px 10px}.toolbar-group{gap:2px}.toolbar-group button{font-size:11px}.tool-name{display:none}.map-bottom{bottom:8px;left:8px;right:8px}.legend-box{max-width:58vw}.legend-list{gap:4px 8px}.coords-box{min-width:100px}.plan-flags{top:10px;left:10px}.plan-flags strong{font-size:17px}}
+@media(max-width:475px){.legend-box{font-size:10px;padding:6px 8px;max-width:65vw}.coords-box{font-size:10px;padding:6px 8px;min-width:90px}.toolbar{gap:4px}.toolbar button{padding:7px}.toolbar-group{padding-right:5px;margin-right:0}.brand h1{font-size:17px}.brand .eyebrow{font-size:9px}.seal{width:34px;height:34px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+#mapSvg .measure-label{font:700 3.7px ui-sans-serif,system-ui,sans-serif;fill:#f4dfaa;text-anchor:middle;paint-order:stroke;stroke:#0c171d;stroke-width:1.7px;pointer-events:none}#mapSvg .measure-dot{fill:#f3d495;stroke:#162328;stroke-width:.7;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="mast">
+    <div class="brand"><div class="seal" aria-hidden="true">M</div><div><div class="eyebrow">The Reliquary of Iterative Becoming</div><h1>Museum of Me <span style="font-size:.65em;color:#bcb2a0">/ spatial workbench</span></h1></div></div>
+    <div class="mast-meta"><strong>Source-pinned architectural survey</strong><br>MAIN · <code>6278d2c</code> · 27 October 2026 · Pre-1.0<br>Proposal changes remain local. The museum code is untouched.</div>
+  </header>
+  <div class="mobile-tabs"><button id="openCollection" type="button">☷ Collection</button><button id="openDetails" type="button">≡ Inspector</button><button id="closePanels" type="button">View map</button></div>
+  <main class="workspace">
+    <aside class="sidebar" id="collectionPane" aria-label="Museum collection">
+      <div class="shead"><div class="eyebrow">Index / 01</div><h2>The collection</h2><div class="tiny">35 permanent exhibit slots · 73 project identities · six wings</div></div>
+      <div class="searchbar"><input id="search" type="search" aria-label="Search exhibits and projects" placeholder="Find a project, room, or ID…" autocomplete="off"/><div class="tiny">Select a room to inspect its original coordinates.</div></div>
+      <div class="wing-filter"><span>Filter</span><select id="wingFilter" aria-label="Wing filter"><option value="all">All wings</option><option value="north">Starsilk & Drakken</option><option value="west">Archive & Canon</option><option value="south">Games & Play</option><option value="east">Dex Systems</option><option value="media">Music / Media</option><option value="infra">Local Systems</option></select></div>
+      <div class="scroll" id="collectionScroll"><nav class="exhibit-list" id="exhibitList" aria-label="Exhibits"></nav></div>
+      <div class="left-foot"><span id="listCount" class="count">35</span> matches · E01–E35 · Dexter Sanctuary outside count</div>
+      <div class="data-actions"><button id="exportPlan" type="button" title="Download planning notes, pins, and proposed moves as JSON">Export plan</button><button id="importPlan" type="button">Import plan</button><input type="file" id="importFile" accept="application/json,.json"/><button id="clearPlan" type="button" title="Reset only local planning changes">Reset plan</button></div>
+    </aside>
+    <section class="map-column" aria-label="Interactive top-down architectural map">
+      <div class="toolbar">
+        <div class="toolbar-group"><span class="tool-name">Level</span><button type="button" id="floor0" aria-pressed="true">00 · Ground</button><button type="button" id="floor1" aria-pressed="false">01 · Upper</button></div>
+        <div class="toolbar-group"><span class="tool-name">Tool</span><button type="button" id="toolInspect" aria-pressed="true">Inspect</button><button type="button" id="toolPin" aria-pressed="false" title="Click the plan to place a planning annotation">+ Pin</button><button type="button" id="toolMove" aria-pressed="false" title="Drag a selected exhibit's proposal marker; original geometry remains fixed">⇄ Propose move</button><button type="button" id="toolMeasure" aria-pressed="false" title="Measure straight-line plan distances between two points">Ruler</button></div>
+        <div class="toolbar-group"><button type="button" id="toggleSources" aria-pressed="false">14 source installations</button><button type="button" id="toggleRoutes" aria-pressed="false">Visitor paths</button></div>
+        <span class="spacer"></span>
+        <div class="toolbar-group"><button type="button" id="zoomOut" aria-label="Zoom out">−</button><button type="button" id="zoomIn" aria-label="Zoom in">+</button><button type="button" id="fit" title="Fit architectural plan to viewport">Fit</button></div>
+        <button type="button" id="exportSvg" title="Download the visible plan as scalable SVG">⇩ SVG</button>
+      </div>
+      <div class="map-frame" id="mapFrame">
+        <svg id="mapSvg" xmlns="http://www.w3.org/2000/svg" viewBox="-152 -154 304 340" role="group" aria-label="Top-down map of Museum of Me ground level. Select exhibits to inspect and draft changes.">
+          <defs>
+            <pattern id="minorGrid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" stroke="#33525b" stroke-width=".15" fill="none" opacity=".68"/></pattern>
+            <pattern id="majorGrid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M 50 0 L 0 0 0 50" stroke="#5a7373" stroke-width=".22" fill="none" opacity=".6"/></pattern>
+            <filter id="roomGlow"><feGaussianBlur stdDeviation="2"/></filter>
+          </defs>
+          <rect x="-400" y="-400" width="800" height="800" fill="url(#minorGrid)"/>
+          <rect x="-400" y="-400" width="800" height="800" fill="url(#majorGrid)"/>
+          <g id="planGeometry"></g>
+          <g id="planOverlays"></g>
+        </svg>
+        <div class="plan-flags"><strong id="mapTitle">Ground floor</strong><span id="mapSubtitle">North = −Z · world metres · 1:1 data space</span></div>
+        <div id="toolOverlay" class="tool-overlay" hidden></div>
+        <div class="map-bottom">
+          <div class="legend-box"><div class="eyebrow" style="font-size:9px">Map key</div><div class="legend-list"><span><i style="background:#566a6c"></i>Wall / floor</span><span><i style="background:#d9ba83"></i>Selected</span><span><i style="background:#e2a987"></i>Legacy installation</span><span><i style="background:#6695a0"></i>Proposal</span></div><div class="tiny">N ↑ · east → · north is negative Z</div></div>
+          <div class="coords-box"><div id="pointerCoords" aria-live="off">X — &nbsp; Z —</div><div class="scale" id="mapScale"></div><div id="scaleText">10 metres</div></div>
+        </div>
+      </div>
+      <footer class="status-bar"><span id="statusMessage" role="status" aria-live="polite">Select a room, or pan and zoom the plan.</span><span>Grounded dimensions · illustrative labels · editable proposal overlay</span></footer>
+    </section>
+    <aside class="sidebar inspector" id="detailsPane" aria-label="Room inspector and planning annotations"><div class="shead"><div class="eyebrow">Survey / 02</div><h2>Inspector</h2><div class="tiny">Source facts and proposals are deliberately separated.</div></div><div class="scroll" id="inspectorContent"></div><div class="footer-meta"><div class="link-row"><span>Source of truth</span><a href="https://github.com/westkitty/museum-of-me-vnext/tree/6278d2c8fea5b27466bc4840170b3d25e611e3c1" target="_blank" rel="noopener noreferrer">Repository snapshot</a></div><div style="margin-top:6px">No connection, save endpoint, or museum runtime required.</div></div></aside>
+  </main>
+</div>
+<script>
+'use strict';
+/* Source contract: main@6278d2c8fea5b27466bc4840170b3d25e611e3c1;
+   src/world/layout.ts + src/world/Museum.ts + data/exhibit-mapping.current.json.
+   The geometry below is a transcription of the source constants and algorithm,
+   not an independently designed or invented floor plan. */
+const SOURCE={repo:'westkitty/museum-of-me-vnext',branch:'main',sha:'6278d2c8fea5b27466bc4840170b3d25e611e3c1',date:'2026-10-27',mapBasis:'src/world/layout.ts',geometryBasis:'src/world/Museum.ts',collection:'data/exhibit-mapping.current.json',projectCount:73,exhibitCount:35};
+const COLORS={north:'#9c9bdf',west:'#b38dd8',south:'#d18d6f',east:'#6bb4a9',media:'#d0ba80',infra:'#a2bc82',sanctuary:'#e5cca2',rotunda:'#e1c794'};
+const WINGS=[
+{id:'north',name:'Starsilk & Drakken',face:'n',level:0,corFrom:16,corTo:24,corHW:5,from:24,to:96,hw:8,height:14,pitch:18,lead:9,depth:16,halfAlong:8,bayHeight:9,opening:9,archWidth:10,exhibits:['E01','E02','E03','E04','E05','E06','E07','E08']},
+{id:'east',name:'Dex Systems',face:'e',level:0,corFrom:16,corTo:24,corHW:4.5,from:24,to:96,hw:7,height:10,pitch:18,lead:9,depth:16,halfAlong:8,bayHeight:9,opening:9,archWidth:9,exhibits:['E17','E18','E19','E20','E21','E22','E23']},
+{id:'south',name:'Games & Play',face:'s',level:0,corFrom:16,corTo:24,corHW:5.5,from:24,to:114,hw:9,height:11,pitch:18,lead:9,depth:16,halfAlong:8,bayHeight:10,opening:9,archWidth:11,exhibits:['E24','E25','E26','E27','E28','E29','E30','E31','E32','E33']},
+{id:'west',name:'Archive & Canon',face:'w',level:0,corFrom:16,corTo:24,corHW:4.5,from:24,to:60,hw:7,height:10,pitch:18,lead:9,depth:16,halfAlong:8,bayHeight:9,opening:9,archWidth:9,exhibits:['E09','E10','E11','E12']},
+{id:'media',name:'Music / Promptcraft / Media',face:'nw',level:1,corFrom:16,corTo:26,corHW:4,from:26,to:62,hw:6.5,height:8,pitch:18,lead:9,depth:14,halfAlong:7,bayHeight:7.5,opening:8,archWidth:8,exhibits:['E13','E14','E15','E16']},
+{id:'infra',name:'Local Systems',face:'ne',level:1,corFrom:16,corTo:26,corHW:4,from:26,to:48,hw:6.5,height:9,pitch:18,lead:9,depth:18,halfAlong:9,bayHeight:8.5,opening:9,archWidth:8,exhibits:['E34','E35']}
+];
+const EXHIBIT_ROWS=[
+['E01','Starsilk Universe','north','A','P001'],['E02','Drakken Terraforming Compendium','north','B','P002 P006'],['E03','Orbital Tomb','north','A','P003'],['E04','Starsilk Possibility Cartographer','north','B','P004'],['E05','StarSilk Maker','north','B','P005'],['E06','Starsilk Compendium: Character & Canon Archive','north','B','P065'],['E07','Drakken Terraforming Laboratory','north','A','P007'],['E08','Heliocide Observatory','north','A','P008'],
+['E09','Museum Evolution','west','C','P009 P072'],['E10','WorldsVault Lineage','west','B','P047 P048 P049'],['E11','Selfsame: Continuity & Authority Systems','west','B','P014 P018 P046 P060 P066 P067'],['E12','Rhetorical InDEX','west','B','P062'],
+['E13','Suno Studio','media','B','P010'],['E14','Promptcraft & Vibe Coding','media','B','P011 P013 P029'],['E15','Agent Control & Capability Laboratory','media','B','P017 P019 P068'],['E16','Performance Capture & Media Transformation','media','B','P058 P059 P064 P069 P070'],
+['E17','Dex Voice Lab','east','A','P021 P022 P033 P034 P036'],['E18','Dex Companion & Agent Systems','east','C','P016 P020 P035'],['E19','DexTilt','east','B','P023'],['E20','Utility & Privacy Bench','east','C','P024 P032 P061'],['E21','Civic Support Studio','east','B','P025'],['E22','Creative Tools Studio','east','B','P026 P028 P030 P073'],['E23','Sensemaking Lab','east','B','P027 P031'],
+['E24','Era of Invincible Magic','south','A','P012'],['E25','DnDex / DM Hub','south','B','P015'],['E26','WestCat Systems','south','C','P037 P038'],['E27','The Full Weasel','south','C','P039'],['E28','Against the Void','south','B','P051'],['E29','Arkship Civilization','south','A','P052'],['E30','AetherVFX','south','A','P053'],['E31','Story Worlds','south','C','P054 P055'],['E32',"S'mores Katamari",'south','A','P056'],['E33','Endless Grok / Void Ascendancy','south','B','P057'],
+['E34','BigMac Backbone / AndrewOS Control Plane','infra','A','P040 P041 P042 P043 P045 P063 P071'],['E35','Local Specialist Systems Lab','infra','C','P044 P050']
+];
+const PROJECT_ROWS=`P001|Starsilk Universe
+P002|Drakken Terraforming Compendium
+P003|Orbital Tomb
+P004|Starsilk Possibility Cartographer
+P005|StarSilk Maker
+P006|Drakken Field Anatomy Archive
+P007|The Drakken Terraforming Laboratory
+P008|Heliocide Observatory
+P009|Museum of Me / The Reliquary of Iterative Becoming
+P010|Suno AI Lyrics and Manual
+P011|Visual Prompt Systems Registry
+P012|Era of Invincible Magic: Lands Unknown
+P013|Vibe Coding Nexus / DexGate Academy
+P014|KinDex Handoff
+P015|DnDex / DM_Hub
+P016|DexGPT / DnDex Operating Project
+P017|Code Harness
+P018|ChatGPT Bible Repo
+P019|Opencode Harness
+P020|DexClawdBot / Clawdbot
+P021|DexDictate macOS
+P022|DexDictate Android
+P023|DexTilt
+P024|DexCleaner
+P025|DexAid
+P026|DexCraft
+P027|DexEarth
+P028|DexGen
+P029|DexEnhance
+P030|DexDraw
+P031|Dexterpreter
+P032|DexSort
+P033|DexSpeak
+P034|DexTalk
+P035|DexKeeper Bot
+P036|BigMac Voice Tools
+P037|WESTCAT Overlay
+P038|WestCat Goes East
+P039|The Full Weasel
+P040|Big Mac Westcat SSH
+P041|BigMac Storage and SMB
+P042|BigMac Ollama + Codex Integration
+P043|Hermes Agent/Desktop + BigMac
+P044|Big Mac FaceTools
+P045|Large Language Launcher
+P046|Project Forge
+P047|WorldsVault Uplink
+P048|CanonForge
+P049|WorldsVault
+P050|OSINT Box
+P051|Against the Void
+P052|Arkship Civilization
+P053|AetherVFX
+P054|Parable
+P055|Starlight Acre
+P056|S'mores Katamari
+P057|Endless Grok / Void Ascendancy
+P058|Guy_Cast
+P059|Gay_Cast
+P060|He-Maker
+P061|SpaceWise
+P062|Rhetorical InDEX
+P063|project_daemon / DAEMON
+P064|Media Getter
+P065|Starsilk Compendium
+P066|Selfsame
+P067|Project Sentinel
+P068|RepoForge
+P069|Character Performance Capture
+P070|ClearCut Local
+P071|AndrewOS Mac Bridge
+P072|Modern 3D Browser Game Toolkit
+P073|2D Game Factory`;
+const PROJECTS=Object.fromEntries(PROJECT_ROWS.split('\n').map(s=>s.split('|')));
+const PRIMARY_ROWS=[['starsilk-atlas','Starsilk Atlas','E01'],['drakken-sandbox','Drakken Terraforming Sandbox','E07'],['orbital-tomb','Orbital Tomb Visual Timeline','E03'],['smores-katamari',"S'mores Katamari",'E32'],['westcat-east','WestCat Goes East','E26'],['parable','Parable','E31'],['vibe-nexus','Vibe Coding Nexus','E14'],['westcat-familiar','WESTCAT Familiar','E26'],['heliocide','Heliocide Control Room','E08'],['dexdictate','DexDictate','E17'],['tablet-link','Relay Link / TabletLink','E18'],['osint-box','OSINT Box','E23'],['dexvault','DexVault / Vault Architect','E20'],['dexgpt',"DexGPT / Dexter's Sanctuary",'sanctuary']];
+const SUPP_ROWS=[['drakken-compendium','Drakken Compendium','E02'],['starsilk-maker','StarSilk Maker','E05'],['sky-built-film','Your Sky Is Built from Your Dead','E16'],['dexdictate-android','DexDictate Android Companion','E17'],['ftl-research','FTL Research Table','E35'],['bigmac-stack','Big Mac Local AI Stack','E34'],['blood-archive','Blood Eclipse Outreach Archive','E16'],['heliocide-rush','Heliocide Rush','E08'],['friend-cats-newsroom','Friend Cats Newsroom','E31'],['westcat-overlay','WESTCAT Overlay for macOS','E26'],['dexstitch','DexStitch','E22'],['handoff-necromancer','Handoff Necromancer','E11'],['dexkeeper','DexKeeper_Bot','E18'],['quarrymind-study','Quarrymind Study','E23'],['dexcast','DexCast / Fire Relay','E17']];
+const VISITOR_ROWS=[['curator-archive','Archive Curator','north',1],['visitor-katamari','Game Visitor','south',0],['visitor-myth','Myth Systems Researcher','west',0],['visitor-local','Local-first Engineer','east',0],['visitor-analyst','Forensic Analyst','east',0],['visitor-memory','Memory Architect','east',0],['visitor-access','Accessibility Visitor','sanctuary',0],['docent','Floor Docent','rotunda',1],['guard','Gallery Attendant','rotunda',1],['conservator','Installation Conservator','west',1],['student-a','Design Student','north',0],['student-b','Systems Student','north',0],['sketcher','Seated Sketcher','south',0],['architect','Visiting Architect','rotunda',0],['pilgrim','System Pilgrim','sanctuary',0],['research-pair-a','Continuity Researcher','north',0],['research-pair-b','Media Researcher','north',0]];
+const WING_BY_ID=Object.fromEntries(WINGS.map(w=>[w.id,w]));
+const FACE_INDEX={n:0,ne:1,e:2,se:3,s:4,sw:5,w:6,nw:7};
+const PI=Math.PI;
+function dirFor(face){let a=FACE_INDEX[face]*PI/4;return [Math.sin(a),-Math.cos(a)];}
+function rightOf(d){return [-d[1],d[0]];}
+function pPlace(d,along,lat=0){const r=rightOf(d);return [d[0]*along+r[0]*lat,d[1]*along+r[1]*lat];}
+function add(p,v,k=1){return [p[0]+v[0]*k,p[1]+v[1]*k];}
+function fp(n){return Number(n).toFixed(1);}
+function pt(p){return `${fp(p[0])},${fp(p[1])}`;}
+const SANCTUARY_DIR=dirFor('nw');
+const SANCTUARY_CENTER=pPlace(SANCTUARY_DIR,16+30+14-2);
+const EXHIBITS=EXHIBIT_ROWS.map(([id,title,wing,tier,ids])=>({id,title,wing,tier,projectIds:ids.split(' ')}));
+const EX_BY_ID=Object.fromEntries(EXHIBITS.map(e=>[e.id,e]));
+const PLACEMENTS=[];
+for(const w of WINGS){const d=dirFor(w.face),r=rightOf(d);w.exhibits.forEach((id,i)=>{const slot=Math.floor(i/2),side=i%2===0?'left':'right',sign=side==='right'?1:-1,along=w.from+w.lead+slot*w.pitch,lat=sign*(w.hw+w.depth/2);PLACEMENTS.push({id,wing:w.id,slot,side,sign,along,anchor:pPlace(d,along,lat),doorway:pPlace(d,along,sign*(w.hw-1.2)),facing:r.map(v=>-sign*v)});});}
+const PL_BY_ID=Object.fromEntries(PLACEMENTS.map(p=>[p.id,p]));
+const PRIMARY=PRIMARY_ROWS.map(([id,title,host])=>({id,title,host}));
+const SUPP=SUPP_ROWS.map(([id,title,host])=>({id,title,host}));
+// Same placement algorithm as src/world/installationPlacement.ts for source objects.
+for(const ins of PRIMARY){if(ins.host==='sanctuary'){ins.position=add(SANCTUARY_CENTER,rightOf(SANCTUARY_DIR),7);continue;}const pl=PL_BY_ID[ins.host],w=WING_BY_ID[pl.wing];const peers=PRIMARY.filter(p=>p.host===ins.host),seat=peers.findIndex(p=>p.id===ins.id);const toHall=pl.facing,deeper=toHall.map(n=>-n),along=rightOf(toHall);const alongSpan=Math.min(4.6,w.halfAlong-3.2),depthSpan=Math.min(4.2,w.depth/2-3.6);ins.position=add(add(pl.anchor,deeper,depthSpan),along,peers.length===1?-alongSpan:seat===0?-alongSpan:alongSpan);}
+function visitorPath(v){const [id,,zone]=v;if(zone==='rotunda'){const radius=10.4+(id.length%5)*.35;return Array.from({length:8},(_,i)=>{const a=i/8*PI*2+id.length*.08;return [Math.sin(a)*radius,Math.cos(a)*radius]})}if(zone==='sanctuary')return [pPlace(SANCTUARY_DIR,20,1.4),pPlace(SANCTUARY_DIR,34,1.1),pPlace(SANCTUARY_DIR,44,.6),[SANCTUARY_CENTER[0]+3.2,SANCTUARY_CENTER[1]+4.5],pPlace(SANCTUARY_DIR,34,-1.1)];const w=WING_BY_ID[zone],d=dirFor(w.face),lat=zone==='south'?2.4:zone==='east'?-2.1:1.6;return [pPlace(d,19,lat),pPlace(d,w.from+8,lat),pPlace(d,Math.min(w.to-8,w.from+36),lat*.4),pPlace(d,w.from+8,-lat)];}
+const NS='http://www.w3.org/2000/svg';
+function node(tag,attrs={},parent){let el=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs)){if(v!==undefined&&v!==null)el.setAttribute(k,String(v));}if(parent)parent.appendChild(el);return el;}
+function line(g,a,b,cls='wall',attr={}){return node('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],class:cls,...attr},g)}
+function polygon(g,points,attrs={}){return node('polygon',{points:points.map(pt).join(' '),...attrs},g)}
+function rectBetween(d,a,b,l1,l2){return [pPlace(d,a,l1),pPlace(d,b,l1),pPlace(d,b,l2),pPlace(d,a,l2)]}
+function label(g,p,text,cls='minor-label',attr={}){let n=node('text',{x:p[0],y:p[1],class:cls,...attr},g);n.textContent=text;return n}
+function octPoints(a){const rad=a/Math.cos(PI/8);return Array.from({length:8},(_,i)=>[Math.sin(i*PI/4+PI/8)*rad,Math.cos(i*PI/4+PI/8)*rad]);}
+const svg=document.getElementById('mapSvg'),geom=document.getElementById('planGeometry'),overlays=document.getElementById('planOverlays'),statusEl=document.getElementById('statusMessage');
+const els={list:document.getElementById('exhibitList'),inspector:document.getElementById('inspectorContent'),search:document.getElementById('search'),filter:document.getElementById('wingFilter')};
+let floor=0,mode='inspect',selected=null,selectedPin=null,showSources=false,showRoutes=false,pan=null,drag=null,mousePos=null,lastWorld=null,measurement=[],consumeBackgroundClick=false,overlayFrame=0;
+const frames={0:{x:-152,y:-154,w:304,h:340},1:{x:-102,y:-111,w:204,h:223}};
+let view={...frames[0]};
+const STATE_KEY='museum-of-me-topdown-proposals-v1';
+const fresh=()=>({version:1,sourceSha:SOURCE.sha,notes:{},statuses:{},moves:{},pins:[]});
+let plan=fresh(),storageOk=true,undoStack=[];
+function cleanPlan(raw){if(!raw||typeof raw!=='object'||raw.version!==1)throw Error('Unsupported plan file');const sourceSha=raw.source?.sha||raw.sourceSha;if(sourceSha&&sourceSha!==SOURCE.sha)throw Error('Plan source revision differs from this museum snapshot; import refused.');const p=fresh();if(raw.notes&&typeof raw.notes==='object'){for(const [k,v] of Object.entries(raw.notes))if((EX_BY_ID[k]||k==='sanctuary')&&typeof v==='string')p.notes[k]=v.slice(0,10000);}if(raw.statuses&&typeof raw.statuses==='object'){for(const [k,v] of Object.entries(raw.statuses))if((EX_BY_ID[k]||k==='sanctuary')&&['idea','review','ready','none'].includes(v))p.statuses[k]=v;}if(raw.moves&&typeof raw.moves==='object'){for(const [k,v] of Object.entries(raw.moves)){if(EX_BY_ID[k]&&Array.isArray(v)&&v.length===2&&v.every(n=>typeof n==='number'&&Number.isFinite(n)&&Math.abs(n)<=300))p.moves[k]=[...v];}}if(Array.isArray(raw.pins)){p.pins=raw.pins.slice(0,300).filter(q=>q&&typeof q==='object'&&typeof q.id==='string'&&Array.isArray(q.position)&&q.position.length===2&&q.position.every(n=>Number.isFinite(n)&&Math.abs(n)<=300)&&[0,1].includes(q.floor)).map(q=>({id:q.id.slice(0,60),position:q.position,title:String(q.title||'Annotation').slice(0,120),body:String(q.body||'').slice(0,10000),floor:q.floor}));}return p;}
+try{const stored=localStorage.getItem(STATE_KEY);if(stored)plan=cleanPlan(JSON.parse(stored));}catch(_){storageOk=false;}
+function persist(){try{localStorage.setItem(STATE_KEY,JSON.stringify(plan));storageOk=true;}catch(_){storageOk=false;}updateStatus('Planning changes '+(storageOk?'saved on this device.':'are in memory only; export JSON to keep them.'));}
+function checkpoint(){undoStack.push(JSON.stringify(plan));if(undoStack.length>35)undoStack.shift();}
+function setView(v){const min=25,max=520,w=Math.max(min,Math.min(max,v.w)),h=w*(svg.clientHeight||500)/(svg.clientWidth||800);view={x:v.x+(v.w-w)/2,y:v.y+(v.h-h)/2,w,h};svg.setAttribute('viewBox',`${view.x} ${view.y} ${view.w} ${view.h}`);updateScale();}
+function fit(){const b=frames[floor];const ar=(svg.clientWidth||800)/(svg.clientHeight||500),wanted=b.w/b.h;let w,h;if(ar>wanted){h=b.h;w=h*ar}else{w=b.w;h=w/ar}setView({x:b.x-(w-b.w)/2,y:b.y-(h-b.h)/2,w,h});}
+function updateScale(){const len=10*(svg.clientWidth||800)/view.w;document.getElementById('mapScale').style.width=`${Math.min(140,Math.max(20,len))}px`;document.getElementById('scaleText').textContent='10 metres';}
+function screenPoint(event){const p=svg.createSVGPoint();p.x=event.clientX;p.y=event.clientY;const matrix=svg.getScreenCTM();if(!matrix)return [0,0];const w=p.matrixTransform(matrix.inverse());return [w.x,w.y];}
+function fmtPos(p){return `X ${fp(p[0])} m / Z ${fp(p[1])} m`}
+function updateStatus(t){statusEl.textContent=t;}
+function changeFloor(n){floor=n;document.getElementById('floor0').setAttribute('aria-pressed',String(n===0));document.getElementById('floor1').setAttribute('aria-pressed',String(n===1));document.getElementById('mapTitle').textContent=n===0?'Ground floor + Sanctuary −5 m':'Upper floor / balcony +10 m';svg.setAttribute('aria-label','Top-down Museum of Me plan, '+(n?'upper':'ground')+' floor');render();fit();}
+function setTool(next){
+ mode=next;
+ for(const [name,id] of [['inspect','toolInspect'],['pin','toolPin'],['move','toolMove'],['measure','toolMeasure']]){
+  document.getElementById(id).setAttribute('aria-pressed',String(mode===name));
+ }
+ svg.classList.toggle('pin-mode',mode==='pin');
+ svg.classList.toggle('move-mode',mode==='move'||mode==='measure');
+ const overlay=document.getElementById('toolOverlay');overlay.hidden=next==='inspect';
+ const help={pin:'PIN MODE - Click empty plan space to add an annotation; no museum geometry changes.',move:'PROPOSE MOVE - Select a room, then drag its gold proposal handle. The original stays fixed.',measure:'RULER - Click two empty plan points to measure straight-line distance in world metres. This is not a walking route.'};
+ overlay.textContent=help[next]||'';
+ renderOverlays();
+}
+function render(){geom.replaceChildren();renderGeometry();renderOverlays();renderList();renderInspector();}
+function renderGeometry(){
+const keyWings=WINGS.filter(w=>w.level===floor);
+// Ground floor 00 and second-floor 01 are structurally separate slices.
+const rot=octPoints(16);if(floor===0){polygon(geom,rot,{class:'struct-fill',fill:'#25333a'});}else{let d=rot.map((p,i)=>(i?'L':'M')+pt(p)).join(' ')+' Z '+octPoints(11).slice().reverse().map((p,i)=>(i?'L':'M')+pt(p)).join(' ')+' Z';node('path',{d,fill:'#2b3439','fill-rule':'evenodd'},geom);polygon(geom,octPoints(11),{fill:'#0d171c',stroke:'#adad9b','stroke-width':'.45','stroke-dasharray':'1.5 1'});label(geom,[0,-.8],'ATRIUM OPEN','minor-label');}
+for(const w of keyWings){const d=dirFor(w.face),t=COLORS[w.id];polygon(geom,rectBetween(d,w.corFrom,w.corTo,-w.corHW,w.corHW),{class:'struct-fill',fill:t,'fill-opacity':'.12'});polygon(geom,rectBetween(d,w.from,w.to,-w.hw,w.hw),{class:'struct-fill',fill:t,'fill-opacity':'.15'});for(const s of [-1,1])line(geom,pPlace(d,w.corFrom,s*w.corHW),pPlace(d,w.corTo,s*w.corHW),'wall');line(geom,pPlace(d,w.from,0),pPlace(d,w.to,0),'centerline');
+for(const [i,id] of w.exhibits.entries()){const pl=PL_BY_ID[id],sign=pl.sign,low=w.hw*sign,far=(w.hw+w.depth)*sign,room=rectBetween(d,pl.along-w.halfAlong,pl.along+w.halfAlong,low,far);polygon(geom,room,{fill:t,'fill-opacity':'.14'});line(geom,room[3],room[2]);line(geom,room[0],room[3]);line(geom,room[1],room[2]);}
+for(const sign of [-1,1]){let centres=PLACEMENTS.filter(pl=>pl.wing===w.id&&pl.sign===sign).map(pl=>pl.along).sort((a,b)=>a-b);let cursor=w.from;for(const c of centres){const a=c-w.opening/2,b=c+w.opening/2;if(a>cursor)line(geom,pPlace(d,cursor,sign*w.hw),pPlace(d,a,sign*w.hw));line(geom,pPlace(d,a,sign*w.hw),pPlace(d,a,sign*(w.hw+.85)),'portal');line(geom,pPlace(d,b,sign*w.hw),pPlace(d,b,sign*(w.hw+.85)),'portal');cursor=b;}if(cursor<w.to)line(geom,pPlace(d,cursor,sign*w.hw),pPlace(d,w.to,sign*w.hw));}
+if(w.id!=='south')line(geom,pPlace(d,w.to,-w.hw),pPlace(d,w.to,w.hw));else{const h=4;line(geom,pPlace(d,w.to,-w.hw),pPlace(d,w.to,-h));line(geom,pPlace(d,w.to,h),pPlace(d,w.to,w.hw));}
+const lname=w.id==='media'?'MUSIC + MEDIA':w.id==='infra'?'LOCAL SYSTEMS':w.name.toUpperCase();label(geom,pPlace(d,w.to+10),lname,'room-label');
+for(const id of w.exhibits){const pl=PL_BY_ID[id],rec=EX_BY_ID[id];const group=node('g',{class:'bay-hit'+(selected===id?' selected':'')+(doesMatch(rec)?' match':' filtered'),role:'button',tabindex:'0','aria-label':`${id} · ${rec.title}`,'data-id':id},geom);const point=pl.anchor;node('rect',{x:point[0]-2.8,y:point[1]-2.8,width:5.6,height:5.6,fill:COLORS[w.id],'fill-opacity':'.2',stroke:COLORS[w.id],'stroke-width':'.35',rx:'.5',class:'bay-outline'},group);label(group,[point[0],point[1]+1.05],id,'bay-text');group.addEventListener('click',ev=>{ev.stopPropagation();selectRoom(id)});group.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();selectRoom(id)}});const tooltip=node('title',{},group);tooltip.textContent=`${id} · ${rec.title} (${Math.round(point[0])},${Math.round(point[1])})`;}
+}
+// Actual Rotunda boundary split at ground openings N/E/S/W/NW, upper NW/NE.
+for(const face of ['n','ne','e','se','s','sw','w','nw']){const d=dirFor(face),r=rightOf(d),half=16*Math.tan(PI/8),mid=pPlace(d,16);const end0=add(mid,r,-half),end1=add(mid,r,half);const w=keyWings.find(w=>w.face===face);let width=w?w.archWidth:floor===0&&face==='nw'?5:0;if(width){line(geom,end0,add(mid,r,-width/2));line(geom,add(mid,r,width/2),end1);line(geom,add(mid,r,-width/2),add(mid,r,-width/2.0),'portal');line(geom,add(mid,r,width/2),add(mid,r,width/2.0),'portal');}else line(geom,end0,end1);}
+if(floor===0){
+const d=dirFor('s');polygon(geom,rectBetween(d,114,128,-9,9),{fill:COLORS.south,'fill-opacity':'.12'});for(const s of [-1,1])line(geom,pPlace(d,114,s*9),pPlace(d,128,s*9));line(geom,pPlace(d,128,-15),pPlace(d,128,-3.5));line(geom,pPlace(d,128,3.5),pPlace(d,128,15));polygon(geom,[[-34,128],[34,128],[34,158],[-34,158]],{fill:'#253439',stroke:'#708387','stroke-width':'.65','stroke-dasharray':'3 2'});label(geom,[0,151],'ARRIVAL PLAZA','room-label');label(geom,[0,124.5],'ENTRANCE','minor-label');
+// Descending ramp and lower Sanctuary, computed from the exact NW contract.
+const s=SANCTUARY_DIR;polygon(geom,rectBetween(s,16,46,-3,3),{fill:COLORS.sanctuary,'fill-opacity':'.1',stroke:COLORS.sanctuary,'stroke-width':'.55','stroke-dasharray':'2.5 1.4'});node('circle',{cx:SANCTUARY_CENTER[0],cy:SANCTUARY_CENTER[1],r:14,fill:'#4d4638','fill-opacity':'.65',stroke:COLORS.sanctuary,'stroke-width':'.76'},geom);node('circle',{cx:SANCTUARY_CENTER[0],cy:SANCTUARY_CENTER[1],r:2.6,fill:'#d3b881','fill-opacity':'.3',stroke:COLORS.sanctuary,'stroke-width':'.45'},geom);label(geom,[SANCTUARY_CENTER[0],SANCTUARY_CENTER[1]-1],'DEXTER','minor-label',{fill:'#e7cda1'});label(geom,[SANCTUARY_CENTER[0],SANCTUARY_CENTER[1]+3.5],'SANCTUARY','minor-label',{fill:'#e7cda1'});label(geom,pPlace(s,28,-5.4),'RAMP −5 M','minor-label');
+node('circle',{cx:0,cy:0,r:3.2,stroke:'#e6c886','stroke-width':'.8',fill:'#bfa66e','fill-opacity':'.18'},geom);label(geom,[0,1.1],'FLIGHT','minor-label',{fill:'#e3cc9e'});
+}else{label(geom,[0,-23],'ROTUNDA BALCONY','room-label')}
+// Two curved stair centrelines, visible on both levels.
+for(const st of [{face:'sw',a:-.3,b:.3,id:'SW'},{face:'se',a:.3,b:-.3,id:'SE'}]){const d=dirFor(st.face),baseAngle=Math.atan2(d[1],d[0]),points=Array.from({length:25},(_,i)=>{const angle=baseAngle+st.a+(st.b-st.a)*i/24;return [Math.cos(angle)*13.8,Math.sin(angle)*13.8];});node('polyline',{points:points.map(pt).join(' '),class:'stair'},geom);label(geom,add(points[12],[0,0],1),st.id,'minor-label',{dy:'-2'});}
+}
+function doesMatch(rec){const q=els.search.value.trim().toLowerCase(),wing=els.filter.value;if(wing!=='all'&&rec.wing!==wing)return false;if(!q)return true;return `${rec.id} ${rec.title} ${rec.wing} ${rec.projectIds.join(' ')} ${rec.projectIds.map(id=>PROJECTS[id]||id).join(' ')}`.toLowerCase().includes(q);}
+function scheduleOverlayDraw(){if(overlayFrame)return;overlayFrame=requestAnimationFrame(()=>{overlayFrame=0;renderOverlays()})}
+function renderOverlays(){if(overlayFrame){cancelAnimationFrame(overlayFrame);overlayFrame=0;}overlays.replaceChildren();const pl=selected?PL_BY_ID[selected]:null;
+if(measurement.length){
+ const a=measurement[0],g=node('g',{'aria-hidden':'true','pointer-events':'none'},overlays);
+ node('circle',{cx:a[0],cy:a[1],r:1.55,class:'measure-dot'},g);
+ if(measurement.length===2){
+  const b=measurement[1],distance=Math.hypot(a[0]-b[0],a[1]-b[1]);
+  line(g,a,b,'measure-path');node('circle',{cx:b[0],cy:b[1],r:1.55,class:'measure-dot'},g);
+  label(g,[(a[0]+b[0])/2,(a[1]+b[1])/2-2.5],distance.toFixed(1)+' m','measure-label');
+ }
+}
+
+if(showRoutes&&floor===0){for(const v of VISITOR_ROWS){const path=visitorPath(v);const lineEl=node('polyline',{points:path.map(pt).join(' '),class:'route','stroke-opacity':v[3]?'1':'.4'},overlays);const title=node('title',{},lineEl);title.textContent=`Nominal authored route: ${v[1]}; no live visitor position asserted`;}}
+if(showSources){for(const p of PRIMARY){const pl=p.host!=='sanctuary'?PL_BY_ID[p.host]:null;const pFloor=pl?WING_BY_ID[pl.wing].level:0;if(pFloor!==floor)continue;const marker=node('g',{'data-source':p.id,role:'button',tabindex:'0','aria-label':`Original installation: ${p.title}`},overlays);node('circle',{cx:p.position[0],cy:p.position[1],r:1.75,class:'source-point'},marker);const inner=node('circle',{cx:p.position[0],cy:p.position[1],r:.45,fill:'#edae8a'},marker);const title=node('title',{},marker);title.textContent=`${p.title} · ${p.host}`;marker.addEventListener('click',ev=>{ev.stopPropagation();if(p.host==='sanctuary')selectSanctuary();else selectRoom(p.host);updateStatus(`${p.title}: embedded legacy installation hosted by ${p.host}.`)});marker.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();if(p.host==='sanctuary')selectSanctuary();else selectRoom(p.host);}});}}
+for(const pin of plan.pins.filter(x=>x.floor===floor)){const g=node('g',{class:'pin-marker'+(selectedPin===pin.id?' selected':''),role:'button',tabindex:'0','aria-label':`Planning annotation: ${pin.title}`,'data-pin':pin.id},overlays);node('circle',{cx:pin.position[0],cy:pin.position[1],r:2.45,fill:'#243940',stroke:'#8cd1cd','stroke-width':'.6'},g);label(g,[pin.position[0],pin.position[1]+.95],'✶','bay-text');const title=node('title',{},g);title.textContent=pin.title;g.addEventListener('click',ev=>{ev.stopPropagation();selectedPin=pin.id;selected=null;render();});g.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();selectedPin=pin.id;selected=null;render()}});}
+if(pl&&WING_BY_ID[pl.wing].level===floor){const a=pl.anchor,m=plan.moves[selected];node('circle',{cx:a[0],cy:a[1],r:3.6,fill:'none',stroke:'#e7c48a','stroke-width':'.35','stroke-dasharray':'1.5 1'},overlays);if(m){line(overlays,a,m,'measure-path');node('circle',{cx:a[0],cy:a[1],r:.8,class:'old-point'},overlays);}if(mode==='move'||m){const dest=m||a;const handle=node('g',{'data-proposed':selected,role:'button',tabindex:'0','aria-label':'Drag proposed location for '+selected},overlays);node('circle',{cx:dest[0],cy:dest[1],r:2.9,class:'proposed-point'},handle);line(handle,[dest[0]-1.1,dest[1]],[dest[0]+1.1,dest[1]],'portal');line(handle,[dest[0],dest[1]-1.1],[dest[0],dest[1]+1.1],'portal');handle.addEventListener('pointerdown',e=>{if(mode!=='move')return;e.stopPropagation();checkpoint();drag={id:selected};svg.setPointerCapture(e.pointerId);});}}
+}
+function renderList(){els.list.replaceChildren();let n=0;for(const e of EXHIBITS){if(!doesMatch(e))continue;n++;const w=WING_BY_ID[e.wing];const b=document.createElement('button');b.type='button';b.className='exhibit-entry';b.style.setProperty('--wing',COLORS[e.wing]);b.setAttribute('aria-current',String(e.id===selected));b.innerHTML=`<span class="eid">${e.id}</span><span class="ename"></span><span class="etag">L${w.level}</span>`;b.querySelector('.ename').textContent=e.title;b.onclick=()=>selectRoom(e.id,true);els.list.append(b)}document.getElementById('listCount').textContent=n;if(!n){let p=document.createElement('p');p.className='note';p.textContent='No matching room. Try another wing or project name.';els.list.append(p)}}
+function selectRoom(id,center=false){if(!EX_BY_ID[id])return;selected=id;selectedPin=null;const pl=PL_BY_ID[id],n=WING_BY_ID[pl.wing].level;if(n!==floor)changeFloor(n);else render();if(center)focusAt(pl.anchor);updateStatus(`${id} selected · ${EX_BY_ID[id].title}. Original coordinates are locked; only proposals can move.`);if(window.innerWidth<=850)openMobile('details');}
+function selectSanctuary(){selected='sanctuary';selectedPin=null;if(floor!==0)changeFloor(0);else render();focusAt(SANCTUARY_CENTER,65);if(window.innerWidth<=850)openMobile('details')}
+function centerAt(p){setView({x:p[0]-view.w/2,y:p[1]-view.h/2,w:view.w,h:view.h});}
+function focusAt(p,span=72){setView({x:p[0]-span/2,y:p[1]-span/2,w:span,h:span});}
+function htmlEscape(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function renderInspector(){let html='';if(selectedPin){const pin=plan.pins.find(p=>p.id===selectedPin);if(pin){html=`<div class="meta-kicker">Planning annotation · L${pin.floor}</div><h3>${htmlEscape(pin.title)}</h3><div class="meta-list"><dt>World position</dt><dd>${htmlEscape(fmtPos(pin.position))}</dd><dt>Origin</dt><dd>Local proposal only</dd></div><section><div class="form-group"><label for="pinTitle">Pin title</label><input id="pinTitle" maxlength="120" value="${htmlEscape(pin.title)}" /></div><div class="form-group"><label for="pinBody">Description / design intent</label><textarea id="pinBody" maxlength="10000">${htmlEscape(pin.body)}</textarea></div><button id="deletePin">Delete this pin</button></section>`;}}else if(selected==='sanctuary'){html=`<div class="meta-kicker">Protected destination · Ground / −5m</div><h3>Dexter Sanctuary</h3><p class="info">Quiet circular chamber reached by a descending 30 m ramp on the north-west face of the Rotunda. This is distinct from the Dex Systems wing and excluded from the 35 exhibit count.</p><dl class="meta-list"><dt>Center</dt><dd>${fmtPos(SANCTUARY_CENTER)}</dd><dt>Floor height</dt><dd>−5 m</dd><dt>Radius</dt><dd>14 m</dd><dt>Legacy installation</dt><dd>DexGPT (source record)</dd></dl><div class="tinted"><p>The real Dexter and DexGPT are distinct. The Sanctuary is an architectural destination, not a seventh exhibit wing.</p></div>${notesHTML('sanctuary')}`;}
+else if(selected&&EX_BY_ID[selected]){const ex=EX_BY_ID[selected],pl=PL_BY_ID[selected],w=WING_BY_ID[ex.wing],roomSources=PRIMARY.filter(p=>p.host===ex.id),supp=SUPP.filter(p=>p.host===ex.id),m=plan.moves[ex.id];html=`<div class="meta-kicker">${ex.id} / Original collection slot</div><h3>${htmlEscape(ex.title)}</h3><span class="pill"><span class="icon-dot" style="background:${COLORS[ex.wing]}"></span>${htmlEscape(w.name)} · Level ${w.level}</span><dl class="meta-list"><dt>Permanent slot</dt><dd>${ex.id}</dd><dt>Tier in source</dt><dd>${ex.tier}</dd><dt>Bay side · index</dt><dd>${pl.side} · ${pl.slot+1}</dd><dt>Source anchor</dt><dd>${fmtPos(pl.anchor)}</dd><dt>Bay dimensions</dt><dd>${w.halfAlong*2} × ${w.depth} m</dd><dt>Hall half-width</dt><dd>${w.hw} m</dd><dt>Source floor</dt><dd>${w.level?'+10':'0'} m</dd></dl><section><div class="sec-title">Represented projects <span>${ex.projectIds.length}</span></div><ul class="records">${ex.projectIds.map(p=>`<li>${htmlEscape(PROJECTS[p]||p)}<small>${p}</small></li>`).join('')}</ul></section><section><div class="sec-title">Legacy source overlays</div>${roomSources.length?`<ul class="records">${roomSources.map(p=>`<li>${htmlEscape(p.title)}<small>Primary installation · computed placement ${fp(p.position[0])}, ${fp(p.position[1])}</small></li>`).join('')}</ul>`:'<p class="note">No primary legacy installation hosted here.</p>'}${supp.length?`<div class="coaster"><ul class="records">${supp.map(p=>`<li>${htmlEscape(p.title)}<small>Supplementary · host assignment only; exact case coordinate not asserted</small></li>`).join('')}</ul></div>`:''}</section><section><div class="sec-title">Proposed relocation</div><p class="note">Original structural geometry stays in place. A proposal marker represents a coordinate suggestion only; implementation would require updating the canonical layout and validating collisions, routes and tests.</p>${m?`<p style="font-size:12px">Proposed: <strong>${fmtPos(m)}</strong><br>Δ ${fp(m[0]-pl.anchor[0])} m X / ${fp(m[1]-pl.anchor[1])} m Z</p><button id="clearMove">Clear proposal</button>`:`<button id="startMove">Draft a different anchor</button>`}</section>${notesHTML(ex.id)}`;
+}else{html=`<div class="empty-state"><div class="eyebrow">The map is the index</div><div class="big">Walk the architecture from above.</div><p class="info">Select an exhibit or its entry in the collection list. The inspector shows source coordinates, grouped projects, heritage installations, and a private planning notebook.</p><div class="tinted"><p><strong>Accuracy boundary.</strong> Rooms, wings, octagonal Rotunda, stairs, Sanctuary, and collection membership are based on current source constants. Artwork, benches, animated visitors, collision volumes, and exterior shoreline are not reproduced as if they were surveyed floor geometry.</p></div><button type="button" id="inspectSanctuary">Inspect Dexter Sanctuary</button><a href="https://github.com/westkitty/museum-of-me-vnext/blob/6278d2c8fea5b27466bc4840170b3d25e611e3c1/src/world/layout.ts" target="_blank" rel="noopener noreferrer">Inspect the layout source</a></div>`;}
+els.inspector.innerHTML=html;wireInspector();}
+function notesHTML(id){const note=plan.notes[id]||'',status=plan.statuses[id]||'none';return `<section><div class="sec-title">Private planning notebook</div><div class="form-group"><label for="proposalStatus">Planning classification (not implementation state)</label><select id="proposalStatus"><option value="none" ${status==='none'?'selected':''}>Unclassified</option><option value="idea" ${status==='idea'?'selected':''}>Idea</option><option value="review" ${status==='review'?'selected':''}>Needs review</option><option value="ready" ${status==='ready'?'selected':''}>Ready to hand off</option></select></div><div class="form-group"><label for="proposalNotes">Design notes · constraints · open questions</label><textarea id="proposalNotes" maxlength="10000" placeholder="Describe a change to investigate, not a claim that it exists…">${htmlEscape(note)}</textarea></div><p class="note">Saved locally when available. Download the plan JSON to hand this work to a coding agent.</p></section>`}
+function wireInspector(){const pin=selectedPin&&plan.pins.find(p=>p.id===selectedPin);if(pin){const t=document.getElementById('pinTitle'),b=document.getElementById('pinBody');t?.addEventListener('input',()=>{pin.title=t.value;persist()});b?.addEventListener('input',()=>{pin.body=b.value;persist()});document.getElementById('deletePin')?.addEventListener('click',()=>{checkpoint();plan.pins=plan.pins.filter(p=>p.id!==pin.id);selectedPin=null;persist();render()});return;}document.getElementById('inspectSanctuary')?.addEventListener('click',selectSanctuary);const id=selected;if(!id)return;document.getElementById('proposalNotes')?.addEventListener('input',e=>{plan.notes[id]=e.target.value;persist()});document.getElementById('proposalStatus')?.addEventListener('change',e=>{plan.statuses[id]=e.target.value;persist()});document.getElementById('startMove')?.addEventListener('click',()=>{setTool('move');centerAt(PL_BY_ID[id].anchor);updateStatus(`Drag the proposal marker for ${id}; source geometry will not move.`)});document.getElementById('clearMove')?.addEventListener('click',()=>{checkpoint();delete plan.moves[id];persist();render()})}
+function downloadBlob(name,text,mime){const blob=new Blob([text],{type:mime}),url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);}
+function exportPlan(){const data={format:'museum-of-me-topdown-plan',version:1,planningOnly:true,exportedAt:new Date().toISOString(),source:SOURCE,notes:plan.notes,statuses:plan.statuses,moves:plan.moves,pins:plan.pins};downloadBlob('Museum_of_Me_Topdown_Proposals.json',JSON.stringify(data,null,2),'application/json');updateStatus('Planning JSON exported. The original museum repository has not changed.');}
+function exportSvg(){const clone=svg.cloneNode(true);clone.setAttribute('xmlns',NS);clone.setAttribute('width','1600');clone.setAttribute('height','1100');const style=node('style');style.textContent='.room-label{font-family:Georgia,serif;font-size:5.5px;fill:#ede4d1;text-anchor:middle}.minor-label{font:3.8px system-ui,sans-serif;fill:#adbabb;text-anchor:middle}.bay-text{font:700 3.4px system-ui,sans-serif;fill:#fff;text-anchor:middle}.bay-outline{stroke-width:.55}.wall{stroke:#b0c1bb;stroke-width:.62}.portal{stroke:#e4c58b;stroke-width:1.1}.stair{stroke:#d8c69f;stroke-width:1.1;fill:none;stroke-dasharray:1.2 1.1}.route{stroke:#9cb0bc;stroke-width:.8;stroke-dasharray:2 1.2;fill:none}.measure-path{stroke:#e8c684;stroke-width:.8;stroke-dasharray:2 1;fill:none}.measure-label{font:700 3.7px system-ui;fill:#f4dfaa;stroke:#0c171d;stroke-width:1.7px;paint-order:stroke;text-anchor:middle}.measure-dot{fill:#f3d495;stroke:#162328;stroke-width:.7}.old-point{fill:#f0cc82}.proposed-point{fill:#0e171b;stroke:#f0cc82;stroke-width:1.2}.source-point{fill:#0c1619;stroke:#e4a684;stroke-width:.95}.centerline{stroke:#6d979e;stroke-width:.25;stroke-dasharray:2 2;fill:none}';clone.insertBefore(style,clone.firstChild);const bg=node('rect',{x:-400,y:-400,width:800,height:800,fill:'#0d1b21'});clone.insertBefore(bg,clone.firstChild);downloadBlob('Museum_of_Me_Level_'+floor+'_Topdown.svg',new XMLSerializer().serializeToString(clone),'image/svg+xml');updateStatus('Visible floor exported as editable scalable SVG.');}
+function addPin(pos){checkpoint();const id='pin-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);plan.pins.push({id,floor,position:pos,title:'New planning pin',body:''});selectedPin=id;selected=null;persist();setTool('inspect');render();updateStatus('Planning annotation added. Write its purpose in the inspector.');}
+function zoom(mult,focus){const old={...view},x=focus?focus[0]:view.x+view.w/2,y=focus?focus[1]:view.y+view.h/2;const w=Math.max(25,Math.min(520,view.w*mult)),h=Math.max(25,Math.min(520,view.h*mult));setView({x:x-(x-old.x)*w/old.w,y:y-(y-old.y)*h/old.h,w,h});}
+svg.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY>0?1.13:.885,screenPoint(e))},{passive:false});
+svg.addEventListener('pointerdown',e=>{
+ if(e.button!==0||drag)return;
+ const target=e.target;
+ if(target.closest('[data-id],[data-pin],[data-source]'))return;
+ const p=screenPoint(e);
+ if(mode==='pin'){
+  addPin(p);
+  // The post-pointerdown synthetic click otherwise clears the new pin's
+  // inspector after addPin() switches from pin to inspect mode.
+  consumeBackgroundClick=true;
+  return;
+ }
+ if(mode==='measure'){
+  measurement=measurement.length===1?[measurement[0],p]:[p];
+  consumeBackgroundClick=true;
+  renderOverlays();
+  updateStatus(measurement.length===1?'Ruler point A set; choose point B.':
+    'Straight-line plan distance: '+Math.hypot(measurement[1][0]-measurement[0][0],measurement[1][1]-measurement[0][1]).toFixed(1)+' m (not a walking route).');
+  return;
+ }
+ // Use fixed pixel coordinates rather than reprojecting after each viewBox update.
+ // Reprojection inside a moving viewBox caused feedback and under-panning.
+ const box=svg.getBoundingClientRect();
+ pan={clientX:e.clientX,clientY:e.clientY,pxWidth:box.width,pxHeight:box.height,view:{...view}};
+ svg.setPointerCapture(e.pointerId);svg.classList.add('panning');
+});
+svg.addEventListener('pointermove',e=>{const p=screenPoint(e);lastWorld=p;document.getElementById('pointerCoords').textContent=fmtPos(p);if(drag){const id=drag.id;plan.moves[id]=[+p[0].toFixed(2),+p[1].toFixed(2)];scheduleOverlayDraw();const pl=PL_BY_ID[id];updateStatus(`${id} proposed → ${fmtPos(plan.moves[id])} (Δ ${fp(p[0]-pl.anchor[0])}, ${fp(p[1]-pl.anchor[1])})`);return}if(pan){const dx=(e.clientX-pan.clientX)*pan.view.w/pan.pxWidth,dy=(e.clientY-pan.clientY)*pan.view.h/pan.pxHeight;view={...pan.view,x:pan.view.x-dx,y:pan.view.y-dy};svg.setAttribute('viewBox',`${view.x} ${view.y} ${view.w} ${view.h}`)}});
+function finishPointer(){if(drag){drag=null;persist();render();}pan=null;svg.classList.remove('panning')}
+svg.addEventListener('pointerup',finishPointer);svg.addEventListener('pointercancel',finishPointer);svg.addEventListener('lostpointercapture',finishPointer);
+svg.addEventListener('dblclick',e=>{if(e.target.closest('[data-id],[data-pin]'))return;if(mode!=='pin')zoom(.8,screenPoint(e))});
+svg.addEventListener('click',e=>{
+ if(consumeBackgroundClick){consumeBackgroundClick=false;return;}
+ if(mode==='inspect'&&e.target===svg){selected=null;selectedPin=null;render()}
+});
+const button=(id,fn)=>document.getElementById(id).addEventListener('click',fn);
+button('floor0',()=>changeFloor(0));button('floor1',()=>changeFloor(1));button('toolInspect',()=>setTool('inspect'));button('toolPin',()=>setTool('pin'));button('toolMove',()=>{if(!selected||selected==='sanctuary'){updateStatus('Choose a numbered exhibit before proposing a move.');return}setTool('move')});button('toolMeasure',()=>{measurement=[];setTool('measure');updateStatus('Ruler ready: click two empty map points to measure straight-line distance.');});button('toggleSources',()=>{showSources=!showSources;document.getElementById('toggleSources').setAttribute('aria-pressed',String(showSources));renderOverlays()});button('toggleRoutes',()=>{showRoutes=!showRoutes;document.getElementById('toggleRoutes').setAttribute('aria-pressed',String(showRoutes));renderOverlays()});button('zoomIn',()=>zoom(.8));button('zoomOut',()=>zoom(1.25));button('fit',fit);button('exportPlan',exportPlan);button('exportSvg',exportSvg);button('importPlan',()=>document.getElementById('importFile').click());button('clearPlan',()=>{if(!confirm('Reset every LOCAL planning note, proposal marker, and pin? This does not change the museum itself.'))return;checkpoint();plan=fresh();persist();render()});
+document.getElementById('importFile').addEventListener('change',async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;if(file.size>2e6){updateStatus('Plan file too large; import refused.');return}try{const p=cleanPlan(JSON.parse(await file.text()));if(!confirm('Replace this device’s planning overlay with the imported plan? The museum source remains unchanged.'))return;checkpoint();plan=p;selectedPin=null;persist();render();}catch(err){updateStatus('Import failed: '+err.message)}});
+els.search.addEventListener('input',()=>{renderList();renderGeometryOnly()});els.filter.addEventListener('change',()=>{renderList();renderGeometryOnly()});
+function renderGeometryOnly(){
+ // Filter changes only the 35 bay highlight/visibility states. Rebuilding
+ // the entire architectural SVG on every keystroke wasted DOM work.
+ for(const g of geom.querySelectorAll('.bay-hit')){
+  const matching=doesMatch(EX_BY_ID[g.dataset.id]);
+  g.classList.toggle('match',matching);
+  g.classList.toggle('filtered',!matching);
+ }
+}
+function openMobile(which){const a=document.getElementById('collectionPane'),b=document.getElementById('detailsPane');a.classList.toggle('open',which==='collection');b.classList.toggle('open',which==='details')}
+button('openCollection',()=>openMobile('collection'));button('openDetails',()=>openMobile('details'));button('closePanels',()=>openMobile('map'));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(window.innerWidth<=850)openMobile('map');if(mode!=='inspect')setTool('inspect');return}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&document.activeElement?.tagName!=='TEXTAREA'&&document.activeElement?.tagName!=='INPUT'){if(undoStack.length){e.preventDefault();plan=cleanPlan(JSON.parse(undoStack.pop()));persist();render()}}if(e.key==='/'&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)){e.preventDefault();els.search.focus()}});
+window.addEventListener('resize',()=>{const b={...view};setView(b)});
+render();requestAnimationFrame(fit);
+// Test-only read-only diagnostics; this does not mutate the museum or proposals.
+Object.defineProperty(window,'MuseumWorkbenchProof',{value:Object.freeze({source:SOURCE,exhibitCount:EXHIBITS.length,projectCount:Object.keys(PROJECTS).length,placementCount:PLACEMENTS.length,legacyInstallationCount:PRIMARY.length,supplementaryCount:SUPP.length,visitorIdentityCount:VISITOR_ROWS.length,wingCount:WINGS.length,hasCorrectFloors:WINGS.filter(w=>w.level===0).length===4&&WINGS.filter(w=>w.level===1).length===2,sanctuaryCenter:[...SANCTUARY_CENTER],room:(id)=>{const p=PL_BY_ID[id];return p?{...p}:null}}),writable:false});
+</script>
+</body>
+</html>

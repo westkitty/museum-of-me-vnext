@@ -150,6 +150,7 @@ test('operates the visual map and reduced-motion setting with the keyboard', asy
   expect(await page.locator('.map__plan .map-visitor').count()).toBeGreaterThan(0);
   await expect(page.locator('#panel-map .map__visitor-note')).toContainText('visible on this floor');
   await expect(page.getByRole('button', { name: 'Nearest unvisited' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /top-down planning workbench/i })).toHaveAttribute('href', /\/workbench\/$/);
   await expect(page.getByRole('button', { name: /My floor/ })).toBeDisabled();
 
   const visualBay = page.locator('.map__plan .bay[role="button"]').first();

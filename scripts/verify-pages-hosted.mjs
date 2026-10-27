@@ -57,6 +57,17 @@ if (!receiptResponse.ok) {
   }
 }
 
+const mapUrl = new URL('workbench/', base);
+const mapResponse = await fetchNoStore(mapUrl);
+if (!mapResponse.ok) {
+  errors.push(`workbench returned HTTP ${mapResponse.status}`);
+} else {
+  const mapHtml = await mapResponse.text();
+  if (!mapHtml.includes('MuseumWorkbenchProof') || !mapHtml.includes('6278d2c8fea5b27466bc4840170b3d25e611e3c1')) {
+    errors.push('hosted workbench does not match the source-pinned snapshot');
+  } else checks.push('top-down planning workbench reachable');
+}
+
 const missing = new URL(`__pages-fallback-check-${Date.now()}.html`, base);
 const missingResponse = await fetchNoStore(missing);
 const missingHtml = await missingResponse.text();

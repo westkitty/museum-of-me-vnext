@@ -44,6 +44,18 @@ if (info) {
   checks.push(`build receipt sha=${info.sha}`);
 }
 
+const workbench = join(root, 'workbench/index.html');
+if (!existsSync(workbench)) {
+  errors.push('top-down workbench is missing from the Pages artifact');
+} else {
+  const map = readFileSync(workbench, 'utf8');
+  if (!map.includes('MuseumWorkbenchProof') || !map.includes('6278d2c8fea5b27466bc4840170b3d25e611e3c1')) {
+    errors.push('top-down workbench lacks its source-pinned collection receipt');
+  } else {
+    checks.push('source-pinned workbench is present');
+  }
+}
+
 if (errors.length) {
   console.error('pages dist: FAIL');
   for (const error of errors) console.error(`  - ${error}`);
