@@ -18,6 +18,7 @@ function fixture() {
   git(cwd, ['init', '-q']);
   git(cwd, ['config', 'user.email', 'fixture@example.invalid']);
   git(cwd, ['config', 'user.name', 'Sentinel fixture']);
+  writeFileSync(join(cwd, '.gitignore'), '.sentinel/\n');
   writeFileSync(join(cwd, 'OPERATIONAL_STATE.md'), `Historical baseline is \`${'a'.repeat(40)}\``);
   git(cwd, ['add', '.']); git(cwd, ['commit', '-qm', 'initial']);
   return { cwd, baseline: git(cwd, ['rev-parse', 'HEAD']) };
@@ -68,6 +69,13 @@ describe('Sentinel baseline and truthful comparison', () => {
     expect(getChangedFiles(baseline, cwd).files).toEqual([filename]);
     writeFileSync(join(cwd, filename), 'dirty');
     expect(getChangedFiles(baseline, cwd).workingTreeClean).toBe(false);
+  });
+  it('refuses revision proof when influential source is untracked', () => {
+    const { cwd, baseline } = fixture();
+    writeFileSync(join(cwd, 'untracked-source.ts'), 'uncommitted source');
+    const comparison = getChangedFiles(baseline, cwd);
+    expect(comparison).toMatchObject({ status: 'ok', workingTreeClean: false });
+    expect(reconcileIssues([old], [], 'same-revision', { ...comparison, checks: [{ cmd: old.check, status: 'passed' }] })[0].status).toBe('unknown');
   });
   it('selects no checks for docs or no change; all known checks for other source', () => {
     expect(determineTests(mapToSystems([]))).toEqual([]);
@@ -132,9 +140,14 @@ describe('Sentinel private report and actual runner integration', () => {
     const read = () => JSON.parse(readFileSync(join(cwd, '.sentinel/state.json'), 'utf8'));
     const first = read(); expect(first.issues[0].status).toBe('new');
     expect(invoke().status).toBe(1); expect(read().issues[0].status).toBe('confirmed');
-    writeFileSync(join(cwd, 'pass'), ''); expect(invoke().status).toBe(0);
+    writeFileSync(join(cwd, 'pass'), '');
+    expect(invoke().status).toBe(1);
+    expect(read().issues[0].status).toBe('unknown');
+    expect(read().lastRun.checks).toEqual([]);
+    git(cwd, ['add', 'pass']); git(cwd, ['commit', '-qm', 'verified passing source']);
+    expect(invoke().status).toBe(0);
     const final = read(); expect(final.issues[0].status).toBe('resolved');
-    expect(final.runs).toHaveLength(3); expect(final.runs[0]).toEqual(first.lastRun);
+    expect(final.runs).toHaveLength(4); expect(final.runs[0]).toEqual(first.lastRun);
     expect(final.lastRun.analysisDurationMs).toBeGreaterThan(0); expect(final.lastRun.avoidedWork.savedDurationMs).toBeNull();
     expect(spawnSync(process.execPath, [reporter], { cwd, encoding: 'utf8' }).status).toBe(0);
     expect(readFileSync(join(cwd, '.sentinel/index.html'), 'utf8')).toContain('Resolved with proof');

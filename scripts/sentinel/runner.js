@@ -54,7 +54,7 @@ export function getChangedFiles(revision, cwd = process.cwd()) {
   }
   const diff = git(['diff', '--name-only', '-z', baseline.sha, head.stdout.trim(), '--'], cwd);
   if (!success(diff)) return { status: 'comparison-failed', files: null, reason: reason(diff) };
-  const dirty = git(['status', '--porcelain', '--untracked-files=no'], cwd);
+  const dirty = git(['status', '--porcelain', '--untracked-files=all'], cwd);
   if (!success(dirty)) return { status: 'comparison-failed', files: null, reason: reason(dirty) };
   return { status: 'ok', baselineSha: baseline.sha, currentSha: head.stdout.trim(), workingTreeClean: dirty.stdout.length === 0, files: diff.stdout.split('\0').filter(Boolean) };
 }
@@ -109,7 +109,7 @@ export function run({ baseline, execute = false, cwd = process.cwd() } = {}) {
   const lastRun = { timestamp: new Date().toISOString(), analysisDurationMs: performance.now() - started,
     comparison, affectedSystems, checks, issues,
     avoidedWork: { commandsNotAttempted: CHECKS.filter(cmd => !checks.some(check => check.cmd === cmd && check.attempted)), savedDurationMs: null },
-    unverifiedClaims: ['Skipped or unavailable checks provide no passing evidence.', 'Time saved and real-device performance are UNKNOWN.', ...(comparison.workingTreeClean === false ? ['Tracked working tree is dirty; revision-specific verification unavailable.'] : [])],
+    unverifiedClaims: ['Skipped or unavailable checks provide no passing evidence.', 'Time saved and real-device performance are UNKNOWN.', ...(comparison.workingTreeClean === false ? ['Working tree contains uncommitted files; revision-specific verification unavailable.'] : [])],
     recommendations: issues.filter(issue => issue.status !== 'resolved').slice(0, 3).map(issue => `Recheck ${issue.title}`) };
   writeOutput('state.json', JSON.stringify({ issues, runs: [...(previous.runs || []), lastRun], lastRun }, null, 2), cwd);
   return lastRun;
