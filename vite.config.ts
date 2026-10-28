@@ -7,7 +7,21 @@ export default defineConfig({
   // local/release builds keep the portable relative base unless explicitly set.
   base: process.env.VITE_PUBLIC_BASE || './',
   assetsInclude: ['**/*.glb'],
-  plugins: [museumWorkshopSavePlugin()],
+  plugins: [museumWorkshopSavePlugin(), {
+    name: 'museum-workbench-directory-index',
+    configureServer(server) {
+      // Vite's public-file lookup indexes files, not directories. Without this
+      // rewrite /workbench/ falls through to the museum SPA's index.html.
+      server.middlewares.use((req, _res, next) => {
+        const [path, query] = (req.url ?? '').split('?');
+        const base = server.config.base;
+        if ((req.method === 'GET' || req.method === 'HEAD') && path === `${base}workbench/`) {
+          req.url = `${base}workbench/index.html${query === undefined ? '' : `?${query}`}`;
+        }
+        next();
+      });
+    },
+  }],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

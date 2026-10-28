@@ -7,7 +7,12 @@ test('top-down workbench: grounded source, both levels, search and overlays', as
   page.on('request', r => {
     if (new URL(r.url()).origin !== 'http://127.0.0.1:4173') remote.push(r.url());
   });
-  await page.goto('/workbench/');
+  const response = await page.goto('/workbench/?review=1');
+  expect(response?.status()).toBe(200);
+  expect(response?.headers()['content-type']).toContain('text/html');
+  await expect(page).toHaveTitle('Museum of Me · Spatial Workbench');
+  await expect(page.locator('script[src*="/src/main.ts"]')).toHaveCount(0);
+  expect(errors).toEqual([]);
   const proof = await page.evaluate(() => (window as Window & { MuseumWorkbenchProof?: {
     source: { sha: string }; exhibitCount: number; projectCount: number;
     wingCount: number; visitorIdentityCount: number;
