@@ -1,35 +1,20 @@
-# Drift Sentinel 2.0 - Operations Task Definition
+# Drift Sentinel manual inspection
 
-## Scheduling Boundary
+Museum of Me remains ACTIVE DEVELOPMENT / PRE-1.0. Scheduling is disabled: no timer, workflow, trigger, automated source repair, PR creation, history edit, deployment, or publishing is authorized or implemented.
 
-**WARNING: Do not enable automated scheduling without explicit owner approval.**
+Supply an owner-selected full commit SHA explicitly; Sentinel never derives authority from historical Operational State prose, an arbitrary log entry, or a fallback parent:
 
-If Jules or another CI runner cannot enforce read-only scheduled execution, do not activate that schedule. Automated changes, such as automatic source repairs, branch merges, deployments, or rewriting historical records, are strictly prohibited for Drift Sentinel runs.
+```bash
+node scripts/sentinel/runner.js --baseline=<full-40-character-accepted-commit-SHA>
+node scripts/sentinel/report.js
+```
 
-## Manual Inspection Cycle
+The default inspects Git only. Add `--checks` to request the documented targeted checks (`typecheck`, `lint`, `test`, `validate:mapping`, `validate:content`) for non-document changes. These are advisory checks, not the canonical `npm run gate`, browser, Workshop, standalone or human acceptance gates. Pure documentation/no-change comparisons select no tests; skipped work never counts as a pass. The complete gate remains a separate reviewer action.
 
-Before any scheduled task is considered, the manual inspection cycle must be proven:
+Baseline existence and ancestry must be proven. Missing authority is UNKNOWN; missing objects in shallow history are incomplete history; Git errors are comparison failures. No fallback baseline is used. A dirty tracked working tree prevents revision-specific test evidence and resolution. This compares committed baseline and HEAD, not arbitrary untracked source files.
 
-1. **Run the core inspection (read-only):**
-   ```bash
-   node scripts/sentinel/runner.js
-   ```
-2. **Generate the interactive report (offline-readable):**
-   ```bash
-   node scripts/sentinel/report.js
-   ```
-3. **Open `public/sentinel/index.html` in a web browser** to view the timeline, evidence links, unknown variables, and the recommended bounding tasks.
-4. **Take Corrective Action**: Apply suggested bounds manually (e.g., converting recurring issues to fixtures or implementing targeted fixes for new drift). Sentinel will not do this automatically.
+Each failure is keyed by its exact command. Resolution requires that same command to pass on a valid clean comparison. Unexecuted checks remain NOT RECHECKED, invalid context UNKNOWN. First-seen identity, prior finding snapshots, latest evidence and full run records are preserved. Legacy issues without a command cannot automatically resolve.
 
-## Weekly Jules Task Definition (Pending Approval)
+The only direct writes are `.sentinel/state.json` and `.sentinel/index.html` beneath the invocation directory, a private ignored directory. Invoke from the repository root. Output symlinks are rejected. The optional check commands are existing project verification tools; Sentinel does not execute arbitrary state-derived commands or fixes. Old `.sentinel.json` is ignored and never imported automatically; preserve it separately if it exists. No diagnostic is written under `public/`, shipped to the museum, or uploaded. Reports are static offline HTML with escaped source strings and a restrictive CSP; open `.sentinel/index.html` locally. Retain private evidence locally as needed, because command output can contain sensitive paths or diagnostics.
 
-*Only valid if owner approval for read-only scheduling has been granted.*
-
-**Trigger:** Weekly (e.g., Friday 00:00 UTC)
-**Context Limit:** Read-only access to repository root `westkitty/museum-of-me-vnext`.
-
-**Task Execution Steps:**
-1. Execute `node scripts/sentinel/runner.js`
-2. Execute `node scripts/sentinel/report.js`
-3. Export or attach `public/sentinel/index.html` as the inspection artifact.
-4. Do not push commits. Do not resolve errors on behalf of the project. Do not modify source code or asset files.
+Inspection and executed-check elapsed durations are measured. Commands not executed are listed; saved time remains UNKNOWN because no counterfactual duration is measured. No claim about FPS, thermal behavior, test counts or gate equivalence is inferred from skipped work.
