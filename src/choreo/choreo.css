@@ -1,0 +1,100 @@
+.choreo-panel__content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1rem;
+}
+
+.choreo-map-container {
+  flex: 1;
+  min-height: 0;
+  background: var(--ui-surface-deep);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.choreo-map-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.choreo-map__structural {
+  fill: none;
+  stroke: var(--ui-accent);
+  stroke-width: 0.5;
+  opacity: 0.3;
+}
+
+.choreo-map__sanctuary {
+  fill: none;
+  stroke: #ff9;
+  stroke-width: 0.8;
+  opacity: 0.5;
+  stroke-dasharray: 2 2;
+}
+
+.choreo-map__route {
+  fill: none;
+  stroke: var(--ui-text);
+  stroke-width: 0.2;
+  opacity: 0.2;
+}
+
+.choreo-map__visitor {
+  fill: var(--ui-accent);
+  stroke: none;
+}
+
+.choreo-map__visitor--staff {
+  fill: none;
+  stroke: var(--ui-accent);
+  stroke-width: 0.8;
+}
+
+.choreo-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.choreo-scrubber {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.choreo-scrubber input[type="range"] {
+  flex: 1;
+}
+
+.choreo-playback {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.choreo-options {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: var(--ui-text-dim);
+}
+
+.choreo-report {
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  border-top: 1px solid var(--ui-border);
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.choreo-report ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.choreo-report li {
+  margin-bottom: 0.25rem;
+}
