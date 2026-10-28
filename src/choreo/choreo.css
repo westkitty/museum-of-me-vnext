@@ -1,14 +1,7 @@
-.choreo-panel__content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding: 1rem;
-}
-
 .choreo-map-container {
   flex: 1;
-  min-height: 0;
-  background: var(--ui-surface-deep);
+  min-height: 230px;
+  background: var(--ink);
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 1rem;
@@ -16,12 +9,12 @@
 
 .choreo-map-svg {
   width: 100%;
-  height: 100%;
+  height: 300px;
 }
 
 .choreo-map__structural {
   fill: none;
-  stroke: var(--ui-accent);
+  stroke: var(--gold-bright);
   stroke-width: 0.5;
   opacity: 0.3;
 }
@@ -36,19 +29,19 @@
 
 .choreo-map__route {
   fill: none;
-  stroke: var(--ui-text);
+  stroke: var(--parchment);
   stroke-width: 0.2;
   opacity: 0.2;
 }
 
 .choreo-map__visitor {
-  fill: var(--ui-accent);
+  fill: var(--gold-bright);
   stroke: none;
 }
 
 .choreo-map__visitor--staff {
   fill: none;
-  stroke: var(--ui-accent);
+  stroke: var(--gold-bright);
   stroke-width: 0.8;
 }
 
@@ -56,16 +49,6 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-}
-
-.choreo-scrubber {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.choreo-scrubber input[type="range"] {
-  flex: 1;
 }
 
 .choreo-playback {
@@ -77,14 +60,14 @@
   display: flex;
   gap: 1rem;
   font-size: 0.85rem;
-  color: var(--ui-text-dim);
+  color: var(--parchment-dim);
 }
 
 .choreo-report {
   max-height: 200px;
   overflow-y: auto;
   font-size: 0.85rem;
-  border-top: 1px solid var(--ui-border);
+  border-top: 1px solid var(--stone-2);
   padding-top: 0.5rem;
   margin-top: 0.5rem;
 }
@@ -98,3 +81,7 @@
 .choreo-report li {
   margin-bottom: 0.25rem;
 }
+
+.choreo-launcher { position: fixed; right: 1rem; top: 4rem; z-index: 20; }
+#panel-choreo .panel__body { max-width: 900px; }
+#panel-choreo .choreo-options { flex-wrap: wrap; }

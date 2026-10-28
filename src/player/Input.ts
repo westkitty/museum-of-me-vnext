@@ -76,12 +76,21 @@ export class InputManager {
 
   /** True while a modal owns input; entering capture discards stale gestures. */
   private capturedByUi = false;
+  private readonly captureOwners = new Set<symbol>();
 
-  get uiCaptured(): boolean { return this.capturedByUi; }
+  get uiCaptured(): boolean { return this.capturedByUi || this.captureOwners.size > 0; }
 
   set uiCaptured(captured: boolean) {
     if (captured && !this.capturedByUi) this.resetTransient();
     this.capturedByUi = captured;
+  }
+
+  /** Independent modal ownership cannot clear an existing UI capture. */
+  acquireUiCapture(): () => void {
+    const owner = Symbol('input capture');
+    this.captureOwners.add(owner);
+    this.resetTransient();
+    return () => { this.captureOwners.delete(owner); };
   }
 
   private readonly canvas: HTMLElement;

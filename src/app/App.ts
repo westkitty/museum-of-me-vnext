@@ -96,6 +96,7 @@ export class App implements LoopCallbacks {
   preferences: VisitorPreferences;
 
   private disposed = false;
+  private developmentTool: { update(dt: number): void; dispose(): void } | null = null;
   private workshopUpdate: (() => void) | null = null;
   private environmentVisibility: ((zone: ZoneId, deep: boolean, wings: ReadonlySet<string>) => void) | null = null;
   private readonly roomCullingEnabled: boolean;
@@ -410,6 +411,13 @@ export class App implements LoopCallbacks {
     this.workshopUpdate = update;
   }
 
+  /** Optional dev tool shares the authoritative loop and application lifetime. */
+  setDevelopmentTool(tool: { update(dt: number): void; dispose(): void }): void {
+    if (this.disposed) { tool.dispose(); return; }
+    this.developmentTool?.dispose();
+    this.developmentTool = tool;
+  }
+
   setEnvironmentVisibility(update: ((zone: ZoneId, deep: boolean, wings: ReadonlySet<string>) => void) | null): void {
     this.environmentVisibility = update;
   }
@@ -512,6 +520,7 @@ export class App implements LoopCallbacks {
     this.streaming.evaluate(eye, dt, zone);
     this.interaction.update(this.camera, dt);
     this.workshopUpdate?.();
+    this.developmentTool?.update(dt);
 
     // Bay-light residency changes only on mount/unmount. Avoid scanning all 35
     // hosts on every rendered frame when streaming state is unchanged.
@@ -581,6 +590,8 @@ export class App implements LoopCallbacks {
     if (this.disposed) return;
     this.disposed = true;
     this.loop.stop();
+    this.developmentTool?.dispose();
+    this.developmentTool = null;
     this.workshopUpdate = null;
     this.arrivalUpdate = null;
     this.environmentVisibility = null;

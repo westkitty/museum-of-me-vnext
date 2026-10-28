@@ -59,12 +59,13 @@ export class PlayerController {
 
   /** Set while a scripted move (map wayfinding, reset) owns the player. */
   private frozen = false;
+  private readonly freezeOwners = new Set<symbol>();
 
   /** True while a scripted move or an open UI panel owns the player -- callers
    * outside this class (App's flight-pad trigger) must not act on the player
    * while this is true. */
   get isFrozen(): boolean {
-    return this.frozen;
+    return this.frozen || this.freezeOwners.size > 0;
   }
 
   constructor(
@@ -72,7 +73,7 @@ export class PlayerController {
     private readonly input: InputManager,
   ) {
     this.input.on('jump', () => {
-      if (!this.frozen && !this.input.uiCaptured) this.jumpQueued = true;
+      if (!this.isFrozen && !this.input.uiCaptured) this.jumpQueued = true;
     });
   }
 
@@ -92,6 +93,15 @@ export class PlayerController {
       this.velocity.set(0, 0, 0);
       this.jumpQueued = false;
     }
+  }
+
+  /** Release only this owner's freeze; scripted/UI freezes remain authoritative. */
+  acquireFreeze(): () => void {
+    const owner = Symbol('player freeze');
+    this.freezeOwners.add(owner);
+    this.velocity.set(0, 0, 0);
+    this.jumpQueued = false;
+    return () => { this.freezeOwners.delete(owner); };
   }
 
   /** Entered from the flight pad while grounded. Gravity and walls let go,
@@ -117,7 +127,7 @@ export class PlayerController {
 
   /** Mouse/keyboard/touch look. Applied once per frame from real deltas. */
   applyLook(dx: number, dy: number, sensitivity: number, invertY: boolean): void {
-    if (this.frozen) return;
+    if (this.isFrozen) return;
     this.yaw -= dx * LOOK_SCALE * sensitivity;
     this.pitch -= (invertY ? -dy : dy) * LOOK_SCALE * sensitivity;
     this.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, this.pitch));
@@ -130,7 +140,7 @@ export class PlayerController {
     this.prevPosition.copy(this.position);
     this.prevYaw.v = this.yaw;
     this.prevPitch.v = this.pitch;
-    if (this.frozen) return;
+    if (this.isFrozen) return;
     if (this.flightMode) {
       this.fixedUpdateFlight(dt);
       return;

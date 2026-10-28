@@ -487,3 +487,31 @@ describe('rotunda flight pad (regression)', () => {
     expect(player.position.y).toBeCloseTo(0, 1);
   });
 });
+
+describe('independent development modal ownership', () => {
+  it('retains later and overlapping freeze owners after one modal closes', () => {
+    const player = new PlayerController(new CollisionWorld(), input);
+    const first = player.acquireFreeze();
+    const second = player.acquireFreeze();
+    player.setFrozen(false);
+    first(); first();
+    expect(player.isFrozen).toBe(true);
+    player.setFrozen(true);
+    second();
+    expect(player.isFrozen).toBe(true);
+    player.setFrozen(false);
+    expect(player.isFrozen).toBe(false);
+  });
+  it('retains UI capture when another modal acquires it during the tool lifetime', () => {
+    const first = input.acquireUiCapture();
+    const second = input.acquireUiCapture();
+    input.uiCaptured = false;
+    first(); first();
+    expect(input.uiCaptured).toBe(true);
+    input.uiCaptured = true;
+    second();
+    expect(input.uiCaptured).toBe(true);
+    input.uiCaptured = false;
+    expect(input.uiCaptured).toBe(false);
+  });
+});

@@ -1,309 +1,165 @@
 import { Panel } from '../ui/Panel';
-import { App } from '../app/App';
+import type { App } from '../app/App';
 import { SOURCE_VISITORS, visitorRouteForVNext } from '../content/sourceParity';
-import { WINGS, SANCTUARY_CENTER, ROTUNDA_APOTHEM, LEVEL_1_Y, type Vec3, place, faceDirection } from '../world/layout';
+import { WINGS, SANCTUARY_CENTER, ROTUNDA_APOTHEM, type Vec3, place, faceDirection } from '../world/layout';
+import { mapLevelForY } from '../ui/MapPanel';
+import { previewPosition, routePreview, timelineTime, TIMELINE_SECONDS } from './simulation';
 import './choreo.css';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const EXTENT = 150;
-
 function svg<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number> = {}): SVGElementTagNameMap[K] {
   const node = document.createElementNS(SVG, tag);
-  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, String(v));
+  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value));
   return node;
 }
+function toSvg(p: Vec3): [number, number] { return [p[0] + EXTENT, p[2] + EXTENT]; }
 
-function toSvg(p: Vec3 | readonly number[]): [number, number] {
-  return [p[0] + EXTENT, p[2] + EXTENT];
-}
-
-function mapLevelForY(y: number): 0 | 1 {
-  return y > LEVEL_1_Y - 2 ? 1 : 0;
-}
-
-const CHOREO_HTML = `
-  <div class="choreo-panel__content">
-    <div class="choreo-map-container" data-el="map-container"></div>
-    <div class="choreo-controls">
-      <div class="choreo-scrubber">
-        <label>Time: <span data-el="time-readout">0.0s</span></label>
-        <input type="range" data-el="time" min="0" max="600" step="0.1" value="0">
-      </div>
-      <div class="choreo-playback">
-        <button data-el="play-pause">Play</button>
-        <button data-el="restart">Restart</button>
-      </div>
-      <div class="choreo-options">
-        <label><input type="checkbox" data-el="level" checked> Level 0</label>
-        <label><input type="checkbox" data-el="show-all"> Show all levels</label>
-        <label><input type="checkbox" data-el="show-routes" checked> Show routes</label>
-      </div>
-      <div class="choreo-report" data-el="report"></div>
-    </div>
-  </div>
-`;
-
+/** Dev-only nominal preview. Never writes authored routes or runtime visitor state. */
 export class VisitorChoreographer extends Panel {
   private level: 0 | 1 = 0;
   private time = 0;
-  private isPlaying = false;
-
-  private mapContainer: HTMLElement;
-  private timeInput: HTMLInputElement;
-  private timeReadout: HTMLElement;
-  private playPauseBtn: HTMLButtonElement;
-  private restartBtn: HTMLButtonElement;
-  private levelToggle: HTMLInputElement;
-  private showAllToggle: HTMLInputElement;
-  private showRoutesToggle: HTMLInputElement;
-  private reportEl: HTMLElement;
-
-  private openState = false;
+  private playing = false;
+  private releaseFreeze: (() => void) | null = null;
+  private releaseCapture: (() => void) | null = null;
+  private readonly unregister: () => void;
+  private readonly launcher = document.createElement('button');
+  private readonly timeInput: HTMLInputElement;
+  private readonly playButton: HTMLButtonElement;
+  private readonly readout: HTMLElement;
+  private readonly showAll: HTMLInputElement;
+  private readonly showRoutes: HTMLInputElement;
+  private readonly architecture: SVGGElement[] = [];
+  private readonly visitors = SOURCE_VISITORS.map(visitor => ({
+    visitor, preview: routePreview(visitorRouteForVNext(visitor.id), visitor.speed, visitor.pause),
+    marker: svg('circle', { r: visitor.staff ? 2.5 : 2, 'data-visitor-id': visitor.id,
+      class: `choreo-map__visitor${visitor.staff ? ' choreo-map__visitor--staff' : ''}` }),
+    path: svg('polygon', { class: 'choreo-map__route', 'data-route-id': visitor.id }),
+  }));
 
   constructor(private readonly app: App) {
-    super('choreo', 'Visitor Choreographer', 'Development staging view');
-    this.body.innerHTML = CHOREO_HTML;
-
-    this.mapContainer = this.el('map-container');
-    this.timeInput = this.el<HTMLInputElement>('time');
-    this.timeReadout = this.el('time-readout');
-    this.playPauseBtn = this.el<HTMLButtonElement>('play-pause');
-    this.restartBtn = this.el<HTMLButtonElement>('restart');
-    this.levelToggle = this.el<HTMLInputElement>('level');
-    this.showAllToggle = this.el<HTMLInputElement>('show-all');
-    this.showRoutesToggle = this.el<HTMLInputElement>('show-routes');
-    this.reportEl = this.el('report');
-
-    this.bindEvents();
-    this.render();
-  }
-
-  private el<T extends HTMLElement>(name: string): T {
-    const el = this.body.querySelector(`[data-el="${name}"]`);
-    if (!el) throw new Error(`Missing ${name}`);
-    return el as T;
-  }
-
-  private bindEvents() {
+    super('choreo', 'Visitor Choreographer', 'Development: simulated positions, not runtime telemetry');
+    this.content.innerHTML = `<p>Nominal closed-route simulation from the 17 authored identities and vNext source routes. Mean authored pauses; no collisions, conversation timing, seated behavior, or congestion calculation. Floor projection is schematic, not architectural or walkability authority.</p>
+      <div class="choreo-map-container"></div>
+      <div class="choreo-controls">
+        <label for="choreo-time">Simulation time: <span data-time>0.0s</span></label>
+        <input id="choreo-time" type="range" min="0" max="${TIMELINE_SECONDS}" step="0.1" value="0">
+        <div class="choreo-playback"><button type="button" data-play>Play</button><button type="button" data-restart>Restart</button></div>
+        <div class="choreo-options"><label>Floor <select aria-label="Floor"><option value="0">Level 0</option><option value="1">Level 1</option></select></label>
+        <label><input type="checkbox" data-all> Show all levels</label><label><input type="checkbox" data-routes checked> Show routes</label></div>
+        <section class="choreo-report"><h3>Nominal source-route evidence</h3><ul></ul></section>
+      </div>`;
+    this.timeInput = this.content.querySelector('input[type=range]')!;
+    this.playButton = this.content.querySelector('[data-play]')!;
+    this.readout = this.content.querySelector('[data-time]')!;
+    this.showAll = this.content.querySelector('[data-all]')!;
+    this.showRoutes = this.content.querySelector('[data-routes]')!;
+    this.buildMap();
     this.timeInput.addEventListener('input', () => {
-      this.time = parseFloat(this.timeInput.value);
-      this.isPlaying = false;
-      this.updatePlaybackState();
+      this.time = timelineTime(this.timeInput.valueAsNumber);
+      this.playing = false;
       this.render();
     });
-
-    this.playPauseBtn.addEventListener('click', () => {
-      this.isPlaying = !this.isPlaying;
-      this.updatePlaybackState();
-    });
-
-    this.restartBtn.addEventListener('click', () => {
-      this.time = 0;
-      this.timeInput.value = '0';
+    this.playButton.addEventListener('click', () => { this.playing = !this.playing; this.render(); });
+    this.content.querySelector('[data-restart]')!.addEventListener('click', () => { this.time = 0; this.playing = false; this.render(); });
+    this.content.querySelector('select')!.addEventListener('change', event => {
+      this.level = (event.target as HTMLSelectElement).value === '1' ? 1 : 0;
       this.render();
     });
-
-    this.levelToggle.addEventListener('change', () => {
-      this.level = this.levelToggle.checked ? 0 : 1;
-      this.render();
-    });
-
-    this.showAllToggle.addEventListener('change', () => this.render());
-    this.showRoutesToggle.addEventListener('change', () => this.render());
-  }
-
-  private updatePlaybackState() {
-    this.playPauseBtn.textContent = this.isPlaying ? 'Pause' : 'Play';
-  }
-
-  override open() {
-    if (this.openState) return;
-    this.openState = true;
-    super.open();
-    this.app.input.releasePointerLock();
-    this.app.player.setFrozen(true);
-    this.app.ui.hud.setWorkshopCue('Choreographer active');
+    this.showAll.addEventListener('change', () => this.render());
+    this.showRoutes.addEventListener('change', () => this.render());
+    this.launcher.type = 'button';
+    this.launcher.className = 'choreo-launcher';
+    this.launcher.textContent = 'Visitor Choreographer';
+    this.launcher.setAttribute('aria-controls', this.root.id);
+    this.launcher.setAttribute('aria-haspopup', 'dialog');
+    this.launcher.addEventListener('click', () => this.toggle());
+    document.getElementById('ui-root')!.append(this.launcher, this.root);
+    this.unregister = app.ui.registerModal(this);
     this.render();
   }
 
-  override close() {
-    if (!this.openState) return;
-    this.openState = false;
+  private buildMap(): void {
+    const map = svg('svg', { viewBox: `0 0 ${EXTENT * 2} ${EXTENT * 2}`, class: 'choreo-map-svg', role: 'img', 'aria-label': 'Schematic floor projection of simulated authored visitors' });
+    for (const level of [0, 1] as const) {
+      const layer = svg('g');
+      layer.append(svg('circle', { cx: EXTENT, cy: EXTENT, r: ROTUNDA_APOTHEM, class: 'choreo-map__structural' }));
+      for (const wing of WINGS.filter(w => w.level === level)) {
+        const dir = faceDirection(wing.face);
+        const [x1, y1] = toSvg(place(dir, wing.hallFrom, 0, 0));
+        const [x2, y2] = toSvg(place(dir, wing.hallTo, 0, 0));
+        layer.append(svg('line', { x1, y1, x2, y2, class: 'choreo-map__structural' }));
+      }
+      if (level === 0) {
+        const [cx, cy] = toSvg(SANCTUARY_CENTER);
+        layer.append(svg('circle', { cx, cy, r: 8, class: 'choreo-map__sanctuary' }));
+      }
+      this.architecture.push(layer);
+      map.append(layer);
+    }
+    const list = this.content.querySelector('ul')!;
+    for (const { visitor, preview, marker, path } of this.visitors) {
+      path.setAttribute('points', preview.route.map(p => toSvg(p).join(',')).join(' '));
+      const title = svg('title'); title.textContent = `${visitor.title} (${visitor.id}) — simulated`;
+      marker.append(title);
+      map.append(path, marker);
+      const item = document.createElement('li');
+      item.dataset.evidenceId = visitor.id;
+      item.textContent = `${visitor.title} (${visitor.id}): nominal loop ${preview.duration.toFixed(1)}s; horizontal distance ${preview.distance.toFixed(1)}m`;
+      list.append(item);
+    }
+    this.content.querySelector('.choreo-map-container')!.append(map);
+  }
+
+  override open(): void {
+    if (this.isOpen) return;
+    // Do not stack over an arrival, Workshop, or another active modal.
+    if (this.app.input.uiCaptured || this.app.player.isFrozen || this.app.ui.anyPanelOpen) {
+      this.app.ui.hud.announce('Close the active surface before opening Visitor Choreographer.');
+      return;
+    }
+    this.app.input.releasePointerLock();
+    this.releaseFreeze = this.app.player.acquireFreeze();
+    this.releaseCapture = this.app.input.acquireUiCapture();
+    super.open();
+  }
+
+  override close(): void {
+    if (!this.isOpen) return;
+    this.playing = false;
     super.close();
-    this.app.player.setFrozen(false);
-    this.app.ui.hud.setWorkshopCue(null);
+    this.releaseFreeze?.(); this.releaseFreeze = null;
+    this.releaseCapture?.(); this.releaseCapture = null;
+    this.render();
   }
 
-  override toggle() {
-    if (this.openState) this.close();
-    else this.open();
+  /** Called once by the application variable phase; no independent scheduler. */
+  update(dt: number): void {
+    if (!this.isOpen || !this.playing || !Number.isFinite(dt) || dt <= 0) return;
+    this.time = (this.time + dt) % TIMELINE_SECONDS;
+    this.render();
   }
 
-  /** Called by App's existing variable phase via Workshop update loop hook if we intercept it */
-  update(dt: number) {
-    if (!this.openState) return;
-    if (this.isPlaying) {
-      this.time += dt;
-      if (this.time > parseFloat(this.timeInput.max)) {
-        this.time = 0;
-      }
-      this.timeInput.value = this.time.toFixed(1);
-      this.render();
+  protected override render(): void {
+    this.time = timelineTime(this.time);
+    this.timeInput.value = String(this.time);
+    this.readout.textContent = `${this.time.toFixed(1)}s`;
+    this.playButton.textContent = this.playing ? 'Pause' : 'Play';
+    this.architecture.forEach((layer, index) => layer.setAttribute('display', this.showAll.checked || index === this.level ? 'inline' : 'none'));
+    for (const { preview, marker, path } of this.visitors) {
+      const pos = previewPosition(preview, this.time);
+      const visible = pos !== null && (this.showAll.checked || mapLevelForY(pos[1]) === this.level);
+      marker.setAttribute('display', visible ? 'inline' : 'none');
+      // A route belongs on its authored floor; a marker's projected floor can change en route.
+      const routeVisible = this.showRoutes.checked && (this.showAll.checked || preview.route.some(p => mapLevelForY(p[1]) === this.level));
+      path.setAttribute('display', routeVisible ? 'inline' : 'none');
+      if (pos) { const [x, y] = toSvg(pos); marker.setAttribute('cx', String(x)); marker.setAttribute('cy', String(y)); }
     }
   }
 
-  protected override render() {
-    this.timeReadout.textContent = this.time.toFixed(1) + 's';
-
-    this.mapContainer.innerHTML = '';
-    const mapSvg = svg('svg', {
-      viewBox: `0 0 ${EXTENT * 2} ${EXTENT * 2}`,
-      xmlns: SVG,
-      class: 'choreo-map-svg'
-    });
-
-    const levelClass = this.level === 0 ? 'choreo-map__architecture--level-0' : 'choreo-map__architecture--level-1';
-
-    const architecture = svg('g', { class: `choreo-map__architecture ${levelClass}` });
-    mapSvg.append(architecture);
-
-    // Draw rotunda
-    const rotunda = svg('circle', {
-      cx: EXTENT, cy: EXTENT, r: ROTUNDA_APOTHEM,
-      class: 'choreo-map__structural'
-    });
-    architecture.append(rotunda);
-
-    // Draw wings
-    for (const wing of WINGS) {
-      if (this.level === 1 && wing.level !== 1) continue;
-      if (this.level === 0 && wing.level !== 0) continue;
-      const dir = faceDirection(wing.face);
-      const start = place(dir, wing.hallFrom, 0, 0);
-      const end = place(dir, wing.hallTo, 0, 0);
-      const [sx, sy] = toSvg(start);
-      const [ex, ey] = toSvg(end);
-
-      const line = svg('line', {
-        x1: sx, y1: sy, x2: ex, y2: ey,
-        class: 'choreo-map__structural choreo-map__wing'
-      });
-      architecture.append(line);
-    }
-
-    // Draw Sanctuary
-    if (this.level === 0) {
-      const [sx, sy] = toSvg(SANCTUARY_CENTER);
-      const sanctuary = svg('circle', {
-        cx: sx, cy: sy, r: 8,
-        class: 'choreo-map__sanctuary'
-      });
-      architecture.append(sanctuary);
-    }
-
-    this.renderVisitors(mapSvg);
-
-    this.mapContainer.append(mapSvg);
-  }
-
-  private renderVisitors(mapSvg: SVGElement) {
-    const showAll = this.showAllToggle.checked;
-    const showRoutes = this.showRoutesToggle.checked;
-
-    for (const v of SOURCE_VISITORS) {
-      const route = visitorRouteForVNext(v.id);
-      if (!route || route.length === 0) continue;
-
-      let totalDist = 0;
-      const segments: number[] = [];
-      for (let i = 0; i < route.length; i++) {
-        const p1 = route[i];
-        const p2 = route[(i + 1) % route.length];
-        const dx = p2[0] - p1[0];
-        const dz = p2[2] - p1[2];
-        const dist = Math.sqrt(dx * dx + dz * dz);
-        segments.push(dist);
-        totalDist += dist;
-      }
-
-      // Simulation time
-      const speed = v.speed;
-      const pause = (v.pause[0] + v.pause[1]) / 2;
-      const loopTime = (totalDist / speed) + (route.length * pause);
-
-      const localTime = this.time % loopTime;
-
-      let currTime = 0;
-      let pos = [...route[0]] as [number, number, number];
-
-      for (let i = 0; i < route.length; i++) {
-        const segDist = segments[i];
-        const segWalkTime = segDist / speed;
-
-        if (localTime >= currTime && localTime < currTime + segWalkTime) {
-          const t = (localTime - currTime) / segWalkTime;
-          const p1 = route[i];
-          const p2 = route[(i + 1) % route.length];
-          pos[0] = p1[0] + (p2[0] - p1[0]) * t;
-          pos[1] = p1[1];
-          pos[2] = p1[2] + (p2[2] - p1[2]) * t;
-          break;
-        }
-        currTime += segWalkTime;
-
-        if (localTime >= currTime && localTime < currTime + pause) {
-          pos = [...route[(i + 1) % route.length]] as [number, number, number];
-          break;
-        }
-        currTime += pause;
-      }
-
-      const vLevel = mapLevelForY(pos[1]);
-      if (!showAll && vLevel !== this.level) continue;
-
-      if (showRoutes) {
-        const points = route.map(p => toSvg(p).join(',')).join(' ');
-        mapSvg.append(svg('polygon', {
-          points,
-          class: 'choreo-map__route'
-        }));
-      }
-
-      const [cx, cy] = toSvg(pos);
-      mapSvg.append(svg('circle', {
-        cx, cy, r: v.staff ? 2.5 : 2,
-        class: `choreo-map__visitor ${v.staff ? 'choreo-map__visitor--staff' : ''}`
-      }));
-    }
-
-    this.renderReport();
-  }
-
-  private renderReport() {
-    let html = '<h3>Visitor Evidence Report</h3><ul>';
-
-    for (const v of SOURCE_VISITORS) {
-      const route = visitorRouteForVNext(v.id);
-      if (!route || route.length === 0) continue;
-
-      let totalDist = 0;
-      for (let i = 0; i < route.length; i++) {
-        const p1 = route[i];
-        const p2 = route[(i + 1) % route.length];
-        const dx = p2[0] - p1[0];
-        const dz = p2[2] - p1[2];
-        totalDist += Math.sqrt(dx * dx + dz * dz);
-      }
-
-      const loopTime = (totalDist / v.speed) + (route.length * ((v.pause[0] + v.pause[1]) / 2));
-
-      html += `<li>
-        <strong>${v.title}</strong> (${v.id}):
-        Loop Time: ${loopTime.toFixed(1)}s, Dist: ${totalDist.toFixed(1)}m
-      </li>`;
-    }
-
-    html += '</ul>';
-    this.reportEl.innerHTML = html;
+  override dispose(): void {
+    super.dispose();
+    this.unregister();
+    this.launcher.remove();
   }
 }

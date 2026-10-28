@@ -92,6 +92,15 @@ if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('edit
     });
 }
 
+if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('choreo') === '1') {
+  void import('./choreo/VisitorChoreographer')
+    .then(({ VisitorChoreographer }) => app.setDevelopmentTool(new VisitorChoreographer(app)))
+    .catch((error) => {
+      console.error('[Visitor Choreographer] failed to start', error);
+      app.ui.hud.announce('Visitor Choreographer failed to start. See the developer console.');
+    });
+}
+
 // Expose for Playwright smoke tests and diagnostics. Workshop itself exists only
 // in development builds with ?edit=1.
 declare global {
