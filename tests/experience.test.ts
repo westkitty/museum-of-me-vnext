@@ -218,7 +218,12 @@ describe('flight pad atmosphere', () => {
       return matrix.elements[13];
     };
 
-    expect(dust.group.children).toHaveLength(1);
+    // The original particle system remains one instanced draw; the two
+    // added inscription objects are a static rim and batched glyphs.
+    expect(dust.group.children).toHaveLength(3);
+    expect(dust.group.getObjectByName('flight-pad-rising-motes')).toBe(dust.instances);
+    expect(dust.group.getObjectByName('flight-pad-etched-rim')).toBeDefined();
+    expect(dust.group.getObjectByName('flight-pad-rotating-glyphs')).toBeDefined();
     const startY = firstY();
     dust.update(1, 1, false);
     expect(firstY()).toBeGreaterThan(startY);

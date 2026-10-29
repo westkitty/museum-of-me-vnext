@@ -33,6 +33,36 @@ it('reduces distant-body matrix submissions while preserving 60Hz near-conversat
  expect(scope.size).toBe(0);
 });
 
+it('grounds all 17 animated authored visitors in one tracked contact-shadow draw', () => {
+ const scope=new ResourceScope('contact-shadow-proof');
+ const collisions=new CollisionWorld();
+ collisions.addFloor(-500,500,-500,500,0);
+ const interactions=new InteractionManager();
+ const visitors=new SourceVisitors(scope,collisions,interactions,()=>{});
+ const shadows=visitors.shadows;
+ expect(shadows.name).toBe('authored-visitor-contact-shadows');
+ expect(shadows.isInstancedMesh).toBe(true);
+ expect(shadows.count).toBe(17);
+ expect(shadows.frustumCulled).toBe(false);
+ const material=shadows.material as THREE.MeshBasicMaterial;
+ expect(material.alphaMap?.name).toBe('museum-shared-soft-radial-mask');
+ expect(material.depthWrite).toBe(false);
+ const mask=(material.alphaMap!.image as { data: Uint8Array }).data;
+ expect(mask).toHaveLength(64*64*4);
+ expect(mask[4*((32*64)+32)+1]).toBeGreaterThan(mask[1]);
+ const before=new THREE.Matrix4();
+ const after=new THREE.Matrix4();
+ shadows.getMatrixAt(0,before);
+ for(let frame=0;frame<120;frame++)visitors.update(1/60,false,0,0);
+ shadows.getMatrixAt(0,after);
+ // Shadows update from presentation cadence; they never drive collision/route.
+ expect(Number.isFinite(after.elements[13])).toBe(true);
+ const positions=visitors.positions();
+ expect(positions).toHaveLength(17);
+ visitors.dispose();interactions.dispose();scope.dispose();
+ expect(scope.size).toBe(0);
+});
+
 it('freezes only the merged static world matrices at their correct parent transform', () => {
  const scope=new ResourceScope('static-world');
  const root=new THREE.Group();

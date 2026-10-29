@@ -157,6 +157,8 @@ describe('museum environment coherence', () => {
 
     expect(fixtures.length).toBeGreaterThanOrEqual(WINGS.length * 3);
     expect(inlays).toHaveLength(WINGS.length * 2);
+    expect(atmosphere.children.filter((node) => node.name.startsWith('wing-ceiling-housing:'))).toHaveLength(fixtures.length);
+    expect(atmosphere.children.filter((node) => node.name.startsWith('wing-ceiling-glint:'))).toHaveLength(fixtures.length);
     expect(atmosphere.getObjectByName('north-azure-sparkles')).toBeTruthy();
     expect(atmosphere.children.find((node) => node.name === 'north-azure-sparkles')?.children).toHaveLength(42);
     scope.dispose();
@@ -216,7 +218,13 @@ describe('museum environment coherence', () => {
       if (node.name.startsWith('exhibit-theme-wall-upright:')) uprights++;
     });
 
-    expect(fields.children).toHaveLength(PLACEMENTS.length + 1);
+    expect(fields.children).toHaveLength(PLACEMENTS.length + 3);
+    const washes = fields.getObjectByName('gallery-curatorial-light-pools') as THREE.InstancedMesh;
+    expect(washes.isInstancedMesh).toBe(true);
+    expect(washes.count).toBe(PLACEMENTS.length);
+    const stageRims = fields.getObjectByName('gallery-floor-inlaid-rims') as THREE.InstancedMesh;
+    expect(stageRims.isInstancedMesh).toBe(true);
+    expect(stageRims.count).toBe(PLACEMENTS.length);
     const relief = fields.getObjectByName('gallery-relief-accents') as THREE.InstancedMesh;
     expect(relief.isInstancedMesh).toBe(true);
     expect(relief.count).toBe(PLACEMENTS.length * 4);

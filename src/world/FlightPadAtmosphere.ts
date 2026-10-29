@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
-import { FLIGHT_PAD_CENTER, PLINTH_TOP_Y } from './layout';
+import { FLIGHT_PAD_CENTER, PLINTH_RADIUS, PLINTH_TOP_Y } from './layout';
 
 const MAX_MOTES = 18;
 const VISIBILITY_RADIUS_SQ = 80 * 80;
@@ -20,6 +20,7 @@ export class FlightPadAtmosphere {
   readonly instances: THREE.InstancedMesh;
   private readonly motes: Mote[] = [];
   private readonly transform = new THREE.Object3D();
+  private readonly etchedBand = new THREE.Group();
   private elapsed = 0;
 
   constructor(private readonly scope: ResourceScope) {
@@ -37,6 +38,40 @@ export class FlightPadAtmosphere {
     this.instances.name = 'flight-pad-rising-motes';
     this.instances.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.group.add(this.instances);
+
+    // A restrained material inscription communicates that the real walkable
+    // rotunda plinth is active. No new collision, light, texture or loop.
+    const etch = this.scope.track(new THREE.MeshBasicMaterial({
+      color: 0xd6b990, transparent: true, opacity: 0.58,
+      depthWrite: false, side: THREE.DoubleSide,
+    }));
+    const rimGeometry = this.scope.track(
+      new THREE.RingGeometry(PLINTH_RADIUS * 0.81, PLINTH_RADIUS * 0.825, 64),
+    );
+    const rim = new THREE.Mesh(rimGeometry, etch);
+    rim.name = 'flight-pad-etched-rim';
+    rim.position.set(FLIGHT_PAD_CENTER[0], PLINTH_TOP_Y + 0.023, FLIGHT_PAD_CENTER[2]);
+    rim.rotation.x = -Math.PI / 2;
+    this.group.add(rim);
+
+    const glyphGeometry = this.scope.track(
+      new THREE.RingGeometry(PLINTH_RADIUS * 0.59, PLINTH_RADIUS * 0.605, 8, 1, 0, Math.PI / 8),
+    );
+    glyphGeometry.rotateX(-Math.PI / 2);
+    const glyphs = this.scope.track(new THREE.InstancedMesh(glyphGeometry, etch, 12));
+    glyphs.name = 'flight-pad-rotating-glyphs';
+    const pose = new THREE.Object3D();
+    for (let i = 0; i < 12; i++) {
+      pose.rotation.y = i * Math.PI / 6;
+      pose.updateMatrix();
+      glyphs.setMatrixAt(i, pose.matrix);
+    }
+    glyphs.instanceMatrix.needsUpdate = true;
+    glyphs.computeBoundingSphere();
+    this.etchedBand.name = 'flight-pad-inscription';
+    this.etchedBand.position.set(FLIGHT_PAD_CENTER[0], PLINTH_TOP_Y + 0.025, FLIGHT_PAD_CENTER[2]);
+    this.etchedBand.add(glyphs);
+    this.group.add(this.etchedBand);
 
     for (let index = 0; index < MAX_MOTES; index++) {
       this.motes.push({
@@ -66,6 +101,9 @@ export class FlightPadAtmosphere {
     const inRange = dx * dx + dz * dz <= VISIBILITY_RADIUS_SQ;
     this.group.visible = inRange;
     if (!inRange) return;
+    if (!reducedMotion && Number.isFinite(dt) && dt > 0) {
+      this.etchedBand.rotation.y += Math.min(dt, 0.05) * 0.10;
+    }
 
     const visible = Math.max(4, Math.min(MAX_MOTES, Math.round(6 + detailScale * 12)));
     this.instances.count = visible;

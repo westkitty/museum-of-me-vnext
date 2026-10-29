@@ -3,6 +3,7 @@ import { ExhibitBase } from '../ExhibitBase';
 import { buildPlaque, buildLectern, buildLabel } from '../Furniture';
 import { buildConsole } from '../parts';
 import { rng } from '../../assets/generators';
+import { buildCollectibleSilhouette } from './CollectibleSilhouettes';
 import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
 
 /**
@@ -36,8 +37,13 @@ const PATH_STEPS = 160;
 export class SmoresKatamari extends ExhibitBase {
   private diorama!: THREE.Group;
   private ball!: THREE.Mesh;
-  private items = this.tracked<THREE.Mesh>();
+  // Positions remain the exact gameplay authority; the GPU reads five
+  // dynamic pickup batches instead of visiting 54 individual render meshes.
+  private items = this.tracked<THREE.Vector3>();
   private itemTier = this.tracked<number>();
+  private itemBatchSlots = this.tracked<number>();
+  private pickupBatches = this.tracked<THREE.InstancedMesh | null>();
+  private readonly pickupPose = new THREE.Object3D();
   private collected = this.tracked<boolean>();
   private homes = this.tracked<THREE.Vector3>();
   private radius = 0.06;
@@ -107,46 +113,151 @@ export class SmoresKatamari extends ExhibitBase {
     this.diorama.add(water);
 
     const random = rng(32032);
-    const buildingMat = this.standard(0x9a8a7a, { roughness: 0.85 });
-    for (let i = 0; i < this.scaled(26); i++) {
+    const houseCount = this.scaled(26);
+    // An authored street layout with four instance batches instead of a
+    // separate mesh, geometry and roof material for every miniature house.
+    const unitBox = scope.track(new THREE.BoxGeometry(1, 1, 1));
+    const houses = new THREE.InstancedMesh(unitBox, this.standard(0xffffff, { roughness: 0.84 }), houseCount);
+    const roofs = new THREE.InstancedMesh(
+      scope.track(new THREE.ConeGeometry(1, 1, 4)),
+      this.standard(0xffffff, { roughness: 0.88 }),
+      houseCount,
+    );
+    const windows = new THREE.InstancedMesh(
+      unitBox,
+      this.standard(0xf7dfb2, { emissive: 0xe6a56a, emissiveIntensity: 0.26, roughness: 0.48 }),
+      houseCount * 2,
+    );
+    const doors = new THREE.InstancedMesh(
+      unitBox,
+      this.standard(0x303b43, { roughness: 0.82 }),
+      houseCount,
+    );
+    houses.name = 'smores-town-houses';
+    roofs.name = 'smores-town-roofs';
+    windows.name = 'smores-town-windows';
+    doors.name = 'smores-town-doors';
+
+    const pose = new THREE.Object3D();
+    const tint = new THREE.Color();
+    const placePart = (
+      batch: THREE.InstancedMesh, index: number, x: number, y: number, z: number,
+      sx: number, sy: number, sz: number, rotationY = 0,
+    ): void => {
+      pose.position.set(x, y, z);
+      pose.rotation.set(0, rotationY, 0);
+      pose.scale.set(sx, sy, sz);
+      pose.updateMatrix();
+      batch.setMatrixAt(index, pose.matrix);
+    };
+    const wallColours = [0xb7a48d, 0x9eaa9c, 0xb8a8b0, 0xd1b992, 0x9fbbc0];
+    const roofColours = [0x8a5548, 0x6b5858, 0x9b7350, 0x656b76];
+    for (let i = 0; i < houseCount; i++) {
+      // Exactly the same four RNG draws per house as the original. The
+      // collectibles that follow keep their established seeded positions.
       const w = 0.18 + random() * 0.22;
       const h = 0.16 + random() * 0.34;
-      const building = new THREE.Mesh(scope.track(new THREE.BoxGeometry(w, h, w * 0.9)), buildingMat);
-      building.position.set((random() - 0.5) * 4.0, h / 2 + 0.03, (random() - 0.5) * 2.8);
-      this.diorama.add(building);
-
-      const roof = new THREE.Mesh(scope.track(new THREE.ConeGeometry(w * 0.8, 0.1, 4)), this.standard(0x7a4a3a, { roughness: 0.9 }));
-      roof.position.set(building.position.x, h + 0.08, building.position.z);
-      roof.rotation.y = Math.PI / 4;
-      this.diorama.add(roof);
+      const x = (random() - 0.5) * 4.0;
+      const z = (random() - 0.5) * 2.8;
+      placePart(houses, i, x, h / 2 + 0.03, z, w, h, w * 0.9);
+      houses.setColorAt(i, tint.setHex(wallColours[i % wallColours.length]));
+      placePart(roofs, i, x, h + 0.08, z, w * 0.8, 0.1, w * 0.8, Math.PI / 4);
+      roofs.setColorAt(i, tint.setHex(roofColours[i % roofColours.length]));
+      const ww = Math.max(0.044, w * 0.19);
+      const wh = Math.max(0.043, h * 0.22);
+      for (const side of [-1, 1]) {
+        const wi = i * 2 + (side > 0 ? 1 : 0);
+        placePart(windows, wi, x + side * w * 0.22, h * 0.65 + 0.03,
+          z + w * 0.45 + 0.009, ww, wh, 0.015);
+      }
+      placePart(doors, i, x, h * 0.20 + 0.03, z + w * 0.45 + 0.012,
+        w * 0.21, h * 0.4, 0.018);
+    }
+    for (const batch of [houses, roofs, windows, doors]) {
+      batch.instanceMatrix.needsUpdate = true;
+      if (batch.instanceColor) batch.instanceColor.needsUpdate = true;
+      batch.computeBoundingSphere();
+      this.diorama.add(batch);
+      scope.trackObject(batch);
     }
 
-    // ── collectibles ──
-    const itemGeos = COLLECTIBLES.map((c) => scope.track(new THREE.IcosahedronGeometry(c.size, 0)));
-    const itemMats = COLLECTIBLES.map((_c, i) =>
-      this.standard([0xe8c65a, 0xd97a4e, 0x5fb0e8, 0x9d8bff, 0x7fd67f][i], { roughness: 0.6 }),
+    // Single-batch road paints improve street orientation without adding
+    // gameplay surfaces, remote texture fetches or another rendering pass.
+    const roadMarks = new THREE.InstancedMesh(
+      unitBox,
+      this.standard(0xe3d2a9, { roughness: 0.96 }),
+      36,
     );
+    roadMarks.name = 'smores-town-road-markings';
+    let mark = 0;
+    for (const z of [-0.9, 0.2, 1.1]) {
+      for (let i = 0; i < 6; i++) {
+        placePart(roadMarks, mark++, -1.86 + i * 0.68, 0.039, z, 0.24, 0.006, 0.025);
+      }
+    }
+    for (const x of [-1.4, 0.1, 1.5]) {
+      for (let i = 0; i < 6; i++) {
+        placePart(roadMarks, mark++, x, 0.04, -1.43 + i * 0.55, 0.025, 0.006, 0.20);
+      }
+    }
+    roadMarks.instanceMatrix.needsUpdate = true;
+    roadMarks.computeBoundingSphere();
+    this.diorama.add(roadMarks);
+    scope.trackObject(roadMarks);
+
+    // ── collectibles ──
+    const itemGeos = COLLECTIBLES.map((c, tier) => buildCollectibleSilhouette(scope, tier, c.size));
+    const itemMaterial = this.standard(0xffffff, { roughness: 0.67, vertexColors: true });
+    const tierCounts = COLLECTIBLES.map(() => 0);
     for (let i = 0; i < this.scaled(ITEM_COUNT); i++) {
       const tier = Math.floor(random() * COLLECTIBLES.length);
-      const item = new THREE.Mesh(itemGeos[tier], itemMats[tier]);
       const home = new THREE.Vector3(
         (random() - 0.5) * 4.2,
         COLLECTIBLES[tier].size + 0.03,
         (random() - 0.5) * 3.0,
       );
-      item.position.copy(home);
-      this.diorama.add(item);
-      this.items.push(item);
+      this.items.push(home.clone());
       this.itemTier.push(tier);
+      this.itemBatchSlots.push(tierCounts[tier]++);
       this.collected.push(false);
       this.homes.push(home);
     }
+    for (let tier = 0; tier < COLLECTIBLES.length; tier++) {
+      const count = tierCounts[tier];
+      if (count === 0) {
+        this.pickupBatches.push(null);
+        continue;
+      }
+      const batch = new THREE.InstancedMesh(itemGeos[tier], itemMaterial, count);
+      batch.name = 'smores-pickup-batch:' + tier;
+      batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      // Only the streaming exhibit host controls visibility. A collected
+      // pickup can leave its original world bounds while orbiting the ball.
+      batch.frustumCulled = false;
+      this.diorama.add(batch);
+      scope.trackObject(batch);
+      this.pickupBatches.push(batch);
+    }
+    this.syncPickupVisuals();
 
     // ── the ball ──
     this.ball = new THREE.Mesh(
       scope.track(new THREE.IcosahedronGeometry(1, 2)),
       this.standard(0x8a5a3a, { roughness: 0.75 }),
     );
+    // Distinctive layered S'mores rather than a featureless rolling orb.
+    // Child details inherit the exact original ball transform/reset/motion.
+    const creamBand = this.standard(0xf2e4c8, { roughness: 0.88 });
+    const biscuitBand = this.standard(0xc38b53, { roughness: 0.82 });
+    const chocolateBand = this.standard(0x3e251f, { roughness: 0.47 });
+    const biscuit = new THREE.Mesh(scope.track(new THREE.TorusGeometry(0.80, 0.14, 6, 28)), biscuitBand);
+    biscuit.rotation.x = Math.PI / 2;
+    const marshmallow = new THREE.Mesh(scope.track(new THREE.TorusGeometry(0.79, 0.12, 6, 28)), creamBand);
+    marshmallow.rotation.y = Math.PI / 2.4;
+    const chocolate = new THREE.Mesh(scope.track(new THREE.TorusGeometry(0.92, 0.085, 5, 32)), chocolateBand);
+    chocolate.rotation.set(Math.PI / 3, Math.PI / 2.7, 0);
+    this.ball.add(biscuit, marshmallow, chocolate);
+    this.ball.name = 'smores-layered-katamari-ball';
     this.ball.scale.setScalar(this.radius);
     this.ball.position.set(-2.0, this.radius + 0.03, 1.3);
     this.diorama.add(this.ball);
@@ -188,6 +299,23 @@ export class SmoresKatamari extends ExhibitBase {
     return this.collected.filter(Boolean).length;
   }
 
+  /** Present the authoritative pickup positions in five batched GPU draws. */
+  private syncPickupVisuals(): void {
+    const pose = this.pickupPose;
+    pose.rotation.set(0, 0, 0);
+    pose.scale.set(1, 1, 1);
+    for (let i = 0; i < this.items.length; i++) {
+      const batch = this.pickupBatches[this.itemTier[i]];
+      if (!batch) continue;
+      pose.position.copy(this.items[i]);
+      pose.updateMatrix();
+      batch.setMatrixAt(this.itemBatchSlots[i], pose.matrix);
+    }
+    for (const batch of this.pickupBatches) {
+      if (batch) batch.instanceMatrix.needsUpdate = true;
+    }
+  }
+
   /** A fixed figure-eight through the town, so the level is the same every time. */
   private pathAt(t: number): THREE.Vector3 {
     const a = t * Math.PI * 2;
@@ -215,7 +343,7 @@ export class SmoresKatamari extends ExhibitBase {
         const size = COLLECTIBLES[this.itemTier[i]].size;
         // Only things smaller than the ball can be picked up.
         if (size > this.radius * 0.85) continue;
-        const distance = item.position.distanceTo(this.ball.position);
+        const distance = item.distanceTo(this.ball.position);
         if (distance < this.radius + size + 0.03) {
           this.collected[i] = true;
           this.radius = Math.min(0.62, this.radius + size * 0.32);
@@ -234,7 +362,7 @@ export class SmoresKatamari extends ExhibitBase {
       if (!this.collected[i]) continue;
       const item = this.items[i];
       const a = i * 2.4 + this.elapsed * (this.reducedMotion ? 0 : 0.8);
-      item.position.set(
+      item.set(
         this.ball.position.x + Math.sin(a) * this.radius * 0.9,
         this.ball.position.y + Math.cos(a * 1.3) * this.radius * 0.9,
         this.ball.position.z + Math.cos(a) * this.radius * 0.9,
@@ -242,6 +370,7 @@ export class SmoresKatamari extends ExhibitBase {
     }
 
     this.ball.scale.setScalar(this.radius);
+    if (this.rolling) this.syncPickupVisuals();
   }
 
   protected override onReset(): void {
@@ -250,13 +379,14 @@ export class SmoresKatamari extends ExhibitBase {
     this.radius = 0.06;
     for (let i = 0; i < this.items.length; i++) {
       this.collected[i] = false;
-      this.items[i].position.copy(this.homes[i]);
+      this.items[i].copy(this.homes[i]);
     }
     if (this.ball) {
       this.ball.scale.setScalar(this.radius);
       this.ball.position.set(-2.0, this.radius + 0.03, 1.3);
       this.ball.rotation.set(0, 0, 0);
     }
+    this.syncPickupVisuals();
   }
 
   protected override describeState(): string {

@@ -31,6 +31,11 @@ export class WingAtmosphere {
     const trimColor = (palette.trim as THREE.MeshStandardMaterial).color.getHex();
     const glow = this.glowMaterial(accentColor, 0.38);
     const muted = this.glowMaterial(trimColor, 0.16);
+    const housingMaterial = this.scope.track(new THREE.MeshStandardMaterial({
+      color: trimColor, roughness: 0.69, metalness: 0.34,
+    }));
+    const housingGeometry = this.scope.track(new THREE.BoxGeometry(1.36, 0.10, 0.96));
+    const glintGeometry = this.scope.track(new THREE.BoxGeometry(1.09, 0.024, 0.18));
     const span = wing.hallTo - wing.hallFrom;
     const count = Math.max(3, Math.min(7, Math.round(span / 18)));
     const angle = Math.atan2(d[0], d[2]);
@@ -43,6 +48,20 @@ export class WingAtmosphere {
       fixture.position.set(at[0], wing.floorY + wing.hallHeight - 1.0, at[2]);
       fixture.rotation.set(Math.PI / 2, angle + i * 0.23, 0);
       this.group.add(fixture);
+
+      // Recessed cassettes give existing emissive wing glyphs a deliberate
+      // architectural source, without adding actual realtime lights.
+      const housing = new THREE.Mesh(housingGeometry, housingMaterial);
+      housing.name = `wing-ceiling-housing:${wing.id}`;
+      housing.position.set(at[0], wing.floorY + wing.hallHeight - 0.84, at[2]);
+      housing.rotation.y = angle;
+      this.group.add(housing);
+
+      const glint = new THREE.Mesh(glintGeometry, glow);
+      glint.name = `wing-ceiling-glint:${wing.id}`;
+      glint.position.set(at[0], wing.floorY + wing.hallHeight - 0.905, at[2]);
+      glint.rotation.y = angle;
+      this.group.add(glint);
     }
 
     // Two broad wall inlays per wing create slower colour beats between the
