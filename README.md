@@ -31,6 +31,12 @@ Useful shortcuts while Workshop is open: `W/E/R` move/rotate/scale · `G` snap t
 
 The current exterior includes a complete world-relative crystalline Blood Ring orbit and a visual-only night-island water surface with slow organic motion. Neither changes collision ownership; reduced motion freezes the water. Their final visual quality remains a human judgment, not something an automated gate can declare finished.
 
+## Visitor Choreographer — development preview
+
+Start the Vite development server and open `/?choreo=1`. After entering the museum, use the visible **Visitor Choreographer** button. Its ordinary accessible Panel supports Close/Escape, focus trapping and focus restoration. Play/Pause, Restart, the time scrubber, floor selection and route visibility operate on a nominal source-route simulation through the existing app loop. Closing pauses playback; reopening retains the selected time. Restart resets to zero and pauses.
+
+The projection preserves all 17 authored identities and vNext routes. It uses horizontal route distance, mean authored pauses and interpolated height; it is **not runtime telemetry**, collision resolution, conversation/seated behavior, congestion analysis or a competing architectural authority. Source visitor behavior and museum geometry remain unchanged. The tool is dynamically loaded only in development and is excluded from production and standalone artifacts. Empty, unused Jules script/proof placeholders were removed; regression proof lives in the unit and browser suites.
+
 ## Validate it
 
 ```bash

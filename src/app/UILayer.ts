@@ -413,8 +413,10 @@ export class UILayer {
   };
 
   private releaseCapture(): void {
-    // Closing one panel must not hand input back while another is still open.
-    if (this.anyPanelOpen) return;
+    // These booleans belong to the built-in modal group. External modals hold
+    // independent ownership tokens; retaining our booleans for them would leak
+    // this group's capture after its last panel closes.
+    if (this.modalPanels.some(panel => panel.isOpen)) return;
     this.app.input.uiCaptured = false;
     this.app.player.setFrozen(false);
   }
@@ -478,8 +480,15 @@ export class UILayer {
    * an open panel, and capture must not be released while any panel is still
    * open.
    */
+  private readonly externalPanels = new Set<{ isOpen: boolean }>();
+
+  registerModal(panel: { isOpen: boolean }): () => void {
+    this.externalPanels.add(panel);
+    return () => { this.externalPanels.delete(panel); };
+  }
+
   get anyPanelOpen(): boolean {
-    return this.modalPanels.some((p) => p.isOpen);
+    return [...this.modalPanels, ...this.externalPanels].some((p) => p.isOpen);
   }
 
   private get modalPanels(): { isOpen: boolean }[] {

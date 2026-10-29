@@ -56,6 +56,9 @@ if (jsChunks.length < 2) errors.push(`expected multiple production JavaScript ch
 // endpoint absolutely do not. Build-time dead-code elimination must prove that
 // separation on every release build.
 const workshopRuntimeMarkers = [
+  'Visitor Choreographer',
+  'Nominal source-route evidence',
+  'choreo-launcher',
   '/__museum-workshop/save',
   'Museum Workshop development editor',
   'museum-workshop-transform-controls',
@@ -63,13 +66,13 @@ const workshopRuntimeMarkers = [
 for (const chunk of jsChunks) {
   const text = readFileSync(join(root, chunk), 'utf8');
   for (const marker of workshopRuntimeMarkers) {
-    if (text.includes(marker)) errors.push(`development-only Workshop marker leaked into ${chunk}: ${marker}`);
+    if (text.includes(marker)) errors.push(`development-only editor marker leaked into ${chunk}: ${marker}`);
   }
 }
 for (const chunk of cssChunks) {
   const text = readFileSync(join(root, chunk), 'utf8');
-  if (text.includes('.museum-workshop')) {
-    errors.push(`development-only Workshop styles leaked into ${chunk}`);
+  if (text.includes('.museum-workshop') || text.includes('.choreo-')) {
+    errors.push(`development-only editor styles leaked into ${chunk}`);
   }
 }
 
@@ -85,4 +88,4 @@ console.log(`  - ${rel.length} files`);
 console.log(`  - ${(bytes / 1024 / 1024).toFixed(2)} MB uncompressed build output`);
 console.log(`  - ${jsChunks.length} JavaScript chunks`);
 console.log('  - hashed assets, cache policy, CSP and secret-file denylist verified');
-console.log('  - development-only Museum Workshop editor/write path excluded from production');
+console.log('  - development-only Workshop and Choreographer controls excluded from production');
