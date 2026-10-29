@@ -71,14 +71,27 @@ test('doorway visibility, streamed artwork and embedded rendering lifecycle', as
   });
   expect(loadedVersion.version).toBe(sourceBefore.shaderVersion);
   expect(loadedVersion.mapId).not.toBe(sourceBefore.placeholderId);
-  await page.evaluate(() => window.__museum!.sourceArtwork.update(10_000, 10_000, 1));
-  expect(await page.evaluate(() => window.__museum!.sourceArtwork.residentCount)).toBe(0);
+  // Capture eviction and the resulting map in one browser task: pending
+  // ImageLoader callbacks may run between separate page.evaluate calls.
   const unloadedVersion = await page.evaluate(() => {
-    const entry = (window.__museum!.sourceArtwork as unknown as {
-      pending: Array<{ material: { version: number; map: { uuid: string } | null } }>;
-    }).pending[0];
-    return { version: entry.material.version, mapId: entry.material.map?.uuid };
+    const artwork = window.__museum!.sourceArtwork as unknown as {
+      pending: Array<{ texture: object | null; loading: boolean; material: {
+        version: number; map: { uuid: string } | null;
+      } }>;
+      residentCount: number;
+      update(x: number, z: number, dt: number): void;
+    };
+    artwork.update(10_000, 10_000, 0);
+    const entry = artwork.pending[0];
+    return {
+      version: entry.material.version,
+      mapId: entry.material.map?.uuid,
+      textureReleased: entry.texture === null && !entry.loading,
+      residents: artwork.residentCount,
+    };
   });
+  expect(unloadedVersion.textureReleased).toBe(true);
+  expect(unloadedVersion.residents).toBe(0);
   // Same mapped shader variant throughout load/unload: no material recompile.
   expect(unloadedVersion.version).toBe(sourceBefore.shaderVersion);
   expect(unloadedVersion.mapId).toBe(sourceBefore.placeholderId);

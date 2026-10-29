@@ -3,6 +3,7 @@ import { GeometryKit } from './GeometryKit';
 import { PaletteSet } from './palette';
 import { CollisionWorld } from './CollisionWorld';
 import { Detailing } from './Detailing';
+import { GalleryPlinthKit } from './GalleryPlinth';
 import { mergeStatic, type MergeReport } from './MergeStatic';
 import type { ResourceScope } from '../assets/ResourceScope';
 import {
@@ -63,10 +64,12 @@ export class Museum {
 
   private readonly kit: GeometryKit;
   private readonly pal: PaletteSet;
+  private readonly plinthKit: GalleryPlinthKit;
 
   constructor(private readonly scope: ResourceScope) {
     this.root.name = 'museum-building';
     this.pal = new PaletteSet(scope);
+    this.plinthKit = new GalleryPlinthKit(scope);
     this.kit = new GeometryKit(scope, this.collision, this.root);
   }
 
@@ -643,15 +646,9 @@ export class Museum {
     parent.add(mount);
     this.exhibitMounts.set(exhibitId, mount);
 
-    // Graybox volume marker: a plinth that reads as "an exhibit belongs here".
-    // It sits at the bay centre where the hero object will stand, leaving the
-    // approach from the doorway clear.
-    const marker = new THREE.Mesh(
-      this.scope.track(new THREE.BoxGeometry(2.6, 0.9, 2.6)),
-      p.trim,
-    );
-    marker.position.set(0, 0.45, 0);
-    mount.add(marker);
+    // Replace the anonymous graybox visually; preserve the authoritative
+    // 2.6 x 0.9 x 2.6 obstacle and every exhibit mount/interaction contract.
+    mount.add(this.plinthKit.build(exhibitId, p));
     this.collision.addBox([anchor[0], y + 0.45, anchor[2]], [1.3, 0.45, 1.3]);
   }
 

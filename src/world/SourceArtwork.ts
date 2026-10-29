@@ -68,8 +68,11 @@ export class SourceArtwork {
   update(x: number, z: number, dt: number): void {
     if (this.disposed || typeof document === 'undefined') return;
     this.elapsed += dt;
-    if (this.elapsed < 0.2) return;
-    this.elapsed = 0;
+    // Only NEW loads are throttled. Eviction/cancellation is safety-critical:
+    // even a fast turn away (or 0dt lifecycle update) must immediately release
+    // obsolete raster residency and restore the shared fallback shader map.
+    const canSubmitLoad = this.elapsed >= 0.2;
+    if (canSubmitLoad) this.elapsed = 0;
     let submitted = false;
 
     for (const entry of this.pending) {
@@ -95,7 +98,7 @@ export class SourceArtwork {
         continue;
       }
 
-      if (submitted || distanceSq > LOAD_RADIUS_SQ || entry.texture || entry.loading) continue;
+      if (!canSubmitLoad || submitted || distanceSq > LOAD_RADIUS_SQ || entry.texture || entry.loading) continue;
       entry.loading = true;
       submitted = true;
       const generation = ++entry.generation;
