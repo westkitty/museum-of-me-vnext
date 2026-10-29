@@ -13,3 +13,7 @@ test-results/
 validation/reports/*.json
 # The runtime source-parity evidence is a deliverable, not scratch output.
 !validation/reports/runtime-source-qa.json
+
+# Private manual Sentinel diagnostics; never a production/public artifact.
+.sentinel/
+.sentinel.json
