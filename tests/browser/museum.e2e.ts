@@ -76,13 +76,19 @@ test('boots at the exterior arrival and keyboard input reaches the real controll
       visitorBatch: app.sourceVisitors.batch.isBatchedMesh,
       visitorInstances: app.sourceVisitors.batch.instanceCount,
       cameraVisibleVisitorMeshes,
+      contactShadowsInstanced: app.sourceVisitors.shadows.isInstancedMesh,
+      contactShadowInstances: app.sourceVisitors.shadows.count,
       visibleInstallations: app.sourceInstallations.visibleCount,
       totalInstallations: app.sourceInstallations.count,
     };
   });
   expect(renderBudget.visitorBatch).toBe(true);
   expect(renderBudget.visitorInstances).toBe(327);
-  expect(renderBudget.cameraVisibleVisitorMeshes).toBe(1);
+  // Exactly two batched visual draws: one preserves all 327 authored body
+  // parts and one adds 17 ground-contact shadows, never 17 new body meshes.
+  expect(renderBudget.cameraVisibleVisitorMeshes).toBe(2);
+  expect(renderBudget.contactShadowsInstanced).toBe(true);
+  expect(renderBudget.contactShadowInstances).toBe(17);
   expect(renderBudget.visibleInstallations).toBeGreaterThan(0);
   expect(renderBudget.visibleInstallations).toBeLessThan(renderBudget.totalInstallations);
 
@@ -156,8 +162,10 @@ test('operates the visual map and reduced-motion setting with the keyboard', asy
   const visualBay = page.locator('.map__plan .bay[role="button"]').first();
   await visualBay.focus();
   await page.keyboard.press('Enter');
-  await expect(page.locator('#panel-map .panel__note')).toContainText('Wayfinding to');
-  await expect(page.locator('#panel-map .panel__note')).toContainText('m away');
+  const wayfinding = page.locator('#panel-map .map__wayfinding[role="status"]');
+  await expect(wayfinding).toHaveCount(1);
+  await expect(wayfinding).toContainText('Wayfinding to');
+  await expect(wayfinding).toContainText('m away');
 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog', { name: 'Museum map' })).toBeHidden();

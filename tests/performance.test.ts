@@ -151,11 +151,16 @@ describe('visitor simulation budget', () => {
 
     expect(visitors.batch.isBatchedMesh).toBe(true);
     expect(visitors.batch.instanceCount).toBe(327);
-    expect(cameraVisibleMeshes).toBe(1);
+    // The authored bodies are still ONE batched draw. A second instanced
+    // draw projects 17 low-cost contact shadows; hit proxies stay invisible.
+    expect(cameraVisibleMeshes).toBe(2);
+    expect(visitors.shadows.isInstancedMesh).toBe(true);
+    expect(visitors.shadows.count).toBe(17);
     expect(visitors.snapshot()).toHaveLength(17);
     expect(visitors.snapshot().every((visitor) => visitor.meshCount >= 20 || visitor.seated)).toBe(true);
-    // One batch + one batch material + one shared hit geometry/material.
-    expect(scope.size).toBeLessThanOrEqual(4);
+    // One body batch, one shadow batch, shared hit primitive, one locally
+    // generated alpha mask. No per-visitor geometry/material allocation.
+    expect(scope.size).toBeLessThanOrEqual(8);
 
     visitors.dispose();
     interaction.dispose();

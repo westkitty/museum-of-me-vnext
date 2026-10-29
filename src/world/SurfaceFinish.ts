@@ -42,12 +42,18 @@ export function architecturalStoneFinish(scope: ResourceScope): THREE.DataTextur
   const pixels = new Uint8Array(SIZE * SIZE * 4);
   for (let y = 0; y < SIZE; y++) {
     for (let x = 0; x < SIZE; x++) {
-      const mineral = noise(x, y, 8) * 0.6 + noise(x, y, 32) * 0.4;
-      const grain = hash(x, y) - 0.5;
-      // Restrained coursing reads as craft close up, never as a printed grid.
-      const joint = ((x + 13) % 32 === 0 || (y + 7) % 32 === 0) ? 0.035 : 0;
+      // Quiet periodic mineral veining replaces the visibly printed joint grid.
+      // Multi-scale noise wraps at every texture edge without extra GPU resources.
+      const mineral = noise(x, y, 8) * 0.48
+        + noise(x, y, 16) * 0.32
+        + noise(x, y, 32) * 0.20;
+      const warp = noise(x, y, 8) * 0.68 + noise(x, y, 16) * 0.22;
+      const strata = Math.sin(2 * Math.PI * (x * 3 / SIZE + warp * 0.68));
+      const vein = Math.pow(Math.max(0, 1 - Math.abs(strata) / 0.17), 3) * 0.037;
+      const pore = hash(x + 47, y + 71) > 0.962 ? 0.018 : 0;
+      const grain = (hash(x, y) - 0.5) * 0.058;
       const shade = Math.max(0.79, Math.min(1,
-        0.958 + (mineral - 0.5) * 0.12 + grain * 0.065 - joint,
+        0.958 + (mineral - 0.5) * 0.105 + grain - vein - pore,
       ));
       const value = Math.round(shade * 255);
       const i = (y * SIZE + x) * 4;

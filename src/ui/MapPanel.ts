@@ -310,8 +310,8 @@ export class MapPanel extends Panel {
           {},
           el('p', { text: `You are in the ${this.getZone()}, facing ${heading}. Selecting an exhibit marks it on the map and shows a direction cue — it never moves you there.` }),
           this.target
-            ? el('p', { class: 'panel__note', text: `Wayfinding to ${EXHIBITS_BY_ID.get(this.target)?.title} · ${Math.round(this.distanceTo(this.target))} m away. Select it again to clear.` })
-            : el('p', { class: 'panel__note', text: `${this.journal.visitedCount} of 35 exhibits visited. There is no score.` }),
+            ? el('p', { class: 'panel__note map__wayfinding', role: 'status', text: `Wayfinding to ${EXHIBITS_BY_ID.get(this.target)?.title} · ${Math.round(this.distanceTo(this.target))} m away. Select it again to clear.` })
+            : el('p', { class: 'panel__note map__wayfinding', role: 'status', text: `${this.journal.visitedCount} of 35 exhibits visited. There is no score.` }),
           prefs.showMapVisitors
             ? el('p', { class: 'map__visitor-note', text: `${visitorMarkers.length} visitor${visitorMarkers.length === 1 ? '' : 's'} visible on this floor: authored people use solid markers, staff use ringed markers, ambient visitors use quiet markers.` })
             : el('p', { class: 'map__visitor-note', text: 'Visitor markers are hidden by your settings.' }),
