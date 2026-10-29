@@ -1,9 +1,18 @@
 name: museum development gate
 
+# One current CI run per PR or main update; no duplicate branch-push runs.
+concurrency:
+  group: museum-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
-    branches-ignore: []
+    branches:
+      - main
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   gate:
