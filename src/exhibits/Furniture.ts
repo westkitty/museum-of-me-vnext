@@ -3,6 +3,84 @@ import { createTextTexture, createFallbackTexture, canRenderText } from '../asse
 import type { ResourceScope } from '../assets/ResourceScope';
 import type { ExhibitRecord, ProjectRecord } from '../content/types';
 
+type TextTextureOptions = NonNullable<Parameters<typeof createTextTexture>[2]>;
+
+interface ResidentTextController {
+  readonly material: THREE.MeshStandardMaterial;
+  readonly preview: THREE.Texture;
+  highResolution: THREE.Texture | null;
+  setHighResolution(high: boolean): void;
+}
+
+const residentTextControllers = new WeakMap<THREE.Object3D, ResidentTextController>();
+
+function scaledTextOptions(
+  opts: TextTextureOptions,
+  scale: number,
+): TextTextureOptions {
+  const scaled = { ...opts };
+  for (const key of ['width', 'height', 'titleSize', 'bodySize', 'padding'] as const) {
+    const value = opts[key];
+    if (value !== undefined) scaled[key] = Math.max(1, Math.round(value * scale));
+  }
+  return scaled;
+}
+
+function residentTextMaterial(
+  scope: ResourceScope,
+  paragraphs: readonly string[],
+  opts: TextTextureOptions,
+): { material: THREE.MeshStandardMaterial; controller: ResidentTextController | null } {
+  if (!canRenderText()) return { material: textMaterial(scope, paragraphs, opts), controller: null };
+
+  const preview = createTextTexture(scope, paragraphs, scaledTextOptions(opts, 0.5));
+  const material = scope.track(new THREE.MeshStandardMaterial({
+    map: preview,
+    roughness: 0.85,
+    metalness: 0,
+  }));
+  const controller: ResidentTextController = {
+    material,
+    preview,
+    highResolution: null,
+    setHighResolution(high: boolean): void {
+      if (high === (this.highResolution !== null)) return;
+      if (high) {
+        this.highResolution = createTextTexture(scope, paragraphs, opts);
+        this.material.map = this.highResolution;
+        return;
+      }
+      this.material.map = this.preview;
+      this.highResolution?.dispose();
+      if (this.highResolution) scope.untrack(this.highResolution);
+      this.highResolution = null;
+    },
+  };
+  return { material, controller };
+}
+
+function attachResidentText(
+  mesh: THREE.Mesh,
+  controller: ResidentTextController | null,
+): THREE.Mesh {
+  if (controller) residentTextControllers.set(mesh, controller);
+  return mesh;
+}
+
+/** Upgrade or release the large plaque and lectern canvases below an exhibit root. */
+export function setFurnitureTextResolution(root: THREE.Object3D, high: boolean): void {
+  root.traverse((node) => residentTextControllers.get(node)?.setHighResolution(high));
+}
+
+/** Diagnostic count used by lifecycle tests and browser performance probes. */
+export function highResolutionFurnitureTextCount(root: THREE.Object3D): number {
+  let count = 0;
+  root.traverse((node) => {
+    if (residentTextControllers.get(node)?.highResolution) count++;
+  });
+  return count;
+}
+
 /**
  * Interpretation furniture, shared by every exhibit in the museum.
  *
@@ -32,18 +110,19 @@ export function buildPlaque(scope: ResourceScope, record: ExhibitRecord): THREE.
   );
   group.add(frame);
 
-  const face = new THREE.Mesh(
+  const text = residentTextMaterial(scope, [record.copy.plaque], {
+    width: 1024,
+    height: 512,
+    title: record.title,
+    titleSize: 54,
+    bodySize: 34,
+    align: 'center',
+    padding: 46,
+  });
+  const face = attachResidentText(new THREE.Mesh(
     scope.track(new THREE.PlaneGeometry(2.34, 1.16)),
-    textMaterial(scope, [record.copy.plaque], {
-      width: 1024,
-      height: 512,
-      title: record.title,
-      titleSize: 54,
-      bodySize: 34,
-      align: 'center',
-      padding: 46,
-    }),
-  );
+    text.material,
+  ), text.controller);
   face.position.z = 0.05;
   group.add(face);
 
@@ -77,17 +156,18 @@ export function buildLectern(
       ? `Represents ${projects[0].name}.`
       : `Represents ${projects.length} projects: ${projects.map((p) => p.name).join(', ')}.`;
 
-  const surface = new THREE.Mesh(
+  const text = residentTextMaterial(scope, [record.copy.problem, record.copy.made, represented], {
+    width: 1024,
+    height: 740,
+    title: record.copy.subtitle,
+    titleSize: 44,
+    bodySize: 29,
+    padding: 52,
+  });
+  const surface = attachResidentText(new THREE.Mesh(
     scope.track(new THREE.PlaneGeometry(0.92, 0.66)),
-    textMaterial(scope, [record.copy.problem, record.copy.made, represented], {
-      width: 1024,
-      height: 740,
-      title: record.copy.subtitle,
-      titleSize: 44,
-      bodySize: 29,
-      padding: 52,
-    }),
-  );
+    text.material,
+  ), text.controller);
   surface.position.set(0, 1.08, 0.06);
   surface.rotation.x = -Math.PI / 3.4;
   group.add(surface);

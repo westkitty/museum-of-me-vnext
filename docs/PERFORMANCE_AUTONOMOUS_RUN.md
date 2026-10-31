@@ -30,8 +30,8 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 | 2 | P3 + P6 Quaternius assets | BLOCKED | `63f306a` | Retained official sources are absent and the publisher-linked Drive folders return 403. |
 | 3 | P7 quality selection | PASS | `096ac97` | Missing-memory, 4 GB, 8 GB, 16 GB and mobile cases covered. |
 | 4 | P2 lighting stability | PASS | `8f51bed` | Even count buckets reduce shader variants without forcing eight lights. |
-| 5 | P13 shader prewarming | REVERTED | pending C5 ledger commit | Persistent-shell compile cost outweighed negligible later program reduction. |
-| 6 | P11 + P16 text residency | PENDING | — | Existing supplementary/curated residency is the starting point. |
+| 5 | P13 shader prewarming | REVERTED | `d021433` | Persistent-shell compile cost outweighed negligible later program reduction. |
+| 6 | P11 + P16 text residency | PASS | pending C6 commit | Plaque/lectern previews now upgrade only while active; supplementary residency retained. |
 | 7 | P15 muted audio | PENDING | — | Preserve gesture policy, interaction audio and cleanup. |
 | 8 | P4 + P5 + P10 Full Weasel | PENDING | — | Requires separately authorized upstream source access. |
 | Optional | P8, P14, P18, P20 | PENDING TRIAGE | — | Run only with supported residual bottleneck evidence. |
@@ -94,10 +94,26 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 ## C5 — P13 persistent-shell shader prewarming experiment
 
 - Base SHA: `8f51bed`.
-- Result SHA: pending this ledger checkpoint commit; production experiment fully reverted before commit.
+- Result SHA: `d021433`; production experiment fully reverted before commit.
 - Experiment: serialized a one-time persistent-scene `compileAsync` behind the first visible frame, after the real environment/fog/light setup, while retaining the existing exhibit prewarm path and single app loop. A browser test first failed because persistent prewarm telemetry was absent, then passed with the candidate and proved no deadlock.
 - Matched evidence: app construction remained fast (827 ms in the candidate run), but persistent completion took 13.94 seconds from navigation and the shell compile itself consumed 7.44 seconds of SwiftShader wall time. Subsequent main-axis program growth changed only 65 → 62 and final programs 93 → 96. Render p95 improved 89.1 → 39.4 ms, while p99 regressed 617.2 → 1,991.5 ms because dynamic variants remained.
 - Status: REVERTED / no measurable net benefit. The compile was too costly for the arrival window and did not remove the transition-tail outlier.
 - Retained behavior: existing serialized per-exhibit `prewarmObject`, deferred PMREM environment, arrival dwell, and P2 light buckets remain unchanged.
 - Rollback: already restored exactly to `8f51bed` production behavior; reverting this documentation commit removes only the experiment record.
+
+## C6 — P11 + P16 text residency
+
+- Base SHA: `d021433`.
+- Result SHA: pending this checkpoint commit.
+- Files: `src/exhibits/Furniture.ts`, `src/exhibits/ExhibitHost.ts`, `tests/furniture-text-residency.test.ts`, this ledger.
+- Change: every streamed exhibit now mounts its physical plaque and lectern with proportional half-resolution previews (`512×256` and `512×370`). Activation generates the original full-resolution textures (`1024×512` and `1024×740`) before making the exhibit visible. Deactivation restores the previews and disposes/untracks both large textures. The mapped materials remain stable, so swaps do not create new shader variants. Exact text, type proportions, geometry, DOM mirrors and headless fallback behavior are retained.
+- Existing P16 behavior retained: supplementary cases already mount `384×240` previews, upgrade at most two cases within 12 metres to `1024×640`, retain them through a 15-metre hysteresis band, and release them outside that band. The destructive P12 canvas-source technique remains excluded.
+- TDD: the focused test first failed because plaque/lectern construction eagerly allocated the two full canvases. It then passed and proves preview dimensions, active dimensions, material-version stability, downgrade, and a zero-resource scope after release.
+- Residency evidence: inactive plaque+lectern canvas area is 320,512 pixels instead of 1,282,048 pixels, a 75% reduction for those two maps while mounted outside reading range. This is pixel-area evidence, not a claim about browser heap or physical GPU memory.
+- Live Chromium lifecycle probe on prewarmed E32: the inactive host contained the two previews plus its two existing `512×164` labels; activation replaced only the plaque/lectern maps with the two original full sizes; deactivation restored the previews. Host resource count changed 69 → 71 → 69 and ended mounted, proving the temporary resources settle.
+- Matched fixed-view SwiftShader probe: Plaza 972 calls / 146,366 triangles; Rotunda 688 / 92,778; North E01 206 / 48,914; East E18 135 / 32,652; South E32 190 / 24,516. Geometry and submission counts remain identical to the accepted P1/P2 baseline. Short synchronous-render timing remains noisy and is not promoted as a device result.
+- Validation: focused residency/lifecycle suites PASS 13/13; canonical gate PASS, 44 files / 704 tests plus validators/build/budgets/dist; focused system-Chromium performance/lifecycle journey PASS 1/1.
+- Status: PASS / keep. Physical-device texture-memory measurement and human near-field typography review remain required.
+- Dependencies: exhibit activation/deactivation now owns plaque/lectern resolution; unmount continues to call deactivation before scope release.
+- Rollback: `git revert <C6 SHA>`.
 

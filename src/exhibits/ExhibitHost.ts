@@ -3,6 +3,7 @@ import { ResourceScope } from '../assets/ResourceScope';
 import type { ExhibitModule, ExhibitContext, ExhibitState, ExhibitControl } from './contract';
 import type { ExhibitRecord } from '../content/types';
 import { PROJECTS_BY_ID } from '../content/collection.generated';
+import { setFurnitureTextResolution } from './Furniture';
 
 export interface HostServices {
   readonly addControl: (exhibitId: string, control: ExhibitControl) => () => void;
@@ -173,6 +174,9 @@ export class ExhibitHost {
     if (this.state === 'active') return;
     if (this.state !== 'mounted') throw new IllegalTransition(this.id, this.state, 'activate');
     const started = performance.now();
+    // Generate reading-resolution interpretation before the exhibit becomes
+    // visible. Mounted/prewarmed exhibits keep lightweight preview canvases.
+    setFurnitureTextResolution(this.group, true);
     this.group.visible = true;
     this.activeSince = now;
     this.module.activate();
@@ -196,6 +200,7 @@ export class ExhibitHost {
     if (this.state !== 'active') return;
     this.module.deactivate();
     this.group.visible = false;
+    setFurnitureTextResolution(this.group, false);
     this.state = 'mounted';
   }
 
