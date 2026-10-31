@@ -1,4 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { createHash } from 'node:crypto';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
 import * as THREE from 'three';
 import { AssetManager } from '../src/assets/AssetManager';
 import { ResourceScope } from '../src/assets/ResourceScope';
@@ -9,6 +12,14 @@ import {
   buildPlinth, buildCase, buildBench, lathe, polygonPrism, tubeAlong,
   fibonacciSphere, ringTransforms, rng, instanced,
 } from '../src/assets/generators';
+import { FULL_WEASEL_TREE_SHA256 } from '../src/assets/fullWeaselArtifact';
+
+function treeFiles(root: string, directory = root): string[] {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const absolute = join(directory, entry.name);
+    return entry.isDirectory() ? treeFiles(root, absolute) : [relative(root, absolute).split(sep).join('/')];
+  });
+}
 
 beforeEach(() => {
   _resetAssetRegistry();
@@ -42,6 +53,17 @@ describe('asset manifest governance', () => {
     expect(record.sourceHash).toBe('abc');
     expect(record.processedHash).toBe('def');
     expect(allAssets()).toHaveLength(1);
+  });
+
+  it('pins the exact governed Full Weasel artifact tree', () => {
+    const root = join(process.cwd(), 'public', 'embedded', 'full-weasel');
+    const hash = createHash('sha256');
+    for (const file of treeFiles(root).sort()) {
+      hash.update(file);
+      hash.update(Buffer.from([0]));
+      hash.update(readFileSync(join(root, file)));
+    }
+    expect(hash.digest('hex')).toBe(FULL_WEASEL_TREE_SHA256);
   });
 });
 

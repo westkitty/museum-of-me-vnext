@@ -32,8 +32,8 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 | 4 | P2 lighting stability | PASS | `8f51bed` | Even count buckets reduce shader variants without forcing eight lights. |
 | 5 | P13 shader prewarming | REVERTED | `d021433` | Persistent-shell compile cost outweighed negligible later program reduction. |
 | 6 | P11 + P16 text residency | PASS | `3565382` | Plaque/lectern previews now upgrade only while active; supplementary residency retained. |
-| 7 | P15 muted audio | PASS | pending C7 commit | Muted ambience owns no synthesis graph; interaction audio and gesture policy retained. |
-| 8 | P4 + P5 + P10 Full Weasel | PENDING | — | Requires separately authorized upstream source access. |
+| 7 | P15 muted audio | PASS | `221479d` | Muted ambience owns no synthesis graph; interaction audio and gesture policy retained. |
+| 8 | P4 + P5 + P10 Full Weasel | PASS | pending C8 commit | Verified upstream source build integrated exactly into governed E27 artifact. |
 | Optional | P8, P14, P18, P20 | PENDING TRIAGE | — | Run only with supported residual bottleneck evidence. |
 | Rejected | P9, P12, P17, P19 | SKIPPED BY AUTHORITY | — | Explicitly excluded from implementation. |
 
@@ -120,7 +120,7 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 ## C7 — P15 muted audio lifecycle
 
 - Base SHA: `3565382`.
-- Result SHA: pending this checkpoint commit.
+- Result SHA: `221479d`.
 - Files: `src/audio/AudioManager.ts`, `tests/audio.test.ts`, this ledger.
 - Change: a zone ambience bed now exists only when both overall and ambience volumes are above zero. Muting either effective input immediately cancels cleanup timers, stops/disconnects all bed voices, and clears their residency. Overall volume zero suspends the `AudioContext`; enabling overall volume resumes it from the user-driven settings path. With overall volume enabled and ambience muted, interaction ticks remain available through the master path without creating a room bed. The current zone is retained so unmuting recreates the correct bed, and ordinary audible zone changes keep the existing crossfade/cleanup behavior.
 - TDD: the new focused test failed because default-muted startup still allocated a noise buffer and zone oscillators. It now proves zero muted ambience oscillators/buffers/sources, context suspension, one short interaction oscillator with ambience muted, one bed on unmute, zero voices after remute, resume on overall-volume enable, and cleanup on disposal. The pre-existing repeated-wing test now runs audibly and continues to prove that old beds settle to at most the crossfade pair.
@@ -129,4 +129,21 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 - Status: PASS / keep. Human audible crossfade and browser-specific gesture-policy checks remain part of device acceptance.
 - Dependencies: none beyond the existing settings event and single audio manager ownership.
 - Rollback: `git revert <C7 SHA>`.
+
+## C8 — P4 + P5 + P10 authoritative Full Weasel integration
+
+- Museum base SHA: `221479d`.
+- Museum result SHA: pending this checkpoint commit.
+- Upstream base: `westkitty/The_Full_Weasel` `bdd5c94a7486e2a3955c3a27af1179da035fb100`.
+- Upstream branch and result: `perf/autonomous-full-weasel-uplift-20261030-bdd5c94` at `1a0d025` (`f32a971` media/startup, `6810a14` portable embed target, and `1a0d025` normalized generated entry markup).
+- P4: title readiness now awaits only the title image. Gameplay images preload predictively during How To / Ready, packaged-only sheets are not requested, background probing begins after title interaction, and the Ready gate prevents play before runtime art settles. Music remains gesture-lazy through the existing two-player crossfade path.
+- P5: all 44 governed shipped PNGs have smaller lossless WebP derivatives while originals remain in the authoritative upstream. Decoded comparison found zero changed pixels across all 44. Selected image bytes changed 77,690,047 → 48,870,160.
+- P10: all nine 832×1504 H.264 loops use CRF 23 slow encoding, `yuv420p`, zero start time and front-loaded `moov` metadata. Bytes changed 40,465,851 → 26,474,903. Matched SSIM spans 0.981099–0.988459; loop duration differs by no more than one 24 fps frame.
+- Matched upstream cold title evidence, system Chromium 154 at 1280×720 with service workers blocked: 48 → 2 asset requests; encoded asset bytes 81,855,674 → 4,712,496; one-run title-ready wall time 2,633 → 934 ms. The timing is noisy localhost/cloud evidence, not a device claim. Full `public/assets` payload changed 134,037,830 → 91,233,340 bytes.
+- Upstream validation: locked install, standard build, embed build with internal portability verification, Node asset/loading tests PASS, clean browser journey Title → How To → Ready → Interstitial → live Round 1, zero broken images/page errors, playing muted loop, and no packaged-only art requests. Settled title screenshots were visually equivalent (full-frame RMSE 0.01607); image decode equivalence is exact. Optional Google Fonts were unreachable in cloud; the embed intentionally uses its local fallback stack.
+- Museum integration: exact upstream `dist-embed` copied to `public/embedded/full-weasel/`; both trees hash to `005090d888adbe4262ad2b483962332972fbea5571e770b79e9eb5c90841007d`. Embedded artifact payload is 91,672,296 bytes (87.43 MiB), down from the recorded 128.24 MiB.
+- Museum validation: canonical gate PASS, 44 files / 705 tests plus validators/build/budgets/dist; system-Chromium E27 open/Escape and embedded lifecycle journeys PASS 2/2; standalone production build and static offline verification PASS. The standalone `file://` browser journey was NOT RUN to app assertions because system Chromium rejected navigation first with `ERR_BLOCKED_BY_ADMINISTRATOR`; the existing `--allow-file-access-from-files` flag was already present. No claim is made for that blocked browser proof.
+- Status: PASS / keep. Hosted E27 behavior is cloud-verified; local-file browser proof and human mobile audiovisual acceptance remain outstanding.
+- Dependencies: Museum rollback depends on reverting this checkpoint; upstream rollback is `git revert 1a0d025 6810a14 f32a971` or revert the eventual upstream PR merge commit.
+- Rollback: `git revert <C8 SHA>` restores the prior Museum artifact and provenance.
 
