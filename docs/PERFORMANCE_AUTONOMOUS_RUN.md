@@ -28,8 +28,8 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 |---|---|---|---|---|
 | 1 | P1 glass rendering | PASS | `b4dd885` | Cloud A/B and six-wing browser proof complete; physical-device/human signoff remains. |
 | 2 | P3 + P6 Quaternius assets | BLOCKED | `63f306a` | Retained official sources are absent and the publisher-linked Drive folders return 403. |
-| 3 | P7 quality selection | PASS | pending C3 commit | Missing-memory, 4 GB, 8 GB, 16 GB and mobile cases covered. |
-| 4 | P2 lighting stability | PENDING | — | Compare dynamic vs bounded counts; retain current design if no benefit. |
+| 3 | P7 quality selection | PASS | `096ac97` | Missing-memory, 4 GB, 8 GB, 16 GB and mobile cases covered. |
+| 4 | P2 lighting stability | PASS | pending C4 commit | Even count buckets reduce shader variants without forcing eight lights. |
 | 5 | P13 shader prewarming | PENDING | — | Existing exhibit prewarm must not be duplicated. |
 | 6 | P11 + P16 text residency | PENDING | — | Existing supplementary/curated residency is the starting point. |
 | 7 | P15 muted audio | PENDING | — | Preserve gesture policy, interaction audio and cleanup. |
@@ -70,11 +70,24 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 ## C3 — P7 quality selection
 
 - Base SHA: `63f306a`.
-- Result SHA: pending this checkpoint commit.
+- Result SHA: `096ac97`.
 - Files: `src/render/QualityTiers.ts`, `tests/accessibility.test.ts`, this ledger.
 - Change: unavailable `navigator.deviceMemory` remains unknown instead of being converted to a confirmed 4 GB signal. Confirmed 4 GB and mobile devices remain low; missing memory with eight cores resolves conservatively to medium; an 8 GB device stays medium; high now requires more than 8 GB, at least eight cores and a wide display. User quality overrides and adaptive resolution are unchanged.
 - TDD: the Safari-like missing-memory case failed as low before implementation, then the focused accessibility suite passed 40/40.
 - Validation: canonical gate PASS, 43 files / 702 tests plus all validators/build/budgets/dist.
 - Status: PASS / keep. This changes automatic quality choice, so performance comparisons remain separated from same-quality rendering comparisons.
 - Rollback: `git revert <C3 SHA>`.
+
+## C4 — P2 lighting stability
+
+- Base SHA: `096ac97`.
+- Result SHA: pending this checkpoint commit.
+- Files: `src/render/Lighting.ts`, `tests/performance.test.ts`, this ledger.
+- Change: the existing nearest-eight policy remains authoritative. Odd visible point-light counts round to the next even shader bucket with the nearest unsuppressed light outside its physical cutoff, which contributes zero illumination. Counts become 2/4/6/8 instead of 1–8 and the change adds at most one submitted light; it does not force eight lights throughout the museum.
+- TDD: the main-axis bucket test failed at 3 vs expected 4 before implementation, then the focused performance suite passed 14/14.
+- Matched main-axis SwiftShader traversal, same browser/build/viewport/quality and 124 fixed positions: light-count variants 8 → 4; shader program growth 149 → 65; final resident programs 177 → 93; synchronous render p95 427.6 → 89.1 ms and p99 725.9 → 617.2 ms. Median changed 8.6 → 9.8 ms, so no steady-state speed claim is made; the accepted benefit is fewer compile variants and lower transition-tail evidence.
+- Visual/structural evidence: all five Phase 1 fixed-view screenshots are byte-identical after bucketing; fixed-view draw calls, triangles and program counts remain unchanged. Six-wing browser art-direction PASS 1/1.
+- Validation: canonical gate PASS, 43 files / 703 tests plus all validators/build/budgets/dist.
+- Status: PASS / keep.
+- Rollback: `git revert <C4 SHA>`.
 

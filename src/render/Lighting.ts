@@ -161,6 +161,8 @@ export class Lighting {
     this.lastEyeZ = eye[2];
     this.dirty = false;
     let candidateCount = 0;
+    let bucketFill: THREE.PointLight | null = null;
+    let bucketFillDistance = Infinity;
     for (const light of this.managed) {
       light.visible = false;
       if (this.suppressed.has(light)) continue;
@@ -169,7 +171,13 @@ export class Lighting {
       const dy = light.position.y - eye[1];
       const dz = light.position.z - eye[2];
       const d = dx * dx + dy * dy + dz * dz;
-      if (d > light.distance * light.distance) continue;
+      if (d > light.distance * light.distance) {
+        if (d < bucketFillDistance) {
+          bucketFill = light;
+          bucketFillDistance = d;
+        }
+        continue;
+      }
 
       // Maintain only the nearest bounded light set. The old path collected
       // every candidate and sorted the whole array even though only eight
@@ -187,6 +195,19 @@ export class Lighting {
       spare.d = d;
       this.distances[insertAt] = spare;
       candidateCount = Math.min(candidateCount + 1, MAX_ACTIVE_POINT_LIGHTS);
+    }
+
+    // Three.js keys point-light shader variants by visible-light count. Round
+    // odd counts up to the next even bucket with the nearest light outside its
+    // physical cutoff: it contributes zero illumination while reducing the
+    // traversal variants from eight possible counts to four, and adds at most
+    // one light rather than forcing the maximum everywhere.
+    if (candidateCount % 2 === 1 && candidateCount < MAX_ACTIVE_POINT_LIGHTS && bucketFill) {
+      const spare = this.distances[candidateCount] ?? { light: bucketFill, d: bucketFillDistance };
+      spare.light = bucketFill;
+      spare.d = bucketFillDistance;
+      this.distances[candidateCount] = spare;
+      candidateCount++;
     }
     this.distances.length = candidateCount;
 
