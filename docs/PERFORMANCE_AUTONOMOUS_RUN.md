@@ -29,8 +29,8 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 | 1 | P1 glass rendering | PASS | `b4dd885` | Cloud A/B and six-wing browser proof complete; physical-device/human signoff remains. |
 | 2 | P3 + P6 Quaternius assets | BLOCKED | `63f306a` | Retained official sources are absent and the publisher-linked Drive folders return 403. |
 | 3 | P7 quality selection | PASS | `096ac97` | Missing-memory, 4 GB, 8 GB, 16 GB and mobile cases covered. |
-| 4 | P2 lighting stability | PASS | pending C4 commit | Even count buckets reduce shader variants without forcing eight lights. |
-| 5 | P13 shader prewarming | PENDING | — | Existing exhibit prewarm must not be duplicated. |
+| 4 | P2 lighting stability | PASS | `8f51bed` | Even count buckets reduce shader variants without forcing eight lights. |
+| 5 | P13 shader prewarming | REVERTED | pending C5 ledger commit | Persistent-shell compile cost outweighed negligible later program reduction. |
 | 6 | P11 + P16 text residency | PENDING | — | Existing supplementary/curated residency is the starting point. |
 | 7 | P15 muted audio | PENDING | — | Preserve gesture policy, interaction audio and cleanup. |
 | 8 | P4 + P5 + P10 Full Weasel | PENDING | — | Requires separately authorized upstream source access. |
@@ -81,7 +81,7 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 ## C4 — P2 lighting stability
 
 - Base SHA: `096ac97`.
-- Result SHA: pending this checkpoint commit.
+- Result SHA: `8f51bed`.
 - Files: `src/render/Lighting.ts`, `tests/performance.test.ts`, this ledger.
 - Change: the existing nearest-eight policy remains authoritative. Odd visible point-light counts round to the next even shader bucket with the nearest unsuppressed light outside its physical cutoff, which contributes zero illumination. Counts become 2/4/6/8 instead of 1–8 and the change adds at most one submitted light; it does not force eight lights throughout the museum.
 - TDD: the main-axis bucket test failed at 3 vs expected 4 before implementation, then the focused performance suite passed 14/14.
@@ -90,4 +90,14 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 - Validation: canonical gate PASS, 43 files / 703 tests plus all validators/build/budgets/dist.
 - Status: PASS / keep.
 - Rollback: `git revert <C4 SHA>`.
+
+## C5 — P13 persistent-shell shader prewarming experiment
+
+- Base SHA: `8f51bed`.
+- Result SHA: pending this ledger checkpoint commit; production experiment fully reverted before commit.
+- Experiment: serialized a one-time persistent-scene `compileAsync` behind the first visible frame, after the real environment/fog/light setup, while retaining the existing exhibit prewarm path and single app loop. A browser test first failed because persistent prewarm telemetry was absent, then passed with the candidate and proved no deadlock.
+- Matched evidence: app construction remained fast (827 ms in the candidate run), but persistent completion took 13.94 seconds from navigation and the shell compile itself consumed 7.44 seconds of SwiftShader wall time. Subsequent main-axis program growth changed only 65 → 62 and final programs 93 → 96. Render p95 improved 89.1 → 39.4 ms, while p99 regressed 617.2 → 1,991.5 ms because dynamic variants remained.
+- Status: REVERTED / no measurable net benefit. The compile was too costly for the arrival window and did not remove the transition-tail outlier.
+- Retained behavior: existing serialized per-exhibit `prewarmObject`, deferred PMREM environment, arrival dwell, and P2 light buckets remain unchanged.
+- Rollback: already restored exactly to `8f51bed` production behavior; reverting this documentation commit removes only the experiment record.
 
