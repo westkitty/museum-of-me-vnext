@@ -169,3 +169,12 @@ The canonical Bible repository was readable for authority review but was not the
 
 > **2026-10-31 — Museum P1–P20 autonomous performance integration:** From Museum baseline `4158824fbc669b64d2a3e8b46c0a20089a9d25b5`, the dedicated performance branch accepted non-transmissive architectural glazing, bounded point-light shader-count buckets, conservative missing-memory quality detection, distance-aware plaque/lectern texture residency, muted ambience graph suspension, and an authoritative optimized Full Weasel embed. Shader-shell prewarming was tested and reverted; Quaternius primitive/animation conversion was blocked because the recorded official source files were unavailable; optional P8/P14/P20 lacked residual evidence and P18 remains device-dependent. Cloud validation passed 706 unit tests, 24 browser journeys, production/standalone static builds and matched SwiftShader probes. The Museum remains ACTIVE DEVELOPMENT / PRE-1.0; MacBook/tablet GPU, thermal, battery, human visual/audio, and locally permitted `file://` acceptance remain unverified.
 
+## C10 — publication receipt
+
+- Museum branch push: **PASS**. GitHub readback returned `ea7b391b322268223d7a51f83f45469e6b3e6a2c` before this append-only delivery receipt; this receipt is the subsequent documentation-only head.
+- Full Weasel branch push: **PASS**. GitHub readback returned `1a0d025a2e0d0abeb903cce1b4cbf65c93df93f7` for `perf/autonomous-full-weasel-uplift-20261030-bdd5c94`.
+- Draft PR creation: **BLOCKED**. The environment-provided `GH_TOKEN` is invalid, and `gh` has no alternate authenticated host session when that variable is removed. Git transport authentication can publish branches but cannot create PR objects. No token was extracted or requested.
+- Prepared upstream PR entry: `https://github.com/westkitty/The_Full_Weasel/pull/new/perf/autonomous-full-weasel-uplift-20261030-bdd5c94`.
+- Prepared Museum PR entry: `https://github.com/westkitty/museum-of-me-vnext/pull/new/perf/autonomous-museum-uplift-20261030-4158824`.
+- No merge, Pages deployment, release, tag, history rewrite or force push was performed.
+
