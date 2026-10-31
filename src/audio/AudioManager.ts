@@ -60,7 +60,7 @@ export class AudioManager {
       this.ambienceGain.gain.value = this.ambienceVolume;
       this.ambienceGain.connect(this.master);
       this.started = true;
-      if (this.currentZone) this.setZone(this.currentZone);
+      this.syncPlaybackState();
     } catch (err) {
       console.warn('[Audio] unavailable; the museum continues silently', err);
     }
@@ -75,12 +75,17 @@ export class AudioManager {
     this.ambienceVolume = ambience;
     if (this.master) this.master.gain.value = master;
     if (this.ambienceGain) this.ambienceGain.gain.value = ambience;
+    if (this.started) this.syncPlaybackState();
   }
 
   /** Crossfade to a zone's bed. Called when the visitor changes zone. */
   setZone(zone: ZoneId): void {
     this.currentZone = zone;
     if (!this.started || !this.ctx || !this.ambienceGain) return;
+    if (!this.isAmbienceAudible()) {
+      this.stopAllVoices();
+      return;
+    }
 
     for (const [id, voice] of this.voices) {
       if (id === zone) {
@@ -120,6 +125,16 @@ export class AudioManager {
   /** A short, quiet confirmation for an exhibit interaction. */
   tick(pitch = 660): void {
     if (!this.started || !this.ctx || !this.master) return;
+    if (this.masterVolume <= 0) return;
+    if (this.ctx.state !== 'running') {
+      void this.ctx.resume().then(() => this.playTick(pitch)).catch(() => {});
+      return;
+    }
+    this.playTick(pitch);
+  }
+
+  private playTick(pitch: number): void {
+    if (!this.ctx || !this.master || this.ctx.state !== 'running') return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -131,6 +146,34 @@ export class AudioManager {
     osc.connect(gain).connect(this.master);
     osc.start(now);
     osc.stop(now + 0.24);
+  }
+
+  private isAmbienceAudible(): boolean {
+    return this.masterVolume > 0 && this.ambienceVolume > 0;
+  }
+
+  private syncPlaybackState(): void {
+    if (!this.ctx) return;
+    if (this.masterVolume > 0) {
+      if (this.ctx.state !== 'running') void this.ctx.resume().catch(() => {});
+    } else if (this.ctx.state === 'running') {
+      void this.ctx.suspend().catch(() => {});
+    }
+
+    if (!this.isAmbienceAudible()) {
+      this.stopAllVoices();
+    } else if (this.currentZone) {
+      this.setZone(this.currentZone);
+    }
+  }
+
+  private stopAllVoices(): void {
+    for (const voice of this.voices.values()) {
+      if (voice.cleanupTimer !== null) clearTimeout(voice.cleanupTimer);
+      voice.stop();
+      try { voice.gain.disconnect(); } catch { /* already disconnected */ }
+    }
+    this.voices.clear();
   }
 
   zoneDescription(zone: ZoneId): string {
@@ -207,11 +250,7 @@ export class AudioManager {
   }
 
   dispose(): void {
-    for (const voice of this.voices.values()) {
-      if (voice.cleanupTimer !== null) clearTimeout(voice.cleanupTimer);
-      voice.stop();
-    }
-    this.voices.clear();
+    this.stopAllVoices();
     void this.ctx?.close();
     this.ctx = null;
     this.master = null;

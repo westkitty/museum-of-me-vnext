@@ -31,8 +31,8 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 | 3 | P7 quality selection | PASS | `096ac97` | Missing-memory, 4 GB, 8 GB, 16 GB and mobile cases covered. |
 | 4 | P2 lighting stability | PASS | `8f51bed` | Even count buckets reduce shader variants without forcing eight lights. |
 | 5 | P13 shader prewarming | REVERTED | `d021433` | Persistent-shell compile cost outweighed negligible later program reduction. |
-| 6 | P11 + P16 text residency | PASS | pending C6 commit | Plaque/lectern previews now upgrade only while active; supplementary residency retained. |
-| 7 | P15 muted audio | PENDING | — | Preserve gesture policy, interaction audio and cleanup. |
+| 6 | P11 + P16 text residency | PASS | `3565382` | Plaque/lectern previews now upgrade only while active; supplementary residency retained. |
+| 7 | P15 muted audio | PASS | pending C7 commit | Muted ambience owns no synthesis graph; interaction audio and gesture policy retained. |
 | 8 | P4 + P5 + P10 Full Weasel | PENDING | — | Requires separately authorized upstream source access. |
 | Optional | P8, P14, P18, P20 | PENDING TRIAGE | — | Run only with supported residual bottleneck evidence. |
 | Rejected | P9, P12, P17, P19 | SKIPPED BY AUTHORITY | — | Explicitly excluded from implementation. |
@@ -104,7 +104,7 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 ## C6 — P11 + P16 text residency
 
 - Base SHA: `d021433`.
-- Result SHA: pending this checkpoint commit.
+- Result SHA: `3565382`.
 - Files: `src/exhibits/Furniture.ts`, `src/exhibits/ExhibitHost.ts`, `tests/furniture-text-residency.test.ts`, this ledger.
 - Change: every streamed exhibit now mounts its physical plaque and lectern with proportional half-resolution previews (`512×256` and `512×370`). Activation generates the original full-resolution textures (`1024×512` and `1024×740`) before making the exhibit visible. Deactivation restores the previews and disposes/untracks both large textures. The mapped materials remain stable, so swaps do not create new shader variants. Exact text, type proportions, geometry, DOM mirrors and headless fallback behavior are retained.
 - Existing P16 behavior retained: supplementary cases already mount `384×240` previews, upgrade at most two cases within 12 metres to `1024×640`, retain them through a 15-metre hysteresis band, and release them outside that band. The destructive P12 canvas-source technique remains excluded.
@@ -116,4 +116,17 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 - Status: PASS / keep. Physical-device texture-memory measurement and human near-field typography review remain required.
 - Dependencies: exhibit activation/deactivation now owns plaque/lectern resolution; unmount continues to call deactivation before scope release.
 - Rollback: `git revert <C6 SHA>`.
+
+## C7 — P15 muted audio lifecycle
+
+- Base SHA: `3565382`.
+- Result SHA: pending this checkpoint commit.
+- Files: `src/audio/AudioManager.ts`, `tests/audio.test.ts`, this ledger.
+- Change: a zone ambience bed now exists only when both overall and ambience volumes are above zero. Muting either effective input immediately cancels cleanup timers, stops/disconnects all bed voices, and clears their residency. Overall volume zero suspends the `AudioContext`; enabling overall volume resumes it from the user-driven settings path. With overall volume enabled and ambience muted, interaction ticks remain available through the master path without creating a room bed. The current zone is retained so unmuting recreates the correct bed, and ordinary audible zone changes keep the existing crossfade/cleanup behavior.
+- TDD: the new focused test failed because default-muted startup still allocated a noise buffer and zone oscillators. It now proves zero muted ambience oscillators/buffers/sources, context suspension, one short interaction oscillator with ambience muted, one bed on unmute, zero voices after remute, resume on overall-volume enable, and cleanup on disposal. The pre-existing repeated-wing test now runs audibly and continues to prove that old beds settle to at most the crossfade pair.
+- Measured work avoided at default mute in the deterministic test context: three continuous bed oscillators, one looping buffer source, and one four-second 88,200-sample mono noise buffer per current zone become zero. No FPS, power, or physical-device CPU claim is inferred from these object counts.
+- Validation: focused audio suite PASS 3/3; canonical gate PASS, 44 files / 705 tests plus validators/build/budgets/dist; system-Chromium keyboard settings/muted-default journey PASS 1/1.
+- Status: PASS / keep. Human audible crossfade and browser-specific gesture-policy checks remain part of device acceptance.
+- Dependencies: none beyond the existing settings event and single audio manager ownership.
+- Rollback: `git revert <C7 SHA>`.
 
