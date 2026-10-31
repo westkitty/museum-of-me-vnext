@@ -24,7 +24,7 @@ export class EnvironmentDressing {
   private readonly darkMetal: THREE.MeshStandardMaterial;
   private readonly facadeDark: THREE.MeshStandardMaterial;
   private readonly facadeAzure: THREE.MeshStandardMaterial;
-  private readonly facadeGlass: THREE.MeshPhysicalMaterial;
+  private readonly facadeGlass: THREE.MeshStandardMaterial;
   private readonly authorableRoots: { id: string; root: THREE.Object3D }[] = [];
 
   constructor(private readonly scope: ResourceScope) {
@@ -40,15 +40,10 @@ export class EnvironmentDressing {
     this.facadeAzure = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x3aa9ef, emissive: 0x176d9f, emissiveIntensity: 0.72, roughness: 0.34, metalness: 0.5,
     }));
-    this.facadeGlass = this.scope.track(new THREE.MeshPhysicalMaterial({
+    this.facadeGlass = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x12334a,
       roughness: 0.14,
       metalness: 0.08,
-      transmission: 0.42,
-      thickness: 0.22,
-      ior: 1.46,
-      clearcoat: 0.55,
-      clearcoatRoughness: 0.1,
       transparent: true,
       opacity: 0.62,
       depthWrite: false,

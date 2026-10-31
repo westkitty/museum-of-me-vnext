@@ -84,15 +84,17 @@ describe('museum environment coherence', () => {
     scope.dispose();
   });
 
-  it('uses physical architectural glass that can pick up the scene environment', () => {
+  it('keeps architectural glass translucent without transmission rendering', () => {
     const scope = new ResourceScope('environment-test');
     const palettes = new PaletteSet(scope);
     const glass = palettes.glass();
-    expect(glass).toBeInstanceOf(THREE.MeshPhysicalMaterial);
-    const material = glass as THREE.MeshPhysicalMaterial;
-    expect(material.transmission).toBeGreaterThan(0.3);
-    expect(material.clearcoat).toBeGreaterThan(0);
+    expect(glass).toBeInstanceOf(THREE.MeshStandardMaterial);
+    expect(glass).not.toBeInstanceOf(THREE.MeshPhysicalMaterial);
+    const material = glass as THREE.MeshStandardMaterial;
+    expect(material.transparent).toBe(true);
+    expect(material.opacity).toBeCloseTo(0.34);
     expect(material.depthWrite).toBe(false);
+    expect(material.side).toBe(THREE.DoubleSide);
     scope.dispose();
   });
 
@@ -120,6 +122,12 @@ describe('museum environment coherence', () => {
     expect(names.has('indoor-plant')).toBe(true);
     expect(names.has('interior-bench')).toBe(true);
     expect(names.has('hall-pedestal')).toBe(true);
+    for (const side of ['west', 'east']) {
+      const panel = dressing.getObjectByName(`facade-glass-panel:${side}`) as THREE.Mesh;
+      expect(panel.material).toBeInstanceOf(THREE.MeshStandardMaterial);
+      expect(panel.material).not.toBeInstanceOf(THREE.MeshPhysicalMaterial);
+      expect((panel.material as THREE.MeshStandardMaterial).opacity).toBeCloseTo(0.62);
+    }
     scope.dispose();
   });
 

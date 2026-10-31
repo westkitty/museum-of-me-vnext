@@ -64,12 +64,12 @@ export function detectQualityTier(
   screenWidth = typeof window !== 'undefined' ? window.screen?.width ?? 1920 : 1920,
 ): QualityTier {
   const cores = nav.hardwareConcurrency ?? 4;
-  const memory = nav.deviceMemory ?? 4;
+  const memory = nav.deviceMemory;
   const ua = nav.userAgent ?? '';
   const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
 
   if (mobile) return 'low';
-  if (cores <= 4 || memory <= 4) return 'low';
-  if (cores >= 8 && memory >= 8 && screenWidth >= 1440) return 'high';
+  if (cores <= 4 || (memory !== undefined && memory <= 4)) return 'low';
+  if (cores >= 8 && memory !== undefined && memory > 8 && screenWidth >= 1440) return 'high';
   return 'medium';
 }

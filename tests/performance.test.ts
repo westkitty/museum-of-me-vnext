@@ -277,6 +277,23 @@ describe('light budget', () => {
     scope.dispose();
   });
 
+  it('uses even point-light shader buckets along the main traversal', () => {
+    const scope = new ResourceScope('stable-light-counts');
+    const lighting = new Lighting(scope, QUALITY.high);
+    const cases: Array<[[number, number, number], number]> = [
+      [[0, 1.6, 150], 4],
+      [[0, 1.6, 102], 6],
+      [[0, 1.6, 84], 8],
+      [[0, 1.6, -92.5], 2],
+    ];
+    for (const [position, count] of cases) {
+      lighting.update(position);
+      expect(lighting.activePointLights, `light bucket at ${position.join(',')}`).toBe(count);
+    }
+    lighting.dispose();
+    scope.dispose();
+  });
+
   it('lights the room the visitor is actually in', () => {
     const scope = new ResourceScope('t');
     const lighting = new Lighting(scope, QUALITY.high);

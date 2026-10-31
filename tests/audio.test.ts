@@ -45,6 +45,8 @@ interface StubContext {
   createOscillator: () => StubOsc;
   createBuffer: (ch: number, len: number) => { getChannelData: () => Float32Array };
   createBufferSource: () => StubBufSource;
+  suspend: () => Promise<void>;
+  resume: () => Promise<void>;
   close: () => Promise<void>;
 }
 
@@ -71,7 +73,11 @@ function setGlobalAC(ctor: unknown): void {
   env.window.webkitAudioContext = undefined;
 }
 
-function makeStubAudioContext(): { ctx: StubContext } {
+function makeStubAudioContext(): {
+  ctx: StubContext;
+  stats: { oscillators: number; buffers: number; sources: number; suspends: number; resumes: number };
+} {
+  const stats = { oscillators: 0, buffers: 0, sources: 0, suspends: 0, resumes: 0 };
   const makeGain = (): StubAudioNode => {
     const param: StubAudioParam = {
       value: 0,
@@ -98,6 +104,7 @@ function makeStubAudioContext(): { ctx: StubContext } {
       connect: () => {},
     }),
     createOscillator(): StubOsc {
+      stats.oscillators++;
       const n: StubOsc & { _started?: boolean } = {
         type: '', frequency: { value: 0 }, detune: { value: 0 },
         connect: () => ({ connect: () => {} }),
@@ -106,8 +113,12 @@ function makeStubAudioContext(): { ctx: StubContext } {
       };
       return n;
     },
-    createBuffer: (_ch: number, len: number) => ({ getChannelData: () => new Float32Array(len) }),
+    createBuffer: (_ch: number, len: number) => {
+      stats.buffers++;
+      return { getChannelData: () => new Float32Array(len) };
+    },
     createBufferSource(): StubBufSource {
+      stats.sources++;
       return {
         buffer: null, loop: false,
         connect: () => ({ connect: () => {} }),
@@ -115,9 +126,11 @@ function makeStubAudioContext(): { ctx: StubContext } {
         stop() {},
       };
     },
+    suspend: async () => { stats.suspends++; ctx.state = 'suspended'; },
+    resume: async () => { stats.resumes++; ctx.state = 'running'; },
     close: async () => {},
   };
-  return { ctx };
+  return { ctx, stats };
 }
 
 describe('muted-by-default audio manager', () => {
@@ -145,6 +158,7 @@ describe('muted-by-default audio manager', () => {
 
     const audio = new AudioManager();
     audio.start();
+    audio.setVolumes(1, 1);
     expect(audio.isRunning).toBe(true);
 
     // Visit every zone; previous zones should be scheduled for cleanup and
@@ -165,5 +179,44 @@ describe('muted-by-default audio manager', () => {
     expect(voices.size).toBeLessThanOrEqual(2);
 
     expect(() => audio.dispose()).not.toThrow();
+  });
+
+  it('keeps muted ambience synthesis non-resident while preserving interaction audio', async () => {
+    const { ctx, stats } = makeStubAudioContext();
+    setGlobalAC(vi.fn(() => ctx));
+
+    const audio = new AudioManager();
+    audio.setZone('plaza');
+    audio.start();
+    await vi.runAllTicks();
+
+    expect(stats.buffers).toBe(0);
+    expect(stats.sources).toBe(0);
+    expect(stats.oscillators).toBe(0);
+    expect(stats.suspends).toBe(1);
+
+    audio.setVolumes(1, 0);
+    await vi.runAllTicks();
+    audio.tick();
+    expect(stats.oscillators).toBe(1);
+    expect(stats.buffers).toBe(0);
+
+    audio.setVolumes(1, 0.5);
+    expect(stats.oscillators).toBe(4);
+    expect(stats.buffers).toBe(1);
+    expect(stats.sources).toBe(1);
+
+    audio.setVolumes(1, 0);
+    expect((audio as unknown as { voices: Map<string, unknown> }).voices.size).toBe(0);
+
+    audio.setVolumes(0, 0.5);
+    await vi.runAllTicks();
+    expect(stats.suspends).toBe(2);
+    audio.setVolumes(1, 0.5);
+    await vi.runAllTicks();
+    expect(stats.resumes).toBeGreaterThanOrEqual(2);
+    expect(stats.buffers).toBe(2);
+
+    audio.dispose();
   });
 });

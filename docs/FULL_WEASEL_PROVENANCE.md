@@ -3,22 +3,23 @@
 ## Source
 
 - Canonical first-party repository: `https://github.com/westkitty/The_Full_Weasel`
-- Pinned source commit: `bdd5c94a7486e2a3955c3a27af1179da035fb100`
+- Pinned source commit: `1a0d025` on branch `perf/autonomous-full-weasel-uplift-20261030-bdd5c94`
 - Declared source licence: Unlicense / public-domain dedication in the repository README.
 - Source inspected: package, Vite configuration, React entry point, asset preparation script, PWA/service-worker code, built `dist`, and runtime asset manifest.
 
 ## Museum-owned build
 
-The artifact at `public/embedded/full-weasel/` is a controlled copy of the source project's production `dist` output. It preserves the actual game, including its authored sprite, PNG/video background and music sets.
+The artifact at `public/embedded/full-weasel/` is an exact controlled copy of the source project's verified `dist-embed` output. It preserves the actual game, including its authored sprite, lossless WebP/video background and music sets.
 
 Build command in a checkout pinned to the commit above:
 
 ```bash
 npm ci
-npm run build
+npm test
+npm run build:embed
 ```
 
-Required embed-only changes before that build:
+The governed upstream embed target applies and verifies these embed-only rules:
 
 - Vite `base` changes from `/The_Full_Weasel/` to `./`.
 - Absolute document icon/preload paths become relative.
@@ -33,10 +34,10 @@ Required embed-only changes before that build:
 
 ## Integrity and runtime scope
 
-- Production-copy tree SHA-256: `1264138dd16bce815f761c7b8cd22708ef6d0fba703b6f6b1dd1e32fd99937ce`
+- Production-copy tree SHA-256: `005090d888adbe4262ad2b483962332972fbea5571e770b79e9eb5c90841007d`
   (lexically ordered relative file paths, each followed by a NUL byte and its
   raw file bytes).
-- Measured artifact size: 128.24 MiB.
+- Measured artifact size: 87.43 MiB (91,672,296 bytes).
 - Entry point: `./embedded/full-weasel/index.html`.
 - Runtime request policy: local same-origin files only. The original Google Fonts and GitHub Pages assumptions are absent; no remote URL is embedded.
 - Lifecycle: the iframe is created on E27 engagement and removed before Museum input is released, stopping the embedded React timers/media rather than leaving a hidden game running.
