@@ -1,6 +1,6 @@
 # Museum performance autonomous run
 
-**Status:** ACTIVE — Museum remains active development / pre-1.0.
+**Status:** COMPLETE IN CLOUD — Museum remains active development / pre-1.0.
 
 **Source authority:** `westkitty/museum-of-me-vnext` `origin/main`
 
@@ -33,8 +33,8 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 | 5 | P13 shader prewarming | REVERTED | `d021433` | Persistent-shell compile cost outweighed negligible later program reduction. |
 | 6 | P11 + P16 text residency | PASS | `3565382` | Plaque/lectern previews now upgrade only while active; supplementary residency retained. |
 | 7 | P15 muted audio | PASS | `221479d` | Muted ambience owns no synthesis graph; interaction audio and gesture policy retained. |
-| 8 | P4 + P5 + P10 Full Weasel | PASS | pending C8 commit | Verified upstream source build integrated exactly into governed E27 artifact. |
-| Optional | P8, P14, P18, P20 | PENDING TRIAGE | — | Run only with supported residual bottleneck evidence. |
+| 8 | P4 + P5 + P10 Full Weasel | PASS | `a399973` | Verified upstream source build integrated exactly into governed E27 artifact. |
+| Optional | P8, P14, P18, P20 | SKIPPED BY EVIDENCE | — | Existing batching/lazy residency and absent cloud-safe bottlenecks do not support experiments; P18 requires device validation. |
 | Rejected | P9, P12, P17, P19 | SKIPPED BY AUTHORITY | — | Explicitly excluded from implementation. |
 
 ## Rulings
@@ -133,7 +133,7 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 ## C8 — P4 + P5 + P10 authoritative Full Weasel integration
 
 - Museum base SHA: `221479d`.
-- Museum result SHA: pending this checkpoint commit.
+- Museum result SHA: `a399973`.
 - Upstream base: `westkitty/The_Full_Weasel` `bdd5c94a7486e2a3955c3a27af1179da035fb100`.
 - Upstream branch and result: `perf/autonomous-full-weasel-uplift-20261030-bdd5c94` at `1a0d025` (`f32a971` media/startup, `6810a14` portable embed target, and `1a0d025` normalized generated entry markup).
 - P4: title readiness now awaits only the title image. Gameplay images preload predictively during How To / Ready, packaged-only sheets are not requested, background probing begins after title interaction, and the Ready gate prevents play before runtime art settles. Music remains gesture-lazy through the existing two-player crossfade path.
@@ -145,5 +145,27 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 - Museum validation: canonical gate PASS, 44 files / 705 tests plus validators/build/budgets/dist; system-Chromium E27 open/Escape and embedded lifecycle journeys PASS 2/2; standalone production build and static offline verification PASS. The standalone `file://` browser journey was NOT RUN to app assertions because system Chromium rejected navigation first with `ERR_BLOCKED_BY_ADMINISTRATOR`; the existing `--allow-file-access-from-files` flag was already present. No claim is made for that blocked browser proof.
 - Status: PASS / keep. Hosted E27 behavior is cloud-verified; local-file browser proof and human mobile audiovisual acceptance remain outstanding.
 - Dependencies: Museum rollback depends on reverting this checkpoint; upstream rollback is `git revert 1a0d025 6810a14 f32a971` or revert the eventual upstream PR merge commit.
-- Rollback: `git revert <C8 SHA>` restores the prior Museum artifact and provenance.
+- Rollback: `git revert a399973` restores the prior Museum artifact and provenance.
+
+## C9 — optional triage and final integration validation
+
+- Base SHA: `a399973`.
+- Result SHA: the documentation checkpoint containing this entry.
+- P8 instanced threshold accents: **SKIPPED BY EVIDENCE**. Gallery relief accents, floor rims and curatorial light pools are already `InstancedMesh` batches with camera-relevant instance counts and permanent unit/browser coverage. No residual threshold-accent draw bottleneck was measured after P1/P2.
+- P14 idle render throttling: **SKIPPED BY EVIDENCE**. The museum retains authored water, visitor, atmosphere and exhibit motion under the single authoritative frame loop. This run did not establish a truly idle state or a safe cadence that preserved those behaviors, so no lifecycle experiment was justified.
+- P18 MSAA/DPR optimization: **REQUIRES DEVICE VALIDATION**. The cloud renderer is SwiftShader at DPR 1 and cannot establish MacBook/tablet antialiasing quality, GPU cost or thermal behavior. Existing manual quality selection and adaptive resolution remain unchanged.
+- P20 image decode/upload scheduling: **SKIPPED BY EVIDENCE**. Curated artwork and supplementary text already use lazy, distance-aware residency and settle in lifecycle tests. No post-uplift decode/upload transition bottleneck was isolated, so additional scheduling complexity was not promoted.
+- P9, P12, P17 and P19 remain **SKIPPED BY AUTHORITY** as explicitly excluded proposals.
+- Final matched SwiftShader fixed-view probe, Chromium 154, 1280×720 DPR 1, explicit medium tier: Plaza 972 calls / 146,366 triangles / p50 13.3 ms; Rotunda 688 / 92,778 / 4.7 ms; North E01 206 / 48,914 / 2.8 ms; East E18 135 / 32,652 / 1.7 ms; South E32 190 / 24,516 / 1.8 ms. Submission counts exactly retain the accepted P1/P2 result. One Plaza sample exceeded 50 ms; the other four views had none. These are seven synchronous software-render submissions per view, not device FPS or presented-frame evidence.
+- Cumulative structural comparison against C0: Plaza 1,789 → 972 calls and 275,568 → 146,366 triangles; Rotunda 1,310 → 688 and 173,632 → 92,778; E01 206 → 206 and 48,914 → 48,914; E18 135 → 135 and 32,652 → 32,652; E32 349 → 190 and 39,016 → 24,516. Full Weasel's deferred embedded payload changed 128.24 MiB → 87.43 MiB. These independent measurements are not added together or converted into FPS.
+- Final validation: `npm run gate` PASS with 44 files / 706 tests and every validator/build/budget/dist check; `npm run test:e2e` PASS 24/24 in system Chromium; dedicated Workshop browser authoring test PASS 1/1 and source restoration clean; standalone build PASS; static offline verification PASS. The Workshop wrapper's subsequent local-file browser step is **NOT RUN / BLOCKED** because system Chromium rejected `file://` navigation with `ERR_BLOCKED_BY_ADMINISTRATOR` before app code ran.
+- Worktree integrity: clean after generated collection, QA, Workshop and standalone operations; `git diff --check` PASS before this documentation checkpoint.
+- Status: **COMPLETE IN CLOUD** for all eligible independent phases. Physical-device performance, thermal/battery behavior, human visual/audio acceptance, local-file browser behavior outside this administrative policy, and the blocked Quaternius source conversion remain unresolved.
+- Rollback order: revert the smallest defective checkpoint in reverse dependency order. Museum checkpoints are `a399973`, `221479d`, `3565382`, `d021433` (documentation only), `8f51bed`, `096ac97`, `63f306a` (documentation only), and `b4dd885`. Upstream Full Weasel checkpoints are `1a0d025`, `6810a14`, and `f32a971`.
+
+## Canonical Bible append text
+
+The canonical Bible repository was readable for authority review but was not the selected writable project workspace. Append the following without rewriting prior history:
+
+> **2026-10-31 — Museum P1–P20 autonomous performance integration:** From Museum baseline `4158824fbc669b64d2a3e8b46c0a20089a9d25b5`, the dedicated performance branch accepted non-transmissive architectural glazing, bounded point-light shader-count buckets, conservative missing-memory quality detection, distance-aware plaque/lectern texture residency, muted ambience graph suspension, and an authoritative optimized Full Weasel embed. Shader-shell prewarming was tested and reverted; Quaternius primitive/animation conversion was blocked because the recorded official source files were unavailable; optional P8/P14/P20 lacked residual evidence and P18 remains device-dependent. Cloud validation passed 706 unit tests, 24 browser journeys, production/standalone static builds and matched SwiftShader probes. The Museum remains ACTIVE DEVELOPMENT / PRE-1.0; MacBook/tablet GPU, thermal, battery, human visual/audio, and locally permitted `file://` acceptance remain unverified.
 
