@@ -3,7 +3,7 @@ import { InputManager, KEYBOARD_LOOK_SPEED } from '../src/player/Input';
 import { EYE_HEIGHT, FLIGHT_LAUNCH_SPEED, JUMP_SPEED, PlayerController } from '../src/player/PlayerController';
 import { CollisionWorld } from '../src/world/CollisionWorld';
 import { DEFAULT_PREFERENCES } from '../src/state/Preferences';
-import { QUALITY } from '../src/render/QualityTiers';
+import { detectQualityTier, QUALITY } from '../src/render/QualityTiers';
 import { isActivationKey } from '../src/ui/dom';
 import { isOnFlightPad, FLIGHT_PAD_CENTER, FLIGHT_PAD_RADIUS } from '../src/world/layout';
 
@@ -370,6 +370,14 @@ describe('comfort settings', () => {
   it('disables shadows and crowds on the lowest tier', () => {
     expect(QUALITY.low.shadows).toBe(false);
     expect(QUALITY.low.ambientVisitors).toBe(0);
+  });
+
+  it('treats missing device memory as unknown and reserves high for more than 8 GB', () => {
+    expect(detectQualityTier({ hardwareConcurrency: 8, userAgent: 'Safari' }, 1920)).toBe('medium');
+    expect(detectQualityTier({ hardwareConcurrency: 8, deviceMemory: 4, userAgent: 'Chrome' }, 1920)).toBe('low');
+    expect(detectQualityTier({ hardwareConcurrency: 8, deviceMemory: 8, userAgent: 'Chrome' }, 1920)).toBe('medium');
+    expect(detectQualityTier({ hardwareConcurrency: 12, deviceMemory: 16, userAgent: 'Chrome' }, 1920)).toBe('high');
+    expect(detectQualityTier({ hardwareConcurrency: 12, deviceMemory: 16, userAgent: 'Android Mobile' }, 1920)).toBe('low');
   });
 });
 

@@ -27,8 +27,8 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 | Phase | Proposals | Status | Result SHA | Dependencies / remaining proof |
 |---|---|---|---|---|
 | 1 | P1 glass rendering | PASS | `b4dd885` | Cloud A/B and six-wing browser proof complete; physical-device/human signoff remains. |
-| 2 | P3 + P6 Quaternius assets | BLOCKED | pending C2 ledger commit | Retained official sources are absent and the publisher-linked Drive folders return 403. |
-| 3 | P7 quality selection | PENDING | — | Safari-like missing-memory behavior and overrides. |
+| 2 | P3 + P6 Quaternius assets | BLOCKED | `63f306a` | Retained official sources are absent and the publisher-linked Drive folders return 403. |
+| 3 | P7 quality selection | PASS | pending C3 commit | Missing-memory, 4 GB, 8 GB, 16 GB and mobile cases covered. |
 | 4 | P2 lighting stability | PENDING | — | Compare dynamic vs bounded counts; retain current design if no benefit. |
 | 5 | P13 shader prewarming | PENDING | — | Existing exhibit prewarm must not be duplicated. |
 | 6 | P11 + P16 text residency | PENDING | — | Existing supplementary/curated residency is the starting point. |
@@ -59,11 +59,22 @@ This append-only run ledger records the P1–P20 evaluation authorized on 2026-1
 ## C2 — P3 + P6 Quaternius asset triage
 
 - Base SHA: `b4dd885`.
-- Result SHA: pending this ledger checkpoint commit.
+- Result SHA: `63f306a`.
 - Runtime evidence: the seated GLB is exactly the reported P3 target (97 primitives, four materials, no animation). The men and women walker GLBs contain 24 clips each, including the required `Walk`, so P6 has a concrete payload to remove.
 - Provenance evidence: `docs/QUATERNIUS_ASSET_PROVENANCE.md` identifies exact official originals and hashes, while `scripts/convert-quaternius-assets.mjs` requires them under ignored `.asset-sources/quaternius/`. Those retained originals are absent from this cloud checkout. The official publisher-linked Google Drive folder was tested read-only and returned HTTP 403 under the environment network policy.
 - Status: BLOCKED. Rewriting the governed binaries from already processed GLBs would make the checked-in converter unverifiable from its recorded official inputs, so no binary, manifest, hash or budget mutation was made.
 - Independent work preserved: the current GLBs, hashes and runtime remain untouched; all later source-independent phases continue.
 - Resume requirement: restore the three exact retained originals at the converter's documented paths with their recorded SHA-256 hashes, then implement material-compatible seated merging and export walker assets with only `Walk`, update processed hashes/budgets, and rerun asset/browser/standalone validation.
 - Rollback: documentation-only checkpoint; revert its commit to remove this run record.
+
+## C3 — P7 quality selection
+
+- Base SHA: `63f306a`.
+- Result SHA: pending this checkpoint commit.
+- Files: `src/render/QualityTiers.ts`, `tests/accessibility.test.ts`, this ledger.
+- Change: unavailable `navigator.deviceMemory` remains unknown instead of being converted to a confirmed 4 GB signal. Confirmed 4 GB and mobile devices remain low; missing memory with eight cores resolves conservatively to medium; an 8 GB device stays medium; high now requires more than 8 GB, at least eight cores and a wide display. User quality overrides and adaptive resolution are unchanged.
+- TDD: the Safari-like missing-memory case failed as low before implementation, then the focused accessibility suite passed 40/40.
+- Validation: canonical gate PASS, 43 files / 702 tests plus all validators/build/budgets/dist.
+- Status: PASS / keep. This changes automatic quality choice, so performance comparisons remain separated from same-quality rendering comparisons.
+- Rollback: `git revert <C3 SHA>`.
 
