@@ -30,6 +30,10 @@ export default defineConfig({
     sourcemap: true,
     assetsInlineLimit: 4096,
     rollupOptions: {
+      input: {
+        museum: fileURLToPath(new URL('./index.html', import.meta.url)),
+        workbench3d: fileURLToPath(new URL('./workbench3d/index.html', import.meta.url)),
+      },
       output: {
         manualChunks(id) {
           // Keep deliberately deferred Three addons out of the startup vendor
