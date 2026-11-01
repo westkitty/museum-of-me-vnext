@@ -244,8 +244,9 @@ function pick(event: PointerEvent): void {
       report('Enable Architecture to pin a real physical surface.');
       return;
     }
+    const visibleTop = cutaway || floor !== 'both' ? topCut() : Number.POSITIVE_INFINITY;
     const hit = ray.intersectObject(building, true).find(intersection =>
-      isActuallyVisible(intersection.object) && intersection.point.y <= topCut() &&
+      isActuallyVisible(intersection.object) && intersection.point.y <= visibleTop &&
       (floor !== 'upper' || intersection.point.y >= LEVEL_1_Y - 1));
     if (!hit) { report('No visible physical surface at this position. Rotate and try again.'); return; }
     const point = hit.point;
