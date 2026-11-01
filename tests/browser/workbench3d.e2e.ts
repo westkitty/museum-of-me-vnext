@@ -137,6 +137,8 @@ test('3D room picking and physical surface pinning update the original inspector
 
   await page.locator('#view2d').click();
   await expect(page.locator('#planOverlays [data-pin]')).toHaveCount(1);
-  await expect(page.locator('#planGeometry [data-id]')).toHaveCount(29);
+  // The clicked physical surface may be on the upper level. Preserve its
+  // actual floor in the original 2D plan instead of assuming ground.
+  await expect(page.locator('#planGeometry [data-id]')).toHaveCount(saved.pins[0].floor === 1 ? 6 : 29);
   expect(errors).toEqual([]);
 });
