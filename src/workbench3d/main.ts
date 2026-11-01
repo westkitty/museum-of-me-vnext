@@ -284,7 +284,8 @@ function applyParentState(data: Message): void {
   if (Array.isArray(data.pins)) {
     const next = data.pins.slice(0, 300).filter(p =>
       p && typeof p.id === 'string' && validPoint(p.position, 2));
-    const signature = JSON.stringify(next);
+    const signature = JSON.stringify(next.map(p => [p.id, p.position, p.floor, p.y]))
+      + ':' + (selectedPin ?? '');
     if (signature !== pinsSignature) {
       pinsSignature = signature;
       pins = next;
