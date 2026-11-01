@@ -49,12 +49,13 @@ let routeLines: THREE.Line[] = [];
 let selected: string | null = null;
 let selectedPin: string | null = null;
 let mode: Mode = 'inspect';
-let parentFloor: 0 | 1 = 0;
 let floor: FloorFilter = 'both';
 let wing = 'all';
 let cutaway = true;
 let pins: PlanningPin[] = [];
 let moves: Record<string, Position2D> = {};
+let pinsSignature = '';
+let movesSignature = '';
 let disposed = false;
 let downPoint: { x: number; y: number } | null = null;
 let observer: ResizeObserver | null = null;
@@ -248,7 +249,8 @@ function pick(event: PointerEvent): void {
       (floor !== 'upper' || intersection.point.y >= LEVEL_1_Y - 1));
     if (!hit) { report('No visible physical surface at this position. Rotate and try again.'); return; }
     const point = hit.point;
-    const pinFloor = floor === 'upper' ? 1 : floor === 'ground' ? 0 : parentFloor;
+    const pinFloor = floor === 'upper' ? 1 : floor === 'ground' ? 0 :
+      point.y >= LEVEL_1_Y - 1 ? 1 : 0;
     send('pin-create', { position: [point.x, point.y, point.z], floor: pinFloor });
     return;
   }
@@ -279,14 +281,23 @@ function applyParentState(data: Message): void {
     mode = data.mode;
     if (renderer) renderer.domElement.style.cursor = mode === 'pin' ? 'crosshair' : 'grab';
   }
-  if (data.floor === 0 || data.floor === 1) parentFloor = data.floor;
   if (Array.isArray(data.pins)) {
-    pins = data.pins.slice(0, 300).filter(p => p && typeof p.id === 'string' && validPoint(p.position, 2));
-    redrawPins();
+    const next = data.pins.slice(0, 300).filter(p =>
+      p && typeof p.id === 'string' && validPoint(p.position, 2));
+    const signature = JSON.stringify(next);
+    if (signature !== pinsSignature) {
+      pinsSignature = signature;
+      pins = next;
+      redrawPins();
+    }
   }
   if (data.moves && typeof data.moves === 'object') {
-    moves = data.moves;
-    redrawProposals();
+    const signature = JSON.stringify(data.moves);
+    if (signature !== movesSignature) {
+      movesSignature = signature;
+      moves = data.moves;
+      redrawProposals();
+    }
   }
   refreshVisibility();
 }
