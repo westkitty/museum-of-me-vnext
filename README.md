@@ -37,6 +37,16 @@ Start the Vite development server and open `/?choreo=1`. After entering the muse
 
 The projection preserves all 17 authored identities and vNext routes. It uses horizontal route distance, mean authored pauses and interpolated height; it is **not runtime telemetry**, collision resolution, conversation/seated behavior, congestion analysis or a competing architectural authority. Source visitor behavior and museum geometry remain unchanged. The tool is dynamically loaded only in development and is excluded from production and standalone artifacts. Empty, unused Jules script/proof placeholders were removed; regression proof lives in the unit and browser suites.
 
+## External spatial workbench — 2D plan and opt-in 3D survey
+
+Open `/workbench/` on the dev server to use the source-pinned architectural planning map. **2D Plan** is the default and retains its search, floors, source-installation/visitor overlays, measure/ruler, notes, pins, proposed moves, undo, JSON import/export and SVG export.
+
+Choose **3D Museum** to lazy-load a separate local Three.js 0.185.1 page that builds the **real museum architecture** using `Museum.build()` and the same canonical exhibit placements used by the playable world. Drag to orbit, right-drag to pan, scroll/pinch to zoom, isolate floors or wings, toggle roof cutaway, select any of the 35 exhibit anchors or Dexter Sanctuary, and inspect/annotate spatial positions. In **+ Pin** mode click a physical architectural surface; the position (including optional Y) is retained in the existing version-1 planning JSON, so the original 2D map still reads it. Read-only proposed-move ghosts and authored visitor routes are optional visual layers. Select a room in either view to update the shared workbench inspector.
+
+3D mode is a **read-only architectural survey**: it never edits the authoritative museum mesh, collisions, routes, gameplay, or curated exhibit content. It does not claim to reproduce streamed live exhibit simulations. It adds no remote runtime assets and does not load a second WebGL renderer until the 3D mode is selected. Switching back to 2D unloads/disposes the viewer. A complete Vite build/served folder is necessary for the 3D view; simply opening the lone original 2D HTML through `file://` still provides the original 2D plan, not the bundled 3D viewer.
+
+This feature is being reviewed on its own branch; passing CI does not by itself certify real-device visual quality or 1.0 maturity.
+
 ## Validate it
 
 ```bash
