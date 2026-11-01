@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
+<title>Museum of Me · 3D Architectural Survey</title>
+<style>
+:root{font-family:Inter,system-ui,sans-serif;color:#ede5d2;background:#0a151a}
+*{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}
+button,select,input{font:inherit}button,select{border:1px solid #4b6066;border-radius:5px;background:#14242b;color:#e9e0cc;padding:7px 9px;cursor:pointer}button:hover,select:hover{background:#273b42}button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #ebd2a1;outline-offset:2px}button[aria-pressed=true]{background:#423c2d;border-color:#e0c48f}
+#scene{position:absolute;inset:0;touch-action:none}#scene canvas{display:block;width:100%;height:100%}
+#controls{position:absolute;z-index:3;left:12px;right:12px;top:12px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;pointer-events:none}#controls>*{pointer-events:auto}.control-card{display:flex;gap:6px;align-items:center;border:1px solid #435b60;background:#101d23ed;padding:6px 8px;border-radius:6px;box-shadow:0 6px 19px #0008}.label{font-size:10px;letter-spacing:.08em;color:#b7c4c1;text-transform:uppercase}select{max-width:155px}
+#legend{position:absolute;left:12px;bottom:12px;max-width:min(480px,calc(100% - 24px));background:#0d1b20ec;border:1px solid #435860;border-radius:5px;padding:11px 13px;font-size:11px;line-height:1.55;color:#acbfbd}#legend strong{display:block;color:#e7d7b9;font:18px/1.2 Georgia,serif;margin-bottom:5px}#legend b{color:#ede1c5}
+#message{position:absolute;bottom:12px;right:12px;max-width:35%;background:#11232aed;padding:8px 11px;border-radius:5px;border:1px solid #4b6066;font-size:11px;color:#e3d2ad;pointer-events:none}
+#layers{position:absolute;right:12px;top:74px;display:flex;flex-direction:column;gap:8px;background:#102026e8;padding:10px 12px;border:1px solid #40565d;border-radius:5px;font-size:11px}#layers label{display:flex;align-items:center;gap:6px;cursor:pointer}input[type=checkbox]{accent-color:#d8bc84;width:15px;height:15px}
+#fallback{position:absolute;inset:0;z-index:6;display:none;place-content:center;text-align:center;padding:24px;background:#101f24;color:#ded6c3;font:15px/1.5 system-ui}#fallback strong{font:27px Georgia,serif}#viewerStatus{position:absolute;left:-9999px}
+@media(max-width:720px){#controls{top:7px;left:7px;right:7px;gap:4px}.control-card{padding:4px;gap:4px}#layers{top:auto;bottom:72px;right:7px;max-width:152px}#legend{left:7px;bottom:7px;max-width:64%;padding:8px 10px;font-size:10px}#legend strong{font-size:15px}#message{display:none}select{max-width:105px;font-size:11px}button{font-size:11px;padding:7px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+</style></head><body>
+<main id="scene" aria-label="Real Three.js museum survey. Drag to orbit, right-drag to pan, scroll to zoom. Use the collection outside this view for keyboard exhibit selection."></main>
+<div id="controls" role="group" aria-label="3D camera and floor controls">
+<div class="control-card"><span class="label">Floor</span><select id="floor" aria-label="Visible building levels"><option value="both">Both floors</option><option value="ground">Ground + sanctuary</option><option value="upper">Upper floor</option></select></div>
+<div class="control-card"><button id="cutaway" type="button" aria-pressed="true">Roof cutaway</button><button id="reset" type="button">Reset camera</button></div>
+<div class="control-card"><span class="label">Focus</span><select id="wing" aria-label="Isolate an architectural wing"><option value="all">All wings</option><option value="north">Starsilk</option><option value="west">Archive</option><option value="south">Games</option><option value="east">Dex Systems</option><option value="media">Music / Media</option><option value="infra">Local Systems</option><option value="sanctuary">Dexter Sanctuary</option></select></div>
+</div>
+<div id="layers" role="group" aria-label="3D layer visibility">
+<label><input id="architecture" type="checkbox" checked>Architecture</label><label><input id="exhibits" type="checkbox" checked>Exhibit anchors</label><label><input id="annotations" type="checkbox" checked>Annotations</label><label><input id="visitors" type="checkbox">Visitor routes</label><label><input id="proposals" type="checkbox" checked>Proposed moves</label>
+</div>
+<div id="legend"><strong>Actual museum geometry</strong>Spatial source: <b>Museum.build()</b>, not independently extruded plans. Click a gold exhibit anchor or note pin to inspect it. Choose <b>+ Pin</b> in the workbench and click a physical surface to annotate. Orbit: drag · Pan: right-drag · Zoom: scroll/pinch.</div>
+<div id="message" aria-hidden="true">Live exhibit simulations are not loaded in the architectural survey.</div>
+<div id="viewerStatus" role="status" aria-live="polite"></div>
+<div id="fallback" role="alert"><strong>3D unavailable</strong><p>The original 2D plan remains usable. This mode needs WebGL 2 and locally bundled viewer code served from the museum site.</p></div>
+<script type="module" src="../src/workbench3d/main.ts"></script></body></html>

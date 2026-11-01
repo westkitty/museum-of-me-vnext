@@ -14,6 +14,11 @@
 @media(max-width:475px){.legend-box{font-size:10px;padding:6px 8px;max-width:65vw}.coords-box{font-size:10px;padding:6px 8px;min-width:90px}.toolbar{gap:4px}.toolbar button{padding:7px}.toolbar-group{padding-right:5px;margin-right:0}.brand h1{font-size:17px}.brand .eyebrow{font-size:9px}.seal{width:34px;height:34px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 #mapSvg .measure-label{font:700 3.7px ui-sans-serif,system-ui,sans-serif;fill:#f4dfaa;text-anchor:middle;paint-order:stroke;stroke:#0c171d;stroke-width:1.7px;pointer-events:none}#mapSvg .measure-dot{fill:#f3d495;stroke:#162328;stroke-width:.7;pointer-events:none}
+
+#viewer3d{position:absolute;inset:0;width:100%;height:100%;border:0;display:none;background:#0a151a}
+.map-frame.is-3d #viewer3d{display:block}
+.map-frame.is-3d #mapSvg,.map-frame.is-3d .plan-flags,.map-frame.is-3d .map-bottom{display:none}
+@media(max-width:475px){#view2d,#view3d{font-size:11px;padding:7px 6px}}
 </style>
 </head>
 <body>
@@ -34,6 +39,7 @@
     </aside>
     <section class="map-column" aria-label="Interactive top-down architectural map">
       <div class="toolbar">
+        <div class="toolbar-group"><span class="tool-name">View</span><button type="button" id="view2d" aria-pressed="true">2D Plan</button><button type="button" id="view3d" aria-pressed="false">3D Museum</button></div>
         <div class="toolbar-group"><span class="tool-name">Level</span><button type="button" id="floor0" aria-pressed="true">00 · Ground</button><button type="button" id="floor1" aria-pressed="false">01 · Upper</button></div>
         <div class="toolbar-group"><span class="tool-name">Tool</span><button type="button" id="toolInspect" aria-pressed="true">Inspect</button><button type="button" id="toolPin" aria-pressed="false" title="Click the plan to place a planning annotation">+ Pin</button><button type="button" id="toolMove" aria-pressed="false" title="Drag a selected exhibit's proposal marker; original geometry remains fixed">⇄ Propose move</button><button type="button" id="toolMeasure" aria-pressed="false" title="Measure straight-line plan distances between two points">Ruler</button></div>
         <div class="toolbar-group"><button type="button" id="toggleSources" aria-pressed="false">14 source installations</button><button type="button" id="toggleRoutes" aria-pressed="false">Visitor paths</button></div>
@@ -42,6 +48,7 @@
         <button type="button" id="exportSvg" title="Download the visible plan as scalable SVG">⇩ SVG</button>
       </div>
       <div class="map-frame" id="mapFrame">
+        <iframe id="viewer3d" title="Interactive 3D model of the actual Museum of Me architecture" src="about:blank" loading="lazy" aria-hidden="true"></iframe>
         <svg id="mapSvg" xmlns="http://www.w3.org/2000/svg" viewBox="-152 -154 304 340" role="group" aria-label="Top-down map of Museum of Me ground level. Select exhibits to inspect and draft changes.">
           <defs>
             <pattern id="minorGrid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" stroke="#33525b" stroke-width=".15" fill="none" opacity=".68"/></pattern>
@@ -202,9 +209,9 @@ let view={...frames[0]};
 const STATE_KEY='museum-of-me-topdown-proposals-v1';
 const fresh=()=>({version:1,sourceSha:SOURCE.sha,notes:{},statuses:{},moves:{},pins:[]});
 let plan=fresh(),storageOk=true,undoStack=[];
-function cleanPlan(raw){if(!raw||typeof raw!=='object'||raw.version!==1)throw Error('Unsupported plan file');const sourceSha=raw.source?.sha||raw.sourceSha;if(sourceSha&&sourceSha!==SOURCE.sha)throw Error('Plan source revision differs from this museum snapshot; import refused.');const p=fresh();if(raw.notes&&typeof raw.notes==='object'){for(const [k,v] of Object.entries(raw.notes))if((EX_BY_ID[k]||k==='sanctuary')&&typeof v==='string')p.notes[k]=v.slice(0,10000);}if(raw.statuses&&typeof raw.statuses==='object'){for(const [k,v] of Object.entries(raw.statuses))if((EX_BY_ID[k]||k==='sanctuary')&&['idea','review','ready','none'].includes(v))p.statuses[k]=v;}if(raw.moves&&typeof raw.moves==='object'){for(const [k,v] of Object.entries(raw.moves)){if(EX_BY_ID[k]&&Array.isArray(v)&&v.length===2&&v.every(n=>typeof n==='number'&&Number.isFinite(n)&&Math.abs(n)<=300))p.moves[k]=[...v];}}if(Array.isArray(raw.pins)){p.pins=raw.pins.slice(0,300).filter(q=>q&&typeof q==='object'&&typeof q.id==='string'&&Array.isArray(q.position)&&q.position.length===2&&q.position.every(n=>Number.isFinite(n)&&Math.abs(n)<=300)&&[0,1].includes(q.floor)).map(q=>({id:q.id.slice(0,60),position:q.position,title:String(q.title||'Annotation').slice(0,120),body:String(q.body||'').slice(0,10000),floor:q.floor}));}return p;}
+function cleanPlan(raw){if(!raw||typeof raw!=='object'||raw.version!==1)throw Error('Unsupported plan file');const sourceSha=raw.source?.sha||raw.sourceSha;if(sourceSha&&sourceSha!==SOURCE.sha)throw Error('Plan source revision differs from this museum snapshot; import refused.');const p=fresh();if(raw.notes&&typeof raw.notes==='object'){for(const [k,v] of Object.entries(raw.notes))if((EX_BY_ID[k]||k==='sanctuary')&&typeof v==='string')p.notes[k]=v.slice(0,10000);}if(raw.statuses&&typeof raw.statuses==='object'){for(const [k,v] of Object.entries(raw.statuses))if((EX_BY_ID[k]||k==='sanctuary')&&['idea','review','ready','none'].includes(v))p.statuses[k]=v;}if(raw.moves&&typeof raw.moves==='object'){for(const [k,v] of Object.entries(raw.moves)){if(EX_BY_ID[k]&&Array.isArray(v)&&v.length===2&&v.every(n=>typeof n==='number'&&Number.isFinite(n)&&Math.abs(n)<=300))p.moves[k]=[...v];}}if(Array.isArray(raw.pins)){p.pins=raw.pins.slice(0,300).filter(q=>q&&typeof q==='object'&&typeof q.id==='string'&&Array.isArray(q.position)&&q.position.length===2&&q.position.every(n=>Number.isFinite(n)&&Math.abs(n)<=300)&&[0,1].includes(q.floor)).map(q=>({id:q.id.slice(0,60),position:q.position,title:String(q.title||'Annotation').slice(0,120),body:String(q.body||'').slice(0,10000),floor:q.floor,...(typeof q.y==='number'&&Number.isFinite(q.y)&&Math.abs(q.y)<=100?{y:q.y}:{})}));}return p;}
 try{const stored=localStorage.getItem(STATE_KEY);if(stored)plan=cleanPlan(JSON.parse(stored));}catch(_){storageOk=false;}
-function persist(){try{localStorage.setItem(STATE_KEY,JSON.stringify(plan));storageOk=true;}catch(_){storageOk=false;}updateStatus('Planning changes '+(storageOk?'saved on this device.':'are in memory only; export JSON to keep them.'));}
+function persist(){try{localStorage.setItem(STATE_KEY,JSON.stringify(plan));storageOk=true;}catch(_){storageOk=false;}updateStatus('Planning changes '+(storageOk?'saved on this device.':'are in memory only; export JSON to keep them.'));syncViewer();}
 function checkpoint(){undoStack.push(JSON.stringify(plan));if(undoStack.length>35)undoStack.shift();}
 function setView(v){const min=25,max=520,w=Math.max(min,Math.min(max,v.w)),h=w*(svg.clientHeight||500)/(svg.clientWidth||800);view={x:v.x+(v.w-w)/2,y:v.y+(v.h-h)/2,w,h};svg.setAttribute('viewBox',`${view.x} ${view.y} ${view.w} ${view.h}`);updateScale();}
 function fit(){const b=frames[floor];const ar=(svg.clientWidth||800)/(svg.clientHeight||500),wanted=b.w/b.h;let w,h;if(ar>wanted){h=b.h;w=h*ar}else{w=b.w;h=w/ar}setView({x:b.x-(w-b.w)/2,y:b.y-(h-b.h)/2,w,h});}
@@ -223,9 +230,9 @@ function setTool(next){
  const overlay=document.getElementById('toolOverlay');overlay.hidden=next==='inspect';
  const help={pin:'PIN MODE - Click empty plan space to add an annotation; no museum geometry changes.',move:'PROPOSE MOVE - Select a room, then drag its gold proposal handle. The original stays fixed.',measure:'RULER - Click two empty plan points to measure straight-line distance in world metres. This is not a walking route.'};
  overlay.textContent=help[next]||'';
- renderOverlays();
+ renderOverlays();syncViewer();
 }
-function render(){geom.replaceChildren();renderGeometry();renderOverlays();renderList();renderInspector();}
+function render(){geom.replaceChildren();renderGeometry();renderOverlays();renderList();renderInspector();syncViewer();}
 function renderGeometry(){
 const keyWings=WINGS.filter(w=>w.level===floor);
 // Ground floor 00 and second-floor 01 are structurally separate slices.
@@ -272,7 +279,7 @@ function selectSanctuary(){selected='sanctuary';selectedPin=null;if(floor!==0)ch
 function centerAt(p){setView({x:p[0]-view.w/2,y:p[1]-view.h/2,w:view.w,h:view.h});}
 function focusAt(p,span=72){setView({x:p[0]-span/2,y:p[1]-span/2,w:span,h:span});}
 function htmlEscape(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function renderInspector(){let html='';if(selectedPin){const pin=plan.pins.find(p=>p.id===selectedPin);if(pin){html=`<div class="meta-kicker">Planning annotation · L${pin.floor}</div><h3>${htmlEscape(pin.title)}</h3><div class="meta-list"><dt>World position</dt><dd>${htmlEscape(fmtPos(pin.position))}</dd><dt>Origin</dt><dd>Local proposal only</dd></div><section><div class="form-group"><label for="pinTitle">Pin title</label><input id="pinTitle" maxlength="120" value="${htmlEscape(pin.title)}" /></div><div class="form-group"><label for="pinBody">Description / design intent</label><textarea id="pinBody" maxlength="10000">${htmlEscape(pin.body)}</textarea></div><button id="deletePin">Delete this pin</button></section>`;}}else if(selected==='sanctuary'){html=`<div class="meta-kicker">Protected destination · Ground / −5m</div><h3>Dexter Sanctuary</h3><p class="info">Quiet circular chamber reached by a descending 30 m ramp on the north-west face of the Rotunda. This is distinct from the Dex Systems wing and excluded from the 35 exhibit count.</p><dl class="meta-list"><dt>Center</dt><dd>${fmtPos(SANCTUARY_CENTER)}</dd><dt>Floor height</dt><dd>−5 m</dd><dt>Radius</dt><dd>14 m</dd><dt>Legacy installation</dt><dd>DexGPT (source record)</dd></dl><div class="tinted"><p>The real Dexter and DexGPT are distinct. The Sanctuary is an architectural destination, not a seventh exhibit wing.</p></div>${notesHTML('sanctuary')}`;}
+function renderInspector(){let html='';if(selectedPin){const pin=plan.pins.find(p=>p.id===selectedPin);if(pin){html=`<div class="meta-kicker">Planning annotation · L${pin.floor}</div><h3>${htmlEscape(pin.title)}</h3><div class="meta-list"><dt>World position</dt><dd>${htmlEscape(fmtPos(pin.position))}</dd>${typeof pin.y==='number'?`<dt>Height (Y)</dt><dd>${pin.y.toFixed(2)} m</dd>`:'' }<dt>Origin</dt><dd>Local proposal only</dd></div><section><div class="form-group"><label for="pinTitle">Pin title</label><input id="pinTitle" maxlength="120" value="${htmlEscape(pin.title)}" /></div><div class="form-group"><label for="pinBody">Description / design intent</label><textarea id="pinBody" maxlength="10000">${htmlEscape(pin.body)}</textarea></div><button id="deletePin">Delete this pin</button></section>`;}}else if(selected==='sanctuary'){html=`<div class="meta-kicker">Protected destination · Ground / −5m</div><h3>Dexter Sanctuary</h3><p class="info">Quiet circular chamber reached by a descending 30 m ramp on the north-west face of the Rotunda. This is distinct from the Dex Systems wing and excluded from the 35 exhibit count.</p><dl class="meta-list"><dt>Center</dt><dd>${fmtPos(SANCTUARY_CENTER)}</dd><dt>Floor height</dt><dd>−5 m</dd><dt>Radius</dt><dd>14 m</dd><dt>Legacy installation</dt><dd>DexGPT (source record)</dd></dl><div class="tinted"><p>The real Dexter and DexGPT are distinct. The Sanctuary is an architectural destination, not a seventh exhibit wing.</p></div>${notesHTML('sanctuary')}`;}
 else if(selected&&EX_BY_ID[selected]){const ex=EX_BY_ID[selected],pl=PL_BY_ID[selected],w=WING_BY_ID[ex.wing],roomSources=PRIMARY.filter(p=>p.host===ex.id),supp=SUPP.filter(p=>p.host===ex.id),m=plan.moves[ex.id];html=`<div class="meta-kicker">${ex.id} / Original collection slot</div><h3>${htmlEscape(ex.title)}</h3><span class="pill"><span class="icon-dot" style="background:${COLORS[ex.wing]}"></span>${htmlEscape(w.name)} · Level ${w.level}</span><dl class="meta-list"><dt>Permanent slot</dt><dd>${ex.id}</dd><dt>Tier in source</dt><dd>${ex.tier}</dd><dt>Bay side · index</dt><dd>${pl.side} · ${pl.slot+1}</dd><dt>Source anchor</dt><dd>${fmtPos(pl.anchor)}</dd><dt>Bay dimensions</dt><dd>${w.halfAlong*2} × ${w.depth} m</dd><dt>Hall half-width</dt><dd>${w.hw} m</dd><dt>Source floor</dt><dd>${w.level?'+10':'0'} m</dd></dl><section><div class="sec-title">Represented projects <span>${ex.projectIds.length}</span></div><ul class="records">${ex.projectIds.map(p=>`<li>${htmlEscape(PROJECTS[p]||p)}<small>${p}</small></li>`).join('')}</ul></section><section><div class="sec-title">Legacy source overlays</div>${roomSources.length?`<ul class="records">${roomSources.map(p=>`<li>${htmlEscape(p.title)}<small>Primary installation · computed placement ${fp(p.position[0])}, ${fp(p.position[1])}</small></li>`).join('')}</ul>`:'<p class="note">No primary legacy installation hosted here.</p>'}${supp.length?`<div class="coaster"><ul class="records">${supp.map(p=>`<li>${htmlEscape(p.title)}<small>Supplementary · host assignment only; exact case coordinate not asserted</small></li>`).join('')}</ul></div>`:''}</section><section><div class="sec-title">Proposed relocation</div><p class="note">Original structural geometry stays in place. A proposal marker represents a coordinate suggestion only; implementation would require updating the canonical layout and validating collisions, routes and tests.</p>${m?`<p style="font-size:12px">Proposed: <strong>${fmtPos(m)}</strong><br>Δ ${fp(m[0]-pl.anchor[0])} m X / ${fp(m[1]-pl.anchor[1])} m Z</p><button id="clearMove">Clear proposal</button>`:`<button id="startMove">Draft a different anchor</button>`}</section>${notesHTML(ex.id)}`;
 }else{html=`<div class="empty-state"><div class="eyebrow">The map is the index</div><div class="big">Walk the architecture from above.</div><p class="info">Select an exhibit or its entry in the collection list. The inspector shows source coordinates, grouped projects, heritage installations, and a private planning notebook.</p><div class="tinted"><p><strong>Accuracy boundary.</strong> Rooms, wings, octagonal Rotunda, stairs, Sanctuary, and collection membership are based on current source constants. Artwork, benches, animated visitors, collision volumes, and exterior shoreline are not reproduced as if they were surveyed floor geometry.</p></div><button type="button" id="inspectSanctuary">Inspect Dexter Sanctuary</button><a href="https://github.com/westkitty/museum-of-me-vnext/blob/6278d2c8fea5b27466bc4840170b3d25e611e3c1/src/world/layout.ts" target="_blank" rel="noopener noreferrer">Inspect the layout source</a></div>`;}
 els.inspector.innerHTML=html;wireInspector();}
@@ -281,7 +288,7 @@ function wireInspector(){const pin=selectedPin&&plan.pins.find(p=>p.id===selecte
 function downloadBlob(name,text,mime){const blob=new Blob([text],{type:mime}),url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);}
 function exportPlan(){const data={format:'museum-of-me-topdown-plan',version:1,planningOnly:true,exportedAt:new Date().toISOString(),source:SOURCE,notes:plan.notes,statuses:plan.statuses,moves:plan.moves,pins:plan.pins};downloadBlob('Museum_of_Me_Topdown_Proposals.json',JSON.stringify(data,null,2),'application/json');updateStatus('Planning JSON exported. The original museum repository has not changed.');}
 function exportSvg(){const clone=svg.cloneNode(true);clone.setAttribute('xmlns',NS);clone.setAttribute('width','1600');clone.setAttribute('height','1100');const style=node('style');style.textContent='.room-label{font-family:Georgia,serif;font-size:5.5px;fill:#ede4d1;text-anchor:middle}.minor-label{font:3.8px system-ui,sans-serif;fill:#adbabb;text-anchor:middle}.bay-text{font:700 3.4px system-ui,sans-serif;fill:#fff;text-anchor:middle}.bay-outline{stroke-width:.55}.wall{stroke:#b0c1bb;stroke-width:.62}.portal{stroke:#e4c58b;stroke-width:1.1}.stair{stroke:#d8c69f;stroke-width:1.1;fill:none;stroke-dasharray:1.2 1.1}.route{stroke:#9cb0bc;stroke-width:.8;stroke-dasharray:2 1.2;fill:none}.measure-path{stroke:#e8c684;stroke-width:.8;stroke-dasharray:2 1;fill:none}.measure-label{font:700 3.7px system-ui;fill:#f4dfaa;stroke:#0c171d;stroke-width:1.7px;paint-order:stroke;text-anchor:middle}.measure-dot{fill:#f3d495;stroke:#162328;stroke-width:.7}.old-point{fill:#f0cc82}.proposed-point{fill:#0e171b;stroke:#f0cc82;stroke-width:1.2}.source-point{fill:#0c1619;stroke:#e4a684;stroke-width:.95}.centerline{stroke:#6d979e;stroke-width:.25;stroke-dasharray:2 2;fill:none}';clone.insertBefore(style,clone.firstChild);const bg=node('rect',{x:-400,y:-400,width:800,height:800,fill:'#0d1b21'});clone.insertBefore(bg,clone.firstChild);downloadBlob('Museum_of_Me_Level_'+floor+'_Topdown.svg',new XMLSerializer().serializeToString(clone),'image/svg+xml');updateStatus('Visible floor exported as editable scalable SVG.');}
-function addPin(pos){checkpoint();const id='pin-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);plan.pins.push({id,floor,position:pos,title:'New planning pin',body:''});selectedPin=id;selected=null;persist();setTool('inspect');render();updateStatus('Planning annotation added. Write its purpose in the inspector.');}
+function addPin(pos,y,atFloor=floor){checkpoint();const id='pin-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);const pin={id,floor:atFloor,position:pos,title:'New planning pin',body:''};if(Number.isFinite(y))pin.y=+y.toFixed(2);plan.pins.push(pin);selectedPin=id;selected=null;persist();setTool('inspect');if(atFloor!==floor)changeFloor(atFloor);else render();updateStatus('Planning annotation added. Write its purpose in the inspector.');}
 function zoom(mult,focus){const old={...view},x=focus?focus[0]:view.x+view.w/2,y=focus?focus[1]:view.y+view.h/2;const w=Math.max(25,Math.min(520,view.w*mult)),h=Math.max(25,Math.min(520,view.h*mult));setView({x:x-(x-old.x)*w/old.w,y:y-(y-old.y)*h/old.h,w,h});}
 svg.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY>0?1.13:.885,screenPoint(e))},{passive:false});
 svg.addEventListener('pointerdown',e=>{
@@ -319,6 +326,56 @@ svg.addEventListener('click',e=>{
  if(mode==='inspect'&&e.target===svg){selected=null;selectedPin=null;render()}
 });
 const button=(id,fn)=>document.getElementById(id).addEventListener('click',fn);
+
+const VIEWER_CHANNEL='museum-workbench-3d';
+const viewer=document.getElementById('viewer3d');
+let viewMode='2d',viewerReady=false;
+function syncViewer(){
+ if(viewMode!=='3d'||!viewerReady||!viewer.contentWindow)return;
+ viewer.contentWindow.postMessage({channel:VIEWER_CHANNEL,kind:'state',floor,selected,selectedPin,mode:mode==='pin'?'pin':'inspect',pins:plan.pins,moves:plan.moves,showRoutes},location.origin==='null'?'*':location.origin);
+}
+function setViewMode(next){
+ if(next===viewMode)return;
+ if(next==='3d'&&mode!=='inspect'&&mode!=='pin')setTool('inspect');
+ viewMode=next;
+ const three=next==='3d';
+ document.getElementById('mapFrame').classList.toggle('is-3d',three);
+ document.getElementById('view2d').setAttribute('aria-pressed',String(!three));
+ document.getElementById('view3d').setAttribute('aria-pressed',String(three));
+ svg.setAttribute('aria-hidden',String(three));
+ viewer.setAttribute('aria-hidden',String(!three));
+ for(const id of ['floor0','floor1','zoomOut','zoomIn','fit','exportSvg','toolMove','toolMeasure','toggleSources','toggleRoutes'])document.getElementById(id).hidden=three;
+ if(three){
+  viewerReady=false;
+  viewer.src=new URL('../workbench3d/index.html',location.href).href;
+  updateStatus('Loading real 3D museum architecture. The 2D plan remains unchanged.');
+ }else{
+  viewerReady=false;viewer.src='about:blank';
+  updateStatus('2D plan restored. Saved planning notes and proposed positions are preserved.');
+  fit();
+ }
+}
+window.addEventListener('message',event=>{
+ if(viewMode!=='3d'||event.source!==viewer.contentWindow||event.origin!==location.origin)return;
+ const data=event.data;
+ if(!data||data.channel!==VIEWER_CHANNEL||typeof data.kind!=='string')return;
+ if(data.kind==='ready'){viewerReady=true;syncViewer();updateStatus('Real 3D architecture ready. Select or annotate physical surfaces.');}
+ else if(data.kind==='error')updateStatus('3D mode unavailable in this browser. The 2D plan remains usable.');
+ else if(data.kind==='room-select'&&typeof data.id==='string'){
+  if(data.id==='sanctuary')selectSanctuary();
+  else if(EX_BY_ID[data.id])selectRoom(data.id);
+ }
+ else if(data.kind==='pin-select'&&typeof data.id==='string'){
+  const pin=plan.pins.find(p=>p.id===data.id);
+  if(pin){selected=null;selectedPin=pin.id;if(pin.floor!==floor)changeFloor(pin.floor);else render();if(window.innerWidth<=850)openMobile('details');}
+ }
+ else if(data.kind==='pin-create'&&mode==='pin'&&Array.isArray(data.position)&&data.position.length===3&&data.position.every(n=>typeof n==='number'&&Number.isFinite(n)&&Math.abs(n)<=300)){
+  const [x,y,z]=data.position;addPin([+x.toFixed(2),+z.toFixed(2)],y,data.floor===1?1:0);
+ }
+});
+button('view2d',()=>setViewMode('2d'));
+button('view3d',()=>setViewMode('3d'));
+
 button('floor0',()=>changeFloor(0));button('floor1',()=>changeFloor(1));button('toolInspect',()=>setTool('inspect'));button('toolPin',()=>setTool('pin'));button('toolMove',()=>{if(!selected||selected==='sanctuary'){updateStatus('Choose a numbered exhibit before proposing a move.');return}setTool('move')});button('toolMeasure',()=>{measurement=[];setTool('measure');updateStatus('Ruler ready: click two empty map points to measure straight-line distance.');});button('toggleSources',()=>{showSources=!showSources;document.getElementById('toggleSources').setAttribute('aria-pressed',String(showSources));renderOverlays()});button('toggleRoutes',()=>{showRoutes=!showRoutes;document.getElementById('toggleRoutes').setAttribute('aria-pressed',String(showRoutes));renderOverlays()});button('zoomIn',()=>zoom(.8));button('zoomOut',()=>zoom(1.25));button('fit',fit);button('exportPlan',exportPlan);button('exportSvg',exportSvg);button('importPlan',()=>document.getElementById('importFile').click());button('clearPlan',()=>{if(!confirm('Reset every LOCAL planning note, proposal marker, and pin? This does not change the museum itself.'))return;checkpoint();plan=fresh();persist();render()});
 document.getElementById('importFile').addEventListener('change',async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;if(file.size>2e6){updateStatus('Plan file too large; import refused.');return}try{const p=cleanPlan(JSON.parse(await file.text()));if(!confirm('Replace this device’s planning overlay with the imported plan? The museum source remains unchanged.'))return;checkpoint();plan=p;selectedPin=null;persist();render();}catch(err){updateStatus('Import failed: '+err.message)}});
 els.search.addEventListener('input',()=>{renderList();renderGeometryOnly()});els.filter.addEventListener('change',()=>{renderList();renderGeometryOnly()});
