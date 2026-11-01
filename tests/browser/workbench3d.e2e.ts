@@ -33,14 +33,14 @@ test('optional 3D workbench loads real museum geometry while preserving the 2D p
   await page.locator('#exhibitList button').first().click();
   await expect(page.locator('#inspectorContent h3')).toHaveText('Selfsame: Continuity & Authority Systems');
   await expect.poll(() => viewer.locator('body').evaluate(() =>
-    (window as Window & { Museum3DProof: {
+    (window as unknown as Window & { Museum3DProof: {
       getState(): { selected: string | null };
     } }).Museum3DProof.getState().selected,
   )).toBe('E11');
 
   await viewer.locator('#floor').selectOption('upper');
   await expect.poll(() => viewer.locator('body').evaluate(() =>
-    (window as Window & { Museum3DProof: {
+    (window as unknown as Window & { Museum3DProof: {
       getState(): { floor: string };
     } }).Museum3DProof.getState().floor,
   )).toBe('upper');
@@ -79,7 +79,7 @@ test('3D workbench displays existing planning pins and survives repeated toggles
   const viewer = page.frameLocator('#viewer3d');
   await expect(viewer.locator('#viewerStatus')).toContainText('Actual 3D museum geometry ready', { timeout: 90_000 });
   await expect.poll(() => viewer.locator('body').evaluate(() =>
-    (window as Window & { Museum3DProof: {
+    (window as unknown as Window & { Museum3DProof: {
       getState(): { pinCount: number };
     } }).Museum3DProof.getState().pinCount,
   )).toBe(1);
@@ -90,12 +90,53 @@ test('3D workbench displays existing planning pins and survives repeated toggles
   await page.locator('#view3d').click();
   await expect(viewer.locator('#viewerStatus')).toContainText('Actual 3D museum geometry ready', { timeout: 90_000 });
   await expect.poll(() => viewer.locator('body').evaluate(() =>
-    (window as Window & { Museum3DProof: {
+    (window as unknown as Window & { Museum3DProof: {
       getState(): { pinCount: number };
     } }).Museum3DProof.getState().pinCount,
   )).toBe(1);
   const retained = await page.evaluate(() => JSON.parse(localStorage.getItem('museum-of-me-topdown-proposals-v1') ?? '{}'));
   expect(retained.pins[0].body).toBe('Keep me.');
   expect(retained.moves.E24).toEqual([3, 22]);
+  expect(errors).toEqual([]);
+});
+
+test('3D room picking and physical surface pinning update the original inspector and JSON', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/workbench/');
+  await page.locator('#view3d').click();
+  const viewer = page.frameLocator('#viewer3d');
+  await expect(viewer.locator('#viewerStatus')).toContainText('Actual 3D museum geometry ready', { timeout: 90_000 });
+
+  const projection = async () => viewer.locator('body').evaluate(() => {
+    const proof = (window as unknown as Window & { Museum3DProof: {
+      screenForRoom(id: string): { x: number; y: number } | null;
+    } }).Museum3DProof;
+    return proof.screenForRoom('E24');
+  });
+
+  const start = await projection();
+  expect(start).not.toBeNull();
+  await viewer.locator('#scene canvas').click({ position: start! });
+  await expect(page.locator('#exhibitList button[aria-current="true"]')).toContainText('E24');
+  const surface = await projection();
+  expect(surface).not.toBeNull();
+
+  await page.locator('#toolPin').click();
+  await viewer.locator('#scene canvas').click({ position: surface! });
+  await expect(page.locator('#pinTitle')).toHaveCount(1);
+  await page.locator('#pinTitle').fill('A physical architectural annotation');
+  await page.locator('#pinBody').fill('Attached to the existing museum surface, without modifying it.');
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('museum-of-me-topdown-proposals-v1') ?? '{}'));
+  expect(saved.version).toBe(1);
+  expect(saved.pins).toHaveLength(1);
+  expect(saved.pins[0].title).toBe('A physical architectural annotation');
+  expect(saved.pins[0].position).toHaveLength(2);
+  expect(saved.pins[0].y).toEqual(expect.any(Number));
+  await expect(page.locator('#inspectorContent')).toContainText('Height (Y)');
+
+  await page.locator('#view2d').click();
+  await expect(page.locator('#planOverlays [data-pin]')).toHaveCount(1);
+  await expect(page.locator('#planGeometry [data-id]')).toHaveCount(29);
   expect(errors).toEqual([]);
 });
