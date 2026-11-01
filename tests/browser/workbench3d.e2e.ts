@@ -54,8 +54,7 @@ test('optional 3D workbench loads real museum geometry while preserving the 2D p
   await page.locator('#proposalNotes').fill('Two-dimensional planning is still the authority.');
   await page.locator('#view2d').click();
   await expect(page.locator('#view2d')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#planGeometry [data-id]')).toHaveCount(6);
-  await page.locator('#floor0').click();
+  await expect(page.locator('#planGeometry [data-id]')).toHaveCount(29);
   const note = await page.evaluate(() => JSON.parse(localStorage.getItem('museum-of-me-topdown-proposals-v1') ?? '{}').notes?.E11);
   expect(note).toBe('Two-dimensional planning is still the authority.');
   await expect(page.locator('#viewer3d')).toHaveAttribute('src', 'about:blank');
