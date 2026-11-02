@@ -31,6 +31,14 @@ Useful shortcuts while Workshop is open: `W/E/R` move/rotate/scale · `G` snap t
 
 The current exterior includes a complete world-relative crystalline Blood Ring orbit and a visual-only night-island water surface with slow organic motion. Neither changes collision ownership; reduced motion freezes the water. Their final visual quality remains a human judgment, not something an automated gate can declare finished.
 
+## Developer free flight and manual sky clock
+
+On the Vite dev server, open `/?edit=1` (alongside Workshop) or `/?devtools=1` (flight/sky controls without Workshop). A compact **DEV / FLIGHT + SKY** panel appears only in those development sessions, starts with normal walking, and is absent from production and ordinary visitor mode.
+
+Press **V** or **Enable Free Flight** to start direct noclip movement anywhere in the museum. **WASD** and look fly in the camera direction, **Space** rises, **Ctrl** descends, and **Shift** moves faster. Press **V** to exit and resume ordinary gravity/collision; if the visitor ends up inside geometry or without floor support, exit returns to the safe position where flight began. Close Workshop or an input-capturing museum panel before flying. The existing Rotunda flight pad remains unchanged.
+
+Use the **Sky time of day** slider to preview 00:00–24:00 in quarter-hour increments, including sunrise, noon, and sunset. It updates the real sky shader, horizon fog, and exterior lighting without a second scene or render loop. **Restore Canonical Night** resets the approved night appearance. The clock does not run automatically and is never written to visitor preferences or production builds.
+
 ## Visitor Choreographer — development preview
 
 Start the Vite development server and open `/?choreo=1`. After entering the museum, use the visible **Visitor Choreographer** button. Its ordinary accessible Panel supports Close/Escape, focus trapping and focus restoration. Play/Pause, Restart, the time scrubber, floor selection and route visibility operate on a nominal source-route simulation through the existing app loop. Closing pauses playback; reopening retains the selected time. Restart resets to zero and pauses.
