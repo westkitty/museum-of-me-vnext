@@ -124,6 +124,10 @@ export class App implements LoopCallbacks {
     lastFailure: null as string | null,
   };
 
+  get isRoomCullingEnabled(): boolean {
+    return this.roomCullingEnabled;
+  }
+
   constructor(opts: AppOptions) {
     this.uiRoot = opts.uiRoot;
     this.a11yRoot = opts.a11yRoot;

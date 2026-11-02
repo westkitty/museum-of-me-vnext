@@ -271,6 +271,11 @@ export class SourceInstallations {
     }
   }
 
+  /** Refresh static zone visibility without advancing inactive installation state. */
+  prepareVisibility(zone: ZoneId): void {
+    if (zone !== this.visibilityZone) this.setVisibilityZone(zone);
+  }
+
   snapshot(): InstallationSnapshot[] {
     return [...this.runtimes.values()].map((runtime) => {
       const thesis = INSTALLATION_THESES[runtime.spec.id];

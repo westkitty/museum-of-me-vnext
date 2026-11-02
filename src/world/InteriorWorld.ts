@@ -208,7 +208,18 @@ export class InteriorWorld {
 
   /** Keep only the entrance streaming lane progressing while this world is hidden. */
   prepareUpdate(dt: number, eye: readonly [number, number, number], zone: ZoneId): void {
-    if (this.runtimeState === 'retained') this.streaming.evaluate(eye, dt, zone);
+    if (this.runtimeState !== 'retained') return;
+    this.museum.updateVisibility(
+      zone,
+      eye[0],
+      eye[2],
+      this.app.isRoomCullingEnabled,
+      this.app.player.yaw,
+      this.app.preferences.fieldOfView,
+    );
+    this.persistentEnvironment.updateVisibility(zone, true, this.museum.visibleWingIds);
+    this.sourceInstallations.prepareVisibility(zone);
+    this.streaming.evaluate(eye, dt, zone);
   }
 
   fixedUpdate(dt: number, fixedEye: readonly [number, number, number], currentZone: ZoneId): void {
