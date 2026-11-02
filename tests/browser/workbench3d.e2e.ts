@@ -40,6 +40,9 @@ test('optional 3D workbench loads real museum geometry while preserving the 2D p
     } }).Museum3DProof.getState().selected,
   )).toBe('E11');
 
+  // The survey defaults to model-first with its secondary controls folded.
+  await viewer.locator('#toggleTools').click();
+  await expect(viewer.locator('#detailControls')).toBeVisible();
   await viewer.locator('#floor').selectOption('upper');
   await expect.poll(() => viewer.locator('body').evaluate(() =>
     (window as unknown as Window & { Museum3DProof: {
@@ -85,6 +88,8 @@ test('3D workbench displays existing planning pins and survives repeated toggles
       getState(): { pinCount: number };
     } }).Museum3DProof.getState().pinCount,
   )).toBe(1);
+  await viewer.locator('#toggleTools').click();
+  await expect(viewer.locator('#layers')).toBeVisible();
   await viewer.locator('#annotations').uncheck();
   await viewer.locator('#annotations').check();
   await page.locator('#view2d').click();
