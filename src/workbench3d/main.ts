@@ -500,6 +500,7 @@ function init(): void {
   });
   observer.observe(mount);
   refreshVisibility();
+  if (new URLSearchParams(location.search).get('view') === 'island') setSurveyView('island');
   Object.defineProperty(window, 'Museum3DProof', { value: Object.freeze({
     sceneSource: 'Museum.build()', islandSource: 'ArrivalGarden.build()',
     nightSource: 'Sky', threeRevision: THREE.REVISION,
@@ -527,7 +528,7 @@ function init(): void {
   reducedMotion.addEventListener('change', onMotionPreferenceChange);
   window.addEventListener('pagehide', dispose, { once: true });
   send('ready');
-  report('Actual 3D museum geometry ready.');
+  report(surveyView === 'island' ? 'Full island source geometry ready.' : 'Actual 3D museum geometry ready.');
 }
 function onVisibilityChange(): void {
   if (document.hidden) stopIslandMotion();
