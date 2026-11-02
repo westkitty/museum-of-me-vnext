@@ -5,7 +5,7 @@
 export type Action =
   | 'forward' | 'back' | 'left' | 'right'
   | 'lookLeft' | 'lookRight' | 'lookUp' | 'lookDown'
-  | 'run' | 'jump' | 'interact' | 'map' | 'journal'
+  | 'run' | 'jump' | 'descend' | 'interact' | 'map' | 'journal'
   | 'settings' | 'diagnostics' | 'accessibility'
   | 'curator' | 'study' | 'thread' | 'command';
 
@@ -25,6 +25,7 @@ const BINDINGS: Record<string, Action> = {
   PageUp: 'lookUp',
   PageDown: 'lookDown',
   ShiftLeft: 'run', ShiftRight: 'run',
+  ControlLeft: 'descend', ControlRight: 'descend',
   Space: 'jump',
   KeyF: 'interact', Enter: 'interact',
   KeyM: 'map',
@@ -272,6 +273,8 @@ export class InputManager {
     if (EDGE_ACTIONS.has(action)) {
       if (this.edgeHeldCodes.has(e.code)) return;
       this.edgeHeldCodes.add(e.code);
+      // Space remains a jump edge for visitors and a held climb for dev flight.
+      if (action === 'jump') this.held.add('jump');
       for (const fn of this.listeners.get(action) ?? []) fn();
       e.preventDefault();
       return;
@@ -287,8 +290,10 @@ export class InputManager {
     if (this.codeCapture) this.codeCapture(e.code, false, false);
     const action = BINDINGS[e.code];
     if (!action) return;
-    if (EDGE_ACTIONS.has(action)) this.edgeHeldCodes.delete(e.code);
-    else this.held.delete(action);
+    if (EDGE_ACTIONS.has(action)) {
+      this.edgeHeldCodes.delete(e.code);
+      if (action === 'jump') this.held.delete('jump');
+    } else this.held.delete(action);
   };
 
   private readonly onBlur = (): void => {

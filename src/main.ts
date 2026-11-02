@@ -92,6 +92,18 @@ if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('edit
     });
 }
 
+if (import.meta.env.DEV) {
+  const query = new URLSearchParams(window.location.search);
+  if (query.get('edit') === '1' || query.get('devtools') === '1') {
+    void import('./dev/FlightSkyControls')
+      .then(({ FlightSkyControls }) => app.setDeveloperOverlay(new FlightSkyControls(app)))
+      .catch((error) => {
+        console.error('[Developer Flight/Sky] failed to start', error);
+        app.ui.hud.announce('Developer Flight/Sky controls failed to start.');
+      });
+  }
+}
+
 if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('choreo') === '1') {
   void import('./choreo/VisitorChoreographer')
     .then(({ VisitorChoreographer }) => app.setDevelopmentTool(new VisitorChoreographer(app)))

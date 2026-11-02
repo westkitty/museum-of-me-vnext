@@ -5,13 +5,22 @@ import {
   DOME_APEX_Y, LEVEL_1_Y, SANCTUARY_CENTER, SANCTUARY_FLOOR_Y, SANCTUARY_HEIGHT,
   WINGS, PLACEMENTS, WING_BY_ID, faceDirection, place,
 } from '../world/layout';
-import { NIGHT_MOON_DIRECTION } from '../world/Sky';
+import { NIGHT_MOON_DIRECTION, type SkyTimePreview } from '../world/Sky';
 
 const MAX_ACTIVE_POINT_LIGHTS = 8;
+const DAY_HEMISPHERE = new THREE.Color(0x9ccaf0);
+const DAY_GROUND = new THREE.Color(0x475e67);
+const DAY_AMBIENT = new THREE.Color(0xf4f4ec);
+const DAY_SUN = new THREE.Color(0xffefd1);
+const DAY_BOUNCE = new THREE.Color(0xa6bed7);
 
 export class Lighting {
   readonly group = new THREE.Group();
   readonly bayLights = new Map<string, THREE.PointLight>();
+  private readonly skyHemi: THREE.HemisphereLight;
+  private readonly skyAmbient: THREE.AmbientLight;
+  private readonly skyKey: THREE.DirectionalLight;
+  private readonly skyBounce: THREE.DirectionalLight;
   private readonly bayFills = new Map<string, THREE.PointLight>();
   private readonly managed: THREE.PointLight[] = [];
   private readonly suppressed = new Set<THREE.PointLight>();
@@ -29,9 +38,11 @@ export class Lighting {
     // the whole interior dark. The Rotunda has its own architectural lighting.
     const hemi = new THREE.HemisphereLight(0x294f78, 0x101a22, 0.72);
     this.group.add(hemi);
+    this.skyHemi = hemi;
 
     const ambient = new THREE.AmbientLight(0xb9d2e8, 0.34);
     this.group.add(ambient);
+    this.skyAmbient = ambient;
 
     const moonlight = new THREE.DirectionalLight(0xc9e2ff, 1.55);
     moonlight.position.copy(NIGHT_MOON_DIRECTION).multiplyScalar(135);
@@ -51,11 +62,13 @@ export class Lighting {
       moonlight.shadow.radius = 2;
     }
     this.group.add(moonlight, moonlight.target);
+    this.skyKey = moonlight;
 
     const bounce = new THREE.DirectionalLight(0x4d82a6, 0.46);
     bounce.position.set(70, 32, -90);
     bounce.target.position.set(0, 6, 0);
     this.group.add(bounce, bounce.target);
+    this.skyBounce = bounce;
 
     // Three real exterior lights are justified: one holds the entrance under
     // the canopy and two wash the facade. Searchlight cones elsewhere are
@@ -138,6 +151,26 @@ export class Lighting {
     });
 
     void scope;
+  }
+
+  /** One explicit dev slider change, no per-frame light mutation. */
+  setSkyPreview(preview: SkyTimePreview | null): void {
+    const daylight = preview?.daylight ?? 0;
+    this.skyHemi.color.setHex(0x294f78).lerp(DAY_HEMISPHERE, daylight);
+    this.skyHemi.groundColor.setHex(0x101a22).lerp(DAY_GROUND, daylight);
+    this.skyHemi.intensity = 0.72 + daylight * 0.65;
+    this.skyAmbient.color.setHex(0xb9d2e8).lerp(DAY_AMBIENT, daylight);
+    this.skyAmbient.intensity = 0.34 + daylight * 0.30;
+    this.skyKey.color.setHex(0xc9e2ff).lerp(DAY_SUN, daylight);
+    this.skyKey.intensity = 1.55 + daylight * 1.8;
+    this.skyKey.position.copy(NIGHT_MOON_DIRECTION)
+      .lerp(preview?.sunDirection ?? NIGHT_MOON_DIRECTION, daylight)
+      .normalize().multiplyScalar(135);
+    // The production matrices are frozen; update only the altered key.
+    this.skyKey.updateMatrix();
+    this.skyKey.updateMatrixWorld(true);
+    this.skyBounce.color.setHex(0x4d82a6).lerp(DAY_BOUNCE, daylight);
+    this.skyBounce.intensity = 0.46 + daylight * 0.24;
   }
 
   setBayLight(exhibitId: string, on: boolean): void {
