@@ -80,6 +80,9 @@ test('3D workbench displays existing planning pins and survives repeated toggles
   });
   await page.reload();
   await expect(page.locator('#planOverlays [data-pin]')).toHaveCount(1);
+  await expect.poll(() => page.evaluate(() => JSON.parse(
+    localStorage.getItem('museum-of-me-topdown-proposals-v1') ?? '{}',
+  ).pins[0].worldId)).toBe('interior');
   await page.locator('#view3d').click();
   const viewer = page.frameLocator('#viewer3d');
   await expect(viewer.locator('#viewerStatus')).toContainText('Actual 3D museum geometry ready', { timeout: 90_000 });
@@ -174,7 +177,7 @@ test('Full Island shows actual exterior world while fold-down UI preserves 71%+ 
       nightSource: proof.nightSource, ...proof.getState() };
   });
   expect(island).toMatchObject({
-    sceneSource: 'Museum.build()', islandSource: 'ArrivalGarden.build() + IslandLandscape.build()', nightSource: 'Sky',
+    sceneSource: 'Museum.build()', islandSource: 'ExteriorWorld', nightSource: 'Sky',
     view: 'island', floor: 'both', wing: 'all', cutaway: false,
     islandTerrain: true, islandWater: true, islandPaths: true, islandSpire: true,
     nightSkyVisible: true, exteriorBeaconsVisible: true,
@@ -228,4 +231,65 @@ test('narrow 3D interface folds beneath a 29-percent viewport-height drawer', as
   expect(framing).not.toBeNull();
   expect(framing!.maxX).toBeLessThan(0.9);
   expect(framing!.maxY).toBeLessThan(0.9);
+});
+
+test('Island Workbench starts from the shared exterior source without building the museum and stores exterior pins', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/workbench/?view=island');
+  await expect(page.locator('#planGeometry [data-id]')).toHaveCount(29);
+  await page.locator('#view3d').click();
+  const viewer = page.frameLocator('#viewer3d');
+  await expect(viewer.locator('#viewerStatus')).toContainText('Full island source geometry ready', { timeout: 90_000 });
+  const proof = () => viewer.locator('body').evaluate(() => {
+    const api = (window as unknown as Window & { Museum3DProof: {
+      islandSource: string; getState(): { view: string; museumBuilt: boolean; islandTerrain: boolean };
+    } }).Museum3DProof;
+    return { source: api.islandSource, ...api.getState() };
+  });
+  await expect.poll(proof).toMatchObject({ source: 'ExteriorWorld', view: 'island', museumBuilt: false, islandTerrain: true });
+
+  await viewer.locator('#toggleTools').click();
+  await viewer.locator('#cameraPreset').selectOption('fit');
+  await page.locator('#toolPin').click();
+  const sitePoint = await viewer.locator('body').evaluate(() =>
+    (window as unknown as Window & { Museum3DProof: { screenForExteriorFeature(name: string): { x: number; y: number } | null } })
+      .Museum3DProof.screenForExteriorFeature('central-turquoise-dome-glazing'));
+  expect(sitePoint).not.toBeNull();
+  await viewer.locator('#scene canvas').click({ position: sitePoint! });
+  await expect(page.locator('#pinTitle')).toHaveCount(1, { timeout: 10_000 });
+  await page.locator('#pinTitle').fill('Island threshold survey');
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('museum-of-me-topdown-proposals-v1') ?? '{}'));
+  expect(stored.pins).toHaveLength(1);
+  expect(stored.pins[0]).toMatchObject({ worldId: 'exterior', floor: null, title: 'Island threshold survey' });
+  expect(stored.pins[0].featureId).toBe('exterior-dome');
+  expect(stored.pins[0].position).toHaveLength(2);
+  expect(stored.pins[0].y).toEqual(expect.any(Number));
+  await expect(page.locator('#planOverlays [data-pin]')).toHaveCount(0);
+  await expect(page.locator('#inspectorContent')).toContainText('Island');
+
+  await page.reload();
+  await expect(page.locator('#planOverlays [data-pin]')).toHaveCount(0);
+  await page.locator('#view3d').click();
+  const museum = page.frameLocator('#viewer3d');
+  await expect(museum.locator('#viewerStatus')).toContainText('Full island source geometry ready', { timeout: 90_000 });
+  await expect.poll(() => museum.locator('body').evaluate(() =>
+    (window as unknown as Window & { Museum3DProof: { getState(): { visiblePinCount: number } } })
+      .Museum3DProof.getState().visiblePinCount)).toBe(1);
+  await museum.locator('#toggleTools').click();
+  await museum.locator('#cameraPreset').selectOption('lagoon');
+  await museum.locator('#reset').click();
+  await expect(museum.locator('#cameraPreset')).toHaveValue('fit');
+  await museum.locator('#museumView').click();
+  await expect.poll(() => museum.locator('body').evaluate(() =>
+    (window as unknown as Window & { Museum3DProof: { getState(): { museumBuilt: boolean; view: string } } })
+      .Museum3DProof.getState())).toMatchObject({ museumBuilt: true, view: 'museum' });
+  await expect.poll(() => museum.locator('body').evaluate(() =>
+    (window as unknown as Window & { Museum3DProof: { getState(): { pinCount: number } } })
+      .Museum3DProof.getState().pinCount)).toBe(1);
+  await museum.locator('#islandView').click();
+  await expect.poll(() => museum.locator('body').evaluate(() =>
+    (window as unknown as Window & { Museum3DProof: { getState(): { visiblePinCount: number } } })
+      .Museum3DProof.getState().visiblePinCount)).toBe(1);
+  expect(errors).toEqual([]);
 });

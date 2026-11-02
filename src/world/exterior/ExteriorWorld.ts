@@ -84,6 +84,18 @@ export class ExteriorWorld {
     this.museumShell = new ExteriorMuseumShell(this.scope, this.collision);
     this.root.add(this.museumShell.build());
 
+    // Stable inspector semantics remain separate from the Workshop's
+    // intentionally narrow authorable-object IDs and mutation contract.
+    this.root.userData.spatialSource = 'ExteriorWorld';
+    this.museumShell.group.userData.spatialFeatureId = 'exterior-museum-shell';
+    this.museumShell.group.getObjectByName('central-turquoise-dome-glazing')!.userData.spatialFeatureId = 'exterior-dome';
+    this.arrivalGarden.group.getObjectByName('east-sheltered-lagoon')!.userData.spatialFeatureId = 'lagoon-east';
+    this.arrivalGarden.group.getObjectByName('night-island-terrain')!.userData.spatialFeatureId = 'island-land';
+    this.islandLandscape.root.userData.spatialFeatureId = 'island-landscape';
+    this.islandLandscape.root.getObjectByName('perimeter-woodland-trunks')!.userData.spatialFeatureId = 'grove-perimeter-trunks';
+    this.islandLandscape.root.getObjectByName('single-golden-spire')!.userData.spatialFeatureId = 'spire-northwest';
+    this.islandLandscape.root.getObjectByName('south-arrival-pier-deck')!.userData.spatialFeatureId = 'pier-south';
+
     // Build outer threshold buffer and doorway occluder
     this.buildThresholdVestibule();
   }

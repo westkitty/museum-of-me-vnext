@@ -1,17 +1,16 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { Museum } from '../world/Museum';
+import { Museum, type MuseumBuildResult } from '../world/Museum';
 import { PersistentEnvironment } from '../world/PersistentEnvironment';
-import { ArrivalGarden } from '../world/ArrivalGarden';
-import { CollisionWorld } from '../world/CollisionWorld';
-import { IslandLandscape } from '../world/exterior/IslandLandscape';
-import { ArrivalBeacons } from '../world/ArrivalBeacons';
+import { ExteriorWorld } from '../world/exterior/ExteriorWorld';
+import { isSiteLand, SPIRE_GARDEN_CENTER } from '../world/exterior/IslandSiteLayout';
 import { Sky } from '../world/Sky';
 import { Lighting } from '../render/Lighting';
 import { QUALITY } from '../render/QualityTiers';
 import { ResourceScope } from '../assets/ResourceScope';
 import { PLACEMENTS, SANCTUARY_CENTER, SANCTUARY_FLOOR_Y, LEVEL_1_Y } from '../world/layout';
 import { SOURCE_VISITORS, visitorRouteForVNext } from '../content/sourceParity';
+import { normalizePlanningPin, type PlanningPin, type SpatialWorldId } from './annotations';
 
 const CHANNEL = 'museum-workbench-3d';
 const targetOrigin = location.origin === 'null' ? '*' : location.origin;
@@ -19,11 +18,10 @@ type FloorFilter = 'both' | 'ground' | 'upper';
 type Mode = 'inspect' | 'pin';
 type SurveyView = 'museum' | 'island';
 type Position2D = readonly [number, number];
-interface PlanningPin { id: string; position: Position2D; floor: 0 | 1; title: string; y?: number }
 interface Message { channel: string; kind: string; selected?: string | null; selectedPin?: string | null;
-  mode?: Mode; floor?: number; pins?: PlanningPin[]; moves?: Record<string, Position2D> }
+  mode?: Mode; floor?: number; pins?: unknown[]; moves?: Record<string, Position2D> }
 interface RoomMarker { id: string; wing: string; floor: number; mesh: THREE.Mesh }
-interface PinMarker { floor: number; mesh: THREE.Mesh }
+interface PinMarker { worldId: SpatialWorldId; floor: 0 | 1 | null; mesh: THREE.Mesh }
 const el = <T extends HTMLElement>(id: string): T => {
   const element = document.getElementById(id);
   if (!element) throw Error('Missing 3D control ' + id);
@@ -33,6 +31,8 @@ const mount = el<HTMLElement>('scene');
 const status = el<HTMLElement>('viewerStatus');
 const floorSelect = el<HTMLSelectElement>('floor');
 const wingSelect = el<HTMLSelectElement>('wing');
+const cameraPreset = el<HTMLSelectElement>('cameraPreset');
+const siteCameraCard = el<HTMLElement>('siteCameraCard');
 const cutawayButton = el<HTMLButtonElement>('cutaway');
 const museumViewButton = el<HTMLButtonElement>('museumView');
 const islandViewButton = el<HTMLButtonElement>('islandView');
@@ -56,11 +56,10 @@ let camera: THREE.PerspectiveCamera | null = null;
 let controls: OrbitControls | null = null;
 let building: THREE.Group | null = null;
 let dressing: THREE.Group | null = null;
+let museumResult: MuseumBuildResult | null = null;
 let overlay: THREE.Group | null = null;
 let studioLights: THREE.Group | null = null;
-let islandGarden: ArrivalGarden | null = null;
-let islandLandscape: IslandLandscape | null = null;
-let islandBeacons: THREE.Group | null = null;
+let exteriorWorld: ExteriorWorld | null = null;
 let islandSky: Sky | null = null;
 let islandLighting: Lighting | null = null;
 let surveyView: SurveyView = 'museum';
@@ -109,17 +108,49 @@ function resetCamera(): void {
   if (!camera || !controls) return;
   controls.target.set(0, surveyView === 'island' ? 0 : 2, 0);
   if (surveyView === 'island') {
-    // Preserve the full source shoreline on portrait as well as landscape screens.
     const aspect = Math.max(0.4, mount.clientWidth / Math.max(1, mount.clientHeight));
     const framing = aspect < 1 ? Math.min(2.5, 1 / aspect) : 1;
     camera.aspect = aspect;
-    // The coherent island shell is larger than the prior radial placeholder.
-    camera.position.set(245 * framing, 258 * framing, 284 * framing);
+    camera.position.set(255 * framing, 260 * framing, 302 * framing);
+    controls.maxDistance = 1_200;
   } else camera.position.set(149, 176, 165);
   controls.maxDistance = surveyView === 'island' ? 1_200 : 480;
+  camera.near = 0.1;
+  camera.far = 1_600;
   camera.updateProjectionMatrix();
   controls.update();
+  cameraPreset.value = 'fit';
   paint();
+}
+function ensureMuseum(): void {
+  if (!scene || museumResult) return;
+  museumResult = new Museum(museumScope).build();
+  building = museumResult.root; scene.add(building);
+  dressing = new PersistentEnvironment(museumScope).build(); scene.add(dressing);
+  const sun = new THREE.DirectionalLight(0xffead0, 2.1);
+  sun.position.set(-80, 140, 70);
+  studioLights = new THREE.Group();
+  studioLights.add(new THREE.AmbientLight(0xc5d4dd, 1.8), sun);
+  scene.add(studioLights);
+  addAnchors(); addVisitorRoutes();
+}
+function ensureExterior(): void {
+  if (!scene || exteriorWorld) return;
+  exteriorWorld = new ExteriorWorld('low'); scene.add(exteriorWorld.root);
+  islandSky = new Sky(exteriorWorld.scope); scene.add(islandSky.mesh);
+  islandLighting = new Lighting(exteriorWorld.scope, QUALITY.low); scene.add(islandLighting.group);
+}
+function applyCameraPreset(preset: string): void {
+  if (!camera || !controls || surveyView !== 'island') return;
+  const target = new THREE.Vector3(0, 0, 0), offset = new THREE.Vector3(255,260,302);
+  if (preset === 'topdown') { offset.set(0, 520, .01); }
+  if (preset === 'entrance') { target.set(0,8,105); offset.set(0,42,170); }
+  if (preset === 'lagoon') { target.set(95,0,0); offset.set(170,110,30); }
+  if (preset === 'spire') { target.set(...SPIRE_GARDEN_CENTER); offset.set(100,75,105); }
+  if (preset === 'pier') { target.set(0,0,190); offset.set(85,60,100); }
+  if (preset === 'woodland') { target.set(-55,0,25); offset.set(100,75,100); }
+  controls.target.copy(target); camera.position.copy(target).add(offset);
+  controls.update(); paint();
 }
 function isLevelVisible(n: number): boolean {
   return floor === 'both' || (floor === 'ground' ? n === 0 : n === 1);
@@ -127,25 +158,22 @@ function isLevelVisible(n: number): boolean {
 function isWingVisible(id: string): boolean { return wing === 'all' || id === wing; }
 function topCut(): number { return floor === 'ground' ? 7.8 : 17.8; }
 function refreshVisibility(): void {
-  if (!renderer || !building || !dressing || !overlay) return;
+  if (!renderer || !overlay) return;
   renderer.clippingPlanes = [];
-  if (surveyView === 'museum') {
+  if (surveyView === 'museum' && building) {
     if (cutaway || floor !== 'both')
       renderer.clippingPlanes.push(new THREE.Plane(new THREE.Vector3(0, -1, 0), topCut()));
     if (floor === 'upper')
       renderer.clippingPlanes.push(new THREE.Plane(new THREE.Vector3(0, 1, 0), -(LEVEL_1_Y - 1)));
   }
-  building.visible = layers.architecture.checked;
-  if (islandGarden) islandGarden.group.visible = surveyView === 'island';
-  if (islandLandscape) islandLandscape.root.visible = surveyView === 'island';
-  if (islandBeacons) islandBeacons.visible = surveyView === 'island';
+  if (building) building.visible = layers.architecture.checked && surveyView === 'museum';
+  if (dressing) dressing.visible = layers.architecture.checked && surveyView === 'museum' && wing === 'all';
+  if (exteriorWorld) exteriorWorld.root.visible = surveyView === 'island';
   if (islandSky) islandSky.mesh.visible = surveyView === 'island';
   if (islandLighting) islandLighting.group.visible = surveyView === 'island';
   if (studioLights) studioLights.visible = surveyView === 'museum';
-  // The dressing is an exact museum source layer but has no per-wing visibility contract.
-  // Hide it during isolation rather than leaving ghost decor in invisible wings.
-  dressing.visible = layers.architecture.checked && (surveyView === 'island' || wing === 'all');
-  for (const group of building.children) {
+  siteCameraCard.hidden = surveyView !== 'island';
+  for (const group of building?.children ?? []) {
     if (!group.name.startsWith('zone:')) continue;
     const id = group.name.slice(5);
     group.visible = surveyView === 'island' || id === 'rotunda' ||
@@ -161,8 +189,11 @@ function refreshVisibility(): void {
       selected === marker.id ? 0xffe7aa : marker.id === 'sanctuary' ? 0xa3d6c5 : 0xdcc18b,
     );
   }
-  for (const marker of pinMarkers)
-    marker.mesh.visible = layers.annotations.checked && isLevelVisible(marker.floor);
+  for (const marker of pinMarkers) {
+    marker.mesh.visible = layers.annotations.checked
+      && marker.worldId === (surveyView === 'island' ? 'exterior' : 'interior')
+      && (marker.worldId === 'exterior' || isLevelVisible(marker.floor ?? 0));
+  }
   for (const line of routeLines) line.visible =
     surveyView === 'museum' && layers.visitors.checked && wing === 'all';
   const proposals = overlay.getObjectByName('proposals');
@@ -182,19 +213,19 @@ function redrawPins(): void {
   const group = overlay.getObjectByName('pins') as THREE.Group;
   group.clear(); pinScope.releaseAll(); pinMarkers = [];
   for (const pin of pins.slice(0, 300)) {
-    if (!validPoint(pin.position, 2) || (pin.floor !== 0 && pin.floor !== 1)) continue;
-    const y = typeof pin.y === 'number' && Number.isFinite(pin.y) ? pin.y :
-      (pin.floor === 1 ? LEVEL_1_Y : 0);
+    const normalized = normalizePlanningPin(pin);
+    if (!normalized) continue;
+    const y = normalized.y ?? (normalized.floor === 1 ? LEVEL_1_Y : 0);
     const mesh = new THREE.Mesh(
       pinScope.track(new THREE.SphereGeometry(selectedPin === pin.id ? 1.7 : 1.3, 12, 8)),
       pinScope.track(new THREE.MeshBasicMaterial({
         color: selectedPin === pin.id ? 0xf7e6a9 : 0x78c5bf, depthTest: false,
       })),
     );
-    mesh.position.set(pin.position[0], y + 1.75, pin.position[1]);
-    mesh.userData.pinId = pin.id;
+    mesh.position.set(normalized.position[0], y + 1.75, normalized.position[1]);
+    mesh.userData.pinId = normalized.id;
     group.add(mesh);
-    pinMarkers.push({ floor: pin.floor, mesh });
+    pinMarkers.push({ worldId: normalized.worldId, floor: normalized.floor, mesh });
   }
   refreshVisibility();
 }
@@ -275,7 +306,7 @@ function isActuallyVisible(obj: THREE.Object3D): boolean {
   return true;
 }
 function pick(event: PointerEvent): void {
-  if (!renderer || !camera || !building) return;
+  if (!renderer || !camera) return;
   const box = renderer.domElement.getBoundingClientRect();
   if (box.width < 1 || box.height < 1) return;
   const ray = new THREE.Raycaster();
@@ -290,23 +321,23 @@ function pick(event: PointerEvent): void {
     }
     const visibleTop = surveyView === 'museum' && (cutaway || floor !== 'both')
       ? topCut() : Number.POSITIVE_INFINITY;
-    const objects: THREE.Object3D[] = [building];
-    if (surveyView === 'island' && islandGarden) objects.push(islandGarden.group);
-    if (surveyView === 'island' && islandLandscape) objects.push(islandLandscape.root);
+    const objects: THREE.Object3D[] = surveyView === 'island'
+      ? (exteriorWorld ? [exteriorWorld.root] : []) : (building ? [building] : []);
     const hit = ray.intersectObjects(objects, true).find(intersection => {
       if (!isActuallyVisible(intersection.object) || intersection.point.y > visibleTop) return false;
       if (surveyView === 'museum') return floor !== 'upper' || intersection.point.y >= LEVEL_1_Y - 1;
-      // The water is a visual shader, not a traversable museum surface.
-      if (intersection.object.name === 'night-island-water') return false;
-      // The collision ground is intentionally a 600m plane under the shoreline.
-      // Do not allow survey pins on that invisible, non-island extension.
-      return Math.hypot(intersection.point.x, intersection.point.z / 0.86) <= 148;
+      return isSiteLand(intersection.point.x, intersection.point.z)
+        && intersection.object.name !== 'night-island-water'
+        && intersection.object.userData.visualRole !== 'enclosed-lagoon';
     });
     if (!hit) { report('No visible physical surface at this position. Rotate and try again.'); return; }
     const point = hit.point;
-    const pinFloor = floor === 'upper' ? 1 : floor === 'ground' ? 0 :
+    const pinFloor = surveyView === 'island' ? null : floor === 'upper' ? 1 : floor === 'ground' ? 0 :
       point.y >= LEVEL_1_Y - 1 ? 1 : 0;
-    send('pin-create', { position: [point.x, point.y, point.z], floor: pinFloor });
+    let source: THREE.Object3D | null = hit.object;
+    while (source && typeof source.userData.spatialFeatureId !== 'string') source = source.parent;
+    send('pin-create', { worldId: surveyView === 'island' ? 'exterior' : 'interior',
+      featureId: source?.userData.spatialFeatureId, position: [point.x, point.y, point.z], floor: pinFloor });
     return;
   }
   const meshes = [
@@ -337,9 +368,8 @@ function applyParentState(data: Message): void {
     if (renderer) renderer.domElement.style.cursor = mode === 'pin' ? 'crosshair' : 'grab';
   }
   if (Array.isArray(data.pins)) {
-    const next = data.pins.slice(0, 300).filter(p =>
-      p && typeof p.id === 'string' && validPoint(p.position, 2));
-    const signature = JSON.stringify(next.map(p => [p.id, p.position, p.floor, p.y]))
+    const next = data.pins.slice(0, 300).map(normalizePlanningPin).filter((p): p is PlanningPin => p !== null);
+    const signature = JSON.stringify(next.map(p => [p.id, p.worldId, p.position, p.floor, p.y]))
       + ':' + (selectedPin ?? '');
     if (signature !== pinsSignature) {
       pinsSignature = signature;
@@ -372,30 +402,10 @@ function init(): void {
   controls.minDistance = 8; controls.maxDistance = 480;
   controls.maxPolarAngle = Math.PI / 2 - .015;
   controls.addEventListener('change', paint);
-  const result = new Museum(museumScope).build();
-  building = result.root; scene.add(building);
-  dressing = new PersistentEnvironment(museumScope).build(); scene.add(dressing);
-  const sun = new THREE.DirectionalLight(0xffead0, 2.1);
-  sun.position.set(-80, 140, 70);
-  studioLights = new THREE.Group();
-  studioLights.add(new THREE.AmbientLight(0xc5d4dd, 1.8), sun);
-  scene.add(studioLights);
-  function ensureIsland(): void {
-    if (!scene || islandGarden) return;
-    islandGarden = new ArrivalGarden(museumScope, result.collision);
-    scene.add(islandGarden.build());
-    islandLandscape = new IslandLandscape(museumScope, new CollisionWorld(), 'low');
-    scene.add(islandLandscape.build());
-    islandBeacons = new ArrivalBeacons(museumScope).group;
-    scene.add(islandBeacons);
-    islandSky = new Sky(museumScope);
-    scene.add(islandSky.mesh);
-    islandLighting = new Lighting(museumScope, QUALITY.low);
-    scene.add(islandLighting.group);
-  }
   function setSurveyView(next: SurveyView): void {
-    if (!scene || !renderer || surveyView === next) return;
-    if (next === 'island') ensureIsland();
+    if (!scene || !renderer) return;
+    if (next === 'island') ensureExterior(); else ensureMuseum();
+    if (surveyView === next) { refreshVisibility(); return; }
     surveyView = next;
     // A full exterior survey must include the actual roof, all levels and all wings.
     wing = 'all'; wingSelect.value = 'all';
@@ -416,6 +426,7 @@ function init(): void {
   }
   museumViewButton.addEventListener('click', () => setSurveyView('museum'));
   islandViewButton.addEventListener('click', () => setSurveyView('island'));
+  cameraPreset.addEventListener('change', () => applyCameraPreset(cameraPreset.value));
   toolsButton.addEventListener('click', () => {
     const expanded = toolsButton.getAttribute('aria-expanded') !== 'true';
     toolsButton.setAttribute('aria-expanded', String(expanded));
@@ -429,7 +440,13 @@ function init(): void {
   const proposalsGroup = new THREE.Group(); proposalsGroup.name = 'proposals';
   overlay.add(pinsGroup, proposalsGroup);
   scene.add(overlay);
-  addAnchors(); addVisitorRoutes();
+  surveyView = new URLSearchParams(location.search).get('view') === 'island' ? 'island' : 'museum';
+  if (surveyView === 'island') ensureExterior(); else ensureMuseum();
+  scene.fog = surveyView === 'island' ? new THREE.FogExp2(0x08121e, 0.00155) : null;
+  renderer.toneMapping = surveyView === 'island' ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+  museumViewButton.setAttribute('aria-pressed', String(surveyView === 'museum'));
+  islandViewButton.setAttribute('aria-pressed', String(surveyView === 'island'));
+  siteCameraCard.hidden = surveyView !== 'island';
   resetCamera();
   floorSelect.addEventListener('change', () => {
     const nextFloor = floorSelect.value as FloorFilter;
@@ -443,7 +460,7 @@ function init(): void {
     if (wing === 'all') resetCamera();
     else if (wing === 'sanctuary') focus(new THREE.Vector3(...SANCTUARY_CENTER), 42);
     else {
-      const group = result.zoneGroups.get(wing);
+      const group = museumResult?.zoneGroups.get(wing);
       if (group) {
         const bounds = new THREE.Box3().setFromObject(group);
         if (!bounds.isEmpty())
@@ -488,26 +505,28 @@ function init(): void {
   });
   observer.observe(mount);
   refreshVisibility();
-  if (new URLSearchParams(location.search).get('view') === 'island') setSurveyView('island');
   Object.defineProperty(window, 'Museum3DProof', { value: Object.freeze({
-    sceneSource: 'Museum.build()', islandSource: 'ArrivalGarden.build() + IslandLandscape.build()',
+    sceneSource: 'Museum.build()', islandSource: 'ExteriorWorld',
     nightSource: 'Sky', threeRevision: THREE.REVISION,
-    realMuseumRoot: building.name === 'museum-building',
+    realMuseumRoot: building?.name === 'museum-building',
     exhibitAnchors: PLACEMENTS.length, authoredVisitorRoutes: routeLines.length,
-    zoneCount: result.zoneGroups.size,
+    zoneCount: museumResult?.zoneGroups.size ?? 0,
+    get museumBuildCount() { return museumResult ? 1 : 0; },
     getState: () => ({
       floor, wing, cutaway, selected, selectedPin, pinCount: pinMarkers.length,
-      view: surveyView, islandTerrain: Boolean(islandGarden?.group.getObjectByName('night-island-terrain')),
-      islandWater: Boolean(islandGarden?.group.getObjectByName('night-island-water')),
-      islandPaths: Boolean(islandLandscape?.root.getObjectByName('site-path-1')),
-      islandSpire: Boolean(islandLandscape?.root.getObjectByName('single-golden-spire')),
+      visiblePinCount: pinMarkers.filter(marker => marker.mesh.visible).length,
+      view: surveyView, museumBuilt: Boolean(museumResult),
+      islandTerrain: Boolean(exteriorWorld?.root.getObjectByName('night-island-terrain')),
+      islandWater: Boolean(exteriorWorld?.root.getObjectByName('night-island-water')),
+      islandPaths: Boolean(exteriorWorld?.root.getObjectByName('site-path-1')),
+      islandSpire: Boolean(exteriorWorld?.root.getObjectByName('single-golden-spire')),
       nightSkyVisible: Boolean(islandSky?.mesh.visible),
-      exteriorBeaconsVisible: Boolean(islandBeacons?.visible),
+      exteriorBeaconsVisible: Boolean(exteriorWorld?.arrivalBeacons.group.visible),
       toolsExpanded: !detailControls.hidden,
     }),
     islandFraming: () => {
-      if (!camera || !islandGarden) return null;
-      const terrain = islandGarden.group.getObjectByName('night-island-terrain');
+      if (!camera || !exteriorWorld) return null;
+      const terrain = exteriorWorld.root.getObjectByName('night-island-terrain');
       if (!(terrain instanceof THREE.Mesh)) return null;
       const positions = (terrain.geometry as THREE.BufferGeometry).getAttribute('position');
       terrain.updateWorldMatrix(true, false);
@@ -528,6 +547,15 @@ function init(): void {
       const rect = renderer.domElement.getBoundingClientRect();
       return { x: (p.x + 1) * rect.width / 2, y: (1 - p.y) * rect.height / 2 };
     },
+    screenForExteriorFeature: (name: string) => {
+      if (!camera || !renderer || !exteriorWorld) return null;
+      const object = exteriorWorld.root.getObjectByName(name);
+      if (!object) return null;
+      const box = new THREE.Box3().setFromObject(object);
+      const p = box.getCenter(new THREE.Vector3()).project(camera);
+      const rect = renderer.domElement.getBoundingClientRect();
+      return { x: (p.x + 1) * rect.width / 2, y: (1 - p.y) * rect.height / 2 };
+    },
   }) });
   window.addEventListener('pagehide', dispose, { once: true });
   send('ready');
@@ -540,6 +568,7 @@ function dispose(): void {
   controls?.dispose();
   islandLighting?.dispose();
   pinScope.dispose(); proposalScope.dispose(); museumScope.dispose();
+  exteriorWorld?.dispose();
   renderer?.dispose(); renderer?.forceContextLoss(); renderer?.domElement.remove();
 }
 try { init(); }
