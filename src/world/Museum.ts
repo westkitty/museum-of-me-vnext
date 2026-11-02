@@ -46,6 +46,9 @@ export interface MuseumBuildResult {
   readonly zoneGroups: ReadonlyMap<string, THREE.Group>;
 }
 
+import { recordMuseumBuild, getMuseumBuildCount, resetMuseumBuildCount } from './museumBuildTracker';
+export { getMuseumBuildCount, resetMuseumBuildCount };
+
 /**
  * Builds the entire museum: exterior, plaza, entrance, Rotunda, all six wings,
  * mezzanine, stairs, the Dexter Sanctuary, and all 35 exhibit volumes.
@@ -65,6 +68,7 @@ export class Museum {
   private readonly kit: GeometryKit;
   private readonly pal: PaletteSet;
   private readonly plinthKit: GalleryPlinthKit;
+  readonly buildStageMs: Record<string, number> = {};
 
   constructor(private readonly scope: ResourceScope) {
     this.root.name = 'museum-building';
@@ -74,22 +78,24 @@ export class Museum {
   }
 
   build(): MuseumBuildResult {
-    this.buildExterior();
-    this.buildRotunda();
-    this.buildBalcony();
-    this.buildStairs();
-    for (const w of WINGS) this.buildWing(w);
-    this.buildEntrance();
-    this.buildSanctuary();
+    recordMuseumBuild();
+    this.measureBuildStep('exterior', () => this.buildExterior());
+    this.measureBuildStep('rotunda', () => this.buildRotunda());
+    this.measureBuildStep('balcony', () => this.buildBalcony());
+    this.measureBuildStep('stairs', () => this.buildStairs());
+    this.measureBuildStep('wings', () => { for (const w of WINGS) this.buildWing(w); });
+    this.measureBuildStep('entrance', () => this.buildEntrance());
+    this.measureBuildStep('sanctuary', () => this.buildSanctuary());
 
     // Production dressing on geometry that is already proven traversable.
     // Nothing here moves a wall, so every traversal test stays valid.
-    new Detailing(this.scope, this.pal).applyAll(this.zoneGroups);
+    this.measureBuildStep('detailing', () => new Detailing(this.scope, this.pal).applyAll(this.zoneGroups));
 
     // Collapse the static architecture into one mesh per material. Collision
     // was already recorded during construction, so this changes only how the
     // building is drawn, never where its walls are.
-    const merge = mergeStatic(this.root, this.scope, { preserveTopLevel: true, cellSize: 192 });
+    const merge = this.measureBuildStep('static-merge', () =>
+      mergeStatic(this.root, this.scope, { preserveTopLevel: true, cellSize: 192 }));
 
     return {
       root: this.root,
@@ -98,6 +104,66 @@ export class Museum {
       zoneGroups: this.zoneGroups,
       merge,
     };
+  }
+
+  /** Lazy interior path: spread independent architecture regions across event-loop turns. */
+  async buildCooperatively(yieldControl: () => Promise<void>): Promise<MuseumBuildResult> {
+    recordMuseumBuild();
+    const step = async (name: string, build: () => void): Promise<void> => {
+      this.measureBuildStep(name, build);
+      await yieldControl();
+    };
+    await step('exterior', () => this.buildExterior());
+    await step('rotunda', () => this.buildRotunda());
+    await step('balcony', () => this.buildBalcony());
+    await step('stairs', () => this.buildStairs());
+    await step('wings', () => { for (const wing of WINGS) this.buildWing(wing); });
+    await step('entrance', () => this.buildEntrance());
+    await step('sanctuary', () => this.buildSanctuary());
+
+    const detailing = new Detailing(this.scope, this.pal);
+    const detailZones = ['rotunda', 'balcony', ...WINGS.map((wing) => wing.id), 'entrance-detail', 'sanctuary'];
+    for (const zone of detailZones) {
+      const name = `detailing:${zone}`;
+      this.measureBuildStep(name, () => detailing.applyZone(zone, this.zoneGroups));
+      await yieldControl();
+    }
+    this.buildStageMs.detailing = detailZones.reduce(
+      (total, zone) => total + (this.buildStageMs[`detailing:${zone}`] ?? 0), 0,
+    );
+
+    const mergeTotals = { before: 0, after: 0, merged: 0 };
+    let mergeCpuMs = 0;
+    for (const child of [...this.root.children]) {
+      const mergeStarted = performance.now();
+      const report = mergeStatic(this.root, this.scope, {
+        preserveTopLevel: true, cellSize: 192, onlyTopLevel: child,
+      });
+      mergeCpuMs += performance.now() - mergeStarted;
+      mergeTotals.before += report.before;
+      mergeTotals.after += report.after;
+      mergeTotals.merged += report.merged;
+      await yieldControl();
+    }
+    this.buildStageMs['static-merge'] = mergeCpuMs;
+    const merge: MergeReport = mergeTotals;
+
+    return {
+      root: this.root,
+      collision: this.collision,
+      exhibitMounts: this.exhibitMounts,
+      zoneGroups: this.zoneGroups,
+      merge,
+    };
+  }
+
+  private measureBuildStep<T>(name: string, build: () => T): T {
+    const started = performance.now();
+    try {
+      return build();
+    } finally {
+      this.buildStageMs[name] = performance.now() - started;
+    }
   }
 
   /**

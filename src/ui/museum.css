@@ -210,6 +210,42 @@ html[data-motion='reduced'] *::after {
 }
 .hud__subtitle--visible { opacity: 1; }
 
+.hud__threshold {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 8.7rem;
+  transform: translateX(-50%);
+  width: min(34rem, calc(100vw - 2rem));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: .55rem;
+  padding: .85rem 1rem;
+  color: var(--parchment);
+  background: rgba(9, 16, 25, .96);
+  border: 1px solid rgba(230, 198, 148, .64);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 38px rgba(0, 0, 0, .40);
+  pointer-events: auto;
+}
+.hud__threshold[hidden] { display: none; }
+.hud__threshold p { flex-basis: 100%; margin: 0; text-align: center; line-height: 1.45; }
+.hud__threshold button {
+  padding: .48rem .8rem;
+  color: var(--parchment);
+  background: #202b39;
+  border: 1px solid rgba(230, 198, 148, .55);
+  border-radius: .35rem;
+  cursor: pointer;
+}
+.hud__threshold button:focus-visible { outline: 2px solid #4de3f7; outline-offset: 2px; }
+.hud__threshold button:disabled { opacity: .6; cursor: progress; }
+@media (prefers-reduced-motion: reduce) {
+  .hud__threshold, .hud__threshold button { transition: none; }
+}
+
 .hud__lock {
   position: absolute;
   inset: 0;

@@ -1,5 +1,9 @@
 import * as THREE from 'three';
-import { resolveExhibitLabel, type ExhibitControl } from '../exhibits/contract';
+import type { ExhibitControl } from '../exhibits/contract';
+
+export function resolveExhibitLabel(label: ExhibitControl['label']): string {
+  return typeof label === 'function' ? label() : label;
+}
 
 interface RegisteredControl extends ExhibitControl {
   readonly exhibitId: string;

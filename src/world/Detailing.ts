@@ -29,11 +29,25 @@ export class Detailing {
   ) {}
 
   applyAll(parents: ReadonlyMap<string, THREE.Group>): void {
-    this.detailRotunda(parents.get('rotunda')!);
-    this.detailBalcony(parents.get('balcony')!);
-    for (const wing of WINGS) this.detailWing(wing, parents.get(wing.id)!);
-    this.detailEntrance(parents.get('south')!);
-    this.detailSanctuaryApproach(parents.get('sanctuary')!);
+    this.applyZone('rotunda', parents);
+    this.applyZone('balcony', parents);
+    for (const wing of WINGS) this.applyZone(wing.id, parents);
+    this.applyZone('entrance-detail', parents);
+    this.applyZone('sanctuary', parents);
+  }
+
+  /** Apply one architectural region so lazy preparation can yield between regions. */
+  applyZone(id: string, parents: ReadonlyMap<string, THREE.Group>): void {
+    const parent = parents.get(id);
+    if (!parent) return;
+    if (id === 'rotunda') this.detailRotunda(parent);
+    else if (id === 'balcony') this.detailBalcony(parent);
+    else if (id === 'entrance-detail') this.detailEntrance(parent);
+    else if (id === 'sanctuary') this.detailSanctuaryApproach(parent);
+    else {
+      const wing = WINGS.find((candidate) => candidate.id === id);
+      if (wing) this.detailWing(wing, parent);
+    }
   }
 
   // ── Rotunda ───────────────────────────────────────────────────────────────

@@ -41,7 +41,8 @@ Rendering interpolates so motion stays smooth at any refresh rate.
 src/
   app/          App, Loop, Diagnostics, Bootstrap        ← owns the frame
   render/       RendererHost, QualityTiers, Lighting
-  world/        Museum geometry, wings, Rotunda, Sanctuary, CollisionWorld
+  world/        ExteriorWorld, island site, Museum geometry, wings, Rotunda, Sanctuary
+                CollisionWorld; WorldDirector owns reversible world handoffs
   player/       PlayerController, capsule collision, input actions
   interaction/  InteractionManager, focus raycast, verbs (inspect/manipulate/…)
   exhibits/     ExhibitHost, registry, 35 modules by wing
@@ -111,17 +112,23 @@ scope.dispose();          // disposes everything tracked, asserts count === 0
 `ExhibitHost` creates one scope per exhibit and asserts it drains on unmount. This is what makes the
 "memory settles rather than climbs" requirement (Phase 12) testable rather than aspirational.
 
-## Streaming — three layers, no loading screens
+## Exterior-first residency and interior streaming
 
 | Layer | Contents | Residency |
 |---|---|---|
-| 1 — Museum proxy | Rotunda, wing shells, silhouettes, major lighting, arches, exterior | always resident |
-| 2 — Wing detail | current wing + neighbours + visible entrances | proximity |
-| 3 — Exhibit payload | hero objects and exhibit-specific geometry | activation radius |
+| Exterior world | Island, shoreline, lagoon, paths, woodland, pier, compact museum shell and exterior collision | built and active at cold start |
+| Interior layer 1 | Rotunda, wing shells, silhouettes, major lighting, arches and interior collision | dynamically imported and built on entrance demand; retained after first entry |
+| Interior layer 2 | Current wing, neighbours and visible entrances | proximity |
+| Interior layer 3 | Exhibit payloads and activation-specific geometry | activation radius |
 
-`StreamingManager` evaluates residency once per frame from player position, enqueues work with
-cancellation tokens, and budgets how much construction may happen per frame so streaming never
-produces a hitch. Because Layer 1 is always resident, the visitor never sees a level transition.
+`WorldDirector` coordinates the separate exterior and interior collision/scene roots through the
+vestibule threshold. Interior preparation begins only near the entrance; the exterior remains
+playable while preparation runs, and leaving the approach cancels the pending handoff. The visible
+transition is concealed by the vestibule and commits only after entrance readiness. After first
+entry, the interior root may remain resident while its normal dynamics are suspended outside.
+`StreamingManager` evaluates interior detail residency once per frame, uses cancellation tokens,
+and budgets construction work. Neither manager owns a frame loop; `src/app/Loop.ts` remains the
+single loop owner.
 
 ## Collision
 

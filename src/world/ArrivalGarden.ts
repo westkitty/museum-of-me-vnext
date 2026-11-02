@@ -6,6 +6,7 @@ import {
   GROUND_Y, PLAZA_DEPTH, VESTIBULE_TO,
   faceDirection, place, type Vec3,
 } from './layout';
+import { ISLAND_OUTLINE, LAGOON_OUTLINE } from './exterior/IslandSiteLayout';
 
 /**
  * Exterior Layer-2 dressing for the visitor's first view of the museum.
@@ -134,9 +135,9 @@ export class ArrivalGarden {
           // a moving breakup line without another mesh, texture, or render pass.
           float radius = length(vec2(vLocalWater.x, vLocalWater.y / 0.86));
           float angle = atan(vLocalWater.y / 0.86, vLocalWater.x);
-          float shoreRadius = 132.0
-            + sin(angle * 5.0 + 0.4) * 5.5
-            + sin(angle * 9.0 - 1.2) * 3.0;
+          float shoreRadius = 182.0
+            + sin(angle * 5.0 + 0.4) * 8.0
+            + sin(angle * 9.0 - 1.2) * 4.0;
           float shoreDistance = radius - shoreRadius;
           float shoreBand = 1.0 - smoothstep(1.0, 10.0, max(shoreDistance, 0.0));
           float foamBreak = 0.5 + 0.5 * sin(angle * 17.0 + radius * 0.21 - time * 0.72);
@@ -300,34 +301,25 @@ export class ArrivalGarden {
   /** Water and shoreline are visual-only: the proven exterior ground and its
    * Sanctuary-trench cut-out remain the sole collision authority. */
   private buildIsland(): void {
-    // Water is an annulus rather than a hidden full disk: the island covers the
-    // centre, so omit those fragments and spend the reclaimed budget on enough
-    // radial tessellation for the analytic wave field to change silhouette and
-    // reflected normals instead of merely tinting a flat plane.
+    // The ocean sits below the authored irregular island surface. Its annulus
+    // keeps the distant-water shader and quality-tier behavior inexpensive.
     const water = new THREE.Mesh(
-      this.scope.track(new THREE.RingGeometry(114, 330, 96, 14)),
+      this.scope.track(new THREE.RingGeometry(164, 330, 124, 12)),
       this.water,
     );
     water.name = 'night-island-water';
     water.userData.visualRole = 'environment-water';
     water.userData.waveModel = 'deep-water-dispersion';
     water.rotation.x = -Math.PI / 2;
-    water.position.y = GROUND_Y - 0.46;
+    water.position.y = GROUND_Y - 0.56;
     water.receiveShadow = false;
     this.group.add(water);
 
     const shape = new THREE.Shape();
-    const radii = [126, 133, 121, 136, 127, 142, 132, 124, 138, 128, 143, 129, 137, 123, 132, 126];
-    radii.forEach((radius, i) => {
-      const angle = (i / radii.length) * Math.PI * 2;
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius * 0.86;
-      if (i === 0) shape.moveTo(x, z);
-      else shape.lineTo(x, z);
-    });
+    ISLAND_OUTLINE.forEach(([x, z], i) => i === 0 ? shape.moveTo(x, -z) : shape.lineTo(x, -z));
     shape.closePath();
     const island = new THREE.Mesh(
-      this.scope.track(new THREE.ExtrudeGeometry(shape, { depth: 0.12, bevelEnabled: false })),
+      this.scope.track(new THREE.ShapeGeometry(shape, 2)),
       this.island,
     );
     island.name = 'night-island-terrain';
@@ -336,16 +328,30 @@ export class ArrivalGarden {
     island.receiveShadow = true;
     this.group.add(island);
 
+    const shorelinePoints = ISLAND_OUTLINE.map(([x, z]) => new THREE.Vector3(x, GROUND_Y - 0.34, z));
     const shore = new THREE.Mesh(this.scope.track(new THREE.TubeGeometry(
-      new THREE.CatmullRomCurve3(radii.map((radius, i) => {
-        const angle = (i / radii.length) * Math.PI * 2;
-        return new THREE.Vector3(Math.cos(angle) * radius, GROUND_Y - 0.36, Math.sin(angle) * radius * 0.86);
-      }), true, 'catmullrom', 0.2),
-      96, 0.32, 6, true,
+      new THREE.CatmullRomCurve3(shorelinePoints, true, 'catmullrom', 0.18),
+      128, 0.42, 6, true,
     )), this.shoreline);
     shore.name = 'night-island-shoreline';
     shore.userData.visualRole = 'water-boundary';
     this.group.add(shore);
+
+    const lagoonShape = new THREE.Shape();
+    LAGOON_OUTLINE.forEach(([x, z], i) => i === 0 ? lagoonShape.moveTo(x, -z) : lagoonShape.lineTo(x, -z));
+    lagoonShape.closePath();
+    const lagoon = new THREE.Mesh(this.scope.track(new THREE.ShapeGeometry(lagoonShape, 2)), this.poolWater);
+    lagoon.name = 'east-sheltered-lagoon';
+    lagoon.rotation.x = -Math.PI / 2;
+    lagoon.position.y = GROUND_Y - 0.43;
+    lagoon.userData.visualRole = 'enclosed-lagoon';
+    this.group.add(lagoon);
+    const lagoonBank = new THREE.Mesh(this.scope.track(new THREE.TubeGeometry(
+      new THREE.CatmullRomCurve3(LAGOON_OUTLINE.map(([x, z]) => new THREE.Vector3(x, GROUND_Y - 0.25, z)), true, 'catmullrom', 0.16),
+      64, 1.2, 6, true,
+    )), this.shoreline);
+    lagoonBank.name = 'east-lagoon-rock-bank';
+    this.group.add(lagoonBank);
   }
 
   /** Called from the existing variable-step loop. Reduced motion keeps the

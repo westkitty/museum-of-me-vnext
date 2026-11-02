@@ -189,7 +189,8 @@ export class Workshop {
     this.app.camera.getWorldDirection(direction);
     const x = this.app.camera.position.x + direction.x * 4;
     const z = this.app.camera.position.z + direction.z * 4;
-    const y = this.app.museum.collision.supportHeight(x, z, this.app.player.position.y, 1.5)
+    const collision = this.app.museum?.collision ?? this.app.player.collisionWorld;
+    const y = collision.supportHeight(x, z, this.app.player.position.y, 1.5)
       ?? this.app.player.position.y;
     const def = WORKSHOP_PREFABS.find((item) => item.id === prefab);
     const record: WorkshopPlacementRecord = {
@@ -239,7 +240,8 @@ export class Workshop {
     const object = this.object();
     const record = this.record();
     if (!object || !record) return;
-    const floor = this.app.museum.collision.supportHeight(
+    const collision = this.app.museum?.collision ?? this.app.player.collisionWorld;
+    const floor = collision.supportHeight(
       object.position.x, object.position.z, object.position.y, 2.0,
     );
     if (floor === null) return this.note('No supporting collision floor found here.', 'warn');

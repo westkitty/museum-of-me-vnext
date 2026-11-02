@@ -9,10 +9,10 @@ import { Journal } from '../state/Journal';
 import { Study } from '../state/Study';
 import { VisitThread } from '../state/VisitThread';
 import { Lifecycle } from './Lifecycle';
-import { SourceVisitors } from '../world/SourceVisitors';
-import { SupplementaryCases } from '../world/SupplementaryCases';
-import { SourceInstallations, INSTALLATION_HELD_CODES } from '../world/SourceInstallations';
-import { SourceArtwork } from '../world/SourceArtwork';
+import type { SourceVisitors } from '../world/SourceVisitors';
+import type { SupplementaryCases } from '../world/SupplementaryCases';
+import type { SourceInstallations } from '../world/SourceInstallations';
+import type { SourceArtwork } from '../world/SourceArtwork';
 import { registerCuratedAssets, shellUrl, entranceUrl } from '../assets/curatedAssets';
 import { registerQuaterniusAssets } from '../assets/quaterniusAssets';
 import { registerFullWeaselArtifact } from '../assets/fullWeaselArtifact';
@@ -21,30 +21,32 @@ import {
 } from '../content/sourceParity';
 import { EXHIBITS_BY_ID } from '../content/collection.generated';
 import { ResourceScope } from '../assets/ResourceScope';
-import { Museum } from '../world/Museum';
-import { ArrivalGarden } from '../world/ArrivalGarden';
-import { ArrivalBeacons } from '../world/ArrivalBeacons';
+import type { Museum } from '../world/Museum';
+import { getMuseumBuildCount } from '../world/museumBuildTracker';
+import type { ArrivalGarden } from '../world/ArrivalGarden';
 import { canEnterArrival, sampleArrivalCamera } from '../world/ArrivalCamera';
 import { Lighting } from '../render/Lighting';
 import { AtmosphereDirector } from '../render/AtmosphereDirector';
 import { InputManager } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
 import { zoneAtXYZ, ZONE_BY_ID, isOnFlightPad, type ZoneId } from '../world/layout';
-import { START_POSITION, START_YAW } from '../world/start';
-import { installExhibits } from '../exhibits';
-import {
-  StreamingManager,
-  TITLE_PREWARM_MIN_DWELL_MS,
-} from '../exhibits/StreamingManager';
+import { START_POSITION } from '../world/start';
+import type { StreamingManager } from '../exhibits/StreamingManager';
+
+const TITLE_PREWARM_MIN_DWELL_MS = 4_000;
 import { InteractionManager } from '../interaction/InteractionManager';
 import { AudioManager } from '../audio/AudioManager';
 import { AssetManager } from '../assets/AssetManager';
-import { DexterSanctuary } from '../exhibits/sanctuary/DexterSanctuary';
+import type { DexterSanctuary } from '../exhibits/sanctuary/DexterSanctuary';
 import { Sky } from '../world/Sky';
-import { Wayfinding } from '../world/Wayfinding';
-import { AmbientVisitors } from '../world/AmbientVisitors';
-import { FlightPadAtmosphere } from '../world/FlightPadAtmosphere';
+import type { Wayfinding } from '../world/Wayfinding';
+import type { AmbientVisitors } from '../world/AmbientVisitors';
+import type { FlightPadAtmosphere } from '../world/FlightPadAtmosphere';
 import { UILayer } from './UILayer';
+import { ExteriorWorld } from '../world/exterior/ExteriorWorld';
+import type { InteriorWorld } from '../world/InteriorWorld';
+import { WorldDirector, type WorldId } from './WorldDirector';
+import type { AuthorableSceneRegistry } from '../workshop/AuthorableSceneRegistry';
 
 export interface AppOptions {
   canvas: HTMLCanvasElement;
@@ -53,8 +55,13 @@ export interface AppOptions {
 }
 
 /**
- * Composition root. Owns every subsystem, wires them to the single Loop, and is
- * the only place where subsystem construction order is decided.
+ * Composition root. Owns every shared subsystem, wires them to the single Loop,
+ * and maintains the active world context seam.
+ *
+ * Cold startup is strictly EXTERIOR-FIRST: the island, terrain, shoreline, waters,
+ * sky, and outdoor lighting initialize into a real playable world. Interior museum
+ * construction (Museum.build(), 35 exhibit mount anchors, installations, visitors)
+ * is dynamically deferred and loaded on approach or intent without freezing the app.
  */
 export class App implements LoopCallbacks {
   readonly renderer: RendererHost;
@@ -63,30 +70,25 @@ export class App implements LoopCallbacks {
   private readonly adaptiveResolution = new AdaptiveResolution();
   readonly journal: Journal;
   readonly scope = new ResourceScope('app');
-  readonly museum: Museum;
-  readonly arrivalGarden: ArrivalGarden;
+
+  readonly exteriorWorld: ExteriorWorld;
+  interiorWorld: InteriorWorld | null = null;
+  readonly worldDirector: WorldDirector;
+  sceneRegistry: AuthorableSceneRegistry | null = null;
+
   readonly lighting: Lighting;
   readonly atmosphere: AtmosphereDirector;
   readonly input: InputManager;
   readonly player: PlayerController;
   readonly interaction = new InteractionManager();
-  readonly streaming: StreamingManager;
   readonly audio = new AudioManager();
   readonly assets = new AssetManager();
-  /** Outside the 35. Dexter is not a project and this is not an exhibit. */
-  readonly sanctuary: DexterSanctuary;
   readonly sky: Sky;
-  readonly wayfinding: Wayfinding;
-  readonly visitors: AmbientVisitors;
-  readonly flightPadAtmosphere: FlightPadAtmosphere;
-  readonly sourceVisitors: SourceVisitors;
-  readonly supplementary: SupplementaryCases;
-  readonly sourceInstallations: SourceInstallations;
-  readonly sourceArtwork: SourceArtwork;
   readonly study: Study;
   readonly visitThread: VisitThread;
   lifecycle!: Lifecycle;
   ui!: UILayer;
+
   /** Zone the visitor is currently standing in. Drives audio and streaming. */
   currentZone: ZoneId = 'plaza';
 
@@ -104,12 +106,27 @@ export class App implements LoopCallbacks {
   private arrivalUpdate: (() => void) | null = null;
   private ambientLoadTimer: number | null = null;
   private diagnosticSampleElapsed = 0.1;
-  private lightingResidencyRevision = -1;
   private readonly eyePositionScratch: [number, number, number] = [0, 0, 0];
   private readonly cinematicArrivalEnabled: boolean;
   private readonly cinematicArrivalStartMs = performance.now();
   private cinematicArrivalEntered = false;
   private cinematicCameraCancelled = false;
+  private interiorLoadingPromise: Promise<InteriorWorld> | null = null;
+  readonly interiorLoadTelemetry = {
+    requestedAtMs: null as number | null,
+    moduleLoadedAtMs: null as number | null,
+    buildStartedAtMs: null as number | null,
+    buildCompletedAtMs: null as number | null,
+    buildStageMs: {} as Record<string, number>,
+    entranceReadyAtMs: null as number | null,
+    transitionCommittedAtMs: null as number | null,
+    firstInteriorFrameAtMs: null as number | null,
+    lastFailure: null as string | null,
+  };
+
+  get isRoomCullingEnabled(): boolean {
+    return this.roomCullingEnabled;
+  }
 
   constructor(opts: AppOptions) {
     this.uiRoot = opts.uiRoot;
@@ -149,78 +166,28 @@ export class App implements LoopCallbacks {
 
     document.documentElement.style.setProperty('--ui-scale', String(this.preferences.uiScale));
 
-    this.museum = new Museum(this.scope);
-    const built = this.museum.build();
-    this.renderer.scene.add(built.root);
-
-    this.arrivalGarden = new ArrivalGarden(this.scope, built.collision);
-    this.renderer.scene.add(this.arrivalGarden.build());
-    this.arrivalGarden.setWaterQuality(this.renderer.quality.tier);
-    // Reconcile the separate cinematic-arrival experiment as a static,
-    // resource-owned architectural group. Never add another renderer or light.
-    this.renderer.scene.add(new ArrivalBeacons(this.scope).group);
-
-    this.sanctuary = new DexterSanctuary(this.scope);
-    this.renderer.scene.add(this.sanctuary.group);
+    // Exterior world context: island terrain, shoreline, water, lanterns, and outdoor collider
+    this.exteriorWorld = new ExteriorWorld(this.renderer.quality.tier);
+    this.renderer.scene.add(this.exteriorWorld.root);
 
     this.sky = new Sky(this.scope);
     this.renderer.scene.add(this.sky.mesh);
 
-    this.wayfinding = new Wayfinding(this.scope);
-    this.renderer.scene.add(this.wayfinding.group);
-
-    this.visitors = new AmbientVisitors(this.scope, this.renderer.quality.ambientVisitors);
-    this.renderer.scene.add(this.visitors.group);
-
-    this.flightPadAtmosphere = new FlightPadAtmosphere(this.scope);
-    this.renderer.scene.add(this.flightPadAtmosphere.group);
-
     this.lighting = new Lighting(this.scope, this.renderer.quality);
     this.renderer.scene.add(this.lighting.group);
 
-    // The fog's colour is the sky's horizon, so distance reads as air rather
-    // than as the building fading into a void.
+    // Fog color matches the sky's horizon
     this.renderer.scene.fog = new THREE.Fog(this.sky.horizon.getHex(), 70, 300);
     this.atmosphere = new AtmosphereDirector(this.renderer.scene, this.renderer.renderer);
 
     this.input = new InputManager(opts.canvas);
-    this.player = new PlayerController(built.collision, this.input);
-    this.player.teleport(START_POSITION, START_YAW);
+    this.player = new PlayerController(this.exteriorWorld.collision, this.input);
+    this.player.teleport(this.exteriorWorld.spawnPosition, this.exteriorWorld.spawnYaw);
 
-    // File-backed loaders are wired even though the museum ships procedural
-    // assets, so an authentic project artifact can be carried in at any point.
+    this.worldDirector = new WorldDirector(this);
+
+    // File-backed loaders
     this.assets.attachRenderer(this.renderer.renderer);
-
-    installExhibits();
-    this.streaming = new StreamingManager(
-      built.exhibitMounts,
-      {
-        addControl: (id, control) => this.interaction.register(id, control),
-        announce: (id, message) => this.announce(id, message),
-        reducedMotion: () => this.preferences.reducedMotion,
-        detailScale: () => this.renderer.quality.detailScale,
-        loadAsset: async (assetId, scope, detail) =>
-          (await this.assets.load(assetId, scope, { detail })).object,
-        warmObject: (object) => this.renderer.prewarmObject(object),
-        openEmbeddedExperience: (id) => {
-          if (id === 'full-weasel') this.ui?.openFullWeasel();
-        },
-      },
-      {
-        loadRadius: this.renderer.quality.exhibitStreamRadius + 14,
-        unloadRadius: this.renderer.quality.exhibitStreamRadius + 30,
-        activateRadius: this.renderer.quality.exhibitStreamRadius,
-        mountsPerFrame: 1,
-        mountBudgetMs: 6,
-        warmupsPerFrame: 1,
-        activationsPerFrame: 1,
-        activationBudgetMs: 3,
-      },
-    );
-    this.streaming.initialise();
-    // r62: begin the future title-screen prewarm contract immediately. The
-    // title artwork does not exist yet; the useful four-second work window does.
-    this.streaming.beginEntrancePrewarm();
 
     this.input.on('interact', () => {
       if (this.interaction.activate()) {
@@ -233,65 +200,140 @@ export class App implements LoopCallbacks {
       }
     });
 
-    this.sourceArtwork = new SourceArtwork(this.scope, built.exhibitMounts);
-    this.renderer.scene.add(this.sourceArtwork.group);
-
-    this.sourceVisitors = new SourceVisitors(
-      this.scope,
-      built.collision,
-      this.interaction,
-      (visitor, line, thought) => {
-        this.journal.hearVisitor(visitor.id);
-        this.journal.recordHistory({ kind: 'visitor', id: visitor.id }, visitor.title);
-        const message = thought ? `${line} (${thought})` : line;
-        this.announce(`visitor:${visitor.id}`, `${visitor.title}: ${message}`);
-      },
-    );
-    this.renderer.scene.add(this.sourceVisitors.group);
-
-    this.supplementary = new SupplementaryCases(
-      this.scope,
-      this.interaction,
-      this.journal,
-      (id, title, summary) => this.announce(`supplementary:${id}`, `${title}. ${summary}`),
-    );
-    this.renderer.scene.add(this.supplementary.group);
-
-    // The fourteen source primary installations: real objects with the source
-    // keyed state machines, interpretive lecterns, collision and persistence.
-    this.sourceInstallations = new SourceInstallations(
-      this.scope,
-      built.collision,
-      this.interaction,
-      this.journal,
-      (id, message) => this.announce(id, message),
-    );
-    this.renderer.scene.add(this.sourceInstallations.group);
-    if (this.sourceInstallations.store.recoveryNotice) {
-      this.journal.recoveryNotice = this.sourceInstallations.store.recoveryNotice;
-    }
-    // While an installation is engaged its own source control codes take
-    // priority; Escape steps back, which is the source's own contract.
-    this.input.setCodeCapture((code, down, repeat) => {
-      const active = this.sourceInstallations.activeId;
-      if (!active) return false;
-      if (code === 'Escape') {
-        if (down) this.sourceInstallations.disengage();
-        return true;
-      }
-      this.sourceInstallations.hold(code, down);
-      if (!down || repeat) return INSTALLATION_HELD_CODES.has(code);
-      return this.sourceInstallations.key(active, code) || INSTALLATION_HELD_CODES.has(code);
-    });
-
     this.loop = new Loop(this);
     const cap = this.preferences.frameCap;
     this.loop.setFrameCap(cap === '30' ? 30 : cap === '60' ? 60 : 0);
     this.ui = new UILayer(this);
-    this.scheduleAmbientPopulation(true);
     this.lifecycle = new Lifecycle(this.loop, this.input, this.renderer, () => this.preferences, (message) => {
       this.ui.hud.announce(message);
     }, () => !this.ui.fullWeasel.isOpen);
+  }
+
+  /**
+   * Dynamically loads and builds the interior museum world context.
+   * Safe to call multiple times; returns the existing promise or instance.
+   */
+  async ensureInteriorLoaded(): Promise<InteriorWorld> {
+    if (this.interiorWorld) return this.interiorWorld;
+    if (this.interiorLoadingPromise) return this.interiorLoadingPromise;
+    this.worldDirector.interiorImportStarted = true;
+    const telemetry = this.interiorLoadTelemetry;
+    telemetry.requestedAtMs = performance.now();
+    telemetry.buildStageMs = {};
+    telemetry.lastFailure = null;
+    const load = (async () => {
+      let interior: InteriorWorld | null = null;
+      try {
+        const { InteriorWorld } = await import('../world/InteriorWorld');
+        telemetry.moduleLoadedAtMs = performance.now();
+        telemetry.buildStartedAtMs = performance.now();
+        interior = new InteriorWorld(this);
+        await interior.buildCooperatively();
+        telemetry.buildCompletedAtMs = performance.now();
+        this.interiorWorld = interior;
+        interior.root.visible = this.activeWorld === 'interior';
+        interior.setActive(this.activeWorld === 'interior');
+        this.renderer.scene.add(interior.root);
+        this.worldDirector.interiorConstructed = true;
+        this.scheduleAmbientPopulation(true);
+        return interior;
+      } catch (error) {
+        interior?.dispose();
+        telemetry.lastFailure = error instanceof Error ? error.message : String(error);
+        throw error;
+      }
+    })();
+    this.interiorLoadingPromise = load;
+    try {
+      return await load;
+    } catch (error) {
+      if (this.interiorLoadingPromise === load) this.interiorLoadingPromise = null;
+      throw error;
+    }
+  }
+
+  // ── Backward-compatible property accessors ────────────────────────────────
+
+  get museum(): Museum | undefined {
+    return this.interiorWorld?.museum;
+  }
+
+  get streaming(): StreamingManager | undefined {
+    return this.interiorWorld?.streaming;
+  }
+
+  get sanctuary(): DexterSanctuary | undefined {
+    return this.interiorWorld?.sanctuary;
+  }
+
+  get wayfinding(): Wayfinding | undefined {
+    return this.interiorWorld?.wayfinding;
+  }
+
+  get visitors(): AmbientVisitors | undefined {
+    return this.interiorWorld?.visitors;
+  }
+
+  get flightPadAtmosphere(): FlightPadAtmosphere | undefined {
+    return this.interiorWorld?.flightPadAtmosphere;
+  }
+
+  get sourceVisitors(): SourceVisitors | undefined {
+    return this.interiorWorld?.sourceVisitors;
+  }
+
+  get supplementary(): SupplementaryCases | undefined {
+    return this.interiorWorld?.supplementary;
+  }
+
+  get sourceInstallations(): SourceInstallations | undefined {
+    return this.interiorWorld?.sourceInstallations;
+  }
+
+  get sourceArtwork(): SourceArtwork | undefined {
+    return this.interiorWorld?.sourceArtwork;
+  }
+
+  get arrivalGarden(): ArrivalGarden {
+    return this.exteriorWorld.arrivalGarden;
+  }
+
+  // ── Active World & Telemetry Accessors ────────────────────────────────────
+
+  get activeWorld(): WorldId {
+    return this.worldDirector.activeWorld;
+  }
+
+  set activeWorld(val: WorldId) {
+    this.worldDirector.activeWorld = val;
+  }
+
+  async switchToInterior(): Promise<boolean> {
+    return this.worldDirector.switchToInterior();
+  }
+
+  switchToExterior(): boolean {
+    return this.worldDirector.switchToExterior();
+  }
+
+  get interiorConstructed(): boolean {
+    return this.worldDirector.interiorConstructed;
+  }
+
+  get interiorImportStarted(): boolean {
+    return this.worldDirector.interiorImportStarted;
+  }
+
+  get exteriorReady(): boolean {
+    return this.worldDirector.exteriorReady;
+  }
+
+  get firstExteriorInteractiveMs(): number {
+    return this.worldDirector.firstExteriorInteractiveMs;
+  }
+
+  get museumBuildCount(): number {
+    return getMuseumBuildCount();
   }
 
   /** Human-readable name of the space the visitor is in. */
@@ -303,7 +345,7 @@ export class App implements LoopCallbacks {
   get currentExhibitId(): string | null {
     const focus = this.interaction.currentFocus;
     if (focus) return focus.exhibitId;
-    return this.streaming.nearestActiveId(this.player.writeEyePosition(this.eyePositionScratch), 100);
+    return this.streaming?.nearestActiveId(this.player.writeEyePosition(this.eyePositionScratch), 100) ?? null;
   }
 
   get scene(): THREE.Scene {
@@ -314,16 +356,19 @@ export class App implements LoopCallbacks {
     return this.renderer.camera;
   }
 
-  /** Future title-screen hook: presentation can display time while this runs underneath it. */
   get titlePrewarmStatus() {
     return {
       minimumDwellMs: TITLE_PREWARM_MIN_DWELL_MS,
-      ...this.streaming.entrancePrewarmStatus,
+      ...(this.interiorWorld?.streaming?.entrancePrewarmStatus ?? {
+        ready: true,
+        ids: ['E32', 'E33', 'E30', 'E31'],
+        total: 4,
+        criticalTotal: 2,
+        startedAtMs: this.cinematicArrivalStartMs,
+      }),
     };
   }
 
-  /** The existing E32/E33 entrance prewarm is the source of title readiness.
-   * The extra four seconds are a bounded fallback, not an indefinite gate. */
   get arrivalReady(): boolean {
     if (!this.cinematicArrivalEnabled || this.cinematicArrivalEntered) return true;
     const status = this.titlePrewarmStatus;
@@ -335,7 +380,6 @@ export class App implements LoopCallbacks {
     return this.cinematicArrivalEntered;
   }
 
-  /** A successful visitor entry permanently relinquishes the title camera. */
   enterArrival(): boolean {
     if (!this.arrivalReady) return false;
     this.cinematicArrivalEntered = true;
@@ -348,40 +392,40 @@ export class App implements LoopCallbacks {
     this.renderer.setQuality(tier === 'auto' ? detectQualityTier() : tier);
     this.adaptiveResolution.reset();
     const radius = this.renderer.quality.exhibitStreamRadius;
-    this.streaming.setRadii(radius + 14, radius + 30, radius);
-    this.arrivalGarden.setWaterQuality(this.renderer.quality.tier);
+    this.streaming?.setRadii(radius + 14, radius + 30, radius);
+    this.exteriorWorld.setWaterQuality(this.renderer.quality.tier);
     this.scheduleAmbientPopulation(false);
     savePreferences(this.preferences);
   }
 
   private scheduleAmbientPopulation(announceFailure: boolean): void {
+    if (!this.interiorWorld) return;
     if (this.ambientLoadTimer !== null) window.clearTimeout(this.ambientLoadTimer);
 
-    // Do not parse multi-megabyte crowd GLBs while entrance prewarm is using
-    // the future title-screen window. If all four targets finish early the crowd
-    // may proceed; otherwise preserve the full four-second title envelope for
-    // E30/E31 after the critical pair, with an eight-second starvation fallback.
     const started = performance.now();
     const titleWindowEnds = started + TITLE_PREWARM_MIN_DWELL_MS;
     const fallbackDeadline = titleWindowEnds + 4_000;
     const tryPopulate = (): void => {
       const now = performance.now();
-      const prewarm = this.streaming.telemetry;
-      const allEntranceTargetsWarm =
-        prewarm.prewarmTotal > 0 && prewarm.prewarmWarmed === prewarm.prewarmTotal;
+      const prewarm = this.streaming?.telemetry;
+      const allEntranceTargetsWarm = prewarm
+        && prewarm.prewarmTotal > 0 && prewarm.prewarmWarmed === prewarm.prewarmTotal;
       const titleWindowSpent = now >= titleWindowEnds;
-      const safeToPopulate =
-        allEntranceTargetsWarm || (prewarm.prewarmReady && titleWindowSpent);
+      const interiorVisible = this.activeWorld === 'interior';
+      const safeToPopulate = Boolean(allEntranceTargetsWarm)
+        || (interiorVisible && titleWindowSpent);
 
-      if (!safeToPopulate && now < fallbackDeadline) {
-        this.ambientLoadTimer = window.setTimeout(tryPopulate, 200);
+      if (!safeToPopulate && (now < fallbackDeadline || !interiorVisible)) {
+        this.ambientLoadTimer = window.setTimeout(tryPopulate, interiorVisible ? 200 : 500);
         return;
       }
       this.ambientLoadTimer = null;
-      void this.visitors.setPopulation(this.assets, this.renderer.quality.ambientVisitors).catch((error) => {
-        console.error('Ambient visitors unavailable; no placeholder crowd was created.', error);
-        if (announceFailure) this.ui.hud.announce('Ambient visitors are unavailable on this device.');
-      });
+      if (this.interiorWorld && interiorVisible) {
+        void this.interiorWorld.visitors.setPopulation(this.assets, this.renderer.quality.ambientVisitors).catch((error) => {
+          console.error('Ambient visitors unavailable; no placeholder crowd was created.', error);
+          if (announceFailure) this.ui.hud.announce('Ambient visitors are unavailable on this device.');
+        });
+      }
     };
 
     this.ambientLoadTimer = window.setTimeout(tryPopulate, 250);
@@ -395,38 +439,32 @@ export class App implements LoopCallbacks {
     this.loop.stop();
   }
 
-  /** Resume after a self-contained museum exhibit relinquishes the foreground. */
   resumeFromEmbedded(): void {
     if (this.disposed || typeof document !== 'undefined' && document.hidden
       || this.renderer.isContextLost || this.lifecycle?.isSuspended) return;
     this.loop.start();
   }
 
-  /** Title readiness follows the existing frame loop. */
   setArrivalUpdate(update: (() => void) | null): void {
     this.arrivalUpdate = update;
   }
 
-  /** Development-only Workshop cue hook; the editor remains dynamically loaded. */
   setWorkshopUpdate(update: (() => void) | null): void {
     this.workshopUpdate = update;
   }
 
-  /** Optional dev tool shares the authoritative loop and application lifetime. */
   setDevelopmentTool(tool: { update(dt: number): void; dispose(): void }): void {
     if (this.disposed) { tool.dispose(); return; }
     this.developmentTool?.dispose();
     this.developmentTool = tool;
   }
 
-  /** Independent dev overlay so Choreographer and Workshop keep their hooks. */
   setDeveloperOverlay(tool: { update(): void; dispose(): void }): void {
     if (this.disposed) { tool.dispose(); return; }
     this.developerOverlay?.dispose();
     this.developerOverlay = tool;
   }
 
-  /** Ephemeral sky preview, never a stored visitor preference. */
   setDevSkyTimeOfDay(hour: number | null): void {
     const preview = this.sky.setTimeOfDay(hour);
     this.lighting.setSkyPreview(preview);
@@ -442,10 +480,9 @@ export class App implements LoopCallbacks {
 
   // ── LoopCallbacks ─────────────────────────────────────────────────────────
 
-  /** Latest announcement, surfaced by the HUD subtitle line and the DOM mirror. */
   lastAnnouncement = '';
 
-  private announce(exhibitId: string, message: string): void {
+  announce(exhibitId: string, message: string): void {
     this.lastAnnouncement = message;
     for (const fn of this.announceListeners) fn(exhibitId, message);
   }
@@ -470,36 +507,22 @@ export class App implements LoopCallbacks {
     }
     this.player.fixedUpdate(dt);
     const fixedEye = this.player.writeEyePosition(this.eyePositionScratch);
-    this.streaming.updateActive(dt, fixedEye);
-    if (this.currentZone === 'sanctuary') {
-      this.sanctuary.update(dt, this.preferences.reducedMotion);
+
+    if (this.activeWorld === 'interior' && this.interiorWorld) {
+      this.interiorWorld.fixedUpdate(dt, fixedEye, this.currentZone);
     }
-    this.visitors.update(
-      dt,
-      this.preferences.reducedMotion,
-      this.player.position.x,
-      this.player.position.z,
-    );
-    this.flightPadAtmosphere.update(
-      dt,
-      this.renderer.quality.detailScale,
-      this.preferences.reducedMotion,
-      this.player.position.x,
-      this.player.position.z,
-    );
-    this.sourceVisitors.update(
-      dt,
-      this.preferences.reducedMotion,
-      this.player.position.x,
-      this.player.position.z,
-    );
-    this.sourceInstallations.update(dt, this.preferences.reducedMotion, fixedEye, this.currentZone);
+    if (this.activeWorld === 'exterior') {
+      this.exteriorWorld.fixedUpdate(dt);
+    }
   }
 
   variableUpdate(dt: number): void {
     this.arrivalUpdate?.();
-    // Mouse, touch and keyboard all feed the same look, so the museum is fully
-    // usable with any one of them alone.
+    if (this.activeWorld === 'exterior' && this.worldDirector.firstExteriorInteractiveMs === 0
+      && (this.input.isDown('forward') || this.input.isDown('back')
+        || this.input.isDown('left') || this.input.isDown('right'))) {
+      this.worldDirector.firstExteriorInteractiveMs = performance.now();
+    }
     const keyboardLook = this.input.keyboardLookReusable(dt, this.preferences.mouseSensitivity);
     this.player.applyLook(
       this.input.mouseDeltaX + this.input.touchDeltaX * 1.6 + keyboardLook.dx,
@@ -508,8 +531,6 @@ export class App implements LoopCallbacks {
       this.preferences.invertY,
     );
 
-    // Ordinary visitor input wins over the optional reveal; the visual
-    // camera never moves the player or changes collision/streaming queries.
     if (this.cinematicArrivalEnabled && !this.cinematicCameraCancelled) {
       const moved = Math.abs(this.player.position.x - START_POSITION[0]) > 0.05
         || Math.abs(this.player.position.z - START_POSITION[2]) > 0.05;
@@ -528,31 +549,30 @@ export class App implements LoopCallbacks {
       if (label) this.ui?.mirror.announce(`Entering ${label}.`);
     }
 
-    this.sourceArtwork.update(eye[0], eye[2], dt);
-    this.supplementary.update(eye[0], eye[2], dt);
     this.atmosphere.update(zone, dt, this.preferences.reducedMotion);
-    const deep = this.museum.updateVisibility(
-      zone, eye[0], eye[2], this.roomCullingEnabled, this.player.yaw, this.preferences.fieldOfView,
-    );
-    this.environmentVisibility?.(zone, deep, this.museum.visibleWingIds);
-    this.streaming.evaluate(eye, dt, zone);
     this.interaction.update(this.camera, dt);
     this.workshopUpdate?.();
     this.developmentTool?.update(dt);
     this.developerOverlay?.update();
 
-    // Bay-light residency changes only on mount/unmount. Avoid scanning all 35
-    // hosts on every rendered frame when streaming state is unchanged.
-    if (this.lightingResidencyRevision !== this.streaming.residencyRevision) {
-      this.lightingResidencyRevision = this.streaming.residencyRevision;
-      for (const [id, host] of this.streaming.hosts) {
-        this.lighting.setBayLight(id, host.currentState === 'active' || host.currentState === 'mounted');
+    this.worldDirector.update(this.player.position);
+
+    if (this.interiorWorld) {
+      if (this.activeWorld === 'interior') {
+        const vis = this.interiorWorld.variableUpdate(dt, eye, zone, this.roomCullingEnabled);
+        this.environmentVisibility?.(zone, vis.deep, vis.visibleWingIds);
+      } else {
+        this.interiorWorld.prepareUpdate(dt, eye, zone);
       }
     }
+    if (this.activeWorld === 'exterior') {
+      this.exteriorWorld.variableUpdate(dt, eye, zone);
+    }
+
     this.lighting.update(eye);
 
-    this.diagnostics.stats.activeExhibits = this.streaming.telemetry.active;
-    this.diagnostics.stats.streamingResident = this.streaming.telemetry.resident;
+    this.diagnostics.stats.activeExhibits = this.streaming?.telemetry.active ?? 0;
+    this.diagnostics.stats.streamingResident = this.streaming?.telemetry.resident ?? 0;
 
     const diagnosticPosition = this.diagnostics.stats.playerPosition;
     diagnosticPosition[0] = Math.round(this.player.position.x * 10) / 10;
@@ -560,13 +580,15 @@ export class App implements LoopCallbacks {
     diagnosticPosition[2] = Math.round(this.player.position.z * 10) / 10;
     this.diagnostics.stats.wing = ZONE_BY_ID.get(this.currentZone as never)?.label ?? this.currentZone;
 
-    this.wayfinding.updateXYZ(
-      dt,
-      this.player.position.x,
-      this.player.position.y,
-      this.player.position.z,
-      this.preferences.reducedMotion,
-    );
+    if (this.wayfinding) {
+      this.wayfinding.updateXYZ(
+        dt,
+        this.player.position.x,
+        this.player.position.y,
+        this.player.position.z,
+        this.preferences.reducedMotion,
+      );
+    }
     this.arrivalGarden.update(dt, this.preferences.reducedMotion);
     this.sky.follow(this.camera);
 
@@ -588,6 +610,10 @@ export class App implements LoopCallbacks {
       this.sky.follow(this.camera);
     }
     this.renderer.render();
+    if (!this.renderer.isContextLost && this.activeWorld === 'interior'
+      && this.interiorLoadTelemetry.firstInteriorFrameAtMs === null) {
+      this.interiorLoadTelemetry.firstInteriorFrameAtMs = performance.now();
+    }
     this.diagnosticSampleElapsed += this.loop.frameTimeMs / 1000;
     if (this.diagnosticSampleElapsed >= 0.1) {
       this.diagnosticSampleElapsed = 0;
@@ -595,7 +621,6 @@ export class App implements LoopCallbacks {
     }
   }
 
-  /** Single loop's post-render hook captures unclamped frame pacing at presentation rate. */
   afterFrame(wallMs: number, fixedMs: number, variableMs: number, renderCpuMs: number, fixedSteps: number): void {
     this.diagnostics.recordFrame(wallMs, fixedMs, variableMs, renderCpuMs, fixedSteps);
     if (this.preferences.quality === 'auto' && this.preferences.frameCap !== '30'
@@ -621,16 +646,18 @@ export class App implements LoopCallbacks {
     this.ui?.dispose();
     this.audio.dispose();
     this.assets.dispose();
-    this.sanctuary.dispose();
-    this.wayfinding.dispose();
-    this.visitors.dispose();
-    this.flightPadAtmosphere.dispose();
-    this.sourceVisitors.dispose();
-    this.supplementary.dispose();
-    this.sourceArtwork.dispose();
-    this.sourceInstallations.dispose();
+    this.exteriorWorld.dispose();
+    this.interiorWorld?.dispose();
+    this.sanctuary?.dispose();
+    this.wayfinding?.dispose();
+    this.visitors?.dispose();
+    this.flightPadAtmosphere?.dispose();
+    this.sourceVisitors?.dispose();
+    this.supplementary?.dispose();
+    this.sourceArtwork?.dispose();
+    this.sourceInstallations?.dispose();
     this.lifecycle?.dispose();
-    this.streaming.dispose();
+    this.streaming?.dispose();
     this.interaction.dispose();
     this.input.dispose();
     this.lighting.dispose();

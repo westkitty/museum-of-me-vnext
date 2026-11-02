@@ -41,8 +41,46 @@ try {
   await page.goto(fileUrl.href, { waitUntil: 'domcontentloaded', timeout: BOOT_TIMEOUT_MS });
   await page.waitForFunction(() => Boolean(window.__museum), null, { timeout: BOOT_TIMEOUT_MS });
   const canvas = await page.locator('#museum-canvas').isVisible();
-  const zone = await page.evaluate(() => window.__museum?.currentZone);
-  const visitors = await page.evaluate(() => window.__museum?.sourceVisitors?.count ?? 0);
+  const cold = await page.evaluate(() => ({
+    zone: window.__museum?.currentZone,
+    world: window.__museum?.activeWorld,
+    constructed: window.__museum?.interiorConstructed,
+    buildCount: window.__museum?.museumBuildCount,
+  }));
+  await page.evaluate(() => {
+    const app = window.__museum;
+    if (!app) throw new Error('museum missing');
+    app.stop();
+    app.player.teleport([0, 0, 133], 0);
+    app.variableUpdate(1 / 60);
+    app.start();
+  });
+  await page.waitForFunction(() => window.__museum?.interiorWorld?.streaming.telemetry.prewarmReady === true,
+    null, { timeout: BOOT_TIMEOUT_MS });
+  const journey = await page.evaluate(() => {
+    const app = window.__museum;
+    if (!app) throw new Error('museum missing');
+    app.stop();
+    const preparedOutside = app.activeWorld === 'exterior' && app.interiorConstructed;
+    app.player.teleport([0, 0, 126], 0);
+    app.fixedUpdate(1 / 60);
+    app.variableUpdate(1 / 60);
+    const entered = app.activeWorld === 'interior';
+    app.player.teleport([0, 0, 132], 0);
+    app.fixedUpdate(1 / 60);
+    app.variableUpdate(1 / 60);
+    const returned = app.activeWorld === 'exterior';
+    app.player.teleport([0, 0, 126], 0);
+    app.fixedUpdate(1 / 60);
+    app.variableUpdate(1 / 60);
+    return {
+      preparedOutside, entered, returned,
+      reentered: app.activeWorld === 'interior',
+      buildCount: app.museumBuildCount,
+      visitors: app.sourceVisitors?.count ?? 0,
+    };
+  });
+  const visitors = journey.visitors;
   await page.evaluate(() => window.__museum?.stop());
   await page.evaluate(() => window.__museum?.ui.openFullWeasel());
   const panel = page.locator('#panel-full-weasel');
@@ -53,7 +91,13 @@ try {
   await panel.waitFor({ state: 'hidden', timeout: 5_000 });
   const remote = requests.filter((url) => /^https?:/i.test(url) && !url.startsWith('file:'));
   if (!canvas) errors.push('canvas not visible');
-  if (zone !== 'plaza') errors.push(`expected plaza, got ${zone}`);
+  if (cold.zone !== 'plaza') errors.push(`expected plaza, got ${cold.zone}`);
+  if (cold.world !== 'exterior' || cold.constructed || cold.buildCount !== 0) {
+    errors.push(`cold boot was not exterior-only: ${JSON.stringify(cold)}`);
+  }
+  if (!journey.preparedOutside || !journey.entered || !journey.returned || !journey.reentered || journey.buildCount !== 1) {
+    errors.push(`offline world round trip failed: ${JSON.stringify(journey)}`);
+  }
   if (visitors !== 17) errors.push(`expected 17 source visitors, got ${visitors}`);
   if (!requests.some((url) => url.endsWith('/embedded/full-weasel/index.html'))) {
     errors.push('local Full Weasel iframe did not load');
@@ -64,7 +108,7 @@ try {
     for (const error of errors) console.error(`  - ${error}`);
     process.exitCode = 1;
   } else {
-    console.log(`standalone-offline-browser: PASS zone=${zone} visitors=${visitors} requests=${requests.length}`);
+    console.log(`standalone-offline-browser: PASS cold=exterior roundTrips=2 visitors=${visitors} requests=${requests.length}`);
   }
 } catch (error) {
   console.error('standalone-offline-browser: FAIL');

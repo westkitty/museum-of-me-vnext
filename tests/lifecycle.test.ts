@@ -224,7 +224,7 @@ describe('streaming', () => {
     streaming.dispose();
   });
 
-  it('prewarms the entrance pair before the threshold and budgets activation separately', async () => {
+  it('mounts the entrance pair before the threshold and defers GPU warm until active', async () => {
     const built = buildMuseum();
     const warmObject = vi.fn(async () => {});
     const streaming = new StreamingManager(
@@ -245,25 +245,31 @@ describe('streaming', () => {
     );
     streaming.initialise();
     streaming.beginEntrancePrewarm();
+    streaming.setWorldActive(false);
 
     const plaza: Vec3 = [0, 1.6, 130];
-    let warmedWhenReady: number | null = null;
-    for (let i = 0; i < 24 && streaming.telemetry.prewarmWarmed < 4; i++) {
+    for (let i = 0; i < 24 && !streaming.telemetry.prewarmReady; i++) {
       streaming.evaluate(plaza, 1 / 60, 'plaza');
       await Promise.resolve();
       await Promise.resolve();
-      await Promise.resolve();
-      if (streaming.telemetry.prewarmReady && warmedWhenReady === null) {
-        warmedWhenReady = streaming.telemetry.prewarmWarmed;
-      }
     }
 
     expect(streaming.entrancePrewarmStatus.ids).toEqual([...ENTRANCE_PREWARM_IDS]);
     expect(streaming.telemetry.prewarmTotal).toBe(4);
     expect(streaming.telemetry.prewarmCriticalTotal).toBe(2);
-    expect(streaming.telemetry.prewarmCriticalWarmed).toBe(2);
-    expect(warmedWhenReady).toBe(2);
-    expect(streaming.telemetry.prewarmMounted).toBe(4);
+    expect(streaming.telemetry.prewarmCriticalWarmed).toBe(0);
+    expect(streaming.telemetry.prewarmMounted).toBeGreaterThanOrEqual(2);
+    expect(streaming.telemetry.prewarmWarmed).toBe(0);
+    expect(streaming.telemetry.prewarmReady).toBe(true);
+    expect(warmObject).not.toHaveBeenCalled();
+
+    streaming.setWorldActive(true);
+    for (let i = 0; i < 24 && streaming.telemetry.prewarmWarmed < 4; i++) {
+      streaming.evaluate(plaza, 1 / 60, 'plaza');
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    }
     expect(streaming.telemetry.prewarmWarmed).toBe(4);
     expect(streaming.telemetry.prewarmReady).toBe(true);
     expect(warmObject).toHaveBeenCalledTimes(4);

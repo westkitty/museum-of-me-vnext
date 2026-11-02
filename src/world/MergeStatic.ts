@@ -16,6 +16,8 @@ export interface MergeOptions {
   readonly cellSize?: number;
   /** Keep original zone-root ownership and visibility. */
   readonly preserveTopLevel?: boolean;
+  /** Restrict work to one existing root child so preparation can yield between zones. */
+  readonly onlyTopLevel?: THREE.Object3D;
 }
 
 interface Bucket {
@@ -43,9 +45,10 @@ export function mergeStatic(root: THREE.Object3D, scope: ResourceScope, options:
   const centre = new THREE.Vector3();
   const bounds = new THREE.Box3();
   let before = 0;
-  root.updateWorldMatrix(true, true);
+  const selectedRoot = options.onlyTopLevel ?? root;
+  selectedRoot.updateWorldMatrix(true, true);
 
-  root.traverse((node) => {
+  selectedRoot.traverse((node) => {
     const mesh = node as THREE.Mesh;
     if (!mesh.isMesh) return;
     before++;
@@ -143,7 +146,7 @@ export function mergeStatic(root: THREE.Object3D, scope: ResourceScope, options:
   }
 
   let after = 0;
-  root.traverse((node) => {
+  selectedRoot.traverse((node) => {
     if ((node as THREE.Mesh).isMesh) after++;
   });
   return { before, after, merged };

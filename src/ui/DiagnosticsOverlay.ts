@@ -4,7 +4,7 @@ import type { Diagnostics } from '../app/Diagnostics';
 /** Backtick-toggled runtime telemetry. Never shown by default. */
 export class DiagnosticsOverlay {
   readonly root: HTMLElement;
-  private accumulator = 0;
+  private accumulator = 0.25;
 
   constructor(private readonly diagnostics: Diagnostics) {
     this.root = el('pre', { class: 'diag', hidden: true, 'aria-hidden': 'true' });

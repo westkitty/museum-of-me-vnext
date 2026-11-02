@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync, mkdirSync, lstatSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, lstatSync, realpathSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { performance } from 'node:perf_hooks';
@@ -7,7 +7,9 @@ import { performance } from 'node:perf_hooks';
 // Fixed private output boundary. Refuse symlinks rather than follow them into source/public.
 export function outputDirectory(cwd = process.cwd()) {
   const root = git(['rev-parse', '--show-toplevel'], cwd);
-  if (!success(root) || resolve(cwd) !== resolve(root.stdout.trim())) throw new Error('Invoke Sentinel from a repository root');
+  const canonicalCwd = existsSync(cwd) ? realpathSync(resolve(cwd)) : resolve(cwd);
+  const canonicalRoot = success(root) && existsSync(root.stdout.trim()) ? realpathSync(resolve(root.stdout.trim())) : (success(root) ? resolve(root.stdout.trim()) : '');
+  if (!success(root) || canonicalCwd !== canonicalRoot) throw new Error('Invoke Sentinel from a repository root');
   const dir = join(resolve(cwd), '.sentinel');
   if (existsSync(dir) && (lstatSync(dir).isSymbolicLink() || !lstatSync(dir).isDirectory())) {
     throw new Error('Sentinel output directory must be a real private directory');

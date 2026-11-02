@@ -61,6 +61,27 @@ describe('static geometry merging', () => {
     scope.dispose();
   });
 
+  it('can merge one retained top-level zone without touching its siblings', () => {
+    const scope = new ResourceScope('zone-merge');
+    const root = new THREE.Group();
+    const selected = new THREE.Group();
+    const sibling = new THREE.Group();
+    const material = scope.track(new THREE.MeshStandardMaterial());
+    root.add(selected, sibling);
+    for (const parent of [selected, sibling]) {
+      parent.add(
+        new THREE.Mesh(scope.track(new THREE.BoxGeometry()), material),
+        new THREE.Mesh(scope.track(new THREE.BoxGeometry()), material),
+      );
+    }
+
+    const report = mergeStatic(root, scope, { preserveTopLevel: true, onlyTopLevel: selected });
+    expect(report).toEqual({ before: 2, after: 1, merged: 2 });
+    expect(selected.children.filter((child) => (child as THREE.Mesh).isMesh)).toHaveLength(1);
+    expect(sibling.children.filter((child) => (child as THREE.Mesh).isMesh)).toHaveLength(2);
+    scope.dispose();
+  });
+
   it('leaves collision untouched', () => {
     const scope = new ResourceScope('t');
     const museum = new Museum(scope);

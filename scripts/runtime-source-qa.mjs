@@ -63,16 +63,33 @@ try {
   // streaming/interaction tick under software WebGL on slow CI runners.
   await page.waitForFunction(() => {
     const app = window.__museum;
-    return Boolean(app && app.player && app.input && app.streaming
-      && app.streaming.hosts && app.sourceInstallations
+    return Boolean(app && app.player && app.input
       && app.interaction && app.journal && app.study);
   }, null, { timeout: BOOT_TIMEOUT_MS });
-
-  // Prove the real WebGL application booted at the exterior arrival, then stop
-  // the render loop so software rendering does not compete with the protocol.
+  await page.evaluate(async () => {
+    await window.__museum.ensureInteriorLoaded();
+  });
+  await page.waitForFunction(() => {
+    const app = window.__museum;
+    return Boolean(app && app.streaming && app.streaming.hosts && app.sourceInstallations);
+  }, null, { timeout: BOOT_TIMEOUT_MS });
   const bootZone = await page.evaluate(() => window.__museum.currentZone);
   if (bootZone !== 'plaza') failures.push(`boot zone was "${bootZone}", expected "plaza"`);
 
+  // Exercise installations only after the authentic threshold contract has
+  // warmed its entrance targets and activated the retained interior world.
+  await page.waitForFunction(() => window.__museum?.interiorWorld?.streaming.telemetry.prewarmReady === true,
+    null, { timeout: BOOT_TIMEOUT_MS });
+  await page.evaluate(() => {
+    const app = window.__museum;
+    app.player.teleport([0, 0, 126]);
+    app.variableUpdate(1 / 60);
+  });
+  await page.waitForFunction(() => window.__museum?.activeWorld === 'interior',
+    null, { timeout: BOOT_TIMEOUT_MS });
+
+  // Prove the real WebGL application booted at the exterior arrival, then stop
+  // the render loop so software rendering does not compete with the protocol.
   // ── genuine first-person traversal from the visitor start ───────────────
   const traversal = await page.evaluate(async () => {
     const app = window.__museum;
@@ -128,6 +145,7 @@ try {
       app.player.pitch = Math.atan2(target[1] - eye[1], Math.hypot(dx, dz));
       app.player.applyToCamera(app.camera, 1);
       app.camera.updateMatrixWorld(true);
+      app.worldDirector.update(app.player.position);
       app.interaction.update(app.camera);
     }
 

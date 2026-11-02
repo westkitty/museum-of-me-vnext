@@ -29,6 +29,11 @@ export default defineConfig({
     target: 'es2022',
     sourcemap: true,
     assetsInlineLimit: 4096,
+    modulePreload: {
+      resolveDependencies: (_filename, deps) => {
+        return deps.filter((dep) => !dep.includes('interior'));
+      },
+    },
     rollupOptions: {
       input: {
         museum: fileURLToPath(new URL('./index.html', import.meta.url)),
@@ -44,7 +49,11 @@ export default defineConfig({
             || id.includes('/three/examples/jsm/libs/meshopt_decoder.module.js')
           ) return 'three-asset-loaders';
           if (id.includes('node_modules/three')) return 'three';
-          if (id.includes('/src/exhibits/')) return 'exhibits';
+          if (
+            id.includes('/src/exhibits/')
+            || id.includes('/src/world/InteriorWorld')
+            || id.includes('/src/world/Museum')
+          ) return 'interior';
           return undefined;
         },
       },
