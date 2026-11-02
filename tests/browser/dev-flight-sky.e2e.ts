@@ -48,7 +48,7 @@ test('developer flight and sky clock work in the real museum, with night reset',
   const day = await page.evaluate(() => {
     const app = window.__museum;
     if (!app) throw new Error('museum missing');
-    const material = app.sky.mesh.material as { uniforms: { daylight: { value: number } } };
+    const material = app.sky.mesh.material as unknown as { uniforms: { daylight: { value: number } } };
     return { daylight: material.uniforms.daylight.value, horizon: app.sky.horizon.getHex() };
   });
   expect(day.daylight).toBe(1);
@@ -58,7 +58,7 @@ test('developer flight and sky clock work in the real museum, with night reset',
   const night = await page.evaluate(() => {
     const app = window.__museum;
     if (!app) throw new Error('museum missing');
-    const material = app.sky.mesh.material as { uniforms: { daylight: { value: number } } };
+    const material = app.sky.mesh.material as unknown as { uniforms: { daylight: { value: number } } };
     return { daylight: material.uniforms.daylight.value, horizon: app.sky.horizon.getHex() };
   });
   expect(night).toEqual({ daylight: 0, horizon: 0x17304b });
