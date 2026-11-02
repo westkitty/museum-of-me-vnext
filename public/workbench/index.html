@@ -19,10 +19,34 @@
 .map-frame.is-3d #viewer3d{display:block}
 .map-frame.is-3d #mapSvg,.map-frame.is-3d .plan-flags,.map-frame.is-3d .map-bottom{display:none}
 @media(max-width:475px){#view2d,#view3d{font-size:11px;padding:7px 6px}}
+/* Source-pinned 2D planning remains unchanged. 3D drawers cover at most
+   29 percent of the viewport on desktop, or 29dvh on narrow devices. */
+.app.mode-3d .mast{height:38px;min-height:38px;padding:5px 12px}
+.app.mode-3d .brand .eyebrow,.app.mode-3d .seal,.app.mode-3d .mast-meta{display:none}
+.app.mode-3d .brand h1{font:400 16px/1.2 Georgia,serif;margin:0}
+.app.mode-3d .mobile-tabs{display:none}
+.app.mode-3d .workspace{display:block;position:relative;flex:1;min-height:0;overflow:hidden}
+.app.mode-3d .map-column{height:100%;width:100%;min-height:0}
+.app.mode-3d .toolbar{padding:5px 9px;gap:4px;min-height:40px}
+.app.mode-3d .toolbar-group{padding-right:4px;margin-right:0;border-right:0}
+.app.mode-3d .toolbar button{padding:6px 8px;font-size:11px;min-height:32px}
+.app.mode-3d .status-bar{padding:4px 9px;font-size:10px}
+.app.mode-3d .sidebar{position:absolute;top:0;bottom:0;left:0;right:auto;width:min(29vw,380px);max-width:29vw;z-index:8;transform:translateX(-110%);visibility:hidden;pointer-events:none;box-shadow:6px 0 27px #0008;transition:transform .18s ease}
+.app.mode-3d #detailsPane{left:auto;right:0;transform:translateX(110%);border-left:1px solid var(--border);box-shadow:-6px 0 27px #0008}
+.app.mode-3d .sidebar.open,.app.mode-3d #detailsPane.open{transform:translateX(0);visibility:visible;pointer-events:auto}
+.app.mode-3d #focusActions{display:flex;flex-wrap:wrap}
+.app.mode-3d #focusActions[hidden]{display:none}
+@media(max-width:850px){
+ .app.mode-3d .sidebar,.app.mode-3d #detailsPane{inset:auto 0 0;width:100%;max-width:none;height:29dvh;min-height:0;transform:translateY(110%);box-shadow:0 -7px 25px #0009;border-top:1px solid var(--border)}
+ .app.mode-3d .sidebar.open,.app.mode-3d #detailsPane.open{transform:translateY(0)}
+ .app.mode-3d .toolbar{padding:3px 6px;gap:3px}
+ .app.mode-3d .toolbar button{padding:5px 6px;font-size:10px;min-height:30px}
+}
+@media(prefers-reduced-motion:reduce){.app.mode-3d .sidebar{transition:none}}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" id="workbenchApp">
   <header class="mast">
     <div class="brand"><div class="seal" aria-hidden="true">M</div><div><div class="eyebrow">The Reliquary of Iterative Becoming</div><h1>Museum of Me <span style="font-size:.65em;color:#bcb2a0">/ spatial workbench</span></h1></div></div>
     <div class="mast-meta"><strong>Source-pinned architectural survey</strong><br>MAIN · <code>6278d2c</code> · 27 October 2026 · Pre-1.0<br>Proposal changes remain local. The museum code is untouched.</div>
@@ -40,6 +64,7 @@
     <section class="map-column" aria-label="Interactive top-down architectural map">
       <div class="toolbar">
         <div class="toolbar-group"><span class="tool-name">View</span><button type="button" id="view2d" aria-pressed="true">2D Plan</button><button type="button" id="view3d" aria-pressed="false">3D Museum</button></div>
+        <div class="toolbar-group" id="focusActions" hidden><button type="button" id="open3dCollection" aria-controls="collectionPane" aria-expanded="false">Collection ▾</button><button type="button" id="open3dInspector" aria-controls="detailsPane" aria-expanded="false">Inspector ▾</button><button type="button" id="close3dPanels" aria-label="Fold away the side panels" hidden>Hide panels</button></div>
         <div class="toolbar-group"><span class="tool-name">Level</span><button type="button" id="floor0" aria-pressed="true">00 · Ground</button><button type="button" id="floor1" aria-pressed="false">01 · Upper</button></div>
         <div class="toolbar-group"><span class="tool-name">Tool</span><button type="button" id="toolInspect" aria-pressed="true">Inspect</button><button type="button" id="toolPin" aria-pressed="false" title="Click the plan to place a planning annotation">+ Pin</button><button type="button" id="toolMove" aria-pressed="false" title="Drag a selected exhibit's proposal marker; original geometry remains fixed">⇄ Propose move</button><button type="button" id="toolMeasure" aria-pressed="false" title="Measure straight-line plan distances between two points">Ruler</button></div>
         <div class="toolbar-group"><button type="button" id="toggleSources" aria-pressed="false">14 source installations</button><button type="button" id="toggleRoutes" aria-pressed="false">Visitor paths</button></div>
@@ -48,7 +73,7 @@
         <button type="button" id="exportSvg" title="Download the visible plan as scalable SVG">⇩ SVG</button>
       </div>
       <div class="map-frame" id="mapFrame">
-        <iframe id="viewer3d" title="Interactive 3D model of the actual Museum of Me architecture" src="about:blank" loading="lazy" aria-hidden="true"></iframe>
+        <iframe id="viewer3d" title="Interactive 3D museum and full-island source survey" src="about:blank" loading="lazy" aria-hidden="true"></iframe>
         <svg id="mapSvg" xmlns="http://www.w3.org/2000/svg" viewBox="-152 -154 304 340" role="group" aria-label="Top-down map of Museum of Me ground level. Select exhibits to inspect and draft changes.">
           <defs>
             <pattern id="minorGrid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" stroke="#33525b" stroke-width=".15" fill="none" opacity=".68"/></pattern>
@@ -274,8 +299,8 @@ for(const pin of plan.pins.filter(x=>x.floor===floor)){const g=node('g',{class:'
 if(pl&&WING_BY_ID[pl.wing].level===floor){const a=pl.anchor,m=plan.moves[selected];node('circle',{cx:a[0],cy:a[1],r:3.6,fill:'none',stroke:'#e7c48a','stroke-width':'.35','stroke-dasharray':'1.5 1'},overlays);if(m){line(overlays,a,m,'measure-path');node('circle',{cx:a[0],cy:a[1],r:.8,class:'old-point'},overlays);}if(mode==='move'||m){const dest=m||a;const handle=node('g',{'data-proposed':selected,role:'button',tabindex:'0','aria-label':'Drag proposed location for '+selected},overlays);node('circle',{cx:dest[0],cy:dest[1],r:2.9,class:'proposed-point'},handle);line(handle,[dest[0]-1.1,dest[1]],[dest[0]+1.1,dest[1]],'portal');line(handle,[dest[0],dest[1]-1.1],[dest[0],dest[1]+1.1],'portal');handle.addEventListener('pointerdown',e=>{if(mode!=='move')return;e.stopPropagation();checkpoint();drag={id:selected};svg.setPointerCapture(e.pointerId);});}}
 }
 function renderList(){els.list.replaceChildren();let n=0;for(const e of EXHIBITS){if(!doesMatch(e))continue;n++;const w=WING_BY_ID[e.wing];const b=document.createElement('button');b.type='button';b.className='exhibit-entry';b.style.setProperty('--wing',COLORS[e.wing]);b.setAttribute('aria-current',String(e.id===selected));b.innerHTML=`<span class="eid">${e.id}</span><span class="ename"></span><span class="etag">L${w.level}</span>`;b.querySelector('.ename').textContent=e.title;b.onclick=()=>selectRoom(e.id,true);els.list.append(b)}document.getElementById('listCount').textContent=n;if(!n){let p=document.createElement('p');p.className='note';p.textContent='No matching room. Try another wing or project name.';els.list.append(p)}}
-function selectRoom(id,center=false){if(!EX_BY_ID[id])return;selected=id;selectedPin=null;const pl=PL_BY_ID[id],n=WING_BY_ID[pl.wing].level;if(n!==floor)changeFloor(n);else render();if(center)focusAt(pl.anchor);updateStatus(`${id} selected · ${EX_BY_ID[id].title}. Original coordinates are locked; only proposals can move.`);if(window.innerWidth<=850)openMobile('details');}
-function selectSanctuary(){selected='sanctuary';selectedPin=null;if(floor!==0)changeFloor(0);else render();focusAt(SANCTUARY_CENTER,65);if(window.innerWidth<=850)openMobile('details')}
+function selectRoom(id,center=false){if(!EX_BY_ID[id])return;selected=id;selectedPin=null;const pl=PL_BY_ID[id],n=WING_BY_ID[pl.wing].level;if(n!==floor)changeFloor(n);else render();if(center)focusAt(pl.anchor);updateStatus(`${id} selected · ${EX_BY_ID[id].title}. Original coordinates are locked; only proposals can move.`);if(viewMode==='3d')open3dPanel('details');else if(window.innerWidth<=850)openMobile('details');}
+function selectSanctuary(){selected='sanctuary';selectedPin=null;if(floor!==0)changeFloor(0);else render();focusAt(SANCTUARY_CENTER,65);if(viewMode==='3d')open3dPanel('details');else if(window.innerWidth<=850)openMobile('details')}
 function centerAt(p){setView({x:p[0]-view.w/2,y:p[1]-view.h/2,w:view.w,h:view.h});}
 function focusAt(p,span=72){setView({x:p[0]-span/2,y:p[1]-span/2,w:span,h:span});}
 function htmlEscape(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -288,7 +313,7 @@ function wireInspector(){const pin=selectedPin&&plan.pins.find(p=>p.id===selecte
 function downloadBlob(name,text,mime){const blob=new Blob([text],{type:mime}),url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);}
 function exportPlan(){const data={format:'museum-of-me-topdown-plan',version:1,planningOnly:true,exportedAt:new Date().toISOString(),source:SOURCE,notes:plan.notes,statuses:plan.statuses,moves:plan.moves,pins:plan.pins};downloadBlob('Museum_of_Me_Topdown_Proposals.json',JSON.stringify(data,null,2),'application/json');updateStatus('Planning JSON exported. The original museum repository has not changed.');}
 function exportSvg(){const clone=svg.cloneNode(true);clone.setAttribute('xmlns',NS);clone.setAttribute('width','1600');clone.setAttribute('height','1100');const style=node('style');style.textContent='.room-label{font-family:Georgia,serif;font-size:5.5px;fill:#ede4d1;text-anchor:middle}.minor-label{font:3.8px system-ui,sans-serif;fill:#adbabb;text-anchor:middle}.bay-text{font:700 3.4px system-ui,sans-serif;fill:#fff;text-anchor:middle}.bay-outline{stroke-width:.55}.wall{stroke:#b0c1bb;stroke-width:.62}.portal{stroke:#e4c58b;stroke-width:1.1}.stair{stroke:#d8c69f;stroke-width:1.1;fill:none;stroke-dasharray:1.2 1.1}.route{stroke:#9cb0bc;stroke-width:.8;stroke-dasharray:2 1.2;fill:none}.measure-path{stroke:#e8c684;stroke-width:.8;stroke-dasharray:2 1;fill:none}.measure-label{font:700 3.7px system-ui;fill:#f4dfaa;stroke:#0c171d;stroke-width:1.7px;paint-order:stroke;text-anchor:middle}.measure-dot{fill:#f3d495;stroke:#162328;stroke-width:.7}.old-point{fill:#f0cc82}.proposed-point{fill:#0e171b;stroke:#f0cc82;stroke-width:1.2}.source-point{fill:#0c1619;stroke:#e4a684;stroke-width:.95}.centerline{stroke:#6d979e;stroke-width:.25;stroke-dasharray:2 2;fill:none}';clone.insertBefore(style,clone.firstChild);const bg=node('rect',{x:-400,y:-400,width:800,height:800,fill:'#0d1b21'});clone.insertBefore(bg,clone.firstChild);downloadBlob('Museum_of_Me_Level_'+floor+'_Topdown.svg',new XMLSerializer().serializeToString(clone),'image/svg+xml');updateStatus('Visible floor exported as editable scalable SVG.');}
-function addPin(pos,y,atFloor=floor){checkpoint();const id='pin-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);const pin={id,floor:atFloor,position:pos,title:'New planning pin',body:''};if(Number.isFinite(y))pin.y=+y.toFixed(2);plan.pins.push(pin);selectedPin=id;selected=null;persist();setTool('inspect');if(atFloor!==floor)changeFloor(atFloor);else render();updateStatus('Planning annotation added. Write its purpose in the inspector.');}
+function addPin(pos,y,atFloor=floor){checkpoint();const id='pin-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);const pin={id,floor:atFloor,position:pos,title:'New planning pin',body:''};if(Number.isFinite(y))pin.y=+y.toFixed(2);plan.pins.push(pin);selectedPin=id;selected=null;persist();setTool('inspect');if(atFloor!==floor)changeFloor(atFloor);else render();updateStatus('Planning annotation added. Write its purpose in the inspector.');if(viewMode==='3d')open3dPanel('details');}
 function zoom(mult,focus){const old={...view},x=focus?focus[0]:view.x+view.w/2,y=focus?focus[1]:view.y+view.h/2;const w=Math.max(25,Math.min(520,view.w*mult)),h=Math.max(25,Math.min(520,view.h*mult));setView({x:x-(x-old.x)*w/old.w,y:y-(y-old.y)*h/old.h,w,h});}
 svg.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY>0?1.13:.885,screenPoint(e))},{passive:false});
 svg.addEventListener('pointerdown',e=>{
@@ -330,6 +355,18 @@ const button=(id,fn)=>document.getElementById(id).addEventListener('click',fn);
 const VIEWER_CHANNEL='museum-workbench-3d';
 const viewer=document.getElementById('viewer3d');
 let viewMode='2d',viewerReady=false;
+function open3dPanel(which){
+ if(viewMode!=='3d')return;
+ const shown=which==='collection'?'collection':which==='details'?'details':'map';
+ document.getElementById('collectionPane').classList.toggle('open',shown==='collection');
+ document.getElementById('detailsPane').classList.toggle('open',shown==='details');
+ document.getElementById('open3dCollection').setAttribute('aria-expanded',String(shown==='collection'));
+ document.getElementById('open3dInspector').setAttribute('aria-expanded',String(shown==='details'));
+ document.getElementById('close3dPanels').hidden=shown==='map';
+}
+button('open3dCollection',()=>open3dPanel(document.getElementById('collectionPane').classList.contains('open')?'map':'collection'));
+button('open3dInspector',()=>open3dPanel(document.getElementById('detailsPane').classList.contains('open')?'map':'details'));
+button('close3dPanels',()=>open3dPanel('map'));
 function syncViewer(){
  if(viewMode!=='3d'||!viewerReady||!viewer.contentWindow)return;
  viewer.contentWindow.postMessage({channel:VIEWER_CHANNEL,kind:'state',floor,selected,selectedPin,mode:mode==='pin'?'pin':'inspect',pins:plan.pins,moves:plan.moves,showRoutes},location.origin==='null'?'*':location.origin);
@@ -339,6 +376,10 @@ function setViewMode(next){
  if(next==='3d'&&mode!=='inspect'&&mode!=='pin')setTool('inspect');
  viewMode=next;
  const three=next==='3d';
+ document.getElementById('workbenchApp').classList.toggle('mode-3d',three);
+ document.getElementById('focusActions').hidden=!three;
+ if(three)open3dPanel('map');
+ else{document.getElementById('collectionPane').classList.remove('open');document.getElementById('detailsPane').classList.remove('open');}
  document.getElementById('mapFrame').classList.toggle('is-3d',three);
  document.getElementById('view2d').setAttribute('aria-pressed',String(!three));
  document.getElementById('view3d').setAttribute('aria-pressed',String(three));
@@ -347,7 +388,8 @@ function setViewMode(next){
  for(const id of ['floor0','floor1','zoomOut','zoomIn','fit','exportSvg','toolMove','toolMeasure','toggleSources','toggleRoutes'])document.getElementById(id).hidden=three;
  if(three){
   viewerReady=false;
-  viewer.src=new URL('../workbench3d/index.html',location.href).href;
+  const fullIsland=new URLSearchParams(location.search).get('view')==='island';
+  viewer.src=new URL('../workbench3d/index.html'+(fullIsland?'?view=island':''),location.href).href;
   updateStatus('Loading real 3D museum architecture. The 2D plan remains unchanged.');
  }else{
   viewerReady=false;viewer.src='about:blank';
@@ -367,7 +409,7 @@ window.addEventListener('message',event=>{
  }
  else if(data.kind==='pin-select'&&typeof data.id==='string'){
   const pin=plan.pins.find(p=>p.id===data.id);
-  if(pin){selected=null;selectedPin=pin.id;if(pin.floor!==floor)changeFloor(pin.floor);else render();if(window.innerWidth<=850)openMobile('details');}
+  if(pin){selected=null;selectedPin=pin.id;if(pin.floor!==floor)changeFloor(pin.floor);else render();if(viewMode==='3d')open3dPanel('details');else if(window.innerWidth<=850)openMobile('details');}
  }
  else if(data.kind==='pin-create'&&mode==='pin'&&Array.isArray(data.position)&&data.position.length===3&&data.position.every(n=>typeof n==='number'&&Number.isFinite(n)&&Math.abs(n)<=300)){
   const [x,y,z]=data.position;addPin([+x.toFixed(2),+z.toFixed(2)],y,data.floor===1?1:0);
@@ -388,11 +430,12 @@ function renderGeometryOnly(){
   g.classList.toggle('filtered',!matching);
  }
 }
-function openMobile(which){const a=document.getElementById('collectionPane'),b=document.getElementById('detailsPane');a.classList.toggle('open',which==='collection');b.classList.toggle('open',which==='details')}
+function openMobile(which){if(viewMode==='3d'){open3dPanel(which);return;}const a=document.getElementById('collectionPane'),b=document.getElementById('detailsPane');a.classList.toggle('open',which==='collection');b.classList.toggle('open',which==='details')}
 button('openCollection',()=>openMobile('collection'));button('openDetails',()=>openMobile('details'));button('closePanels',()=>openMobile('map'));
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(window.innerWidth<=850)openMobile('map');if(mode!=='inspect')setTool('inspect');return}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&document.activeElement?.tagName!=='TEXTAREA'&&document.activeElement?.tagName!=='INPUT'){if(undoStack.length){e.preventDefault();plan=cleanPlan(JSON.parse(undoStack.pop()));persist();render()}}if(e.key==='/'&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)){e.preventDefault();els.search.focus()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(viewMode==='3d'){const hadPanel=!!document.querySelector('.app.mode-3d .sidebar.open');open3dPanel('map');if(hadPanel){e.preventDefault();document.getElementById('open3dInspector').focus();}}else if(window.innerWidth<=850)openMobile('map');if(mode!=='inspect')setTool('inspect');return}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&document.activeElement?.tagName!=='TEXTAREA'&&document.activeElement?.tagName!=='INPUT'){if(undoStack.length){e.preventDefault();plan=cleanPlan(JSON.parse(undoStack.pop()));persist();render()}}if(e.key==='/'&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)){e.preventDefault();els.search.focus()}});
 window.addEventListener('resize',()=>{const b={...view};setView(b)});
 render();requestAnimationFrame(fit);
+if(new URLSearchParams(location.search).get('view')==='island')setViewMode('3d');
 // Test-only read-only diagnostics; this does not mutate the museum or proposals.
 Object.defineProperty(window,'MuseumWorkbenchProof',{value:Object.freeze({source:SOURCE,exhibitCount:EXHIBITS.length,projectCount:Object.keys(PROJECTS).length,placementCount:PLACEMENTS.length,legacyInstallationCount:PRIMARY.length,supplementaryCount:SUPP.length,visitorIdentityCount:VISITOR_ROWS.length,wingCount:WINGS.length,hasCorrectFloors:WINGS.filter(w=>w.level===0).length===4&&WINGS.filter(w=>w.level===1).length===2,sanctuaryCenter:[...SANCTUARY_CENTER],room:(id)=>{const p=PL_BY_ID[id];return p?{...p}:null}}),writable:false});
 </script>

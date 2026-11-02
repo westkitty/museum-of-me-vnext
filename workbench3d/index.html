@@ -13,18 +13,42 @@ button,select,input{font:inherit}button,select{border:1px solid #4b6066;border-r
 #layers{position:absolute;right:12px;top:74px;display:flex;flex-direction:column;gap:8px;background:#102026e8;padding:10px 12px;border:1px solid #40565d;border-radius:5px;font-size:11px}#layers label{display:flex;align-items:center;gap:6px;cursor:pointer}input[type=checkbox]{accent-color:#d8bc84;width:15px;height:15px}
 #fallback{position:absolute;inset:0;z-index:6;display:none;place-content:center;text-align:center;padding:24px;background:#101f24;color:#ded6c3;font:15px/1.5 system-ui}#fallback strong{font:27px Georgia,serif}#viewerStatus{position:absolute;left:-9999px}
 @media(max-width:720px){#controls{top:7px;left:7px;right:7px;gap:4px}.control-card{padding:4px;gap:4px}#layers{top:auto;bottom:72px;right:7px;max-width:152px}#legend{left:7px;bottom:7px;max-width:64%;padding:8px 10px;font-size:10px}#legend strong{font-size:15px}#message{display:none}select{max-width:105px;font-size:11px}button{font-size:11px;padding:7px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+#controls{left:8px;right:auto;top:8px;max-width:min(29vw,380px);align-items:stretch;gap:5px}
+#controls .control-card{box-shadow:0 5px 18px #0008}
+.primary-view{display:flex;flex-wrap:nowrap;gap:4px}
+.primary-view button{font-size:11px;white-space:nowrap;padding:7px 8px}
+#detailControls{display:flex;flex-direction:column;gap:5px;width:100%;max-height:29dvh;overflow:auto}
+#detailControls .control-card{flex-wrap:wrap}
+#detailControls #layers,#detailControls #legend{position:static;width:100%;max-width:none;max-height:none;box-shadow:none}
+#detailControls[hidden],#layers[hidden],#legend[hidden]{display:none!important}
+#layers{left:8px;right:auto;top:auto;bottom:42px;width:min(29vw,380px);max-height:29dvh;overflow:auto;z-index:5}
+#legend{left:8px;bottom:42px;width:min(29vw,380px);max-height:29dvh;overflow:auto;z-index:5}
+#message{right:8px;bottom:8px;max-width:min(29vw,380px);background:#101c22ba}
+#sceneCaption{position:absolute;bottom:10px;left:12px;color:#d7c4a3;font-size:10px;letter-spacing:.12em;text-shadow:0 2px 7px #000e;pointer-events:none}
+@media(max-width:720px){
+ #controls{left:6px;right:6px;max-width:none;align-items:flex-start;top:6px}
+ .primary-view{max-width:100%;padding:4px}
+ .primary-view button{padding:7px 8px;min-height:34px}
+ #detailControls{width:min(100%,340px);max-height:29dvh}
+ #layers,#legend{left:6px;bottom:31px;width:min(calc(100vw - 12px),340px);max-height:29dvh}
+ #sceneCaption{bottom:8px;left:8px;font-size:9px}
+}
 </style></head><body>
 <main id="scene" aria-label="Real Three.js museum survey. Drag to orbit, right-drag to pan, scroll to zoom. Use the collection outside this view for keyboard exhibit selection."></main>
-<div id="controls" role="group" aria-label="3D camera and floor controls">
+<div id="controls" role="group" aria-label="3D museum survey controls">
+<div class="control-card primary-view"><button type="button" id="museumView" aria-pressed="true">Museum</button><button type="button" id="islandView" aria-pressed="false">Full Island</button><button type="button" id="toggleTools" aria-controls="detailControls layers legend" aria-expanded="false">Tools ▾</button></div>
+<div id="detailControls" hidden>
 <div class="control-card"><span class="label">Floor</span><select id="floor" aria-label="Visible building levels"><option value="both">Both floors</option><option value="ground">Ground + sanctuary</option><option value="upper">Upper floor</option></select></div>
 <div class="control-card"><button id="cutaway" type="button" aria-pressed="true">Roof cutaway</button><button id="reset" type="button">Reset camera</button></div>
 <div class="control-card"><span class="label">Focus</span><select id="wing" aria-label="Isolate an architectural wing"><option value="all">All wings</option><option value="north">Starsilk</option><option value="west">Archive</option><option value="south">Games</option><option value="east">Dex Systems</option><option value="media">Music / Media</option><option value="infra">Local Systems</option><option value="sanctuary">Dexter Sanctuary</option></select></div>
-</div>
-<div id="layers" role="group" aria-label="3D layer visibility">
+<div id="layers" role="group" aria-label="3D layer visibility" hidden>
 <label><input id="architecture" type="checkbox" checked>Architecture</label><label><input id="exhibits" type="checkbox" checked>Exhibit anchors</label><label><input id="annotations" type="checkbox" checked>Annotations</label><label><input id="visitors" type="checkbox">Visitor routes</label><label><input id="proposals" type="checkbox" checked>Proposed moves</label>
 </div>
-<div id="legend"><strong>Actual museum geometry</strong>Spatial source: <b>Museum.build()</b>, not independently extruded plans. Click a gold exhibit anchor or note pin to inspect it. Choose <b>+ Pin</b> in the workbench and click a physical surface to annotate. Orbit: drag · Pan: right-drag · Zoom: scroll/pinch.</div>
-<div id="message" aria-hidden="true">Live exhibit simulations are not loaded in the architectural survey.</div>
+<div id="legend" hidden><strong>Actual museum geometry</strong>Spatial source: <b>Museum.build()</b>, not independently extruded plans. Click a gold exhibit anchor or note pin to inspect it. Choose <b>+ Pin</b> in the workbench and click a physical surface to annotate. Orbit: drag · Pan: right-drag · Zoom: scroll/pinch.</div>
+</div></div>
+<div id="sceneCaption" aria-hidden="true">ACTUAL SOURCE GEOMETRY · PLANNING VIEW</div>
+<div id="message" aria-hidden="true">Survey only · Curated exhibits are not simulated.</div>
 <div id="viewerStatus" role="status" aria-live="polite"></div>
 <div id="fallback" role="alert"><strong>3D unavailable</strong><p>The original 2D plan remains usable. This mode needs WebGL 2 and locally bundled viewer code served from the museum site.</p></div>
 <script type="module" src="../src/workbench3d/main.ts"></script></body></html>

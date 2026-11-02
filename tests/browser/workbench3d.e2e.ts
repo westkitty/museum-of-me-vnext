@@ -29,6 +29,8 @@ test('optional 3D workbench loads real museum geometry while preserving the 2D p
   });
   expect(proof?.zoneCount).toBeGreaterThanOrEqual(7);
 
+  await page.locator('#open3dCollection').click();
+  await expect(page.locator('#collectionPane')).toBeVisible();
   await page.locator('#search').fill('Selfsame');
   await page.locator('#exhibitList button').first().click();
   await expect(page.locator('#inspectorContent h3')).toHaveText('Selfsame: Continuity & Authority Systems');
@@ -38,6 +40,9 @@ test('optional 3D workbench loads real museum geometry while preserving the 2D p
     } }).Museum3DProof.getState().selected,
   )).toBe('E11');
 
+  // The survey defaults to model-first with its secondary controls folded.
+  await viewer.locator('#toggleTools').click();
+  await expect(viewer.locator('#detailControls')).toBeVisible();
   await viewer.locator('#floor').selectOption('upper');
   await expect.poll(() => viewer.locator('body').evaluate(() =>
     (window as unknown as Window & { Museum3DProof: {
@@ -83,6 +88,8 @@ test('3D workbench displays existing planning pins and survives repeated toggles
       getState(): { pinCount: number };
     } }).Museum3DProof.getState().pinCount,
   )).toBe(1);
+  await viewer.locator('#toggleTools').click();
+  await expect(viewer.locator('#layers')).toBeVisible();
   await viewer.locator('#annotations').uncheck();
   await viewer.locator('#annotations').check();
   await page.locator('#view2d').click();
@@ -141,4 +148,83 @@ test('3D room picking and physical surface pinning update the original inspector
   // actual floor in the original 2D plan instead of assuming ground.
   await expect(page.locator('#planGeometry [data-id]')).toHaveCount(saved.pins[0].floor === 1 ? 6 : 29);
   expect(errors).toEqual([]);
+});
+
+test('Full Island shows actual exterior world while fold-down UI preserves 71%+ model focus', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/workbench/');
+  await page.locator('#view3d').click();
+  const viewer = page.frameLocator('#viewer3d');
+  await expect(viewer.locator('#viewerStatus')).toContainText('Actual 3D museum geometry ready', { timeout: 90_000 });
+  await expect(page.locator('#workbenchApp')).toHaveClass(/mode-3d/);
+  await expect(page.locator('#collectionPane')).not.toHaveClass(/open/);
+  await expect(page.locator('#detailsPane')).not.toHaveClass(/open/);
+  await expect(viewer.locator('#detailControls')).toBeHidden();
+  await expect(viewer.locator('#layers')).toBeHidden();
+
+  await viewer.locator('#islandView').click();
+  await expect(viewer.locator('#islandView')).toHaveAttribute('aria-pressed', 'true');
+  const island = await viewer.locator('body').evaluate(() => {
+    const proof = (window as Window & { Museum3DProof?: {
+      sceneSource: string; islandSource: string; nightSource: string;
+      getState(): Record<string, unknown>;
+    } }).Museum3DProof!;
+    return { sceneSource: proof.sceneSource, islandSource: proof.islandSource,
+      nightSource: proof.nightSource, ...proof.getState() };
+  });
+  expect(island).toMatchObject({
+    sceneSource: 'Museum.build()', islandSource: 'ArrivalGarden.build()', nightSource: 'Sky',
+    view: 'island', floor: 'both', wing: 'all', cutaway: false,
+    islandTerrain: true, islandWater: true, nightSkyVisible: true, exteriorBeaconsVisible: true,
+  });
+
+  await page.locator('#open3dCollection').click();
+  await expect(page.locator('#collectionPane')).toBeVisible();
+  const desktop = await page.locator('#collectionPane').evaluate(pane =>
+    ({ width: pane.getBoundingClientRect().width, viewport: window.innerWidth }));
+  expect(desktop.width).toBeLessThanOrEqual(desktop.viewport * 0.29 + 1);
+  await page.locator('#open3dInspector').click();
+  await expect(page.locator('#detailsPane')).toBeVisible();
+  await expect(page.locator('#collectionPane')).not.toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#detailsPane')).not.toBeVisible();
+  await viewer.locator('#toggleTools').click();
+  await expect(viewer.locator('#detailControls')).toBeVisible();
+  await expect(viewer.locator('#layers')).toBeVisible();
+  await viewer.locator('#toggleTools').click();
+  await expect(viewer.locator('#detailControls')).toBeHidden();
+  await viewer.locator('#museumView').click();
+  await expect.poll(() => viewer.locator('body').evaluate(() =>
+    (window as unknown as Window & { Museum3DProof: { getState(): { view: string; nightSkyVisible: boolean } } })
+      .Museum3DProof.getState())).toMatchObject({ view: 'museum', nightSkyVisible: false });
+  await page.locator('#view2d').click();
+  await expect(page.locator('#workbenchApp')).not.toHaveClass(/mode-3d/);
+  await expect(page.locator('#planGeometry [data-id]')).toHaveCount(29);
+  expect(errors).toEqual([]);
+});
+
+test('narrow 3D interface folds beneath a 29-percent viewport-height drawer', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto('/workbench/');
+  await page.locator('#view3d').click();
+  const viewer = page.frameLocator('#viewer3d');
+  await expect(viewer.locator('#viewerStatus')).toContainText('Actual 3D museum geometry ready', { timeout: 90_000 });
+  await page.locator('#open3dInspector').click();
+  await expect(page.locator('#detailsPane')).toBeVisible();
+  const size = await page.locator('#detailsPane').evaluate(pane =>
+    ({ height: pane.getBoundingClientRect().height, viewport: window.innerHeight }));
+  expect(size.height).toBeLessThanOrEqual(size.viewport * .29 + 2);
+  await page.locator('#close3dPanels').click();
+  await expect(page.locator('#detailsPane')).not.toBeVisible();
+  await viewer.locator('#islandView').click();
+  await expect.poll(() => viewer.locator('body').evaluate(() =>
+    (window as unknown as Window & { Museum3DProof: { getState(): { view: string; islandWater: boolean } } })
+      .Museum3DProof.getState())).toMatchObject({ view: 'island', islandWater: true });
+  const framing = await viewer.locator('body').evaluate(() =>
+    (window as unknown as Window & { Museum3DProof: { islandFraming(): { maxX: number; maxY: number } | null } })
+      .Museum3DProof.islandFraming());
+  expect(framing).not.toBeNull();
+  expect(framing!.maxX).toBeLessThan(0.9);
+  expect(framing!.maxY).toBeLessThan(0.9);
 });
