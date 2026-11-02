@@ -19,10 +19,34 @@
 .map-frame.is-3d #viewer3d{display:block}
 .map-frame.is-3d #mapSvg,.map-frame.is-3d .plan-flags,.map-frame.is-3d .map-bottom{display:none}
 @media(max-width:475px){#view2d,#view3d{font-size:11px;padding:7px 6px}}
+/* Source-pinned 2D planning remains unchanged. 3D drawers cover at most
+   29 percent of the viewport on desktop, or 29dvh on narrow devices. */
+.app.mode-3d .mast{height:38px;min-height:38px;padding:5px 12px}
+.app.mode-3d .brand .eyebrow,.app.mode-3d .seal,.app.mode-3d .mast-meta{display:none}
+.app.mode-3d .brand h1{font:400 16px/1.2 Georgia,serif;margin:0}
+.app.mode-3d .mobile-tabs{display:none}
+.app.mode-3d .workspace{display:block;position:relative;flex:1;min-height:0;overflow:hidden}
+.app.mode-3d .map-column{height:100%;width:100%;min-height:0}
+.app.mode-3d .toolbar{padding:5px 9px;gap:4px;min-height:40px}
+.app.mode-3d .toolbar-group{padding-right:4px;margin-right:0;border-right:0}
+.app.mode-3d .toolbar button{padding:6px 8px;font-size:11px;min-height:32px}
+.app.mode-3d .status-bar{padding:4px 9px;font-size:10px}
+.app.mode-3d .sidebar{position:absolute;top:0;bottom:0;left:0;right:auto;width:min(29vw,380px);max-width:29vw;z-index:8;transform:translateX(-110%);visibility:hidden;pointer-events:none;box-shadow:6px 0 27px #0008;transition:transform .18s ease}
+.app.mode-3d #detailsPane{left:auto;right:0;transform:translateX(110%);border-left:1px solid var(--border);box-shadow:-6px 0 27px #0008}
+.app.mode-3d .sidebar.open,.app.mode-3d #detailsPane.open{transform:translateX(0);visibility:visible;pointer-events:auto}
+.app.mode-3d #focusActions{display:flex;flex-wrap:wrap}
+.app.mode-3d #focusActions[hidden]{display:none}
+@media(max-width:850px){
+ .app.mode-3d .sidebar,.app.mode-3d #detailsPane{inset:auto 0 0;width:100%;max-width:none;height:29dvh;min-height:0;transform:translateY(110%);box-shadow:0 -7px 25px #0009;border-top:1px solid var(--border)}
+ .app.mode-3d .sidebar.open,.app.mode-3d #detailsPane.open{transform:translateY(0)}
+ .app.mode-3d .toolbar{padding:3px 6px;gap:3px}
+ .app.mode-3d .toolbar button{padding:5px 6px;font-size:10px;min-height:30px}
+}
+@media(prefers-reduced-motion:reduce){.app.mode-3d .sidebar{transition:none}}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" id="workbenchApp">
   <header class="mast">
     <div class="brand"><div class="seal" aria-hidden="true">M</div><div><div class="eyebrow">The Reliquary of Iterative Becoming</div><h1>Museum of Me <span style="font-size:.65em;color:#bcb2a0">/ spatial workbench</span></h1></div></div>
     <div class="mast-meta"><strong>Source-pinned architectural survey</strong><br>MAIN · <code>6278d2c</code> · 27 October 2026 · Pre-1.0<br>Proposal changes remain local. The museum code is untouched.</div>
@@ -40,6 +64,7 @@
     <section class="map-column" aria-label="Interactive top-down architectural map">
       <div class="toolbar">
         <div class="toolbar-group"><span class="tool-name">View</span><button type="button" id="view2d" aria-pressed="true">2D Plan</button><button type="button" id="view3d" aria-pressed="false">3D Museum</button></div>
+        <div class="toolbar-group" id="focusActions" hidden><button type="button" id="open3dCollection" aria-controls="collectionPane" aria-expanded="false">Collection ▾</button><button type="button" id="open3dInspector" aria-controls="detailsPane" aria-expanded="false">Inspector ▾</button><button type="button" id="close3dPanels" aria-label="Fold away the side panels" hidden>Hide panels</button></div>
         <div class="toolbar-group"><span class="tool-name">Level</span><button type="button" id="floor0" aria-pressed="true">00 · Ground</button><button type="button" id="floor1" aria-pressed="false">01 · Upper</button></div>
         <div class="toolbar-group"><span class="tool-name">Tool</span><button type="button" id="toolInspect" aria-pressed="true">Inspect</button><button type="button" id="toolPin" aria-pressed="false" title="Click the plan to place a planning annotation">+ Pin</button><button type="button" id="toolMove" aria-pressed="false" title="Drag a selected exhibit's proposal marker; original geometry remains fixed">⇄ Propose move</button><button type="button" id="toolMeasure" aria-pressed="false" title="Measure straight-line plan distances between two points">Ruler</button></div>
         <div class="toolbar-group"><button type="button" id="toggleSources" aria-pressed="false">14 source installations</button><button type="button" id="toggleRoutes" aria-pressed="false">Visitor paths</button></div>
@@ -48,7 +73,7 @@
         <button type="button" id="exportSvg" title="Download the visible plan as scalable SVG">⇩ SVG</button>
       </div>
       <div class="map-frame" id="mapFrame">
-        <iframe id="viewer3d" title="Interactive 3D model of the actual Museum of Me architecture" src="about:blank" loading="lazy" aria-hidden="true"></iframe>
+        <iframe id="viewer3d" title="Interactive 3D museum and full-island source survey" src="about:blank" loading="lazy" aria-hidden="true"></iframe>
         <svg id="mapSvg" xmlns="http://www.w3.org/2000/svg" viewBox="-152 -154 304 340" role="group" aria-label="Top-down map of Museum of Me ground level. Select exhibits to inspect and draft changes.">
           <defs>
             <pattern id="minorGrid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" stroke="#33525b" stroke-width=".15" fill="none" opacity=".68"/></pattern>
