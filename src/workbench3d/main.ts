@@ -38,7 +38,6 @@ const toolsButton = el<HTMLButtonElement>('toggleTools');
 const detailControls = el<HTMLElement>('detailControls');
 const layersPanel = el<HTMLElement>('layers');
 const legend = el<HTMLElement>('legend');
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const layers = {
   architecture: el<HTMLInputElement>('architecture'),
   exhibits: el<HTMLInputElement>('exhibits'),
@@ -62,8 +61,6 @@ let islandBeacons: THREE.Group | null = null;
 let islandSky: Sky | null = null;
 let islandLighting: Lighting | null = null;
 let surveyView: SurveyView = 'museum';
-let islandFrame: number | null = null;
-let previousIslandFrame = 0;
 const roomMarkers: RoomMarker[] = [];
 let pinMarkers: PinMarker[] = [];
 const routeLines: THREE.Line[] = [];
@@ -96,26 +93,6 @@ function paint(): void {
     islandLighting?.update([camera.position.x, camera.position.y, camera.position.z]);
   }
   renderer.render(scene, camera);
-}
-function stopIslandMotion(): void {
-  if (islandFrame !== null) cancelAnimationFrame(islandFrame);
-  islandFrame = null;
-}
-function animateIsland(now: number): void {
-  if (disposed || surveyView !== 'island' || document.hidden || reducedMotion.matches) {
-    islandFrame = null;
-    return;
-  }
-  islandFrame = requestAnimationFrame(animateIsland);
-  if (now - previousIslandFrame < 50) return;
-  islandGarden?.update(Math.min((now - previousIslandFrame) / 1000, 0.1), false);
-  previousIslandFrame = now;
-  paint();
-}
-function startIslandMotion(): void {
-  if (islandFrame !== null || disposed || surveyView !== 'island' || document.hidden || reducedMotion.matches) return;
-  previousIslandFrame = performance.now();
-  islandFrame = requestAnimationFrame(animateIsland);
 }
 function focus(position: THREE.Vector3, extent = 32): void {
   if (!camera || !controls) return;
@@ -419,10 +396,8 @@ function init(): void {
     scene.fog = next === 'island' ? new THREE.FogExp2(0x08121e, 0.00155) : null;
     renderer.toneMapping = next === 'island' ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
     renderer.toneMappingExposure = 1;
-    if (next === 'museum') stopIslandMotion();
     resetCamera();
     refreshVisibility();
-    if (next === 'island') startIslandMotion();
     report(next === 'island' ? 'Full island: actual shore, water, garden, exterior and night sky.'
       : 'Actual 3D museum geometry ready.');
   }
@@ -524,26 +499,13 @@ function init(): void {
       return { x: (p.x + 1) * rect.width / 2, y: (1 - p.y) * rect.height / 2 };
     },
   }) });
-  document.addEventListener('visibilitychange', onVisibilityChange);
-  reducedMotion.addEventListener('change', onMotionPreferenceChange);
   window.addEventListener('pagehide', dispose, { once: true });
   send('ready');
   report(surveyView === 'island' ? 'Full island source geometry ready.' : 'Actual 3D museum geometry ready.');
 }
-function onVisibilityChange(): void {
-  if (document.hidden) stopIslandMotion();
-  else startIslandMotion();
-}
-function onMotionPreferenceChange(): void {
-  if (reducedMotion.matches) stopIslandMotion();
-  else startIslandMotion();
-}
 function dispose(): void {
   if (disposed) return;
   disposed = true;
-  stopIslandMotion();
-  document.removeEventListener('visibilitychange', onVisibilityChange);
-  reducedMotion.removeEventListener('change', onMotionPreferenceChange);
   observer?.disconnect();
   controls?.dispose();
   islandLighting?.dispose();
