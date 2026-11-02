@@ -46,6 +46,11 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
     for (const [id, position, target] of views) {
       app.renderer.camera.position.set(position[0], position[1], position[2]);
       app.renderer.camera.lookAt(target[0], target[1], target[2]);
+      const eye: [number, number, number] = [position[0], position[1], position[2]];
+      app.sky.follow(app.renderer.camera);
+      app.lighting.update(eye);
+      app.exteriorWorld.variableUpdate(0, eye, 'plaza');
+      app.arrivalGarden.update(0, app.preferences.reducedMotion);
       app.renderer.render();
       cameraRenders.push({
         id,
@@ -84,6 +89,11 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
       if (!app) throw new Error('museum missing');
       app.renderer.camera.position.set(p[0], p[1], p[2]);
       app.renderer.camera.lookAt(t[0], t[1], t[2]);
+      const eye: [number, number, number] = [p[0], p[1], p[2]];
+      app.sky.follow(app.renderer.camera);
+      app.lighting.update(eye);
+      app.exteriorWorld.variableUpdate(0, eye, 'plaza');
+      app.arrivalGarden.update(0, app.preferences.reducedMotion);
       app.renderer.render();
     }, { position, target });
     await page.locator('#museum-canvas').screenshot({ path: `test-results/p4-${id}.png` });

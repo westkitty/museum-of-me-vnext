@@ -2,6 +2,87 @@ import { expect, test } from '@playwright/test';
 import { SANCTUARY_CENTER, SANCTUARY_FLOOR_Y } from '../../src/world/layout';
 
 test.describe('P2 Minimum viable impossible threshold and reversible world switching', () => {
+  test('real keyboard walking crosses the pier stairs, terrace, threshold and returns outside', async ({ page }) => {
+    test.setTimeout(300_000);
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.goto('/?qa=1', { waitUntil: 'commit' });
+    await page.waitForFunction(() => Boolean(window.__museum));
+    await page.addStyleTag({ content: '#a11y-root, #ui-root, .cinematic-arrival { display: none !important; }' });
+    await page.evaluate(() => {
+      const app = window.__museum;
+      if (!app) throw new Error('museum missing');
+      app.stop();
+      app.player.teleport([0, 0, 174], 0);
+      app.fixedUpdate(1 / 60);
+      app.variableUpdate(1 / 60);
+      app.setQuality('low');
+      // SwiftShader's default full-size framebuffer can starve the live input
+      // loop during a long traversal. Keep real keyboard and collision paths,
+      // while reducing only the test renderer's pixel workload.
+      app.renderer.renderer.setPixelRatio(0.5);
+      app.renderer.renderer.setSize(window.innerWidth, window.innerHeight, false);
+      (window as Window & { __p7RouteSamples?: Array<{ z: number; y: number; grounded: boolean; world: string }> })
+        .__p7RouteSamples = [];
+      window.setInterval(() => {
+        const current = window.__museum;
+        if (!current) return;
+        (window as Window & { __p7RouteSamples?: Array<{ z: number; y: number; grounded: boolean; world: string }> })
+          .__p7RouteSamples?.push({ z: current.player.position.z, y: current.player.position.y,
+            grounded: current.player.grounded, world: current.activeWorld });
+      }, 100);
+      app.start();
+      app.render(0);
+    });
+    await page.locator('#museum-canvas').screenshot({ path: 'test-results/p7-pier-walk.png' });
+
+    await page.keyboard.down('Shift');
+    await page.keyboard.down('w');
+    await page.waitForFunction(() => (window.__museum?.player.position.z ?? Infinity) < 163.5, null, { timeout: 120_000 });
+    await page.waitForFunction(() => (window.__museum?.player.position.z ?? Infinity) < 157.5, null, { timeout: 120_000 });
+    await page.waitForFunction(() => window.__museum?.activeWorld === 'interior', null, { timeout: 240_000 });
+    await page.keyboard.up('w');
+    await page.keyboard.up('Shift');
+    const entry = await page.evaluate(() => {
+      const app = window.__museum;
+      const samples = (window as Window & { __p7RouteSamples?: Array<{ z: number; y: number; grounded: boolean; world: string }> })
+        .__p7RouteSamples ?? [];
+      if (!app) throw new Error('museum missing');
+      return { world: app.activeWorld, position: [app.player.position.x, app.player.position.y, app.player.position.z],
+        museumBuildCount: app.museumBuildCount, samples };
+    });
+    expect(entry.world).toBe('interior');
+    expect(entry.position[2]).toBeLessThan(128);
+    expect(entry.museumBuildCount).toBe(1);
+    expect(entry.samples.some((sample) => sample.z >= 164 && sample.y < -0.4 && sample.grounded)).toBe(true);
+    expect(entry.samples.some((sample) => sample.z > 158 && sample.z < 164 && sample.grounded)).toBe(true);
+    expect(entry.samples.some((sample) => sample.z >= 128 && sample.z <= 158 && Math.abs(sample.y) < 0.1 && sample.grounded)).toBe(true);
+    await page.locator('#museum-canvas').screenshot({ path: 'test-results/p7-interior-entry.png' });
+
+    await page.keyboard.down('Shift');
+    await page.keyboard.down('s');
+    await page.waitForFunction(() => window.__museum?.activeWorld === 'exterior', null, { timeout: 90_000 });
+    await page.waitForFunction(() => (window.__museum?.player.position.z ?? -Infinity) > 148, null, { timeout: 90_000 });
+    await page.keyboard.up('s');
+    await page.keyboard.up('Shift');
+    const returned = await page.evaluate(() => ({ world: window.__museum?.activeWorld,
+      z: window.__museum?.player.position.z, grounded: window.__museum?.player.grounded,
+      museumBuildCount: window.__museum?.museumBuildCount }));
+    expect(returned).toMatchObject({ world: 'exterior', grounded: true, museumBuildCount: 1 });
+    expect(returned.z).toBeGreaterThan(132);
+    await page.locator('#museum-canvas').screenshot({ path: 'test-results/p7-threshold-return.png' });
+
+    await page.keyboard.down('Shift');
+    await page.keyboard.down('w');
+    await page.waitForFunction(() => window.__museum?.activeWorld === 'interior', null, { timeout: 90_000 });
+    await page.keyboard.up('w');
+    await page.keyboard.up('Shift');
+    expect(await page.evaluate(() => ({ world: window.__museum?.activeWorld,
+      museumBuildCount: window.__museum?.museumBuildCount }))).toEqual({ world: 'interior', museumBuildCount: 1 });
+    await page.evaluate(() => window.__museum?.stop());
+    expect(errors).toEqual([]);
+  });
+
   test('cold start outside, approach south doorway, predictive prepare, and enter vestibule', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));

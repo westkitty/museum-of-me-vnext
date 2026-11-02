@@ -15,7 +15,11 @@ npm run dev
 
 `npm run dev` regenerates the current collection from the versioned data layer before starting Vite.
 
-Then walk in. `WASD` or `arrows` move · mouse look · `Q/E` rotate · `Shift` sprint · `Space` jump · `F` or `Enter` interact · `M` map · `J` journal · `Esc` release pointer. Keyboard-only vertical look uses `Page Up/Page Down`.
+The first visit opens outside on the island plaza. Walk the pier and paths to explore the lagoon,
+woodland and northwest gold-spire garden. Approach the south entrance to prepare the interior;
+the short vestibule conceals the handoff to the much larger museum. `WASD` or `arrows` move ·
+mouse look · `Q/E` rotate · `Shift` sprint · `Space` jump · `F` or `Enter` interact · `M` map ·
+`J` journal · `Esc` release pointer. Keyboard-only vertical look uses `Page Up/Page Down`.
 
 ## Museum Workshop — development authoring
 
@@ -49,11 +53,21 @@ The projection preserves all 17 authored identities and vNext routes. It uses ho
 
 Open `/workbench/` on the dev server to use the source-pinned architectural planning map. **2D Plan** is the default and retains its search, floors, source-installation/visitor overlays, measure/ruler, notes, pins, proposed moves, undo, JSON import/export and SVG export.
 
-Choose **3D Museum** to lazy-load a separate local Three.js 0.185.1 page that builds the **real museum architecture** using `Museum.build()` and the same canonical exhibit placements used by the playable world. Drag to orbit, right-drag to pan, scroll/pinch to zoom, isolate floors or wings, toggle roof cutaway, select any of the 35 exhibit anchors or Dexter Sanctuary, and inspect/annotate spatial positions. In **+ Pin** mode click a physical architectural surface; the position (including optional Y) is retained in the existing version-1 planning JSON, so the original 2D map still reads it. Read-only proposed-move ghosts and authored visitor routes are optional visual layers. Select a room in either view to update the shared workbench inspector.
+Choose **3D Museum** to lazy-load a separate local Three.js 0.185.1 page. Its **Museum** view builds
+the real indoor architecture with `Museum.build()` and the canonical exhibit placements used by the
+playable world. Its **Full Island** view uses the same `ExteriorWorld` builder as the playable
+exterior and does not build the interior until Museum view is selected. Drag to orbit, right-drag to
+pan, scroll/pinch to zoom, use the island camera presets, isolate museum floors or wings, toggle roof
+cutaway, select any of the 35 exhibit anchors or Dexter Sanctuary, and inspect/annotate positions.
+In **+ Pin** mode click a physical surface; indoor pins retain their floor and optional Y, while
+exterior pins keep exact X/Y/Z with `worldId=exterior` and a stable feature ID when the surface is
+tagged. Legacy pins without a world ID continue to load as interior pins. Proposed-move ghosts and
+authored visitor routes remain read-only layers. Select a room in either view to update the shared
+workbench inspector.
 
 3D mode is a **read-only architectural survey**: it never edits the authoritative museum mesh, collisions, routes, gameplay, or curated exhibit content. It does not claim to reproduce streamed live exhibit simulations. It adds no remote runtime assets and does not load a second WebGL renderer until the 3D mode is selected. Switching back to 2D unloads/disposes the viewer. A complete Vite build/served folder is necessary for the 3D view; simply opening the lone original 2D HTML through `file://` still provides the original 2D plan, not the bundled 3D viewer.
 
-**Full Island survey:** Choose `Full Island` from the 3D viewer, or open `/workbench/?view=island` to enter it directly. This scene builds the actual `ArrivalGarden` island terrain, irregular shoreline, source water material and geometry, arrival planting, `ArrivalBeacons`, `Sky` (including the nighttime celestial appearance), `Lighting` and the existing `Museum.build()` building plus permanent dressing. The full roof, both floors and every wing remain visible in this mode. The existing building-only cutaway survey is still available as `Museum`.
+**Full Island survey:** Choose `Full Island` from the 3D viewer, or open `/workbench/?view=island` to enter it directly. This view builds the shared `ExteriorWorld`, including the island terrain, irregular shoreline, lagoon, paths, woodland, spire garden, pier, compact shell and canonical night sky. The interior museum is not built in Island view. Switch to `Museum` to inspect the full indoor architecture, both floors and all six wings with the existing cutaway tools.
 
 The 3D presentation now prioritizes the model: both outer sidebars start folded, at most one opens, and its desktop width cannot exceed **29% of the viewport** (mobile uses a bottom drawer capped at **29% of viewport height**). The 3D viewer's secondary tools/layers also fold down. Select an exhibit or place a planning pin to open the inspector when needed. Switching back to the 2D plan restores the existing layout and original version-1 planning data. Full Island is a planning/render survey, not a second gameplay engine or live exhibit simulation; source-island surface and water remain visual-only and do not change museum collisions. The survey holds the water at a still shader frame to preserve the museum's single-loop invariant; the separate playable museum retains its own water animation. The opt-in viewer disposes its resources when unloaded.
 

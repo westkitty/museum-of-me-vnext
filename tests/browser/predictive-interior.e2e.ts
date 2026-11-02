@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('cold exterior stays lazy; accessible entrance intent records real preparation stages', async ({ page }) => {
+  test.setTimeout(300_000);
   const pageErrors: string[] = [];
   let bootMessage: string | null = null;
   page.on('pageerror', (error) => pageErrors.push(error.message));
@@ -33,6 +34,25 @@ test('cold exterior stays lazy; accessible entrance intent records real preparat
     };
   });
   expect(cold).toEqual({ activeWorld: 'exterior', interiorConstructed: false, importRequestedAtMs: null, buildCount: 0 });
+
+  const coldTransfer = await page.evaluate(() => {
+    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+    const resources = (performance.getEntriesByType('resource') as PerformanceResourceTiming[])
+      .filter((entry) => entry.name.startsWith(location.origin));
+    return {
+      navigationTransferBytes: navigation?.transferSize ?? null,
+      resourceTransferBytes: resources.reduce((total, entry) => total + entry.transferSize, 0),
+      resourceBodyBytes: resources.reduce((total, entry) => total + entry.encodedBodySize, 0),
+      resourceCount: resources.length,
+      deferredInteriorRequested: resources.some((entry) => /interior/i.test(entry.name)),
+    };
+  });
+  expect(coldTransfer.deferredInteriorRequested).toBe(false);
+
+  // Use the supported low tier for this telemetry journey. The full-size
+  // medium framebuffer makes SwiftShader stall long enough to hide state
+  // transitions in a serial browser suite; tier behavior has separate tests.
+  await page.evaluate(() => window.__museum?.setQuality('low'));
 
   await page.keyboard.down('w');
   await page.evaluate(() => window.__museum?.start());
@@ -149,8 +169,8 @@ test('cold exterior stays lazy; accessible entrance intent records real preparat
   expect(firstEntry.firstInteriorFrameAtMs).toBeGreaterThanOrEqual(firstEntry.transitionCommittedAtMs!);
   expect(ready.frameProfile.samples).toBeGreaterThan(0);
   expect(firstInputAtMs).toBeGreaterThan(0);
-  console.info('[P5 preparation evidence]', JSON.stringify({
-    bootMessage, firstExteriorInputAtMs: firstInputAtMs,
+  console.info('[P7 cold startup and preparation evidence]', JSON.stringify({
+    bootMessage, firstExteriorInputAtMs: firstInputAtMs, coldTransfer,
     gpuPrewarm: 'deferred until interior activation',
     ...ready, firstEntry,
   }));
