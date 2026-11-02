@@ -11,7 +11,8 @@ test('developer flight and sky clock work in the real museum, with night reset',
 
   const tools = page.getByRole('complementary', { name: 'Developer flight and sky controls' });
   await expect(tools).toBeVisible();
-  const toggle = tools.getByRole('button', { name: 'ENABLE FREE FLIGHT (V)' });
+  const toggle = tools.locator('button[data-dev-fly]');
+  await expect(toggle).toHaveText('ENABLE FREE FLIGHT (V)');
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
   expect(await page.evaluate(() => window.__museum?.player.developerFlightMode)).toBe(true);
