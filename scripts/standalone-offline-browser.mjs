@@ -42,6 +42,9 @@ try {
   await page.waitForFunction(() => Boolean(window.__museum), null, { timeout: BOOT_TIMEOUT_MS });
   const canvas = await page.locator('#museum-canvas').isVisible();
   const zone = await page.evaluate(() => window.__museum?.currentZone);
+  await page.evaluate(async () => {
+    await window.__museum?.ensureInteriorLoaded();
+  });
   const visitors = await page.evaluate(() => window.__museum?.sourceVisitors?.count ?? 0);
   await page.evaluate(() => window.__museum?.stop());
   await page.evaluate(() => window.__museum?.ui.openFullWeasel());

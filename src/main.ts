@@ -3,7 +3,6 @@ import { mountCinematicArrival } from './ui/CinematicArrival';
 import './ui/cinematic-arrival.css';
 import { App } from './app/App';
 import { MuseumPlacements } from './workshop/MuseumPlacements';
-import { PersistentEnvironment } from './world/PersistentEnvironment';
 import { AuthorableSceneRegistry } from './workshop/AuthorableSceneRegistry';
 
 function fail(message: string, detail?: unknown): never {
@@ -25,26 +24,18 @@ if (!canvas || !uiRoot || !a11yRoot) {
 
 let app: App;
 let placements: MuseumPlacements;
+let sceneRegistry: AuthorableSceneRegistry;
 const bootstrapStarted = performance.now();
 let coreBootMs = 0;
-let environmentBootMs = 0;
+const environmentBootMs = 0;
 try {
   app = new App({ canvas, uiRoot, a11yRoot });
   coreBootMs = performance.now() - bootstrapStarted;
 
-  // All always-resident polish lives behind one measurable lifecycle boundary.
-  // It shares the application ResourceScope and never owns collision, loops or
-  // exhibit lifecycle resources.
-  const environmentBuilder = new PersistentEnvironment(app.scope);
-  const environment = environmentBuilder.build();
-  environmentBootMs = performance.now() - bootstrapStarted - coreBootMs;
-  app.scene.add(environment);
-  app.setEnvironmentVisibility((zone, deep, wings) => environmentBuilder.updateVisibility(zone, deep, wings));
-
-  const sceneRegistry = new AuthorableSceneRegistry([
+  sceneRegistry = new AuthorableSceneRegistry([
     ...app.arrivalGarden.authorableSceneRoots(),
-    ...environmentBuilder.authorableSceneRoots(),
   ]);
+  app.sceneRegistry = sceneRegistry;
 
   // Museum Workshop writes only this declarative placement source. The normal
   // runtime consumes it in every build; the development editor itself is loaded
@@ -80,7 +71,8 @@ if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('edit
     else app.ui.hud.announce('Museum Workshop is still loading.');
   });
   void import('./workshop/Workshop')
-    .then(({ Workshop }) => {
+    .then(async ({ Workshop }) => {
+      await app.ensureInteriorLoaded();
       const workshop = new Workshop(app, placements);
       toggleWorkshop = () => workshop.toggle();
       app.setWorkshopUpdate(() => workshop.update());

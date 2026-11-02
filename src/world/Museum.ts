@@ -46,6 +46,9 @@ export interface MuseumBuildResult {
   readonly zoneGroups: ReadonlyMap<string, THREE.Group>;
 }
 
+import { recordMuseumBuild, getMuseumBuildCount, resetMuseumBuildCount } from './museumBuildTracker';
+export { getMuseumBuildCount, resetMuseumBuildCount };
+
 /**
  * Builds the entire museum: exterior, plaza, entrance, Rotunda, all six wings,
  * mezzanine, stairs, the Dexter Sanctuary, and all 35 exhibit volumes.
@@ -74,6 +77,7 @@ export class Museum {
   }
 
   build(): MuseumBuildResult {
+    recordMuseumBuild();
     this.buildExterior();
     this.buildRotunda();
     this.buildBalcony();

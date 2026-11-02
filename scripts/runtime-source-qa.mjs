@@ -63,9 +63,15 @@ try {
   // streaming/interaction tick under software WebGL on slow CI runners.
   await page.waitForFunction(() => {
     const app = window.__museum;
-    return Boolean(app && app.player && app.input && app.streaming
-      && app.streaming.hosts && app.sourceInstallations
+    return Boolean(app && app.player && app.input
       && app.interaction && app.journal && app.study);
+  }, null, { timeout: BOOT_TIMEOUT_MS });
+  await page.evaluate(async () => {
+    await window.__museum.ensureInteriorLoaded();
+  });
+  await page.waitForFunction(() => {
+    const app = window.__museum;
+    return Boolean(app && app.streaming && app.streaming.hosts && app.sourceInstallations);
   }, null, { timeout: BOOT_TIMEOUT_MS });
 
   // Prove the real WebGL application booted at the exterior arrival, then stop
@@ -128,6 +134,7 @@ try {
       app.player.pitch = Math.atan2(target[1] - eye[1], Math.hypot(dx, dz));
       app.player.applyToCamera(app.camera, 1);
       app.camera.updateMatrixWorld(true);
+      app.worldDirector.update(app.player.position);
       app.interaction.update(app.camera);
     }
 

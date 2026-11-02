@@ -17,7 +17,7 @@ export class DomMirror {
 
   constructor(
     private readonly root: HTMLElement,
-    private readonly streaming: StreamingManager,
+    private readonly streaming: StreamingManager | (() => StreamingManager | undefined) | undefined,
     private readonly onOpenExhibit: (id: string) => void,
     private readonly onOpenThread?: () => void,
   ) {
@@ -119,7 +119,8 @@ export class DomMirror {
       this.stateBlock.append(el('p', { text: 'You are between exhibits.' }));
       return;
     }
-    const host = this.streaming.get(this.currentExhibit);
+    const mgr = typeof this.streaming === 'function' ? this.streaming() : this.streaming;
+    const host = mgr?.get(this.currentExhibit);
     if (!host || !host.isActive) {
       this.stateBlock.append(el('p', { text: 'That exhibit is not currently loaded.' }));
       return;

@@ -39,7 +39,7 @@ export class UILayer {
   readonly study: StudyPanel;
   readonly command: CommandPalette;
   readonly fullWeasel: FullWeaselPanel;
-  private hudElapsed = 0;
+  private hudElapsed = 1 / 30;
   private embeddedPaused = false;
   private disposing = false;
   readonly dexgptGuide: MuseumGuidePanel;
@@ -68,8 +68,8 @@ export class UILayer {
       () => app.player.yaw,
       () => app.preferences,
       () => [
-        ...app.sourceVisitors.positions(),
-        ...app.visitors.positions(),
+        ...(app.sourceVisitors?.positions() ?? []),
+        ...(app.visitors?.positions() ?? []),
       ],
     );
     this.deep = new DeepPanel(app.journal);
@@ -81,7 +81,7 @@ export class UILayer {
     });
     this.diagnostics = new DiagnosticsOverlay(app.diagnostics);
     this.qaCapture = qaEnabled ? new QACapture(app) : null;
-    this.mirror = new DomMirror(a11yRoot, app.streaming, (id) => this.deep.openFor(id), () => this.visitThread.open());
+    this.mirror = new DomMirror(a11yRoot, () => app.streaming, (id) => this.deep.openFor(id), () => this.visitThread.open());
     this.curator = new CuratorPanel(app.journal, {
       guideTo: (id) => this.mapGuide(id),
       captureView: () => this.captureView(),
@@ -128,7 +128,7 @@ export class UILayer {
     this.fullWeasel = new FullWeaselPanel();
     this.unbind.push(this.fullWeasel.onClose(() => {
       if (this.disposing) return;
-      this.app.streaming.setBackgroundPaused(false);
+      this.app.streaming?.setBackgroundPaused(false);
       if (!this.embeddedPaused) return;
       this.embeddedPaused = false;
       this.app.resumeFromEmbedded();
@@ -197,7 +197,7 @@ export class UILayer {
         this.mirror.setCurrentExhibit(focus?.exhibitId ?? null);
       }),
       this.map.onTargetChange((exhibitId) => {
-        app.wayfinding.setTarget(exhibitId);
+        app.wayfinding?.setTarget(exhibitId);
         if (exhibitId) {
           this.hud.announce('Wayfinding set. A line on the floor points the way; it clears when you arrive.');
         }
@@ -231,7 +231,7 @@ export class UILayer {
   openFullWeasel(): void {
     if (this.fullWeasel.isOpen) return;
     this.fullWeasel.open();
-    this.app.streaming.setBackgroundPaused(true);
+    this.app.streaming?.setBackgroundPaused(true);
     if (this.app.loop.isRunning) {
       this.embeddedPaused = true;
       this.app.stop();
@@ -297,7 +297,7 @@ export class UILayer {
 
   private mapGuide(id: string | null): void {
     this.map.setTargetPublic(id);
-    this.app.wayfinding.setTarget(id);
+    this.app.wayfinding?.setTarget(id);
     this.app.journal.setGuideTarget(id ? { kind: 'exhibit', id } : undefined);
     if (id) this.hud.announce('Wayfinding set. A line on the floor points the way; it clears when you arrive.');
     else this.hud.announce('Guide cleared.');
@@ -461,9 +461,9 @@ export class UILayer {
         controls: this.app.interaction.controlCount,
         audio: this.app.audio.isRunning ? 'on' : 'off',
         pointer: this.app.input.pointerLocked ? 'locked' : 'free',
-        loads: this.app.streaming.telemetry.pendingLoads,
-        mountMs: this.app.streaming.telemetry.lastMountMs.toFixed(1),
-        warmMs: this.app.streaming.telemetry.lastWarmMs.toFixed(1),
+        loads: this.app.streaming?.telemetry.pendingLoads ?? 0,
+        mountMs: (this.app.streaming?.telemetry.lastMountMs ?? 0).toFixed(1),
+        warmMs: (this.app.streaming?.telemetry.lastWarmMs ?? 0).toFixed(1),
         shaderMs: this.app.renderer.warmTelemetry.lastCompileWallMs.toFixed(1),
         textureMs: this.app.renderer.warmTelemetry.lastTextureInitCpuMs.toFixed(1),
         dpr: this.app.renderer.effectivePixelRatio.toFixed(2),

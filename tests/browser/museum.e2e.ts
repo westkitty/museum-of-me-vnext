@@ -14,7 +14,10 @@ async function bootMuseum(page: Page, path = '/?qa=1'): Promise<string[]> {
   // The CI runner has no real GPU. Prove that the real WebGL application boots,
   // then stop its render loop before any browser-semantic assertions so software
   // rendering cannot starve Playwright's protocol commands.
-  await page.evaluate(() => window.__museum?.stop());
+  await page.evaluate(() => {
+    window.__museum?.stop();
+    window.__museum?.variableUpdate(1 / 60);
+  });
 
   if (path.includes('qa=1')) {
     const diagnostics = page.locator('.diag');
@@ -62,24 +65,26 @@ test('boots at the exterior arrival and keyboard input reaches the real controll
     waveModel: 'deep-water-dispersion',
   });
 
-  const renderBudget = await page.evaluate(() => {
+  const renderBudget = await page.evaluate(async () => {
     const app = window.__museum;
     if (!app) throw new Error('museum app missing');
+    await app.ensureInteriorLoaded();
     app.fixedUpdate(1 / 60);
+    app.variableUpdate(1 / 60);
     let cameraVisibleVisitorMeshes = 0;
-    app.sourceVisitors.group.traverse((node) => {
+    app.sourceVisitors?.group.traverse((node) => {
       if ((node as { isMesh?: boolean }).isMesh && app.camera.layers.test(node.layers)) {
         cameraVisibleVisitorMeshes += 1;
       }
     });
     return {
-      visitorBatch: app.sourceVisitors.batch.isBatchedMesh,
-      visitorInstances: app.sourceVisitors.batch.instanceCount,
+      visitorBatch: app.sourceVisitors?.batch.isBatchedMesh,
+      visitorInstances: app.sourceVisitors?.batch.instanceCount,
       cameraVisibleVisitorMeshes,
-      contactShadowsInstanced: app.sourceVisitors.shadows.isInstancedMesh,
-      contactShadowInstances: app.sourceVisitors.shadows.count,
-      visibleInstallations: app.sourceInstallations.visibleCount,
-      totalInstallations: app.sourceInstallations.count,
+      contactShadowsInstanced: app.sourceVisitors?.shadows.isInstancedMesh,
+      contactShadowInstances: app.sourceVisitors?.shadows.count,
+      visibleInstallations: app.sourceInstallations?.visibleCount,
+      totalInstallations: app.sourceInstallations?.count,
     };
   });
   expect(renderBudget.visitorBatch).toBe(true);
@@ -90,7 +95,8 @@ test('boots at the exterior arrival and keyboard input reaches the real controll
   expect(renderBudget.contactShadowsInstanced).toBe(true);
   expect(renderBudget.contactShadowInstances).toBe(17);
   expect(renderBudget.visibleInstallations).toBeGreaterThan(0);
-  expect(renderBudget.visibleInstallations).toBeLessThan(renderBudget.totalInstallations);
+  expect(renderBudget.totalInstallations).toBeDefined();
+  expect(renderBudget.visibleInstallations!).toBeLessThan(renderBudget.totalInstallations!);
 
   const titlePrewarm = await page.evaluate(() => window.__museum?.titlePrewarmStatus);
   expect(titlePrewarm?.minimumDwellMs).toBe(4_000);
@@ -148,6 +154,9 @@ test('boots at the exterior arrival and keyboard input reaches the real controll
 
 test('operates the visual map and reduced-motion setting with the keyboard', async ({ page }) => {
   const errors = await bootMuseum(page);
+  await page.evaluate(async () => {
+    await window.__museum?.ensureInteriorLoaded();
+  });
 
   await page.keyboard.press('m');
   await expect(page.getByRole('dialog', { name: 'Museum map' })).toBeVisible();
@@ -216,9 +225,10 @@ test('admits DexGPT only after entry, then guides through the existing wayfindin
   // collision path as a visitor. The stopped render loop means the test must
   // advance the real fixed and variable updates itself.
   await page.keyboard.down('w');
-  await page.evaluate(() => {
+  await page.evaluate(async () => {
     const app = window.__museum;
     if (!app) throw new Error('museum app missing');
+    await app.ensureInteriorLoaded();
     for (let i = 0; i < 700; i++) {
       app.fixedUpdate(1 / 60);
       app.variableUpdate(1 / 60);
@@ -245,7 +255,7 @@ test('admits DexGPT only after entry, then guides through the existing wayfindin
 
   await guide.getByRole('button', { name: 'Guide me to The Full Weasel' }).click();
   await expect(guide).toBeHidden();
-  expect(await page.evaluate(() => window.__museum?.wayfinding.currentTarget)).toBe('E27');
+  expect(await page.evaluate(() => window.__museum?.wayfinding?.currentTarget)).toBe('E27');
   await expect.poll(() => page.evaluate(() => ({
     captured: window.__museum?.input.uiCaptured,
     frozen: window.__museum?.player.isFrozen,
@@ -290,6 +300,9 @@ test('opens the local Full Weasel artifact and restores Museum input on Escape',
 
 test('builds a Visit Thread through the production UI and connects it to real wayfinding', async ({ page }) => {
   const errors = await bootMuseum(page);
+  await page.evaluate(async () => {
+    await window.__museum?.ensureInteriorLoaded();
+  });
 
   await page.keyboard.press('t');
   const panel = page.locator('#panel-visit-thread');
@@ -307,7 +320,7 @@ test('builds a Visit Thread through the production UI and connects it to real wa
   expect(routeCount).toBe(3);
   const current = await page.evaluate(() => window.__museum?.visitThread.currentStopId ?? null);
   expect(current).not.toBeNull();
-  expect(await page.evaluate(() => window.__museum?.wayfinding.currentTarget ?? null)).toBe(current);
+  expect(await page.evaluate(() => window.__museum?.wayfinding?.currentTarget ?? null)).toBe(current);
   await expect(panel.locator('.thread-stop')).toHaveCount(3);
   await expect(panel.locator('.thread-stop[data-state="current"]')).toHaveCount(1);
   await expect(panel.locator('.thread-reason').first()).toContainText('continuity architecture');

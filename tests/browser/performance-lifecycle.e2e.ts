@@ -5,6 +5,9 @@ test('doorway visibility, streamed artwork and embedded rendering lifecycle', as
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/?qa=1', { waitUntil: 'commit' });
   await page.waitForFunction(() => Boolean(window.__museum), { timeout: 45_000 });
+  await page.evaluate(async () => {
+    await window.__museum?.ensureInteriorLoaded();
+  });
 
   const portal = await page.evaluate(() => {
     const app = window.__museum!;
@@ -12,20 +15,20 @@ test('doorway visibility, streamed artwork and embedded rendering lifecycle', as
     app.player.teleport([0, 0, 0], 0);
     app.variableUpdate(1 / 60);
     const northFacing = {
-      north: app.museum.zoneGroups.get('north')?.visible,
-      south: app.museum.zoneGroups.get('south')?.visible,
-      east: app.museum.zoneGroups.get('east')?.visible,
-      media: app.museum.zoneGroups.get('media')?.visible,
+      north: app.museum!.zoneGroups.get('north')?.visible,
+      south: app.museum!.zoneGroups.get('south')?.visible,
+      east: app.museum!.zoneGroups.get('east')?.visible,
+      media: app.museum!.zoneGroups.get('media')?.visible,
     };
     app.player.teleport([0, 0, 0], Math.PI / 2);
     app.variableUpdate(1 / 60);
     const eastFacing = {
-      east: app.museum.zoneGroups.get('east')?.visible,
-      west: app.museum.zoneGroups.get('west')?.visible,
+      east: app.museum!.zoneGroups.get('east')?.visible,
+      west: app.museum!.zoneGroups.get('west')?.visible,
     };
     // The six-wing gallery collection stays in the scene even when invisible.
     const allPresent = ['north','east','south','west','media','infra']
-      .every((wing) => Boolean(app.museum.zoneGroups.get(wing)));
+      .every((wing) => Boolean(app.museum!.zoneGroups.get(wing)));
     return { northFacing, eastFacing, allPresent };
   });
   expect(portal).toMatchObject({
@@ -38,18 +41,19 @@ test('doorway visibility, streamed artwork and embedded rendering lifecycle', as
   // when leaving. No arbitrary off-origin images are introduced.
   const sourceBefore = await page.evaluate(() => {
     const app = window.__museum!;
-    const pending = (app.sourceArtwork as unknown as {
+    const artwork = app.sourceArtwork!;
+    const pending = (artwork as unknown as {
       pending: Array<{ position: [number, number, number]; material: {
         version: number; map: { uuid: string; isDataTexture?: boolean } | null;
       } }>;
     }).pending;
     if (!pending?.length) throw new Error('curated source raster positions missing');
-    app.sourceArtwork.update(10_000, 10_000, 1);
+    artwork.update(10_000, 10_000, 1);
     const first = pending[0];
     const placeholderId = first.material.map?.uuid;
     const shaderVersion = first.material.version;
     const isPreviewTexture = first.material.map?.isDataTexture === true;
-    app.sourceArtwork.update(first.position[0], first.position[2], 1);
+    artwork.update(first.position[0], first.position[2], 1);
     return { position: first.position, placeholderId, shaderVersion, isPreviewTexture };
   });
   expect(sourceBefore.position).toHaveLength(3);
@@ -114,7 +118,7 @@ test('doorway visibility, streamed artwork and embedded rendering lifecycle', as
     entry.texture = null;
     entry.loading = false;
     entry.material.map = detached as unknown as typeof entry.material.map;
-    app.sourceArtwork.update(10_000, 10_000, 1);
+    app.sourceArtwork!.update(10_000, 10_000, 1);
     const result = {
       restored: entry.material.map === artwork.placeholder,
       shaderVersion: entry.material.version,
@@ -127,11 +131,12 @@ test('doorway visibility, streamed artwork and embedded rendering lifecycle', as
 
   const richCases = await page.evaluate(() => {
     const app = window.__museum!;
-    const first = app.supplementary.group.children[0];
-    app.supplementary.update(first.position.x, first.position.z, 1);
-    const close = app.supplementary.highResolutionResidentCount;
-    app.supplementary.update(10_000, 10_000, 1);
-    return { close, after: app.supplementary.highResolutionResidentCount };
+    const supplementary = app.supplementary!;
+    const first = supplementary.group.children[0];
+    supplementary.update(first.position.x, first.position.z, 1);
+    const close = supplementary.highResolutionResidentCount;
+    supplementary.update(10_000, 10_000, 1);
+    return { close, after: supplementary.highResolutionResidentCount };
   });
   expect(richCases.close).toBeGreaterThan(0);
   expect(richCases.close).toBeLessThanOrEqual(2);
@@ -145,7 +150,7 @@ test('doorway visibility, streamed artwork and embedded rendering lifecycle', as
     app.ui.fullWeasel.onClose(() => {
       proof.__museumEmbeddedResume = {
         running: app.loop.isRunning,
-        paused: app.streaming.isBackgroundPaused,
+        paused: app.streaming?.isBackgroundPaused ?? false,
         captured: app.input.uiCaptured,
       };
       app.stop(); // Prevent software WebGL starving subsequent assertions.
@@ -154,7 +159,7 @@ test('doorway visibility, streamed artwork and embedded rendering lifecycle', as
     app.ui.openFullWeasel();
     return {
       running: app.loop.isRunning,
-      paused: app.streaming.isBackgroundPaused,
+      paused: app.streaming?.isBackgroundPaused ?? false,
       open: app.ui.fullWeasel.isOpen,
     };
   });

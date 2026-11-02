@@ -4,13 +4,13 @@
   "traversal": {
     "start": [
       1.6900125828233476e-14,
-      0,
+      -0.5,
       138
     ],
     "end": [
       1.6900125828233476e-14,
-      0,
-      -95.25
+      -0.5,
+      -99.85833333334256
     ],
     "zones": [
       "plaza",
@@ -129,7 +129,7 @@
         "era-spool",
         "witness-node"
       ],
-      "meshCount": 24,
+      "meshCount": 23,
       "focusLabel": "Engage Starsilk Atlas",
       "status": "First Blood Rings — Y3 · Contradictions and confidence",
       "drivenBy": "ArrowLeft",
@@ -238,7 +238,7 @@
         "extraction-spine",
         "official-mask"
       ],
-      "meshCount": 28,
+      "meshCount": 27,
       "focusLabel": "Engage Drakken Terraforming Sandbox",
       "status": "Pyric / Solar · assault step 0/5 · actual condition",
       "drivenBy": "Digit2",
@@ -312,7 +312,7 @@
         "dismantled-fragment",
         "witness-beacon"
       ],
-      "meshCount": 24,
+      "meshCount": 23,
       "focusLabel": "Engage Orbital Tomb Visual Timeline",
       "status": "Meridian month 0/6",
       "drivenBy": "ArrowRight",
@@ -400,7 +400,7 @@
         "scale-gate",
         "smudge-figure"
       ],
-      "meshCount": 36,
+      "meshCount": 35,
       "focusLabel": "Engage S'mores Katamari",
       "status": "0/15 objects collected · scale 0.34",
       "drivenBy": "KeyW",
@@ -488,7 +488,7 @@
         "route-token",
         "weather-field"
       ],
-      "meshCount": 49,
+      "meshCount": 48,
       "focusLabel": "Engage WestCat Goes East",
       "status": "Dry streets · route 0.00/10",
       "drivenBy": "Digit2",
@@ -569,7 +569,7 @@
         "shrine",
         "rival-citadel"
       ],
-      "meshCount": 14,
+      "meshCount": 13,
       "focusLabel": "Engage Parable",
       "status": "Ritual unarmed · None · 0 casts",
       "drivenBy": "KeyC",
@@ -650,7 +650,7 @@
         "spec-stack",
         "failure-chute"
       ],
-      "meshCount": 17,
+      "meshCount": 16,
       "focusLabel": "Engage Vibe Coding Nexus",
       "status": "Purpose preserved · phase 0/4 · 0 failures",
       "drivenBy": "Digit2",
@@ -745,7 +745,7 @@
         "tool-orbit",
         "evidence-drawer"
       ],
-      "meshCount": 21,
+      "meshCount": 20,
       "focusLabel": "Engage WESTCAT Familiar",
       "status": "Focus · watching",
       "drivenBy": "Digit2",
@@ -833,7 +833,7 @@
         "authority-key",
         "record-rail"
       ],
-      "meshCount": 18,
+      "meshCount": 17,
       "focusLabel": "Engage Heliocide Control Room",
       "status": "Phase 0/5 · awaiting command · no record",
       "drivenBy": "KeyB",
@@ -914,7 +914,7 @@
         "text-ribbon",
         "privacy-shell"
       ],
-      "meshCount": 17,
+      "meshCount": 16,
       "focusLabel": "Engage DexDictate",
       "status": "hold mode · Idle · 0 local insertions",
       "drivenBy": "KeyT",
@@ -981,7 +981,7 @@
         "data-bridge",
         "queue-token"
       ],
-      "meshCount": 15,
+      "meshCount": 14,
       "focusLabel": "Engage Relay Link / TabletLink",
       "status": "Disconnected",
       "drivenBy": "Space",
@@ -1076,7 +1076,7 @@
         "verification-lens",
         "manual-proof"
       ],
-      "meshCount": 15,
+      "meshCount": 14,
       "focusLabel": "Engage OSINT Box",
       "status": "URL · ArchiveBox · step 0",
       "drivenBy": "Digit2",
@@ -1164,7 +1164,7 @@
         "query-key",
         "evidence-folio"
       ],
-      "meshCount": 17,
+      "meshCount": 16,
       "focusLabel": "Engage DexVault / Vault Architect",
       "status": "Canon constraint · retrieval step 0/3",
       "drivenBy": "Digit2",
@@ -1244,7 +1244,7 @@
       "presentParts": [
         "dexter-model"
       ],
-      "meshCount": 49,
+      "meshCount": 48,
       "focusLabel": "Engage DexGPT / Dexter's Sanctuary",
       "status": "Dex mode · watching",
       "drivenBy": "Digit2",

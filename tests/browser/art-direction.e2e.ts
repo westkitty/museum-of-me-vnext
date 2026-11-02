@@ -8,8 +8,9 @@ test('the real playable museum renders shared gallery finishes and transitions a
   });
   await page.goto('/?qa=1', { waitUntil: 'commit' });
   await page.waitForFunction(() => Boolean(window.__museum), { timeout: 30_000 });
-  const state = await page.evaluate(() => {
+  const state = await page.evaluate(async () => {
     const app = window.__museum!;
+    await app.ensureInteriorLoaded();
     app.stop(); // Same CI software-WebGL guard as the existing visitor paths.
     app.renderer.render(); // Real WebGL submission, not source-only assertions.
 

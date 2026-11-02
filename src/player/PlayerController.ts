@@ -73,12 +73,20 @@ export class PlayerController {
   }
 
   constructor(
-    private readonly world: CollisionWorld,
+    private world: CollisionWorld,
     private readonly input: InputManager,
   ) {
     this.input.on('jump', () => {
       if (!this.isFrozen && !this.input.uiCaptured) this.jumpQueued = true;
     });
+  }
+
+  get collisionWorld(): CollisionWorld {
+    return this.world;
+  }
+
+  setCollisionWorld(world: CollisionWorld): void {
+    this.world = world;
   }
 
   teleport(p: Vec3, yaw = this.yaw): void {
