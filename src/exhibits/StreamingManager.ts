@@ -124,6 +124,7 @@ export class StreamingManager {
   private idleMountHandle: number | null = null;
   private idleWarmHandle: number | null = null;
   private backgroundPaused = false;
+  private worldActive = true;
   private disposed = false;
   private readonly latestEye: [number, number, number] = [0, 0, 0];
   private latestZone: ZoneId = 'plaza';
@@ -192,6 +193,11 @@ export class StreamingManager {
       window.cancelIdleCallback(this.idleWarmHandle);
       this.idleWarmHandle = null;
     }
+  }
+
+  /** GPU compilation waits until this world is visible; cold entry stays mount-ready only. */
+  setWorldActive(active: boolean): void {
+    this.worldActive = active;
   }
 
   /** A live quality change must reconfigure residency without recreating hosts. */
@@ -337,6 +343,7 @@ export class StreamingManager {
   }
 
   private enqueueWarm(id: string, priority: boolean): void {
+    if (!this.worldActive && this.prewarmTargets.has(id)) return;
     const host = this.hosts.get(id);
     if (!host || host.currentState !== 'mounted' || host.isGpuWarm) return;
     if (this.warmQueued.has(id) || this.warming.has(id)) return;
@@ -450,6 +457,7 @@ export class StreamingManager {
       if (
         host.currentState === 'mounted'
         && !host.isGpuWarm
+        && (this.worldActive || !this.prewarmTargets.has(id))
         && (prewarmHold || (inRelevantZone && (distanceSq <= this.loadRadiusSq
           || (HEAVY_PRELOAD_IDS.has(id) && distanceSq <= this.unloadRadiusSq))))
       ) {
@@ -650,11 +658,14 @@ export class StreamingManager {
   private updatePrewarmTelemetry(): void {
     let mounted = 0;
     let warmed = 0;
+    let criticalMounted = 0;
     let criticalWarmed = 0;
     for (const id of this.prewarmTargets) {
       const host = this.hosts.get(id);
       if (!host) continue;
       if (host.currentState === 'mounted' || host.currentState === 'active') mounted++;
+      if ((ENTRANCE_CRITICAL_PREWARM_IDS as readonly string[]).includes(id)
+        && (host.currentState === 'mounted' || host.currentState === 'active')) criticalMounted++;
       if (host.isGpuWarm) {
         warmed++;
         if ((ENTRANCE_CRITICAL_PREWARM_IDS as readonly string[]).includes(id)) criticalWarmed++;
@@ -662,7 +673,11 @@ export class StreamingManager {
     }
     const total = this.prewarmTargets.size;
     const criticalTotal = ENTRANCE_CRITICAL_PREWARM_IDS.filter((id) => this.prewarmTargets.has(id)).length;
-    const ready = criticalTotal > 0 && criticalWarmed === criticalTotal;
+    // Doorway readiness requires the two critical entry payloads to be built
+    // and mounted. GPU compile is deliberately deferred until this world is
+    // active because matched M1 traces showed no first-entry benefit from
+    // compiling these hidden exhibit roots during approach.
+    const ready = criticalTotal > 0 && criticalMounted === criticalTotal;
     if (ready && this.prewarmReadyAtMs === null) this.prewarmReadyAtMs = performance.now();
     if (!ready) this.prewarmReadyAtMs = null;
 

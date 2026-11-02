@@ -58,7 +58,10 @@ export class UILayer {
       if (touch) input.touchActive = true;
       else input.requestPointerLock();
       return true;
-    }, () => this.visitThread.open());
+    }, () => this.visitThread.open(),
+    () => { void app.worldDirector.prepareInterior().catch(() => undefined); },
+    () => window.location.reload(),
+    () => app.worldDirector.dismissThresholdPrompt());
     this.hud.setArrivalReadiness(app.arrivalReady);
     this.map = new MapPanel(
       app.journal,

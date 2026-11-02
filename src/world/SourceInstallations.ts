@@ -58,6 +58,7 @@ export interface InstallationSnapshot {
 export class SourceInstallations {
   readonly group = new THREE.Group();
   readonly store: InstallationStore;
+  readonly buildStageMs: Record<string, number> = {};
   private readonly runtimes = new Map<string, InstallationRuntime>();
   private readonly unbind: (() => void)[] = [];
   private readonly held = new Set<string>();
@@ -66,16 +67,18 @@ export class SourceInstallations {
   private visibilityZone: ZoneId | null = null;
   private readonly visibleZones = new Set<ZoneId>();
   private time = 0;
+  private built = false;
   /** The installation the visitor is currently operating, if any. */
   activeId: string | null = null;
 
   constructor(
     private readonly scope: ResourceScope,
-    collisions: CollisionWorld,
+    private readonly collisions: CollisionWorld,
     private readonly interaction: InteractionManager,
     private readonly journal: Journal,
     private readonly onAnnounce: (id: string, message: string) => void,
     store: InstallationStore = new InstallationStore(),
+    deferBuild = false,
   ) {
     this.group.name = 'source-installations';
     this.store = store;
@@ -86,21 +89,41 @@ export class SourceInstallations {
       depthWrite: false,
     }));
 
+    if (!deferBuild) this.buildAll();
+  }
+
+  async buildCooperatively(yieldControl: () => Promise<void>): Promise<void> {
+    if (this.built) return;
+    this.built = true;
     for (const spec of SOURCE_INSTALLATIONS) {
+      const started = performance.now();
+      this.buildOne(spec);
+      this.buildStageMs[spec.id] = performance.now() - started;
+      await yieldControl();
+    }
+  }
+
+  private buildAll(): void {
+    if (this.built) return;
+    this.built = true;
+    for (const spec of SOURCE_INSTALLATIONS) this.buildOne(spec);
+  }
+
+  private buildOne(spec: SourceInstallation): void {
       const placement = INSTALLATION_PLACEMENT_BY_ID.get(spec.id);
-      if (!placement) continue;
-      const runtime = this.build(spec, placement, collisions);
+      if (!placement) return;
+      const runtime = this.build(spec, placement, this.collisions);
       this.runtimes.set(spec.id, runtime);
       // Visual residency may hide runtime.group, but the interaction proxy must
       // remain independently raycastable for guide/teleport/programmatic entry.
       this.group.add(runtime.group, runtime.hit);
-      this.unbind.push(this.interaction.register(`installation:${spec.id}`, {
+      const unbind = this.measurePart(spec.id, 'registration', () => this.interaction.register(`installation:${spec.id}`, {
         object: runtime.hit,
         label: `Engage ${spec.title}`,
         description: `${spec.stage}. ${SPATIAL_CONTRACT.standard.lecternPrompt} ${this.status(spec.id)}`,
         activate: () => this.engage(spec.id),
       }));
-    }
+      this.unbind.push(unbind);
   }
 
   get count(): number {
@@ -289,11 +312,12 @@ export class SourceInstallations {
     group.position.set(placement.position[0], placement.position[1], placement.position[2]);
     group.rotation.y = Math.atan2(placement.facing[0], placement.facing[2]) + Math.PI;
 
-    const visual = buildInstallationVisual(spec.build, this.scope, spec.accent);
+    const visual = this.measurePart(spec.id, 'visual', () =>
+      buildInstallationVisual(spec.build, this.scope, spec.accent));
     group.add(visual.group);
 
-    const state = this.store.get(spec.id);
-    visual.update(state);
+    const state = this.measurePart(spec.id, 'state', () => this.store.get(spec.id));
+    this.measurePart(spec.id, 'visual-update', () => visual.update(state));
 
     // Source collision footprint: the installation is solid, so a visitor walks
     // around it rather than through it.
@@ -302,7 +326,7 @@ export class SourceInstallations {
       [placement.footprint[0], 1.2, placement.footprint[1]],
     );
 
-    const lectern = this.buildLectern(spec, placement, state);
+    const lectern = this.measurePart(spec.id, 'lectern', () => this.buildLectern(spec, placement, state));
     group.add(lectern);
     collisions.addBox(
       [placement.lectern[0], placement.lectern[1] + 0.55, placement.lectern[2]],
@@ -331,6 +355,15 @@ export class SourceInstallations {
       : PLACEMENT_BY_EXHIBIT.get(placement.host)?.wing ?? 'rotunda';
 
     return { spec, placement, group, visual, lectern, hit, zone, state, engaged: false };
+  }
+
+  private measurePart<T>(id: string, part: string, build: () => T): T {
+    const started = performance.now();
+    try {
+      return build();
+    } finally {
+      this.buildStageMs[`${id}:${part}`] = performance.now() - started;
+    }
   }
 
   private buildLectern(
@@ -365,8 +398,11 @@ export class SourceInstallations {
       SPATIAL_CONTRACT.standard.lecternPrompt,
       ...controls,
     ], {
-      width: 1024, height: 500, background: '#1c1914', color: '#e8e1d2',
-      title: spec.title, titleColor: '#d4bd7a', titleSize: 44, bodySize: 24, padding: 40,
+      // This 1.5 m lectern is viewed at arm's length. A 640×320 canvas with
+      // proportionally scaled type keeps its on-screen glyph size while
+      // reducing synchronous text-raster work during predictive construction.
+      width: 640, height: 320, background: '#1c1914', color: '#e8e1d2',
+      title: spec.title, titleColor: '#d4bd7a', titleSize: 28, bodySize: 15, padding: 25,
     });
   }
 

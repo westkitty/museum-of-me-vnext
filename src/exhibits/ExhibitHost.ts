@@ -13,7 +13,7 @@ export interface HostServices {
   /** Load a governed asset into the exhibit's own scope. */
   readonly loadAsset: (assetId: string, scope: ResourceScope, detail: number) => Promise<THREE.Object3D>;
   /** Precompile shaders and initialize textures while the exhibit is still hidden. */
-  readonly warmObject?: (object: THREE.Object3D) => Promise<void>;
+  readonly warmObject?: (object: THREE.Object3D) => Promise<void | boolean>;
   /** Open a locally bundled finished artifact through the Museum UI. */
   readonly openEmbeddedExperience?: (id: 'full-weasel') => void;
 }
@@ -156,7 +156,7 @@ export class ExhibitHost {
     const generation = this.mountGeneration;
     const started = performance.now();
     this.gpuWarmPromise = (async () => {
-      if (this.services.warmObject) await this.services.warmObject(this.group);
+      if (this.services.warmObject && await this.services.warmObject(this.group) === false) return;
       if (
         this.mountGeneration === generation
         && (this.state === 'mounted' || this.state === 'active')

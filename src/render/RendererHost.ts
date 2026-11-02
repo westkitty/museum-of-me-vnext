@@ -139,13 +139,13 @@ export class RendererHost {
    * Prepare an object for first visibility without rendering it. This is the
    * r62 GPU-warm seam used by exhibit streaming under the title/plaza window.
    */
-  async prewarmObject(root: THREE.Object3D): Promise<void> {
-    if (this.disposed || this.contextLost) return;
+  async prewarmObject(root: THREE.Object3D): Promise<boolean> {
+    if (this.disposed || this.contextLost) return false;
 
     // Shader programs depend on scene lighting/environment, so compile only
     // after the deferred PMREM environment has reached its canonical state.
     await this.warmEnvironment();
-    if (this.disposed || this.contextLost) return;
+    if (this.disposed || this.contextLost) return false;
 
     const textures = new Set<THREE.Texture>();
     const collectTexture = (value: unknown): void => {
@@ -179,8 +179,10 @@ export class RendererHost {
     const compileStart = performance.now();
     await this.renderer.compileAsync(root, this.camera, this.scene);
     this.warmTelemetry.lastCompileWallMs = performance.now() - compileStart;
+    if (this.disposed || this.contextLost) return false;
     this.warmTelemetry.textures += textures.size;
     this.warmTelemetry.objects += 1;
+    return true;
   }
 
   resize(): void {

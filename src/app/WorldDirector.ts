@@ -7,6 +7,7 @@ export type WorldId = 'exterior' | 'interior';
 export type WorldPhase =
   | 'EXTERIOR_ACTIVE'
   | 'PREPARING_INTERIOR'
+  | 'PREPARING_RENDER_RESOURCES'
   | 'AT_THRESHOLD'
   | 'COMMITTING_INTERIOR'
   | 'INTERIOR_ACTIVE'
@@ -32,9 +33,15 @@ export class WorldDirector {
 
   private preparePromise: Promise<void> | null = null;
   private isCommitting = false;
+  private thresholdPromptDismissed = false;
+
+  private entranceIsReady(): boolean {
+    return Boolean(this.app.interiorLoadTelemetry.entranceReadyAtMs !== null
+      || this.app.interiorWorld?.streaming.telemetry.prewarmReady);
+  }
 
   constructor(private readonly app: App) {
-    this.firstExteriorInteractiveMs = performance.now();
+    this.firstExteriorInteractiveMs = 0;
   }
 
   async prepareInterior(): Promise<void> {
@@ -42,13 +49,14 @@ export class WorldDirector {
     if (this.preparePromise) return this.preparePromise;
     this.interiorImportStarted = true;
     this.phase = 'PREPARING_INTERIOR';
-    this.app.ui?.hud.announce('Preparing the galleries…');
+    this.app.ui?.hud.setThresholdStatus(true, 'Loading the museum module and building its architecture.', false, true);
 
     this.preparePromise = (async () => {
       try {
         await this.app.ensureInteriorLoaded();
         this.interiorConstructed = true;
-        this.phase = this.activeWorld === 'interior' ? 'INTERIOR_ACTIVE' : 'AT_THRESHOLD';
+        this.phase = this.activeWorld === 'interior' ? 'INTERIOR_ACTIVE'
+          : this.entranceIsReady() ? 'AT_THRESHOLD' : 'PREPARING_RENDER_RESOURCES';
 
         // If player is waiting at the threshold seam when load completes, commit transition immediately
         if (this.activeWorld === 'exterior' && this.app.player.position.z <= ENTRANCE_PORTAL_Z + 0.1) {
@@ -58,17 +66,16 @@ export class WorldDirector {
         console.error('[WorldDirector] failed to prepare interior', err);
         this.phase = 'PREPARATION_FAILED';
         this.preparePromise = null;
-        this.app.ui?.hud.announce('Gallery preparation failed. Press R to retry.');
+        this.app.ui?.hud.setThresholdStatus(true, 'Museum preparation failed. The island remains available. Retry preparation or continue outside.', true);
         throw err;
       }
     })();
     return this.preparePromise;
   }
 
-  async retryInteriorLoad(): Promise<void> {
-    this.interiorImportStarted = false;
-    this.preparePromise = null;
-    return this.prepareInterior();
+  dismissThresholdPrompt(): void {
+    this.thresholdPromptDismissed = true;
+    this.app.ui?.hud.setThresholdStatus(false, '');
   }
 
   /**
@@ -77,7 +84,8 @@ export class WorldDirector {
    */
   commitToInterior(): boolean {
     if (this.activeWorld === 'interior' || this.isCommitting) return true;
-    if (this.app.renderer.isContextLost || !this.interiorConstructed || !this.app.interiorWorld) return false;
+    if (this.app.renderer.isContextLost || !this.interiorConstructed || !this.app.interiorWorld
+      || !this.entranceIsReady()) return false;
 
     this.isCommitting = true;
     this.phase = 'COMMITTING_INTERIOR';
@@ -89,6 +97,7 @@ export class WorldDirector {
       // 1. Inactive world is hidden, active world is shown
       this.app.exteriorWorld.root.visible = false;
       this.app.interiorWorld.root.visible = true;
+      this.app.interiorWorld.setActive(true);
 
       // 2. Physics collision switches to destination world
       this.app.player.setCollisionWorld(this.app.interiorWorld.collision);
@@ -101,6 +110,7 @@ export class WorldDirector {
       // 4. Update world mode and state
       this.activeWorld = 'interior';
       this.phase = 'INTERIOR_ACTIVE';
+      this.app.interiorLoadTelemetry.transitionCommittedAtMs = performance.now();
 
       return true;
     } finally {
@@ -128,6 +138,7 @@ export class WorldDirector {
     try {
       if (this.app.interiorWorld) {
         this.app.interiorWorld.root.visible = false;
+        this.app.interiorWorld.setActive(false);
       }
       this.app.exteriorWorld.root.visible = true;
 
@@ -149,6 +160,33 @@ export class WorldDirector {
 
   update(playerPosition: THREE.Vector3): void {
     if (this.isCommitting || this.app.renderer.isContextLost) return;
+
+    const inApproach = Math.abs(playerPosition.x) <= 22
+      && playerPosition.z <= 154 && playerPosition.z >= ENTRANCE_PORTAL_Z - 1;
+    if (!inApproach) this.thresholdPromptDismissed = false;
+    const rawEntranceReady = Boolean(this.app.interiorWorld?.streaming.telemetry.prewarmReady);
+    if (rawEntranceReady && this.app.interiorLoadTelemetry.entranceReadyAtMs === null) {
+      this.app.interiorLoadTelemetry.entranceReadyAtMs = performance.now();
+    }
+    const entranceReady = this.entranceIsReady();
+    if (entranceReady && this.activeWorld === 'exterior' && this.interiorConstructed
+      && this.phase === 'PREPARING_RENDER_RESOURCES') this.phase = 'AT_THRESHOLD';
+    if (inApproach && !this.thresholdPromptDismissed && this.activeWorld === 'exterior') {
+      const failed = this.phase === 'PREPARATION_FAILED';
+      const preparing = this.interiorImportStarted && !entranceReady && !failed;
+      const message = failed
+        ? 'Museum preparation failed. The island remains available.'
+        : entranceReady
+          ? 'The entrance hall is ready.'
+          : this.interiorConstructed
+            ? 'Building the entrance exhibits.'
+            : this.interiorImportStarted
+              ? 'Loading the museum module and building its architecture.'
+              : 'The entrance is nearby. Enter museum begins preparation; its galleries are not loaded yet.';
+      this.app.ui?.hud.setThresholdStatus(true, message, failed, preparing);
+    } else if (!inApproach || this.activeWorld !== 'exterior') {
+      this.app.ui?.hud.setThresholdStatus(false, '');
+    }
 
     // 1. Predictive interior load on approach toward south entrance doorway (z <= 134)
     if (this.activeWorld === 'exterior' && !this.interiorImportStarted && playerPosition.z <= THRESHOLD_PREPARE_Z) {

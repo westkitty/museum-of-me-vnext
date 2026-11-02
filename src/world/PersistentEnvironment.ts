@@ -24,6 +24,7 @@ import type { ZoneId } from './layout';
 export class PersistentEnvironment {
   readonly group = new THREE.Group();
   readonly mergeReport = { before: 0, after: 0, merged: 0 };
+  readonly buildStageMs: Record<string, number> = {};
   private readonly dressing: EnvironmentDressing;
   private readonly colorFields: ExhibitColorFields;
   private visibilityKey = '';
@@ -35,33 +36,83 @@ export class PersistentEnvironment {
   }
 
   build(): THREE.Group {
-    const layers = [
-      this.dressing.build(),
-      new ExteriorIdentity(this.scope).build(),
-      new MonumentalRotunda(this.scope).build(),
-      new RotundaWayfinding(this.scope).build(),
-      new WingIdentity(this.scope).build(),
-      new WingAtmosphere(this.scope).build(),
-      new WingFurnishings(this.scope).build(),
-      new ExhibitThresholds(this.scope).build(),
-      this.colorFields.build(),
-    ];
-    this.group.add(...layers);
+    const layers = this.buildLayerDefinitions().map(({ name, build }) => ({ name, group: this.buildLayer(name, build) }));
+    this.attachAndProtect(layers);
+    for (const layer of layers) this.mergeLayer(layer.name, layer.group);
+    return this.group;
+  }
 
-    // Workshop-owned scene roots must retain their identity and transforms.
-    // Everything else in these layers is immutable after construction,
-    // so collapse repeated-material meshes inside each layer to cut draw calls
-    // without flattening the layer hierarchy itself.
-    for (const item of this.dressing.authorableSceneRoots()) {
-      item.root.userData[NO_MERGE] = true;
+  /** Lazy interior path: yield between each measured layer and merge. */
+  async buildCooperatively(yieldControl: () => Promise<void>): Promise<THREE.Group> {
+    const layers: { name: string; group: THREE.Group }[] = [];
+    for (const { name, build } of this.buildLayerDefinitions()) {
+      layers.push({ name, group: this.buildLayer(name, build) });
+      await yieldControl();
     }
+    this.attachAndProtect(layers);
     for (const layer of layers) {
-      const report = mergeStatic(layer, this.scope, { cellSize: 1000 });
+      await this.mergeLayerCooperatively(layer.name, layer.group, yieldControl);
+      await yieldControl();
+    }
+    return this.group;
+  }
+
+  private buildLayerDefinitions(): { name: string; build: () => THREE.Group }[] {
+    return [
+      { name: 'dressing', build: () => this.dressing.build() },
+      { name: 'exterior-identity', build: () => new ExteriorIdentity(this.scope).build() },
+      { name: 'monumental-rotunda', build: () => new MonumentalRotunda(this.scope).build() },
+      { name: 'rotunda-wayfinding', build: () => new RotundaWayfinding(this.scope).build() },
+      { name: 'wing-identity', build: () => new WingIdentity(this.scope).build() },
+      { name: 'wing-atmosphere', build: () => new WingAtmosphere(this.scope).build() },
+      { name: 'wing-furnishings', build: () => new WingFurnishings(this.scope).build() },
+      { name: 'exhibit-thresholds', build: () => new ExhibitThresholds(this.scope).build() },
+      { name: 'exhibit-color-fields', build: () => this.colorFields.build() },
+    ];
+  }
+
+  private buildLayer(name: string, build: () => THREE.Group): THREE.Group {
+    const started = performance.now();
+    try {
+      return build();
+    } finally {
+      this.buildStageMs[`layer:${name}`] = performance.now() - started;
+    }
+  }
+
+  private attachAndProtect(layers: readonly { name: string; group: THREE.Group }[]): void {
+    this.group.add(...layers.map(({ group }) => group));
+    for (const item of this.dressing.authorableSceneRoots()) item.root.userData[NO_MERGE] = true;
+  }
+
+  private mergeLayer(name: string, group: THREE.Group): void {
+    const started = performance.now();
+    const report = mergeStatic(group, this.scope, { cellSize: 1000 });
+    this.buildStageMs[`merge:${name}`] = performance.now() - started;
+    this.mergeReport.before += report.before;
+    this.mergeReport.after += report.after;
+    this.mergeReport.merged += report.merged;
+  }
+
+  private async mergeLayerCooperatively(
+    name: string,
+    group: THREE.Group,
+    yieldControl: () => Promise<void>,
+  ): Promise<void> {
+    const started = performance.now();
+    let cpuMs = 0;
+    for (const child of [...group.children]) {
+      const mergeStarted = performance.now();
+      const report = mergeStatic(group, this.scope, { cellSize: 1000, preserveTopLevel: true, onlyTopLevel: child });
+      cpuMs += performance.now() - mergeStarted;
       this.mergeReport.before += report.before;
       this.mergeReport.after += report.after;
       this.mergeReport.merged += report.merged;
+      await yieldControl();
     }
-    return this.group;
+    // Report CPU spent merging, excluding cooperative waits.
+    this.buildStageMs[`merge:${name}`] = cpuMs;
+    this.buildStageMs[`mergeWall:${name}`] = performance.now() - started;
   }
 
   /** Retain one material draw while excluding wing accents behind portals. */

@@ -16,6 +16,12 @@ export class HUD {
   private readonly cueLabel: HTMLElement;
   private readonly location: HTMLElement;
   private readonly subtitle: HTMLElement;
+  private readonly thresholdPanel: HTMLElement;
+  private readonly thresholdStatus: HTMLElement;
+  private readonly thresholdEnter: HTMLButtonElement;
+  private readonly thresholdRetry: HTMLButtonElement;
+  private readonly thresholdReturn: HTMLButtonElement;
+  private thresholdFocusReturn: HTMLElement | null = null;
   private readonly hints: HTMLElement;
   private readonly lockPrompt: HTMLElement;
   private readonly resumeLook: HTMLButtonElement;
@@ -32,12 +38,32 @@ export class HUD {
   private subtitleTimer = 0;
   private lastZone: ZoneId | null = null;
 
-  constructor(onRequestLock: (touch: boolean) => void | boolean, onOpenThread?: () => void) {
+  constructor(
+    onRequestLock: (touch: boolean) => void | boolean,
+    onOpenThread?: () => void,
+    onEnterMuseum?: () => void,
+    onRetryMuseum?: () => void,
+    onContinueOutside?: () => void,
+  ) {
     this.reticle = el('div', { class: 'hud__reticle' });
     this.cueLabel = el('span', {});
     this.cue = el('div', { class: 'hud__cue' }, el('kbd', { text: 'F' }), this.cueLabel);
     this.location = el('div', { class: 'hud__location' });
     this.subtitle = el('div', { class: 'hud__subtitle', role: 'status', 'aria-live': 'polite' });
+    this.thresholdStatus = el('p', { text: 'The museum entrance is ready.' });
+    this.thresholdEnter = el('button', {
+      type: 'button', text: 'Enter museum', onclick: () => onEnterMuseum?.(),
+    }) as HTMLButtonElement;
+    this.thresholdRetry = el('button', {
+      type: 'button', text: 'Reload and retry', hidden: true, onclick: () => onRetryMuseum?.(),
+    }) as HTMLButtonElement;
+    this.thresholdReturn = el('button', {
+      type: 'button', text: 'Continue outside', hidden: true, onclick: () => onContinueOutside?.(),
+    }) as HTMLButtonElement;
+    this.thresholdPanel = el('section', {
+      class: 'hud__threshold', hidden: true,
+      'aria-label': 'Museum entrance',
+    }, this.thresholdStatus, this.thresholdEnter, this.thresholdRetry, this.thresholdReturn);
     this.threadStatus = el('button', {
       class: 'hud__thread', type: 'button', hidden: true,
       'aria-label': 'Open current Visit Thread', onclick: () => onOpenThread?.(),
@@ -111,6 +137,7 @@ export class HUD {
       this.threadStatus,
       this.hints,
       this.subtitle,
+      this.thresholdPanel,
       this.lockPrompt,
       this.resumeLook,
     );
@@ -230,6 +257,37 @@ export class HUD {
     this.subtitle.textContent = message;
     this.subtitle.classList.add('hud__subtitle--visible');
     this.subtitleTimer = seconds;
+  }
+
+  setThresholdStatus(visible: boolean, message: string, failed = false, preparing = false): void {
+    const wasVisible = !this.thresholdPanel.hidden;
+    const active = document.activeElement;
+    if (visible && !wasVisible && active instanceof HTMLElement && !this.thresholdPanel.contains(active)) {
+      this.thresholdFocusReturn = active;
+    }
+    this.thresholdPanel.hidden = !visible;
+    this.thresholdStatus.textContent = message;
+    this.thresholdEnter.hidden = failed || preparing;
+    this.thresholdEnter.disabled = preparing;
+    this.thresholdRetry.hidden = !failed;
+    this.thresholdReturn.hidden = !failed && !preparing;
+    this.thresholdStatus.setAttribute('role', failed ? 'alert' : 'status');
+
+    if (this.thresholdPanel.contains(active)) {
+      if (!visible) {
+        if (this.thresholdFocusReturn?.isConnected && !this.thresholdFocusReturn.hidden) {
+          this.thresholdFocusReturn.focus({ preventScroll: true });
+        } else if (active instanceof HTMLElement) {
+          active.blur();
+        }
+        this.thresholdFocusReturn = null;
+      } else if ((active === this.thresholdEnter && this.thresholdEnter.hidden)
+        || (active === this.thresholdRetry && this.thresholdRetry.hidden)
+        || (active === this.thresholdReturn && this.thresholdReturn.hidden)) {
+        const next = failed ? this.thresholdRetry : preparing ? this.thresholdReturn : this.thresholdEnter;
+        next.focus({ preventScroll: true });
+      }
+    }
   }
 
   /** Called once per frame from the single loop. */

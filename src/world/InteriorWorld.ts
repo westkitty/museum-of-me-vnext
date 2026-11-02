@@ -12,6 +12,7 @@ import { SourceVisitors } from './SourceVisitors';
 import { SupplementaryCases } from './SupplementaryCases';
 import { SourceInstallations, INSTALLATION_HELD_CODES } from './SourceInstallations';
 import { PersistentEnvironment } from './PersistentEnvironment';
+import { EventLoopYieldBudget } from '../util/yieldToEventLoop';
 import type { App } from '../app/App';
 import type { ZoneId } from './layout';
 
@@ -25,110 +26,137 @@ import type { ZoneId } from './layout';
  * Lazily instantiated on demand or approach. Never executed during cold exterior boot.
  */
 export class InteriorWorld {
+  runtimeState: 'retained' | 'active' = 'retained';
   readonly id = 'interior' as const;
   readonly scope: ResourceScope;
   readonly root = new THREE.Group();
-  readonly museum: Museum;
-  readonly built: MuseumBuildResult;
-  readonly sanctuary: DexterSanctuary;
-  readonly wayfinding: Wayfinding;
-  readonly visitors: AmbientVisitors;
-  readonly flightPadAtmosphere: FlightPadAtmosphere;
-  readonly streaming: StreamingManager;
-  readonly sourceArtwork: SourceArtwork;
-  readonly sourceVisitors: SourceVisitors;
-  readonly supplementary: SupplementaryCases;
-  readonly sourceInstallations: SourceInstallations;
-  readonly persistentEnvironment: PersistentEnvironment;
+  museum!: Museum;
+  built!: MuseumBuildResult;
+  sanctuary!: DexterSanctuary;
+  wayfinding!: Wayfinding;
+  visitors!: AmbientVisitors;
+  flightPadAtmosphere!: FlightPadAtmosphere;
+  streaming!: StreamingManager;
+  sourceArtwork!: SourceArtwork;
+  sourceVisitors!: SourceVisitors;
+  supplementary!: SupplementaryCases;
+  sourceInstallations!: SourceInstallations;
+  persistentEnvironment!: PersistentEnvironment;
 
   private lightingResidencyRevision = -1;
 
   constructor(private readonly app: App) {
     this.scope = new ResourceScope('interior-world');
     this.root.name = 'interior-world';
+    this.root.visible = false;
+  }
 
-    this.museum = new Museum(this.scope);
-    this.built = this.museum.build();
+  /** Build the dormant interior in bounded event-loop slices while the exterior stays playable. */
+  async buildCooperatively(): Promise<void> {
+    const yieldBudget = new EventLoopYieldBudget(8);
+    this.museum = this.measureBuildStage('museum.constructor', () => new Museum(this.scope));
+    this.built = await this.measureBuildStageAsync('museum.build', () =>
+      this.museum.buildCooperatively(() => yieldBudget.checkpoint()));
+    for (const [name, duration] of Object.entries(this.museum.buildStageMs)) {
+      this.app.interiorLoadTelemetry.buildStageMs[`museum.${name}`] = duration;
+    }
     this.root.add(this.built.root);
 
-    this.sanctuary = new DexterSanctuary(this.scope);
+    this.sanctuary = this.measureBuildStage('sanctuary', () => new DexterSanctuary(this.scope));
     this.root.add(this.sanctuary.group);
 
-    this.wayfinding = new Wayfinding(this.scope);
+    this.wayfinding = this.measureBuildStage('wayfinding', () => new Wayfinding(this.scope));
     this.root.add(this.wayfinding.group);
 
-    this.visitors = new AmbientVisitors(this.scope, app.renderer.quality.ambientVisitors);
+    this.visitors = this.measureBuildStage('ambient-visitors', () =>
+      new AmbientVisitors(this.scope, this.app.renderer.quality.ambientVisitors));
     this.root.add(this.visitors.group);
 
-    this.flightPadAtmosphere = new FlightPadAtmosphere(this.scope);
+    this.flightPadAtmosphere = this.measureBuildStage('flight-pad-atmosphere', () => new FlightPadAtmosphere(this.scope));
     this.root.add(this.flightPadAtmosphere.group);
 
-    installExhibits();
-    this.streaming = new StreamingManager(
+    this.measureBuildStage('exhibit-registration', () => installExhibits());
+    this.streaming = this.measureBuildStage('streaming-manager', () => new StreamingManager(
       this.built.exhibitMounts,
       {
-        addControl: (id, control) => app.interaction.register(id, control),
-        announce: (id, message) => app.announce(id, message),
-        reducedMotion: () => app.preferences.reducedMotion,
-        detailScale: () => app.renderer.quality.detailScale,
+        addControl: (id, control) => this.app.interaction.register(id, control),
+        announce: (id, message) => this.app.announce(id, message),
+        reducedMotion: () => this.app.preferences.reducedMotion,
+        detailScale: () => this.app.renderer.quality.detailScale,
         loadAsset: async (assetId, scope, detail) =>
-          (await app.assets.load(assetId, scope, { detail })).object,
-        warmObject: (object) => app.renderer.prewarmObject(object),
+          (await this.app.assets.load(assetId, scope, { detail })).object,
+        warmObject: (object) => this.app.renderer.prewarmObject(object),
         openEmbeddedExperience: (id) => {
-          if (id === 'full-weasel') app.ui?.openFullWeasel();
+          if (id === 'full-weasel') this.app.ui?.openFullWeasel();
         },
       },
       {
-        loadRadius: app.renderer.quality.exhibitStreamRadius + 14,
-        unloadRadius: app.renderer.quality.exhibitStreamRadius + 30,
-        activateRadius: app.renderer.quality.exhibitStreamRadius,
+        loadRadius: this.app.renderer.quality.exhibitStreamRadius + 14,
+        unloadRadius: this.app.renderer.quality.exhibitStreamRadius + 30,
+        activateRadius: this.app.renderer.quality.exhibitStreamRadius,
         mountsPerFrame: 1,
         mountBudgetMs: 6,
         warmupsPerFrame: 1,
         activationsPerFrame: 1,
         activationBudgetMs: 3,
       },
-    );
-    this.streaming.initialise();
+    ));
+    this.measureBuildStage('streaming-initialise', () => this.streaming.initialise());
     this.streaming.beginEntrancePrewarm();
 
-    this.sourceArtwork = new SourceArtwork(this.scope, this.built.exhibitMounts);
+    this.sourceArtwork = this.measureBuildStage('source-artwork', () =>
+      new SourceArtwork(this.scope, this.built.exhibitMounts));
     this.root.add(this.sourceArtwork.group);
 
-    this.sourceVisitors = new SourceVisitors(
+    this.sourceVisitors = this.measureBuildStage('source-visitors', () => new SourceVisitors(
       this.scope,
       this.built.collision,
-      app.interaction,
+      this.app.interaction,
       (visitor, line, thought) => {
-        app.journal.hearVisitor(visitor.id);
-        app.journal.recordHistory({ kind: 'visitor', id: visitor.id }, visitor.title);
+        this.app.journal.hearVisitor(visitor.id);
+        this.app.journal.recordHistory({ kind: 'visitor', id: visitor.id }, visitor.title);
         const message = thought ? `${line} (${thought})` : line;
-        app.announce(`visitor:${visitor.id}`, `${visitor.title}: ${message}`);
+        this.app.announce(`visitor:${visitor.id}`, `${visitor.title}: ${message}`);
       },
-    );
+    ));
     this.root.add(this.sourceVisitors.group);
 
-    this.supplementary = new SupplementaryCases(
+    this.supplementary = this.measureBuildStage('supplementary-cases', () => new SupplementaryCases(
       this.scope,
-      app.interaction,
-      app.journal,
-      (id, title, summary) => app.announce(`supplementary:${id}`, `${title}. ${summary}`),
-    );
+      this.app.interaction,
+      this.app.journal,
+      (id, title, summary) => this.app.announce(`supplementary:${id}`, `${title}. ${summary}`),
+    ));
     this.root.add(this.supplementary.group);
 
-    this.sourceInstallations = new SourceInstallations(
+    this.sourceInstallations = this.measureBuildStage('source-installations', () => new SourceInstallations(
       this.scope,
       this.built.collision,
-      app.interaction,
-      app.journal,
-      (id, message) => app.announce(id, message),
-    );
+      this.app.interaction,
+      this.app.journal,
+      (id, message) => this.app.announce(id, message),
+      undefined,
+      true,
+    ));
+    await this.measureBuildStageAsync('source-installations.build', () =>
+      this.sourceInstallations.buildCooperatively(() => yieldBudget.checkpoint()));
+    for (const [id, duration] of Object.entries(this.sourceInstallations.buildStageMs)) {
+      this.app.interiorLoadTelemetry.buildStageMs[`installation.${id}`] = duration;
+    }
     this.root.add(this.sourceInstallations.group);
     if (this.sourceInstallations.store.recoveryNotice) {
-      app.journal.recoveryNotice = this.sourceInstallations.store.recoveryNotice;
+      this.app.journal.recoveryNotice = this.sourceInstallations.store.recoveryNotice;
     }
 
-    app.input.setCodeCapture((code, down, repeat) => {
+    this.persistentEnvironment = this.measureBuildStage('persistent-environment', () => new PersistentEnvironment(this.scope));
+    const envGroup = await this.measureBuildStageAsync('persistent-environment.build', () =>
+      this.persistentEnvironment.buildCooperatively(() => yieldBudget.checkpoint()));
+    for (const [name, duration] of Object.entries(this.persistentEnvironment.buildStageMs)) {
+      this.app.interiorLoadTelemetry.buildStageMs[`environment.${name}`] = duration;
+    }
+    this.root.add(envGroup);
+
+    this.app.input.setCodeCapture((code, down, repeat) => {
       const active = this.sourceInstallations.activeId;
       if (!active) return false;
       if (code === 'Escape') {
@@ -140,14 +168,10 @@ export class InteriorWorld {
       return this.sourceInstallations.key(active, code) || INSTALLATION_HELD_CODES.has(code);
     });
 
-    this.persistentEnvironment = new PersistentEnvironment(this.scope);
-    const envGroup = this.persistentEnvironment.build();
-    this.root.add(envGroup);
-
-    if (app.sceneRegistry) {
+    if (this.app.sceneRegistry) {
       for (const item of this.persistentEnvironment.authorableSceneRoots()) {
         try {
-          app.sceneRegistry.register(item.id, item.root);
+          this.app.sceneRegistry.register(item.id, item.root);
         } catch {
           // Ignore if already registered
         }
@@ -159,7 +183,36 @@ export class InteriorWorld {
     return this.built.collision;
   }
 
+  private measureBuildStage<T>(name: string, build: () => T): T {
+    const started = performance.now();
+    try {
+      return build();
+    } finally {
+      this.app.interiorLoadTelemetry.buildStageMs[name] = performance.now() - started;
+    }
+  }
+
+  private async measureBuildStageAsync<T>(name: string, build: () => Promise<T>): Promise<T> {
+    const started = performance.now();
+    try {
+      return await build();
+    } finally {
+      this.app.interiorLoadTelemetry.buildStageMs[name] = performance.now() - started;
+    }
+  }
+
+  setActive(active: boolean): void {
+    this.runtimeState = active ? 'active' : 'retained';
+    this.streaming?.setWorldActive(active);
+  }
+
+  /** Keep only the entrance streaming lane progressing while this world is hidden. */
+  prepareUpdate(dt: number, eye: readonly [number, number, number], zone: ZoneId): void {
+    if (this.runtimeState === 'retained') this.streaming.evaluate(eye, dt, zone);
+  }
+
   fixedUpdate(dt: number, fixedEye: readonly [number, number, number], currentZone: ZoneId): void {
+    if (this.runtimeState !== 'active') return;
     this.streaming.updateActive(dt, fixedEye);
     if (currentZone === 'sanctuary') {
       this.sanctuary.update(dt, this.app.preferences.reducedMotion);
@@ -192,6 +245,7 @@ export class InteriorWorld {
     zone: ZoneId,
     roomCullingEnabled: boolean,
   ): { deep: boolean; visibleWingIds: ReadonlySet<string> } {
+    if (this.runtimeState !== 'active') return { deep: false, visibleWingIds: this.museum.visibleWingIds };
     this.sourceArtwork.update(eye[0], eye[2], dt);
     this.supplementary.update(eye[0], eye[2], dt);
     const deep = this.museum.updateVisibility(
@@ -215,6 +269,8 @@ export class InteriorWorld {
   }
 
   dispose(): void {
+    this.streaming?.dispose();
+    this.sourceInstallations?.dispose();
     this.scope.dispose();
   }
 }

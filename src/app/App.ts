@@ -112,6 +112,17 @@ export class App implements LoopCallbacks {
   private cinematicArrivalEntered = false;
   private cinematicCameraCancelled = false;
   private interiorLoadingPromise: Promise<InteriorWorld> | null = null;
+  readonly interiorLoadTelemetry = {
+    requestedAtMs: null as number | null,
+    moduleLoadedAtMs: null as number | null,
+    buildStartedAtMs: null as number | null,
+    buildCompletedAtMs: null as number | null,
+    buildStageMs: {} as Record<string, number>,
+    entranceReadyAtMs: null as number | null,
+    transitionCommittedAtMs: null as number | null,
+    firstInteriorFrameAtMs: null as number | null,
+    lastFailure: null as string | null,
+  };
 
   constructor(opts: AppOptions) {
     this.uiRoot = opts.uiRoot;
@@ -202,17 +213,39 @@ export class App implements LoopCallbacks {
     if (this.interiorWorld) return this.interiorWorld;
     if (this.interiorLoadingPromise) return this.interiorLoadingPromise;
     this.worldDirector.interiorImportStarted = true;
-    this.interiorLoadingPromise = (async () => {
-      const { InteriorWorld } = await import('../world/InteriorWorld');
-      const interior = new InteriorWorld(this);
-      this.interiorWorld = interior;
-      interior.root.visible = this.activeWorld === 'interior';
-      this.renderer.scene.add(interior.root);
-      this.worldDirector.interiorConstructed = true;
-      this.scheduleAmbientPopulation(true);
-      return interior;
+    const telemetry = this.interiorLoadTelemetry;
+    telemetry.requestedAtMs = performance.now();
+    telemetry.buildStageMs = {};
+    telemetry.lastFailure = null;
+    const load = (async () => {
+      let interior: InteriorWorld | null = null;
+      try {
+        const { InteriorWorld } = await import('../world/InteriorWorld');
+        telemetry.moduleLoadedAtMs = performance.now();
+        telemetry.buildStartedAtMs = performance.now();
+        interior = new InteriorWorld(this);
+        await interior.buildCooperatively();
+        telemetry.buildCompletedAtMs = performance.now();
+        this.interiorWorld = interior;
+        interior.root.visible = this.activeWorld === 'interior';
+        interior.setActive(this.activeWorld === 'interior');
+        this.renderer.scene.add(interior.root);
+        this.worldDirector.interiorConstructed = true;
+        this.scheduleAmbientPopulation(true);
+        return interior;
+      } catch (error) {
+        interior?.dispose();
+        telemetry.lastFailure = error instanceof Error ? error.message : String(error);
+        throw error;
+      }
     })();
-    return this.interiorLoadingPromise;
+    this.interiorLoadingPromise = load;
+    try {
+      return await load;
+    } catch (error) {
+      if (this.interiorLoadingPromise === load) this.interiorLoadingPromise = null;
+      throw error;
+    }
   }
 
   // ── Backward-compatible property accessors ────────────────────────────────
@@ -374,15 +407,16 @@ export class App implements LoopCallbacks {
       const allEntranceTargetsWarm = prewarm
         && prewarm.prewarmTotal > 0 && prewarm.prewarmWarmed === prewarm.prewarmTotal;
       const titleWindowSpent = now >= titleWindowEnds;
-      const safeToPopulate =
-        allEntranceTargetsWarm || ((prewarm?.prewarmReady ?? false) && titleWindowSpent);
+      const interiorVisible = this.activeWorld === 'interior';
+      const safeToPopulate = Boolean(allEntranceTargetsWarm)
+        || (interiorVisible && titleWindowSpent);
 
-      if (!safeToPopulate && now < fallbackDeadline) {
-        this.ambientLoadTimer = window.setTimeout(tryPopulate, 200);
+      if (!safeToPopulate && (now < fallbackDeadline || !interiorVisible)) {
+        this.ambientLoadTimer = window.setTimeout(tryPopulate, interiorVisible ? 200 : 500);
         return;
       }
       this.ambientLoadTimer = null;
-      if (this.interiorWorld) {
+      if (this.interiorWorld && interiorVisible) {
         void this.interiorWorld.visitors.setPopulation(this.assets, this.renderer.quality.ambientVisitors).catch((error) => {
           console.error('Ambient visitors unavailable; no placeholder crowd was created.', error);
           if (announceFailure) this.ui.hud.announce('Ambient visitors are unavailable on this device.');
@@ -470,7 +504,7 @@ export class App implements LoopCallbacks {
     this.player.fixedUpdate(dt);
     const fixedEye = this.player.writeEyePosition(this.eyePositionScratch);
 
-    if (this.interiorWorld) {
+    if (this.activeWorld === 'interior' && this.interiorWorld) {
       this.interiorWorld.fixedUpdate(dt, fixedEye, this.currentZone);
     }
     if (this.activeWorld === 'exterior') {
@@ -480,6 +514,11 @@ export class App implements LoopCallbacks {
 
   variableUpdate(dt: number): void {
     this.arrivalUpdate?.();
+    if (this.activeWorld === 'exterior' && this.worldDirector.firstExteriorInteractiveMs === 0
+      && (this.input.isDown('forward') || this.input.isDown('back')
+        || this.input.isDown('left') || this.input.isDown('right'))) {
+      this.worldDirector.firstExteriorInteractiveMs = performance.now();
+    }
     const keyboardLook = this.input.keyboardLookReusable(dt, this.preferences.mouseSensitivity);
     this.player.applyLook(
       this.input.mouseDeltaX + this.input.touchDeltaX * 1.6 + keyboardLook.dx,
@@ -515,9 +554,11 @@ export class App implements LoopCallbacks {
     this.worldDirector.update(this.player.position);
 
     if (this.interiorWorld) {
-      const vis = this.interiorWorld.variableUpdate(dt, eye, zone, this.roomCullingEnabled);
       if (this.activeWorld === 'interior') {
+        const vis = this.interiorWorld.variableUpdate(dt, eye, zone, this.roomCullingEnabled);
         this.environmentVisibility?.(zone, vis.deep, vis.visibleWingIds);
+      } else {
+        this.interiorWorld.prepareUpdate(dt, eye, zone);
       }
     }
     if (this.activeWorld === 'exterior') {
@@ -565,6 +606,10 @@ export class App implements LoopCallbacks {
       this.sky.follow(this.camera);
     }
     this.renderer.render();
+    if (!this.renderer.isContextLost && this.activeWorld === 'interior'
+      && this.interiorLoadTelemetry.firstInteriorFrameAtMs === null) {
+      this.interiorLoadTelemetry.firstInteriorFrameAtMs = performance.now();
+    }
     this.diagnosticSampleElapsed += this.loop.frameTimeMs / 1000;
     if (this.diagnosticSampleElapsed >= 0.1) {
       this.diagnosticSampleElapsed = 0;
