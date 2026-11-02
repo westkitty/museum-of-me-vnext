@@ -4,6 +4,7 @@ import { CollisionWorld } from '../CollisionWorld';
 import { ArrivalGarden } from '../ArrivalGarden';
 import { ArrivalBeacons } from '../ArrivalBeacons';
 import { ExteriorIdentity } from '../ExteriorIdentity';
+import { ExteriorMuseumShell } from './ExteriorMuseumShell';
 import {
   GROUND_Y,
   ZONE_BY_ID,
@@ -33,6 +34,7 @@ export class ExteriorWorld {
   readonly arrivalGarden: ArrivalGarden;
   readonly arrivalBeacons: ArrivalBeacons;
   readonly exteriorIdentity: ExteriorIdentity;
+  readonly museumShell: ExteriorMuseumShell;
 
   readonly spawnPosition: Vec3 = ZONE_BY_ID.get('plaza')!.center;
   readonly spawnYaw = 0;
@@ -72,6 +74,9 @@ export class ExteriorWorld {
 
     this.exteriorIdentity = new ExteriorIdentity(this.scope);
     this.root.add(this.exteriorIdentity.build());
+
+    this.museumShell = new ExteriorMuseumShell(this.scope, this.collision);
+    this.root.add(this.museumShell.build());
 
     // Build outer threshold buffer and doorway occluder
     this.buildThresholdVestibule();

@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 78,
+  "state_revision": 81,
   "last_updated": "2026-11-02",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -595,3 +595,7 @@ Final exact-branch evidence: canonical gate PASS, 44/44 Vitest files and 706/706
   - Budget verification: 9.31 MB of 20 MB budget (PASS).
   - Standalone verification `npm run verify:standalone` (PASS).
   - All 20 invariants (`INV-01`–`INV-20`) verified intact. Zero main merge, zero pages deployment. Status: ACTIVE DEVELOPMENT / PRE-1.0.
+
+**r81 addendum — 2026-11-02 compact exterior architecture (PHASE P3 LOCAL GATE PASS; PRE-1.0):** Added `src/world/exterior/ExteriorMuseumShell.ts` on the dedicated exterior-first feature branch. The exterior-only shell builds twin curved roof barrels and repeated seams, cyan glazed dome with 16 gold meridians, central spine, amber window ribbons, framed 7 m entrance, north rear elevation, terrace courts/topiary, stairs, and a continuous accessible stair-run ramp collider. `ExteriorWorld` mounts the shell in its existing ResourceScope/collision context. Interior museum geometry, exhibit placements, visitors, Sanctuary, and frame-loop owner were not edited.
+- **Local verification:** `npm run gate` EXIT 0: 46/46 Vitest files, 712/712 tests; typecheck, ESLint, release-tool tests, all mapping/content/privacy/frame-loop/hotpath/asset/exhibit/source-parity validators, QA report, production build, 9.32 MB initial bundle budget, and release dist verification PASS. Dedicated `tests/browser/exterior-architecture.e2e.ts` PASS: five canonical camera positions rendered, triangle count below 600,000 each, required shell features present, entrance approach grounded, no captured WebGL/page errors. `git diff --check` PASS.
+- **Evidence limits:** Original six reference image bytes remain absent from `docs/references/exterior-island/` (manifest hashes/roles only); visual matching is therefore inferred from the numeric handoff contract and has not had source-image comparison or human visual acceptance. Local geometry/collision/browser proof is not physical-device proof. Exact-head GitHub CI and Bible receipt are pending the P3 feature commit; no merge, Pages deployment, or runtime installation occurred.
