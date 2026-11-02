@@ -13,7 +13,7 @@
 | P4 | Island landscape/site synthesis | `tests/browser/island-landscape.e2e.ts`; PASS locally and at P4 CI checkpoint, recorded in operational state/Bible. |
 | P5 | Cooperative interior preparation and deferred GPU warm | `tests/browser/predictive-interior.e2e.ts`; PASS at exact-head CI, recorded in operational state/Bible. |
 | P6 | Shared-source spatial Workbench | Workbench 2D/3D browser suites and Pages-base artifact verification; PASS at exact-head CI, recorded in operational state/Bible. |
-| P7 | Final lifecycle, offline, evidence and documentation closure | This branch delta, `docs/evidence/p7/REVIEW.md`, offline proof, focused browser checks and final exact-head CI. Exact-head CI and Bible receipt remain pending until publication. |
+| P7 | Final lifecycle, offline, evidence and documentation closure | Feature commit `66aee5ffcf9ae333eb83564f0733b61bf9411bc3` passed exact-head PR #23 run `41497583600` (4/4); this operational-ledger follow-up requires its own exact-head CI checkpoint. |
 
 ## Protected invariants
 
@@ -68,7 +68,7 @@ The ADV identifiers below refer to the handoff acceptance checks. A `PARTIAL` or
 | ADV-18 | PASS | Standalone offline exterior → interior → exterior → interior; zero network requests. |
 | ADV-19 | PARTIAL | Reference comparison is documented; human visual approval remains pending. |
 | ADV-20 | PASS | Workshop authoring and standalone journey. |
-| ADV-21 | PENDING | Requires pushed P7 head and four exact-head CI jobs. |
+| ADV-21 | PASS for source head; follow-up head pending | Source commit `66aee5ffcf9ae333eb83564f0733b61bf9411bc3` passed all four exact-head jobs in PR run `41497583600`; this documentation follow-up must also pass exact-head CI. |
 | ADV-22 | PASS | Dedicated feature branch; protected refs untouched. |
 | ADV-23 | PASS | Clean starting tree and explicit task-owned edits; incidental generated QA output excluded. |
 | ADV-24 | PASS | Reference hash/provenance is recorded in the canonical Bible; clipboard previews are not used as hash evidence. |
@@ -83,5 +83,5 @@ The ADV identifiers below refer to the handoff acceptance checks. A `PARTIAL` or
 
 - Local canonical gate, full Playwright suite, Workshop and standalone offline proof must pass on the candidate tree.
 - Final Pages-base build and distribution verification must identify the final implementation commit SHA; this is artifact verification only.
-- Exact-head PR #23 CI must report `gate`, `browser`, `workshop` and `standalone` success before the technical candidate is marked remotely gated.
+- The P7 source commit passed exact-head PR #23 CI (`gate`, `browser`, `workshop`, `standalone`). The final docs follow-up SHA requires its own four-job run before the final branch checkpoint is recorded.
 - Human visual approval, physical mobile/tablet performance, matched P0/P7 transfer comparison, merge and Pages deployment remain separate states. No such acceptance is implied here.
