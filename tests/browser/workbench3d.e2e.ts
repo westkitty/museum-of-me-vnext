@@ -216,4 +216,10 @@ test('narrow 3D interface folds beneath a 29-percent viewport-height drawer', as
   await expect.poll(() => viewer.locator('body').evaluate(() =>
     (window as unknown as Window & { Museum3DProof: { getState(): { view: string; islandWater: boolean } } })
       .Museum3DProof.getState())).toMatchObject({ view: 'island', islandWater: true });
+  const framing = await viewer.locator('body').evaluate(() =>
+    (window as unknown as Window & { Museum3DProof: { islandFraming(): { maxX: number; maxY: number } | null } })
+      .Museum3DProof.islandFraming());
+  expect(framing).not.toBeNull();
+  expect(framing!.maxX).toBeLessThan(0.9);
+  expect(framing!.maxY).toBeLessThan(0.9);
 });
