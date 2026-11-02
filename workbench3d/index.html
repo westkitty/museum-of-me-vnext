@@ -42,12 +42,12 @@ button,select,input{font:inherit}button,select{border:1px solid #4b6066;border-r
 <div class="control-card"><span class="label">Floor</span><select id="floor" aria-label="Visible building levels"><option value="both">Both floors</option><option value="ground">Ground + sanctuary</option><option value="upper">Upper floor</option></select></div>
 <div class="control-card"><button id="cutaway" type="button" aria-pressed="true">Roof cutaway</button><button id="reset" type="button">Reset camera</button></div>
 <div class="control-card"><span class="label">Focus</span><select id="wing" aria-label="Isolate an architectural wing"><option value="all">All wings</option><option value="north">Starsilk</option><option value="west">Archive</option><option value="south">Games</option><option value="east">Dex Systems</option><option value="media">Music / Media</option><option value="infra">Local Systems</option><option value="sanctuary">Dexter Sanctuary</option></select></div>
-</div>
 <div id="layers" role="group" aria-label="3D layer visibility" hidden>
 <label><input id="architecture" type="checkbox" checked>Architecture</label><label><input id="exhibits" type="checkbox" checked>Exhibit anchors</label><label><input id="annotations" type="checkbox" checked>Annotations</label><label><input id="visitors" type="checkbox">Visitor routes</label><label><input id="proposals" type="checkbox" checked>Proposed moves</label>
 </div>
 <div id="legend" hidden><strong>Actual museum geometry</strong>Spatial source: <b>Museum.build()</b>, not independently extruded plans. Click a gold exhibit anchor or note pin to inspect it. Choose <b>+ Pin</b> in the workbench and click a physical surface to annotate. Orbit: drag · Pan: right-drag · Zoom: scroll/pinch.</div>
-<div id="sceneCaption" aria-hidden="true">ACTUAL SOURCE GEOMETRY · PLANNING VIEW</div></div></div>
+</div></div>
+<div id="sceneCaption" aria-hidden="true">ACTUAL SOURCE GEOMETRY · PLANNING VIEW</div>
 <div id="message" aria-hidden="true">Survey only · Curated exhibits are not simulated.</div>
 <div id="viewerStatus" role="status" aria-live="polite"></div>
 <div id="fallback" role="alert"><strong>3D unavailable</strong><p>The original 2D plan remains usable. This mode needs WebGL 2 and locally bundled viewer code served from the museum site.</p></div>
