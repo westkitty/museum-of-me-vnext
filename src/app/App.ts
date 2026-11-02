@@ -97,6 +97,7 @@ export class App implements LoopCallbacks {
 
   private disposed = false;
   private developmentTool: { update(dt: number): void; dispose(): void } | null = null;
+  private developerOverlay: { update(): void; dispose(): void } | null = null;
   private workshopUpdate: (() => void) | null = null;
   private environmentVisibility: ((zone: ZoneId, deep: boolean, wings: ReadonlySet<string>) => void) | null = null;
   private readonly roomCullingEnabled: boolean;
@@ -418,6 +419,23 @@ export class App implements LoopCallbacks {
     this.developmentTool = tool;
   }
 
+  /** Independent dev overlay so Choreographer and Workshop keep their hooks. */
+  setDeveloperOverlay(tool: { update(): void; dispose(): void }): void {
+    if (this.disposed) { tool.dispose(); return; }
+    this.developerOverlay?.dispose();
+    this.developerOverlay = tool;
+  }
+
+  /** Ephemeral sky preview, never a stored visitor preference. */
+  setDevSkyTimeOfDay(hour: number | null): void {
+    const preview = this.sky.setTimeOfDay(hour);
+    this.lighting.setSkyPreview(preview);
+    if (this.renderer.scene.fog instanceof THREE.Fog) {
+      this.renderer.scene.fog.color.copy(this.sky.horizon);
+    }
+    this.renderer.requestShadowUpdate();
+  }
+
   setEnvironmentVisibility(update: ((zone: ZoneId, deep: boolean, wings: ReadonlySet<string>) => void) | null): void {
     this.environmentVisibility = update;
   }
@@ -521,6 +539,7 @@ export class App implements LoopCallbacks {
     this.interaction.update(this.camera, dt);
     this.workshopUpdate?.();
     this.developmentTool?.update(dt);
+    this.developerOverlay?.update();
 
     // Bay-light residency changes only on mount/unmount. Avoid scanning all 35
     // hosts on every rendered frame when streaming state is unchanged.
@@ -592,6 +611,8 @@ export class App implements LoopCallbacks {
     this.loop.stop();
     this.developmentTool?.dispose();
     this.developmentTool = null;
+    this.developerOverlay?.dispose();
+    this.developerOverlay = null;
     this.workshopUpdate = null;
     this.arrivalUpdate = null;
     this.environmentVisibility = null;

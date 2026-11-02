@@ -4,6 +4,26 @@ import type { ResourceScope } from '../assets/ResourceScope';
 /** Moon direction is shared by sky, water and the real exterior key light. */
 export const NIGHT_MOON_DIRECTION = new THREE.Vector3(-0.43, 0.71, -0.56).normalize();
 
+export interface SkyTimePreview {
+  readonly daylight: number;
+  readonly twilight: number;
+  readonly sunDirection: THREE.Vector3;
+}
+
+/** The approved visitor sky is night; a developer may preview a clock hour. */
+export function skyPreviewForHour(hour: number): SkyTimePreview {
+  const safeHour = Number.isFinite(hour) ? hour : 22;
+  const wrapped = ((safeHour % 24) + 24) % 24;
+  const phase = (wrapped - 6) * Math.PI / 12;
+  const altitude = Math.sin(phase);
+  const progress = THREE.MathUtils.clamp((altitude + 0.35) / 0.53, 0, 1);
+  const daylight = progress * progress * (3 - 2 * progress);
+  const twilight = Math.max(0, 1 - Math.abs(altitude) / 0.5);
+  const horizontal = Math.cos(phase);
+  const sunDirection = new THREE.Vector3(-horizontal * 0.89, altitude, -horizontal * 0.46).normalize();
+  return { daylight, twilight, sunDirection };
+}
+
 /**
  * Procedural night sky for the museum grounds. The camera-following dome keeps
  * the exterior deep and legible without adding celestial geometry or draw calls.
@@ -11,6 +31,8 @@ export const NIGHT_MOON_DIRECTION = new THREE.Vector3(-0.43, 0.71, -0.56).normal
 export class Sky {
   readonly mesh: THREE.Mesh;
   readonly horizon = new THREE.Color(0x17304b);
+  private readonly nightHorizon = new THREE.Color(0x17304b);
+  private readonly dayHorizon = new THREE.Color(0x9dc9ed);
   private lastParallaxX = Number.NaN;
   private lastParallaxZ = Number.NaN;
 
@@ -28,6 +50,9 @@ export class Sky {
           offset: { value: 0.02 },
           parallax: { value: new THREE.Vector2() },
           moonDirection: { value: NIGHT_MOON_DIRECTION.clone() },
+          sunDirection: { value: new THREE.Vector3(0, 1, 0) },
+          daylight: { value: 0 },
+          twilight: { value: 0 },
         },
         vertexShader: /* glsl */ `
           varying vec3 vRay;
@@ -45,6 +70,9 @@ export class Sky {
           uniform float offset;
           uniform vec2 parallax;
           uniform vec3 moonDirection;
+          uniform vec3 sunDirection;
+          uniform float daylight;
+          uniform float twilight;
           varying vec3 vRay;
 
           float hash(vec2 p) {
@@ -139,6 +167,19 @@ export class Sky {
             colour += vec3(1.0, 0.79, 0.63) * near * 0.90 * visibleSky;
             colour += vec3(0.035, 0.085, 0.13) * horizonHaze * 0.42;
             colour += vec3(0.30, 0.48, 0.72) * moonHalo * 0.26;
+            // Blend only sky light; the vitrified Blood Ring stays present.
+            vec3 dayColour = h > offset
+              ? mix(vec3(0.62, 0.80, 0.96), vec3(0.13, 0.42, 0.80),
+                  clamp((h - offset) * 1.45, 0.0, 1.0))
+              : mix(vec3(0.62, 0.80, 0.96), vec3(0.34, 0.50, 0.64),
+                  clamp((offset - h) * 2.0, 0.0, 1.0));
+            float sunDot = max(dot(ray, normalize(sunDirection)), 0.0);
+            float sunGlow = pow(sunDot, 42.0) * visibleSky;
+            float sunDisk = smoothstep(0.9994, 0.99988, sunDot)
+              * step(0.0, sunDirection.y);
+            dayColour += vec3(1.0, 0.62, 0.28) * sunGlow * (0.18 + 0.26 * twilight);
+            dayColour += vec3(0.75, 0.25, 0.08) * twilight * horizonHaze * 0.27;
+            colour = mix(colour, dayColour, daylight);
             // Dark glass occludes the stars; seams and shard edges reflect
             // narrow red highlights. This is material, never a glowing halo.
             vec3 scarGlass = mix(
@@ -152,7 +193,8 @@ export class Sky {
               * bloodRingVisibility * (glassSeam * 0.3 + glassVein * 0.6);
             colour += vec3(0.46, 0.042, 0.035) * floatingGlass
               * bloodRingVisibility * 0.72;
-            colour = mix(colour, vec3(0.86, 0.92, 1.0), moonDisk * 0.94);
+            colour = mix(colour, vec3(0.86, 0.92, 1.0), moonDisk * 0.94 * (1.0 - daylight));
+            colour = mix(colour, vec3(1.0, 0.95, 0.84), sunDisk * daylight);
 
             gl_FragColor = vec4(colour, 1.0);
           }
@@ -167,6 +209,23 @@ export class Sky {
     this.mesh.renderOrder = -1;
     this.mesh.frustumCulled = false;
 
+  }
+
+  /** Session preview; null restores the exact canonical night. */
+  setTimeOfDay(hour: number | null): SkyTimePreview | null {
+    const uniforms = (this.mesh.material as THREE.ShaderMaterial).uniforms;
+    if (hour === null) {
+      uniforms.daylight.value = 0;
+      uniforms.twilight.value = 0;
+      this.horizon.copy(this.nightHorizon);
+      return null;
+    }
+    const profile = skyPreviewForHour(hour);
+    uniforms.daylight.value = profile.daylight;
+    uniforms.twilight.value = profile.twilight;
+    (uniforms.sunDirection.value as THREE.Vector3).copy(profile.sunDirection);
+    this.horizon.copy(this.nightHorizon).lerp(this.dayHorizon, profile.daylight);
+    return profile;
   }
 
   /** Keep the dome centred on the visitor so it never has an edge. */

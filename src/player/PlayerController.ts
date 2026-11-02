@@ -43,6 +43,10 @@ export class PlayerController {
 
   /** True while gravity and wall collision are suspended (the flight pad). */
   flightMode = false;
+  private developerFlight = false;
+  private readonly developerTakeoff = new THREE.Vector3();
+
+  get developerFlightMode(): boolean { return this.developerFlight; }
 
   /** Previous fixed-step position, for render interpolation. */
   private readonly prevPosition = new THREE.Vector3();
@@ -85,6 +89,7 @@ export class PlayerController {
     this.prevYaw.v = yaw;
     this.jumpQueued = false;
     this.flightMode = false;
+    this.developerFlight = false;
   }
 
   setFrozen(frozen: boolean): void {
@@ -118,7 +123,35 @@ export class PlayerController {
     this.jumpQueued = false;
   }
 
+  /** Noclip without a pad launch or automatic landing. Existing visitor flight
+   * remains independent; return to safe takeoff if noclip ends inside a wall. */
+  setDeveloperFlight(enabled: boolean): boolean {
+    if (enabled && this.isFrozen) return false;
+    if (enabled === this.developerFlight) return true;
+    if (enabled) {
+      this.developerTakeoff.copy(this.position);
+      this.developerFlight = true;
+      this.flightMode = true;
+      this.velocity.set(0, 0, 0);
+      this.launchVelocityY = 0;
+      this.jumpQueued = false;
+      this.grounded = false;
+      return true;
+    }
+    const probe = { x: this.position.x, y: this.position.y, z: this.position.z };
+    const insideWall = this.world.resolveHorizontal(probe, PLAYER_RADIUS, PLAYER_HEIGHT);
+    const support = this.world.supportHeight(this.position.x, this.position.z, this.position.y, STEP_UP);
+    if (insideWall || support === null || this.position.y < support - 0.1) {
+      this.position.copy(this.developerTakeoff);
+      this.prevPosition.copy(this.position);
+    }
+    this.exitFlight();
+    this.grounded = false;
+    return true;
+  }
+
   private exitFlight(): void {
+    this.developerFlight = false;
     this.flightMode = false;
     this.velocity.set(0, 0, 0);
     this.launchVelocityY = 0;
@@ -277,10 +310,10 @@ export class PlayerController {
     }
 
     const len = Math.hypot(ix, iz);
+    const speed = this.input.isDown('run') ? FLIGHT_RUN_SPEED : FLIGHT_SPEED;
     if (len > 0) {
       ix /= len;
       iz /= len;
-      const speed = this.input.isDown('run') ? FLIGHT_RUN_SPEED : FLIGHT_SPEED;
       const f = this.forward;
       const rightX = Math.cos(this.yaw);
       const rightZ = -Math.sin(this.yaw);
@@ -288,6 +321,15 @@ export class PlayerController {
       this.position.x += (f.x * -iz + rightX * ix) * speed * dt;
       this.position.y += f.y * -iz * speed * dt;
       this.position.z += (f.z * -iz + rightZ * ix) * speed * dt;
+    }
+
+    // Developer flight strafes vertically and never auto-lands.
+    if (this.developerFlight) {
+      const vertical = Number(this.input.isDown('jump')) - Number(this.input.isDown('descend'));
+      this.position.y += vertical * speed * dt;
+      this.velocity.set(0, 0, 0);
+      this.grounded = false;
+      return;
     }
 
     // The launch pop rides on top of look/WASD control and decays to nothing,
