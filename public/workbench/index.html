@@ -388,7 +388,8 @@ function setViewMode(next){
  for(const id of ['floor0','floor1','zoomOut','zoomIn','fit','exportSvg','toolMove','toolMeasure','toggleSources','toggleRoutes'])document.getElementById(id).hidden=three;
  if(three){
   viewerReady=false;
-  viewer.src=new URL('../workbench3d/index.html',location.href).href;
+  const fullIsland=new URLSearchParams(location.search).get('view')==='island';
+  viewer.src=new URL('../workbench3d/index.html'+(fullIsland?'?view=island':''),location.href).href;
   updateStatus('Loading real 3D museum architecture. The 2D plan remains unchanged.');
  }else{
   viewerReady=false;viewer.src='about:blank';
@@ -434,6 +435,7 @@ button('openCollection',()=>openMobile('collection'));button('openDetails',()=>o
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(viewMode==='3d'){const hadPanel=!!document.querySelector('.app.mode-3d .sidebar.open');open3dPanel('map');if(hadPanel){e.preventDefault();document.getElementById('open3dInspector').focus();}}else if(window.innerWidth<=850)openMobile('map');if(mode!=='inspect')setTool('inspect');return}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&document.activeElement?.tagName!=='TEXTAREA'&&document.activeElement?.tagName!=='INPUT'){if(undoStack.length){e.preventDefault();plan=cleanPlan(JSON.parse(undoStack.pop()));persist();render()}}if(e.key==='/'&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)){e.preventDefault();els.search.focus()}});
 window.addEventListener('resize',()=>{const b={...view};setView(b)});
 render();requestAnimationFrame(fit);
+if(new URLSearchParams(location.search).get('view')==='island')setViewMode('3d');
 // Test-only read-only diagnostics; this does not mutate the museum or proposals.
 Object.defineProperty(window,'MuseumWorkbenchProof',{value:Object.freeze({source:SOURCE,exhibitCount:EXHIBITS.length,projectCount:Object.keys(PROJECTS).length,placementCount:PLACEMENTS.length,legacyInstallationCount:PRIMARY.length,supplementaryCount:SUPP.length,visitorIdentityCount:VISITOR_ROWS.length,wingCount:WINGS.length,hasCorrectFloors:WINGS.filter(w=>w.level===0).length===4&&WINGS.filter(w=>w.level===1).length===2,sanctuaryCenter:[...SANCTUARY_CENTER],room:(id)=>{const p=PL_BY_ID[id];return p?{...p}:null}}),writable:false});
 </script>
