@@ -271,6 +271,14 @@ export class App implements LoopCallbacks {
     this.worldDirector.activeWorld = val;
   }
 
+  async switchToInterior(): Promise<boolean> {
+    return this.worldDirector.switchToInterior();
+  }
+
+  switchToExterior(): boolean {
+    return this.worldDirector.switchToExterior();
+  }
+
   get interiorConstructed(): boolean {
     return this.worldDirector.interiorConstructed;
   }

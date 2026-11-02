@@ -60,23 +60,37 @@ test.describe('P1 Exterior-first cold boot and independent world contexts', () =
       app.stop();
 
       const initialPos = [app.player.position.x, app.player.position.y, app.player.position.z];
-      // Step player on exterior plaza
+      // Step player on exterior plaza terrace (y = 0)
       app.player.teleport([10, 0, 135]);
       for (let i = 0; i < 60; i++) {
         app.fixedUpdate(1 / 60);
       }
+      const plazaY = app.player.position.y;
+      const plazaGrounded = app.player.grounded;
+
+      // Step player on exterior ground beyond plaza stairs (z = 180, y = -0.5)
+      app.player.teleport([10, 0, 180]);
+      for (let i = 0; i < 60; i++) {
+        app.fixedUpdate(1 / 60);
+      }
+      const groundY = app.player.position.y;
+      const groundGrounded = app.player.grounded;
 
       return {
         initialPos,
-        finalPos: [app.player.position.x, app.player.position.y, app.player.position.z],
-        grounded: app.player.grounded,
+        plazaY,
+        plazaGrounded,
+        groundY,
+        groundGrounded,
         museumBuildCount: app.museumBuildCount,
         interiorConstructed: app.interiorConstructed,
       };
     });
 
-    expect(moveResult.finalPos[1]).toBeCloseTo(-0.5, 1);
-    expect(moveResult.grounded).toBe(true);
+    expect(moveResult.plazaY).toBeCloseTo(0, 1);
+    expect(moveResult.plazaGrounded).toBe(true);
+    expect(moveResult.groundY).toBeCloseTo(-0.5, 1);
+    expect(moveResult.groundGrounded).toBe(true);
     expect(moveResult.museumBuildCount).toBe(0);
     expect(moveResult.interiorConstructed).toBe(false);
     expect(errors).toEqual([]);

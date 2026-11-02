@@ -265,6 +265,15 @@ export const SPAWN_YAW = 0;
 export const PLAZA_DEPTH = 30;
 export const PLAZA_HALF_WIDTH = 34;
 
+// ── Non-Euclidean Doorway & Threshold Constants ────────────────────────────
+export const ENTRANCE_PORTAL_Z = VESTIBULE_TO; // 128
+export const THRESHOLD_PREPARE_DISTANCE = 6;
+export const THRESHOLD_PREPARE_Z = ENTRANCE_PORTAL_Z + THRESHOLD_PREPARE_DISTANCE; // 134
+export const PORTAL_WIDTH = 7;
+export const PORTAL_HEIGHT = 5.2;
+export const EXTERIOR_RETURN_POSITION: Vec3 = [0, GROUND_Y, ENTRANCE_PORTAL_Z + 4]; // [0, 0, 132]
+export const INTERIOR_ENTRY_POSITION: Vec3 = [0, GROUND_Y, ENTRANCE_PORTAL_Z - 3]; // [0, 0, 125]
+
 // ── Dexter Sanctuary ───────────────────────────────────────────────────────
 
 /**

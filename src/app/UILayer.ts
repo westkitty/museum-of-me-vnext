@@ -457,6 +457,8 @@ export class UILayer {
 
     if (!this.diagnostics.root.hidden) {
       const extra: Record<string, string | number> = {
+        world: this.app.activeWorld,
+        phase: this.app.worldDirector.phase,
         quality: this.app.renderer.quality.tier,
         controls: this.app.interaction.controlCount,
         audio: this.app.audio.isRunning ? 'on' : 'off',

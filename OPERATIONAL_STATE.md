@@ -575,3 +575,23 @@ Final exact-branch evidence: canonical gate PASS, 44/44 Vitest files and 706/706
   - Asset and budget verification: 9.31 MB of 20 MB budget (PASS).
   - Typecheck, ESLint, and all 9 validation scripts (PASS).
   - Invariants INV-01 through INV-20 intact. Zero pages deployment, zero history rewrites. Status: ACTIVE DEVELOPMENT / PRE-1.0.
+
+**r80 addendum — 2026-11-02 minimum viable impossible threshold and reversible world switching (PHASE P2 PASS; PRE-1.0):** Phase P2 of the exterior-first & impossible threshold architecture implemented on feature branch `feature/exterior-first-impossible-threshold-20261102`.
+- **Doorway & Threshold Geometry:** Locked authoritative entrance portal anchors in `src/world/layout.ts` (`ENTRANCE_PORTAL_Z = 128`, `THRESHOLD_PREPARE_Z = 134`, `PORTAL_WIDTH = 7`, `PORTAL_HEIGHT = 5.2`, `EXTERIOR_RETURN_POSITION = [0, GROUND_Y, 132]`, `INTERIOR_ENTRY_POSITION = [0, GROUND_Y, 125]`).
+- **Exterior World Threshold Buffer & Occlusion:** `ExteriorWorld.ts` augmented with arrival plaza terrace floor slab collision (`y = 0` between `z = 128` and `z = 158`) and steps down to island ground (`y = -0.5` at `z = 158..164`), ensuring zero vertical hitch across the entrance threshold. Built outer vestibule buffer chamber (matching inner vestibule width `hw = 9`, ceiling `y = 9`, floor `y = 0`, side wall colliders, and portal occluder backdrop at `z = 122`) preventing sightlines from exterior into unconstructed or out-of-scale interior wings.
+- **Reversible Atomic Switching in WorldDirector:** `WorldDirector.ts` implements guarded states (`EXTERIOR_ACTIVE`, `PREPARING_INTERIOR`, `AT_THRESHOLD`, `COMMITTING_INTERIOR`, `INTERIOR_ACTIVE`, `PREPARING_EXTERIOR`, `COMMITTING_EXTERIOR`, `PREPARATION_FAILED`).
+  - Predictive staging: approach within `z <= 134` triggers async `prepareInterior()`.
+  - Doorway threshold crossing at `z = 128`: synchronous atomic `commitToInterior()` toggles visibility, swaps collision world to destination, checks support height, and acquires/releases scoped `player.acquireFreeze()`.
+  - Seam hold: approaching doorway before preparation completes holds player at `z = 128.05`, committing instantly upon load completion.
+  - Reversible return: stepping south past `z = 128` triggers `switchToExterior()`, swapping visibility and physics back to exterior.
+  - Backtracking safety: reversing away from doorway before load completes stays outside; stale promise resolution does not teleport.
+  - Error recovery: controlled failures transition to `PREPARATION_FAILED`, keeping player mobile and safe in exterior; `retryInteriorLoad()` recovers cleanly.
+- **Verification:**
+  - Dedicated `tests/browser/impossible-threshold.e2e.ts` (6/6 PASS): cold start approach, reversible roundtrip and re-entry, backtracking before load, 15-iteration repeated reversible switching without resource duplication (`museumBuildCount === 1`), Dexter Sanctuary ramp traversal and collision preservation (`y = -4.45` dais grounded), and simulated failure recovery.
+  - `tests/browser/exterior-first.e2e.ts` (3/3 PASS).
+  - `tests/browser/museum.e2e.ts` (9/9 PASS).
+  - `tests/browser/performance-lifecycle.e2e.ts` (1/1 PASS), `tests/browser/art-direction.e2e.ts` (1/1 PASS).
+  - Workshop authoring proof `npm run test:workshop` (PASS).
+  - Budget verification: 9.31 MB of 20 MB budget (PASS).
+  - Standalone verification `npm run verify:standalone` (PASS).
+  - All 20 invariants (`INV-01`–`INV-20`) verified intact. Zero main merge, zero pages deployment. Status: ACTIVE DEVELOPMENT / PRE-1.0.
