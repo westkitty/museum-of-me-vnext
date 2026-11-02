@@ -3,14 +3,14 @@ import { expect, test } from '@playwright/test';
 test('development choreographer mounts accessibly, shares the app loop and tears down cleanly', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/?choreo=1', { waitUntil: 'commit' });
+  // This suite validates the development Choreographer, not title prewarming.
+  // Dedicated cinematic-arrival tests cover the genuine visitor entry dialog.
+  // QA mode bypasses that unrelated GPU-timed gate while retaining ?choreo=1.
+  await page.goto('/?choreo=1&qa=1', { waitUntil: 'commit' });
   await page.waitForFunction(() => Boolean(window.__museum));
-  const intro = page.getByRole('dialog', { name: 'Welcome to the Museum of Me' });
-  const enter = intro.getByRole('button', { name: 'Enter the museum' });
-  await expect(enter).toBeEnabled({ timeout: 20_000 });
   await page.evaluate(() => window.__museum!.stop());
-  await enter.click();
   const launcher = page.getByRole('button', { name: 'Visitor Choreographer', exact: true });
+  await expect(launcher).toBeVisible({ timeout: 20_000 });
   await launcher.focus();
   await page.keyboard.press('Enter');
   const panel = page.getByRole('dialog', { name: 'Visitor Choreographer', exact: true });
