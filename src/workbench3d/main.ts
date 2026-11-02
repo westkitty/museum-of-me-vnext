@@ -105,8 +105,13 @@ function focus(position: THREE.Vector3, extent = 32): void {
 function resetCamera(): void {
   if (!camera || !controls) return;
   controls.target.set(0, surveyView === 'island' ? 0 : 2, 0);
-  if (surveyView === 'island') camera.position.set(185, 195, 215);
-  else camera.position.set(149, 176, 165);
+  if (surveyView === 'island') {
+    // Preserve the full source shoreline on portrait as well as landscape screens.
+    const aspect = Math.max(0.4, mount.clientWidth / Math.max(1, mount.clientHeight));
+    const framing = aspect < 1 ? Math.min(2.5, 1 / aspect) : 1;
+    camera.aspect = aspect;
+    camera.position.set(185 * framing, 195 * framing, 215 * framing);
+  } else camera.position.set(149, 176, 165);
   controls.maxDistance = surveyView === 'island' ? 800 : 480;
   camera.updateProjectionMatrix();
   controls.update();
@@ -490,6 +495,21 @@ function init(): void {
       exteriorBeaconsVisible: Boolean(islandBeacons?.visible),
       toolsExpanded: !detailControls.hidden,
     }),
+    islandFraming: () => {
+      if (!camera || !islandGarden) return null;
+      const terrain = islandGarden.group.getObjectByName('night-island-terrain');
+      if (!(terrain instanceof THREE.Mesh)) return null;
+      const positions = (terrain.geometry as THREE.BufferGeometry).getAttribute('position');
+      terrain.updateWorldMatrix(true, false);
+      let maxX = 0, maxY = 0;
+      const point = new THREE.Vector3();
+      for (let i = 0; i < positions.count; i++) {
+        point.fromBufferAttribute(positions, i).applyMatrix4(terrain.matrixWorld).project(camera);
+        maxX = Math.max(maxX, Math.abs(point.x));
+        maxY = Math.max(maxY, Math.abs(point.y));
+      }
+      return { maxX, maxY };
+    },
     screenForRoom: (id: string) => {
       if (!camera || !renderer) return null;
       const marker = roomMarkers.find(m => m.id === id);
