@@ -3,6 +3,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Museum } from '../world/Museum';
 import { PersistentEnvironment } from '../world/PersistentEnvironment';
 import { ArrivalGarden } from '../world/ArrivalGarden';
+import { CollisionWorld } from '../world/CollisionWorld';
+import { IslandLandscape } from '../world/exterior/IslandLandscape';
 import { ArrivalBeacons } from '../world/ArrivalBeacons';
 import { Sky } from '../world/Sky';
 import { Lighting } from '../render/Lighting';
@@ -57,6 +59,7 @@ let dressing: THREE.Group | null = null;
 let overlay: THREE.Group | null = null;
 let studioLights: THREE.Group | null = null;
 let islandGarden: ArrivalGarden | null = null;
+let islandLandscape: IslandLandscape | null = null;
 let islandBeacons: THREE.Group | null = null;
 let islandSky: Sky | null = null;
 let islandLighting: Lighting | null = null;
@@ -110,9 +113,10 @@ function resetCamera(): void {
     const aspect = Math.max(0.4, mount.clientWidth / Math.max(1, mount.clientHeight));
     const framing = aspect < 1 ? Math.min(2.5, 1 / aspect) : 1;
     camera.aspect = aspect;
-    camera.position.set(185 * framing, 195 * framing, 215 * framing);
+    // The coherent island shell is larger than the prior radial placeholder.
+    camera.position.set(245 * framing, 258 * framing, 284 * framing);
   } else camera.position.set(149, 176, 165);
-  controls.maxDistance = surveyView === 'island' ? 800 : 480;
+  controls.maxDistance = surveyView === 'island' ? 1_200 : 480;
   camera.updateProjectionMatrix();
   controls.update();
   paint();
@@ -133,6 +137,7 @@ function refreshVisibility(): void {
   }
   building.visible = layers.architecture.checked;
   if (islandGarden) islandGarden.group.visible = surveyView === 'island';
+  if (islandLandscape) islandLandscape.root.visible = surveyView === 'island';
   if (islandBeacons) islandBeacons.visible = surveyView === 'island';
   if (islandSky) islandSky.mesh.visible = surveyView === 'island';
   if (islandLighting) islandLighting.group.visible = surveyView === 'island';
@@ -287,6 +292,7 @@ function pick(event: PointerEvent): void {
       ? topCut() : Number.POSITIVE_INFINITY;
     const objects: THREE.Object3D[] = [building];
     if (surveyView === 'island' && islandGarden) objects.push(islandGarden.group);
+    if (surveyView === 'island' && islandLandscape) objects.push(islandLandscape.root);
     const hit = ray.intersectObjects(objects, true).find(intersection => {
       if (!isActuallyVisible(intersection.object) || intersection.point.y > visibleTop) return false;
       if (surveyView === 'museum') return floor !== 'upper' || intersection.point.y >= LEVEL_1_Y - 1;
@@ -378,6 +384,8 @@ function init(): void {
     if (!scene || islandGarden) return;
     islandGarden = new ArrivalGarden(museumScope, result.collision);
     scene.add(islandGarden.build());
+    islandLandscape = new IslandLandscape(museumScope, new CollisionWorld(), 'low');
+    scene.add(islandLandscape.build());
     islandBeacons = new ArrivalBeacons(museumScope).group;
     scene.add(islandBeacons);
     islandSky = new Sky(museumScope);
@@ -482,7 +490,7 @@ function init(): void {
   refreshVisibility();
   if (new URLSearchParams(location.search).get('view') === 'island') setSurveyView('island');
   Object.defineProperty(window, 'Museum3DProof', { value: Object.freeze({
-    sceneSource: 'Museum.build()', islandSource: 'ArrivalGarden.build()',
+    sceneSource: 'Museum.build()', islandSource: 'ArrivalGarden.build() + IslandLandscape.build()',
     nightSource: 'Sky', threeRevision: THREE.REVISION,
     realMuseumRoot: building.name === 'museum-building',
     exhibitAnchors: PLACEMENTS.length, authoredVisitorRoutes: routeLines.length,
@@ -491,6 +499,8 @@ function init(): void {
       floor, wing, cutaway, selected, selectedPin, pinCount: pinMarkers.length,
       view: surveyView, islandTerrain: Boolean(islandGarden?.group.getObjectByName('night-island-terrain')),
       islandWater: Boolean(islandGarden?.group.getObjectByName('night-island-water')),
+      islandPaths: Boolean(islandLandscape?.root.getObjectByName('site-path-1')),
+      islandSpire: Boolean(islandLandscape?.root.getObjectByName('single-golden-spire')),
       nightSkyVisible: Boolean(islandSky?.mesh.visible),
       exteriorBeaconsVisible: Boolean(islandBeacons?.visible),
       toolsExpanded: !detailControls.hidden,

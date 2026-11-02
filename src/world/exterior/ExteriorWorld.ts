@@ -5,6 +5,8 @@ import { ArrivalGarden } from '../ArrivalGarden';
 import { ArrivalBeacons } from '../ArrivalBeacons';
 import { ExteriorIdentity } from '../ExteriorIdentity';
 import { ExteriorMuseumShell } from './ExteriorMuseumShell';
+import { IslandLandscape } from './IslandLandscape';
+import { addIslandSupport } from './IslandSiteLayout';
 import {
   GROUND_Y,
   ZONE_BY_ID,
@@ -35,6 +37,7 @@ export class ExteriorWorld {
   readonly arrivalBeacons: ArrivalBeacons;
   readonly exteriorIdentity: ExteriorIdentity;
   readonly museumShell: ExteriorMuseumShell;
+  readonly islandLandscape: IslandLandscape;
 
   readonly spawnPosition: Vec3 = ZONE_BY_ID.get('plaza')!.center;
   readonly spawnYaw = 0;
@@ -42,9 +45,9 @@ export class ExteriorWorld {
   constructor(qualityTier: QualityTier) {
     this.root.name = 'exterior-world';
 
-    // The outdoor ground floor covers the island and arrival plaza footprint.
-    // Sits at GROUND_Y - 0.5 to match the authoritative exterior ground plane.
-    this.collision.addFloor(-300, 300, -300, 300, GROUND_Y - 0.5);
+    // Bounded support is derived from the closed site outline and leaves the
+    // lagoon, ocean and offshore space unsupported.
+    addIslandSupport(this.collision);
 
     // Raised arrival plaza terrace: floor at GROUND_Y (0) from z = 128 to 158
     this.collision.addFloor(
@@ -68,6 +71,9 @@ export class ExteriorWorld {
     this.arrivalGarden = new ArrivalGarden(this.scope, this.collision);
     this.root.add(this.arrivalGarden.build());
     this.arrivalGarden.setWaterQuality(qualityTier);
+
+    this.islandLandscape = new IslandLandscape(this.scope, this.collision, qualityTier);
+    this.root.add(this.islandLandscape.build());
 
     this.arrivalBeacons = new ArrivalBeacons(this.scope);
     this.root.add(this.arrivalBeacons.group);

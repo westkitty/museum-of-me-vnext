@@ -174,9 +174,10 @@ test('Full Island shows actual exterior world while fold-down UI preserves 71%+ 
       nightSource: proof.nightSource, ...proof.getState() };
   });
   expect(island).toMatchObject({
-    sceneSource: 'Museum.build()', islandSource: 'ArrivalGarden.build()', nightSource: 'Sky',
+    sceneSource: 'Museum.build()', islandSource: 'ArrivalGarden.build() + IslandLandscape.build()', nightSource: 'Sky',
     view: 'island', floor: 'both', wing: 'all', cutaway: false,
-    islandTerrain: true, islandWater: true, nightSkyVisible: true, exteriorBeaconsVisible: true,
+    islandTerrain: true, islandWater: true, islandPaths: true, islandSpire: true,
+    nightSkyVisible: true, exteriorBeaconsVisible: true,
   });
 
   await page.locator('#open3dCollection').click();
