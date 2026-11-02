@@ -6,8 +6,8 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 76,
-  "last_updated": "2026-11-01",
+  "state_revision": 78,
+  "last_updated": "2026-11-02",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
 -->
@@ -558,3 +558,6 @@ Final exact-branch evidence: canonical gate PASS, 44/44 Vitest files and 706/706
 
 
 **r77 addendum — 2026-11-01 developer flight and sky preview (FEATURE BRANCH IMPLEMENTED; NOT YET RUNTIME VERIFIED):** At the owner's explicit request for a direct dev-mode fly mode and manual sky daytime, the branch `feature/dev-fly-sky-scrubber-20261101` based on `main` `a0a27551a9d82eef2baed406a95ae93bd11c8ab3` adds an opt-in Vite-only `/?edit=1` or `/?devtools=1` Flight/Sky overlay. Noclip uses the existing controller and fixed frame loop (V toggle, WASD/look, Space rise, Ctrl descend, Shift accelerate), independent of the Rotunda pad; disabling flight returns to safe takeoff when trapped or unsupported. A quarter-hour clock slider drives sky uniforms and exterior ambient/directional illumination, with a canonical-night reset and no visitor-persistent state. Source paths: `src/dev/FlightSkyControls.ts`, `src/dev/flight-sky.css`, `src/player/Input.ts`, `src/player/PlayerController.ts`, `src/world/Sky.ts`, `src/render/Lighting.ts`, `src/app/App.ts`, `src/main.ts`, plus focused tests and README. No collection, collisions, exhibits, map, visitor save state, deployment, release, or default night presentation were intentionally modified. Evidence at this state: **IMPLEMENTED IN FEATURE BRANCH**; TypeScript, Vitest, browser/CI and physical device tests still **UNKNOWN / UNVERIFIED** until checked. Protected default remains night; the museum is PRE-1.0.
+
+
+**r78 addendum — 2026-11-02 exterior-first baseline and reference lock (PHASE P0 PASS; PRE-1.0):** Established dedicated feature branch `feature/exterior-first-impossible-threshold-20261102` from verified clean `main` HEAD `6950ab9401d2d957c801afba6f86c11ce5b29267`. Full test suite, linters, types, distribution checks, budget guards, validators, and Playwright Chromium suites were executed and verified against the baseline source. The reference contract for the exterior island and compact museum shell is locked in `docs/references/exterior-island/REFERENCE_MANIFEST.md` with SHA-256 hashes, roles, and visual criteria across six original user reference images. Master site orientation is established using `1000230572.png` (south pier, east lagoon, northwest circular spire garden, west woodland, centered museum). Five reproducible canonical QA cameras are locked (`front-south`, `east-lagoon`, `west-woodland`, `high-topdown`, `rear-north`). Non-Euclidean separation of exterior shell and interior museum layout is an accepted non-negotiable architectural constraint. Complete baseline and proof harness recorded in `docs/EXTERIOR_FIRST_BASELINE_AND_PROOF_HARNESS.md`. One known pre-existing local finding in `tests/sentinel.test.ts` (Darwin symlink in `/var/folders` vs `/private/var/folders`) recorded; passes in Linux CI. Zero runtime or exhibit production files modified in this phase. Product status: ACTIVE DEVELOPMENT / PRE-1.0.
