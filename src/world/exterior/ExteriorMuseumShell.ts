@@ -30,6 +30,11 @@ export class ExteriorMuseumShell {
     const amber = this.scope.track(new THREE.MeshBasicMaterial({ color: 0xffb86c, toneMapped: false }));
     const cyan = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x40c4d8, toneMapped: false }));
     const jewelMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x4de3f7, toneMapped: false }));
+    // Match the roof eaves to the side walls and the rear elevation.
+    const roofWidth = 25;
+    const roofRise = 8.5;
+    const roofLength = 210;
+    const roofHalfLength = roofLength / 2;
 
     const box = (name: string, size: Vec3, pos: Vec3, mat: THREE.Material) => {
       const mesh = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(...size)), mat);
@@ -55,7 +60,7 @@ export class ExteriorMuseumShell {
     box('spine-east-trim', [0.55, 0.55, 210], [13.1, 10.9, 0], trim);
     box('spine-west-trim', [0.55, 0.55, 210], [-13.1, 10.9, 0], trim);
     for (const side of [-1, 1]) {
-      box(`side-facade-${side}`, [1.6, 9.5, 196], [side * 38, 4.75, 0], wall);
+      box(`side-facade-${side}`, [1.6, 9.5, roofLength], [side * 38, 4.75, 0], wall);
       box(`amber-window-ribbon-${side}`, [0.08, 1.4, 192], [side * 37.16, 5.5, 0], amber);
       box(`cyan-window-sill-${side}`, [0.12, 0.12, 192], [side * 37.05, 4.72, 0], cyan);
     }
@@ -63,7 +68,7 @@ export class ExteriorMuseumShell {
     // Barrel vault roof wings: a sampled arch profile extruded along the full Z length.
     for (const side of [-1, 1]) {
       const x0 = side * 25.5;
-      const geo = this.barrelGeometry(23, 8.5, 200);
+      const geo = this.barrelGeometry(roofWidth, roofRise, roofLength);
       const shell = new THREE.Mesh(this.scope.track(geo), roof);
       shell.name = `curved-roof-wing-${side < 0 ? 'west' : 'east'}`;
       shell.position.set(x0, 9.5, 0);
@@ -71,28 +76,44 @@ export class ExteriorMuseumShell {
       shell.receiveShadow = true;
       g.add(shell);
       // Twelve crosswise raised seams per wing, shared geometry/material.
-      const seamGeo = this.scope.track(this.barrelRibGeometry(23.18, 8.58));
-      for (let z = -90; z <= 90; z += 10) {
+      const seamGeo = this.scope.track(this.barrelRibGeometry(roofWidth + 0.18, roofRise + 0.08));
+      for (let z = -100; z <= 100; z += 10) {
         const seam = new THREE.Mesh(seamGeo, rib);
         seam.name = `roof-seam-${side}-${z}`;
         seam.position.set(x0, 9.5, z);
         g.add(seam);
       }
       // Rounded endcaps close the barrel ends.
-      const endGeo = this.scope.track(this.barrelEndGeometry(23, 8.5));
-      for (const z of [-99.7, 99.7]) {
+      const endGeo = this.scope.track(this.barrelEndGeometry(roofWidth, roofRise));
+      for (const z of [-roofHalfLength + 0.3, roofHalfLength - 0.3]) {
         const end = new THREE.Mesh(endGeo, trim);
         end.name = `roof-rounded-end-${side}-${z}`;
         end.position.set(x0, 9.5, z);
-        end.rotation.y = z < 0 ? 0 : Math.PI;
+        // ShapeGeometry faces +Z; turn the north cap toward -Z.
+        end.rotation.y = z < 0 ? Math.PI : 0;
         g.add(end);
       }
+    }
+
+    // Join the front of the roof wings (Z = 105) to the entrance facade
+    // (Z = 128). The former 23-metre open gap exposed the back of the
+    // portal as an isolated wall. Keep the central entry route clear.
+    const entryLength = ENTRANCE_PORTAL_Z - roofHalfLength;
+    const entryMidZ = (ENTRANCE_PORTAL_Z + roofHalfLength) / 2;
+    box('entrance-connector-roof', [40, 0.8, entryLength + 0.7], [0, 11.6, entryMidZ], roof);
+    for (const side of [-1, 1]) {
+      const x = side * 19.55;
+      box(`entrance-connector-wall-${side}`, [0.9, 11.5, entryLength + 0.7], [x, 5.75, entryMidZ], wall);
+      this.collision.addBox([x, 5.75, entryMidZ], [0.45, 5.75, (entryLength + 0.7) / 2]);
+      box(`south-wing-return-${side}`, [18.5, 9.5, 0.9], [side * 28.75, 4.75, roofHalfLength], wall);
+      this.collision.addBox([side * 28.75, 4.75, roofHalfLength], [9.25, 4.75, 0.45]);
     }
 
     // Low rounded entry volume, portal frame and axial occlusion.
     const portico = new THREE.Mesh(this.scope.track(new THREE.TorusGeometry(9, 0.38, 10, 48, Math.PI)), gold);
     portico.name = 'south-rounded-glazed-portico';
-    portico.position.set(0, 0, 106);
+    // The portal's visible arch belongs on the south face, not 22 m behind it.
+    portico.position.set(0, 0, ENTRANCE_PORTAL_Z + 0.85);
     g.add(portico);
     const halfDoor = 3.5;
     box('portal-left-bronze-jamb', [0.45, 5.2, 0.55], [-halfDoor - 0.225, 2.6, ENTRANCE_PORTAL_Z], gold);
@@ -111,17 +132,18 @@ export class ExteriorMuseumShell {
     dome.name = 'central-turquoise-dome-glazing';
     dome.position.set(0, 11.5, 0);
     g.add(dome);
-    const ring = new THREE.Mesh(this.scope.track(new THREE.TorusGeometry(14.5, 0.22, 8, 64)), cyan);
+    const ring = new THREE.Mesh(this.scope.track(new THREE.TorusGeometry(15, 0.22, 8, 64)), cyan);
     ring.name = 'dome-inner-glow-ring';
     ring.rotation.x = Math.PI / 2;
-    ring.position.set(0, 12, 0);
+    ring.position.set(0, 11.5, 0);
     g.add(ring);
     for (let i = 0; i < 16; i++) {
       const a = (i / 16) * Math.PI * 2;
       const points: THREE.Vector3[] = [];
       for (let j = 0; j <= 24; j++) {
         const t = (j / 24) * Math.PI / 2;
-        points.push(new THREE.Vector3(15 * Math.sin(t) * Math.cos(a), 11.5 + 13 * (1 - Math.cos(t)), 15 * Math.sin(t) * Math.sin(a)));
+        // Equator at the spring line, pole at the apex: the exact glass hemisphere.
+        points.push(new THREE.Vector3(15 * Math.cos(t) * Math.cos(a), 11.5 + 15 * Math.sin(t), 15 * Math.cos(t) * Math.sin(a)));
       }
       const curve = new THREE.CatmullRomCurve3(points);
       const meridian = new THREE.Mesh(this.scope.track(new THREE.TubeGeometry(curve, 24, 0.12, 6, false)), gold);
