@@ -16,6 +16,19 @@ describe('IslandLandscape', () => {
     const secondTrunks = second.getObjectByName('perimeter-woodland-trunks') as THREE.InstancedMesh;
     expect(firstTrunks).toBeTruthy();
     expect(firstTrunks.count).toBe(68);
+    // The forest now has a genuinely varied skyline, not uniform shrubs.
+    // Geometry remains instanced, deterministic and grounded.
+    const woodlandMatrix = new THREE.Matrix4();
+    const woodlandScale = new THREE.Vector3();
+    const woodlandHeights: number[] = [];
+    for (let i = 0; i < firstTrunks.count; i++) {
+      firstTrunks.getMatrixAt(i, woodlandMatrix);
+      woodlandMatrix.decompose(new THREE.Vector3(), new THREE.Quaternion(), woodlandScale);
+      woodlandHeights.push(5.4 * woodlandScale.y);
+    }
+    expect(Math.max(...woodlandHeights)).toBeGreaterThan(9.5);
+    expect(Math.max(...woodlandHeights) - Math.min(...woodlandHeights)).toBeGreaterThan(4);
+    expect(woodlandHeights[0]).toBeGreaterThan(woodlandHeights[10]);
     expect(SCENIC_GROVE_POINTS).toHaveLength(20);
     expect(SCENIC_GROVE_POINTS.every(([x, z]) => isSiteLand(x, z))).toBe(true);
     for (let i = 0; i < SCENIC_GROVE_POINTS.length; i++) {
