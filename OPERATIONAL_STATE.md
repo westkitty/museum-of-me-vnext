@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 85,
+  "state_revision": 86,
   "last_updated": "2026-11-03",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -704,3 +704,7 @@ Tests extended in `tests/exterior-shell.test.ts` for roof/world wall extents, ex
 
 ### Exterior split-gateway compatibility correction — 2026-11-03
 **Evidence state: FIRST CI RUN FAILED at 733 Vitest tests (732 PASS, one stale assertion FAIL); candidate source correction committed, fresh CI required.** First PR #31 exact-head CI on `dce536c` failed its canonical gate in `tests/cinematic-arrival.test.ts` because that old assertion still required the giant overhead lintel (>Y20) and piers at X>34 while the current visual repair lowered/removed the across-axis structure. The failure was a conflicting historical test expectation, not a proven browser runtime defect. Revision moves lower flanking piers/caps to X±35.5 (outside the existing PLAZA_HALF_WIDTH=34 protection), anchors the legacy `monumental-arrival-lintel` grouping node at canonical Z132, and updates the old assertion to require two small separated caps outside the walking plaza with no central overhead beam. Also aligns the new-focused test to X±35.5. Do not relax pier-startup, approach geometry, collision, skyline intent, or render baselines. Four new exact-head CI jobs and matched cameras must be verified before claiming success; no merge/Pages/deploy.
+
+
+### Exterior S2 night water, lagoon and coast material candidate — 2026-11-03
+**Evidence state: IMPLEMENTED IN SEPARATE CHILD FEATURE SOURCE; all exact-head tests, browser PNGs and visual acceptance PENDING.** Branch `feat/exterior-night-water-lagoon-review-20261103` derives from PR #31 `735c0f3c840e2c0810e1af46a9a31421ca80f2bd`, leaving that draft entrance/woodland correction untouched. Independent material hypothesis based on owner's accepted aspirational references and verified PR #30 darkness: modest color separation in existing island/sea/mineral materials, maintain original four-wave shader, add one static indexed, broken foam mesh following exact ISLAND_OUTLINE (no independent per-segment draw, no new time loop, no physics), distinguish polygonal lagoon water/bed/bank with a scoped lagoon-only MeshStandardMaterial, and preserve entrance fountain water. Tests check mesh bounds, offshore vertices, source IDs, physical exclusions, ring geometry, lagoon depth, disposal and no new collision. Same seven camera views and manifest condition now enabled for this child branch. **No aesthetic approval, real-device FPS, main merge or Pages publication.** Capture actual Chromium frames and compare directly to PR #30 and PR #31; reject if foam reads like a luminous stencil or depth/overdraw regresses. Rollback: revert only this feature child commit.
