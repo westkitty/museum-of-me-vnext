@@ -6,7 +6,7 @@ import { ArrivalGarden } from '../src/world/ArrivalGarden';
 import { ISLAND_OUTLINE, LAND_SUPPORT_Y } from '../src/world/exterior/IslandSiteLayout';
 
 describe('authored coast / ocean continuity', () => {
-  it('covers the entire island and pier with water below the supported land', () => {
+  it('keeps the annular ocean beneath the real coast, with crests below land', () => {
     const scope = new ResourceScope('coastal-water-test');
     const garden = new ArrivalGarden(scope, new CollisionWorld());
     const root = garden.build();
@@ -15,7 +15,19 @@ describe('authored coast / ocean continuity', () => {
     expect(water).toBeTruthy();
     expect(land).toBeTruthy();
     expect(water.geometry.type).toBe('RingGeometry');
-    expect(water.geometry.parameters.innerRadius).toBe(0);
+    expect(water.geometry.parameters.innerRadius).toBe(164);
+    // Prove the annulus begins inside every part of the authored coast,
+    // including the midpoints of straight polygon edges.
+    let nearestCoast = Infinity;
+    for (let i = 0; i < ISLAND_OUTLINE.length; i++) {
+      const [ax, az] = ISLAND_OUTLINE[i];
+      const [bx, bz] = ISLAND_OUTLINE[(i + 1) % ISLAND_OUTLINE.length];
+      const dx = bx - ax;
+      const dz = bz - az;
+      const t = Math.max(0, Math.min(1, -(ax * dx + az * dz) / (dx * dx + dz * dz)));
+      nearestCoast = Math.min(nearestCoast, Math.hypot(ax + dx * t, az + dz * t));
+    }
+    expect(nearestCoast).toBeGreaterThan(water.geometry.parameters.innerRadius + 10);
     expect(water.geometry.parameters.outerRadius).toBe(330);
     expect(land.position.y).toBe(LAND_SUPPORT_Y);
     // Total wave amplitude = .16 + .095 + .052 + .028 = .335 m.

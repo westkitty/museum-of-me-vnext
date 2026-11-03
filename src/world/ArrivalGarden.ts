@@ -289,11 +289,11 @@ export class ArrivalGarden {
   /** Water and shoreline are visual-only: the proven exterior ground and its
    * Sanctuary-trench cut-out remain the sole collision authority. */
   private buildIsland(): void {
-    // Cover the entire water disc, including under the irregular island and
-    // pier. The old 164 m inner hole exposed empty space where the real
-    // coastline dipped inward. The opaque island hides covered ocean pixels.
+    // Keep the economical annular ocean: its 164 m inner edge is INSIDE
+    // every real shoreline segment (nearest coast is more than 178 m away).
+    // A full disc adds GPU fill and cannot fix a nonexistent shoreline gap.
     const water = new THREE.Mesh(
-      this.scope.track(new THREE.RingGeometry(0, 330, 124, 12)),
+      this.scope.track(new THREE.RingGeometry(164, 330, 124, 12)),
       this.water,
     );
     water.name = 'night-island-water';
