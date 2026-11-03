@@ -55,14 +55,52 @@ export class ExteriorMuseumShell {
       return mesh;
     };
 
+    // All visible window ribbons sit OUTSIDE the opaque wall, with a 0.07 m
+    // gap beyond its outer face. The former x=37.16 ribbons were buried on
+    // the inner face of the x=38 wall and could not read from the landscape.
+    const placeInstance = (mesh: THREE.InstancedMesh, index: number, x: number, y: number, z: number) => {
+      const placement = new THREE.Object3D();
+      placement.position.set(x, y, z);
+      placement.updateMatrix();
+      mesh.setMatrixAt(index, placement.matrix);
+    };
+    const addInstances = (...meshes: THREE.InstancedMesh[]) => {
+      for (const mesh of meshes) {
+        mesh.instanceMatrix.needsUpdate = true;
+        mesh.computeBoundingSphere();
+        g.add(mesh);
+        this.scope.trackObject(mesh);
+      }
+    };
+    const sideWindowCount = 36;
+    const sideWindowSpacing = 5.25;
+    const paneGeometry = this.scope.track(new THREE.BoxGeometry(0.16, 1.4, 4.2));
+    const sillGeometry = this.scope.track(new THREE.BoxGeometry(0.20, 0.14, 4.32));
+    const mullionGeometry = this.scope.track(new THREE.BoxGeometry(0.26, 1.74, 0.42));
+
     // Structural spine and side elevations.
     box('museum-central-spine', [26, 11.5, 210], [0, 5.75, 0], spine);
     box('spine-east-trim', [0.55, 0.55, 210], [13.1, 10.9, 0], trim);
     box('spine-west-trim', [0.55, 0.55, 210], [-13.1, 10.9, 0], trim);
     for (const side of [-1, 1]) {
       box(`side-facade-${side}`, [1.6, 9.5, roofLength], [side * 38, 4.75, 0], wall);
-      box(`amber-window-ribbon-${side}`, [0.08, 1.4, 192], [side * 37.16, 5.5, 0], amber);
-      box(`cyan-window-sill-${side}`, [0.12, 0.12, 192], [side * 37.05, 4.72, 0], cyan);
+      const panes = new THREE.InstancedMesh(paneGeometry, amber, sideWindowCount);
+      panes.name = `amber-window-ribbon-${side}`;
+      panes.userData.visualRole = 'exterior-warm-window-bays';
+      const sills = new THREE.InstancedMesh(sillGeometry, cyan, sideWindowCount);
+      sills.name = `cyan-window-sill-${side}`;
+      const mullions = new THREE.InstancedMesh(mullionGeometry, trim, sideWindowCount + 1);
+      mullions.name = `facade-window-mullions-${side}`;
+      for (let i = 0; i < sideWindowCount; i++) {
+        const z = (i - (sideWindowCount - 1) / 2) * sideWindowSpacing;
+        placeInstance(panes, i, side * 38.95, 5.5, z);
+        placeInstance(sills, i, side * 38.98, 4.70, z);
+      }
+      for (let i = 0; i <= sideWindowCount; i++) {
+        const z = (i - sideWindowCount / 2) * sideWindowSpacing;
+        placeInstance(mullions, i, side * 39.00, 5.5, z);
+      }
+      addInstances(panes, sills, mullions);
     }
 
     // Barrel vault roof wings: a sampled arch profile extruded along the full Z length.
@@ -122,6 +160,26 @@ export class ExteriorMuseumShell {
     // Facade remains opaque outside the 7 m portal aperture.
     box('south-facade-left', [PLAZA_HALF_WIDTH - halfDoor, 12, 0.7], [-(PLAZA_HALF_WIDTH + halfDoor) / 2, 6, 128], wall);
     box('south-facade-right', [PLAZA_HALF_WIDTH - halfDoor, 12, 0.7], [(PLAZA_HALF_WIDTH + halfDoor) / 2, 6, 128], wall);
+
+    // Pier-facing windows make the broad south facade feel inhabited. Both
+    // bands stop before the seven-metre portal and project beyond the wall.
+    const frontPaneGeo = this.scope.track(new THREE.BoxGeometry(3.4, 2.15, 0.14));
+    const frontSillGeo = this.scope.track(new THREE.BoxGeometry(3.55, 0.14, 0.18));
+    const frontPanes = new THREE.InstancedMesh(frontPaneGeo, amber, 6);
+    frontPanes.name = 'south-ceremonial-window-bays';
+    frontPanes.userData.visualRole = 'pier-facing-warm-glazing';
+    const frontSills = new THREE.InstancedMesh(frontSillGeo, cyan, 6);
+    frontSills.name = 'south-ceremonial-window-sills';
+    for (const [sideIndex, side] of [-1, 1].entries()) {
+      for (let i = 0; i < 3; i++) {
+        const index = sideIndex * 3 + i;
+        const x = side * (6.2 + i * 5);
+        placeInstance(frontPanes, index, x, 6.8, ENTRANCE_PORTAL_Z + 0.48);
+        placeInstance(frontSills, index, x, 5.68, ENTRANCE_PORTAL_Z + 0.52);
+      }
+    }
+    addInstances(frontPanes, frontSills);
+
     box('north-rear-elevation', [76, 11.5, 1.4], [0, 5.75, -105], spine);
     for (const x of [-29, -18, 18, 29]) {
       box(`north-amber-slit-${x}`, [0.7, 7, 0.12], [x, 5.2, -104.2], amber);

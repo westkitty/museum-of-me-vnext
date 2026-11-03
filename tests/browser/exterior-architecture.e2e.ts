@@ -46,6 +46,9 @@ test('P3 compact exterior architecture renders from canonical cameras and remain
   expect(state.names).toContain('central-turquoise-dome-glazing');
   expect(state.names.filter((name) => name.startsWith('dome-gold-rib-'))).toHaveLength(16);
   expect(state.names).toContain('amber-window-ribbon-1');
+  expect(state.names).toContain('facade-window-mullions-1');
+  expect(state.names).toContain('south-ceremonial-window-bays');
+  expect(state.names).toContain('south-ceremonial-window-sills');
   expect(state.names).toContain('south-rounded-glazed-portico');
   expect(state.names).toContain('raised-stone-terrace');
   expect(state.renders).toHaveLength(5);
