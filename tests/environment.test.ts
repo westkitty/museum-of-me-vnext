@@ -328,7 +328,12 @@ describe('museum environment coherence', () => {
     expect(waterMoon.distanceTo(NIGHT_MOON_DIRECTION)).toBeLessThan(1e-7);
     expect(waterMaterial.fragmentShader).toContain('fresnel');
     expect(waterMaterial.fragmentShader).toContain('moonSpecular');
-    expect(waterMaterial.fragmentShader).toContain('shoreFoam');
+    // Surf geometry follows the actual island boundary. The former
+    // shader-only ellipse was removed because it detached from the coast.
+    expect(waterMaterial.fragmentShader).not.toContain('shoreFoam');
+    expect(waterMaterial.fragmentShader).toContain('crest');
+    expect((gardenRoot.getObjectByName('night-island-tidal-fringe') as THREE.Mesh).userData.visualRole)
+      .toBe('site-aligned-surf');
     expect(waterMaterial.fragmentShader).not.toContain('fbm');
     expect(waterMaterial.fragmentShader).not.toContain('hash(');
     const initialWaterTime = waterMaterial.uniforms.time.value as number;
