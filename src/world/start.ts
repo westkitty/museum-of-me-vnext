@@ -1,10 +1,11 @@
-import { ZONE_BY_ID, type Vec3 } from './layout';
+import type { Vec3 } from './layout';
+import { LAND_SUPPORT_Y, PIER_CENTERLINE } from './exterior/IslandSiteLayout';
 
 /**
- * The visitor begins outside, in the centre of the authored arrival plaza, and
- * faces north toward the museum entrance. The position is derived from
- * `layout.ts` so runtime spawn, maps, zones, collision and wayfinding stay in
- * agreement as the exterior evolves.
+ * Authoritative exterior visitor start: on the south arrival pier, facing
+ * north toward the museum. Keep it outside the entrance prompt (z <= 154)
+ * and prewarm (z <= 134) volumes. The pier owns safe floor support here.
  */
-export const START_POSITION: Vec3 = ZONE_BY_ID.get('plaza')!.center;
+const pierStart = PIER_CENTERLINE[2];
+export const START_POSITION: Vec3 = [pierStart[0], LAND_SUPPORT_Y, pierStart[1]];
 export const START_YAW = 0;

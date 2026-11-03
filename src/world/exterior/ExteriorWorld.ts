@@ -7,9 +7,9 @@ import { ExteriorIdentity } from '../ExteriorIdentity';
 import { ExteriorMuseumShell } from './ExteriorMuseumShell';
 import { IslandLandscape } from './IslandLandscape';
 import { addIslandSupport } from './IslandSiteLayout';
+import { START_POSITION, START_YAW } from '../start';
 import {
   GROUND_Y,
-  ZONE_BY_ID,
   SOUTH,
   VESTIBULE_TO,
   PLAZA_DEPTH,
@@ -39,8 +39,8 @@ export class ExteriorWorld {
   readonly museumShell: ExteriorMuseumShell;
   readonly islandLandscape: IslandLandscape;
 
-  readonly spawnPosition: Vec3 = ZONE_BY_ID.get('plaza')!.center;
-  readonly spawnYaw = 0;
+  readonly spawnPosition: Vec3 = START_POSITION;
+  readonly spawnYaw = START_YAW;
 
   constructor(qualityTier: QualityTier) {
     this.root.name = 'exterior-world';
