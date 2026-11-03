@@ -452,6 +452,66 @@ export class ArrivalGarden {
     LAGOON_OUTLINE.forEach(([x, z], i) => i === 0 ? lagoonShape.moveTo(x, -z) : lagoonShape.lineTo(x, -z));
     lagoonShape.closePath();
     const lagoonGeometry = this.scope.track(new THREE.ShapeGeometry(lagoonShape, 2));
+
+    // ShapeGeometry's UVs encode raw world coordinates. The lagoon-only
+    // procedural color map requires normalized local UVs in the exact
+    // LAGOON_OUTLINE bounding rectangle; the shared bed has no texture.
+    const lagoonX = LAGOON_OUTLINE.map(([x]) => x);
+    const lagoonZ = LAGOON_OUTLINE.map(([, z]) => z);
+    const minX = Math.min(...lagoonX), maxX = Math.max(...lagoonX);
+    const minZ = Math.min(...lagoonZ), maxZ = Math.max(...lagoonZ);
+    const positions = lagoonGeometry.getAttribute('position');
+    const lagoonUvs = lagoonGeometry.getAttribute('uv');
+    for (let i = 0; i < positions.count; i++) {
+      const x = positions.getX(i);
+      const z = -positions.getY(i);
+      lagoonUvs.setXY(i, (x - minX) / (maxX - minX), (z - minZ) / (maxZ - minZ));
+    }
+    lagoonUvs.needsUpdate = true;
+
+    // One tiny 128-square, fully local procedural texture. The exact
+    // polygon's distance field makes a shallow luminous shelf and darker
+    // interior rather than one flat, uniformly pale-blue decal. No network
+    // image, canvas dependency, animation or extra shader pass.
+    const textureSize = 128;
+    const lagoonPixels = new Uint8Array(textureSize * textureSize * 4);
+    const shorelineDistance = (x: number, z: number): number => {
+      let nearest = Infinity;
+      for (let i = 0; i < LAGOON_OUTLINE.length; i++) {
+        const [ax, az] = LAGOON_OUTLINE[i];
+        const [bx, bz] = LAGOON_OUTLINE[(i + 1) % LAGOON_OUTLINE.length];
+        const dx = bx - ax, dz = bz - az;
+        const lengthSquared = dx * dx + dz * dz;
+        const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / lengthSquared));
+        nearest = Math.min(nearest, Math.hypot(x - (ax + t * dx), z - (az + t * dz)));
+      }
+      return nearest;
+    };
+    for (let y = 0; y < textureSize; y++) {
+      const z = minZ + (y + 0.5) / textureSize * (maxZ - minZ);
+      for (let x = 0; x < textureSize; x++) {
+        const worldX = minX + (x + 0.5) / textureSize * (maxX - minX);
+        const shore = Math.exp(-shorelineDistance(worldX, z) / 12);
+        const ripple = Math.sin(worldX * 0.35 + z * 0.22 + Math.sin(z * 0.24) * 1.9);
+        const crossWave = Math.cos(worldX * 0.22 - z * 0.30);
+        const glint = Math.max(0, ripple * crossWave);
+        const at = (y * textureSize + x) * 4;
+        lagoonPixels[at] = Math.round(14 + 20 * shore + 5 * glint);
+        lagoonPixels[at + 1] = Math.round(70 + 72 * shore + 14 * glint);
+        lagoonPixels[at + 2] = Math.round(104 + 68 * shore + 13 * glint);
+        lagoonPixels[at + 3] = 255;
+      }
+    }
+    const lagoonTexture = this.scope.track(new THREE.DataTexture(
+      lagoonPixels, textureSize, textureSize, THREE.RGBAFormat,
+    ));
+    lagoonTexture.name = 'lagoon-shore-depth-gradient';
+    lagoonTexture.colorSpace = THREE.SRGBColorSpace;
+    lagoonTexture.magFilter = THREE.LinearFilter;
+    lagoonTexture.minFilter = THREE.LinearFilter;
+    lagoonTexture.generateMipmaps = false;
+    lagoonTexture.needsUpdate = true;
+
     const bedMaterial = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x123b4b, roughness: 0.9, metalness: 0.04, side: THREE.DoubleSide,
     }));
@@ -463,16 +523,17 @@ export class ArrivalGarden {
     bed.receiveShadow = true;
     this.group.add(bed);
 
-    // Basin-only material: the entrance fountain retains its existing water.
+    // Basin-only material: the entrance fountain retains its water identity.
+    // Darker center and irregular shallows are baked into one low-cost map.
     const lagoonMaterial = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x2d91b8, roughness: 0.22, metalness: 0.16,
-      emissive: 0x13435a, emissiveIntensity: 0.24,
-      transparent: true, opacity: 0.76, depthWrite: false, side: THREE.DoubleSide,
+      color: 0xffffff, map: lagoonTexture, roughness: 0.28, metalness: 0.09,
+      emissive: 0x113446, emissiveIntensity: 0.18,
+      transparent: true, opacity: 0.86, depthWrite: false, side: THREE.DoubleSide,
     }));
     const lagoon = new THREE.Mesh(lagoonGeometry, lagoonMaterial);
     lagoon.name = 'east-sheltered-lagoon';
     lagoon.rotation.x = -Math.PI / 2;
-    lagoon.position.y = GROUND_Y - 0.64;
+    lagoon.position.y = GROUND_Y - 0.94;
     lagoon.userData.visualRole = 'enclosed-lagoon';
     this.group.add(lagoon);
 
@@ -507,6 +568,36 @@ export class ArrivalGarden {
     wall.userData.visualRole = 'lagoon-stone-slope';
     wall.receiveShadow = true;
     this.group.add(wall);
+
+    // A single sloped mineral waterline shelf spans the real basin boundary
+    // to a four-percent inset. It gives eye-level and overhead views a dark
+    // near-bank transition; it is visual-only and cannot carry player physics.
+    const shelfPositions: number[] = [];
+    const shelfIndices: number[] = [];
+    for (let i = 0; i < LAGOON_OUTLINE.length; i++) {
+      const [ax, az] = LAGOON_OUTLINE[i];
+      const [bx, bz] = LAGOON_OUTLINE[(i + 1) % LAGOON_OUTLINE.length];
+      const base = i * 4;
+      shelfPositions.push(
+        ax, GROUND_Y - 0.49, az, bx, GROUND_Y - 0.49, bz,
+        ax + (centerX - ax) * 0.04, GROUND_Y - 0.96, az + (centerZ - az) * 0.04,
+        bx + (centerX - bx) * 0.04, GROUND_Y - 0.96, bz + (centerZ - bz) * 0.04,
+      );
+      shelfIndices.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
+    }
+    const shelfGeometry = this.scope.track(new THREE.BufferGeometry());
+    shelfGeometry.setAttribute('position', new THREE.Float32BufferAttribute(shelfPositions, 3));
+    shelfGeometry.setIndex(shelfIndices);
+    shelfGeometry.computeVertexNormals();
+    const shelfMaterial = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x526a6a, roughness: 0.96, metalness: 0,
+      flatShading: true, side: THREE.DoubleSide,
+    }));
+    const shelf = new THREE.Mesh(shelfGeometry, shelfMaterial);
+    shelf.name = 'east-lagoon-waterline-shelf';
+    shelf.userData.visualRole = 'lagoon-physical-depth-cue-visual-only';
+    shelf.receiveShadow = true;
+    this.group.add(shelf);
 
     // Keep the named original perimeter bank, but follow the literal outline.
     const lagoonCurve = new THREE.CurvePath<THREE.Vector3>();

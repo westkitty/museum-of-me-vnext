@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 86,
+  "state_revision": 87,
   "last_updated": "2026-11-03",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -708,3 +708,7 @@ Tests extended in `tests/exterior-shell.test.ts` for roof/world wall extents, ex
 
 ### Exterior S2 night water, lagoon and coast material candidate — 2026-11-03
 **Evidence state: IMPLEMENTED IN SEPARATE CHILD FEATURE SOURCE; all exact-head tests, browser PNGs and visual acceptance PENDING.** Branch `feat/exterior-night-water-lagoon-review-20261103` derives from PR #31 `735c0f3c840e2c0810e1af46a9a31421ca80f2bd`, leaving that draft entrance/woodland correction untouched. Independent material hypothesis based on owner's accepted aspirational references and verified PR #30 darkness: modest color separation in existing island/sea/mineral materials, maintain original four-wave shader, add one static indexed, broken foam mesh following exact ISLAND_OUTLINE (no independent per-segment draw, no new time loop, no physics), distinguish polygonal lagoon water/bed/bank with a scoped lagoon-only MeshStandardMaterial, and preserve entrance fountain water. Tests check mesh bounds, offshore vertices, source IDs, physical exclusions, ring geometry, lagoon depth, disposal and no new collision. Same seven camera views and manifest condition now enabled for this child branch. **No aesthetic approval, real-device FPS, main merge or Pages publication.** Capture actual Chromium frames and compare directly to PR #30 and PR #31; reject if foam reads like a luminous stencil or depth/overdraw regresses. Rollback: revert only this feature child commit.
+
+
+### Exterior S4 lagoon depth and polygon-water gradients — 2026-11-03
+**Evidence state: IMPLEMENTED IN SIBLING FEATURE SOURCE; exact-head CI and seven-image visual review PENDING.** Source parent is PR #32 `2299b628f4baa7f6adb1de63042828f64a0b0f4f`; kept independent from unverified PR #33 canopy experiment to avoid mixing visual hypotheses. The S2 accepted-code water plane is still a broad pale-blue flat shape in actual 03-east-lagoon, and its width/depth gradient is weak in 05-overhead. The bounded patch keeps the original LAGOON_OUTLINE, dry-land hole, bed, polygon wall, visitor physics and original ocean shader unchanged. It generates one 128x128 deterministic local DataTexture varying depth-like color by distance from true lagoon bank; normalizes UVs on the already-shared water/bed geometry; lowers the lagoon water plane 0.30m to reveal the existing bank; adds ONE low-poly single-mesh sloping mineral waterline shelf matching each of the original twelve segments. ResourceScope tracks every created resource. No network assets, new physics, new frame loop or extra light. Test water gradient, texture size, bank geometry, scope disposal, and retained collision object count. CI records the existing exact seven camera renders with hash manifest. Aesthetic status UNKNOWN until compared with S2 and accepted aspiration; low-tier mobile hardware performance UNKNOWN. If water appears as a decal or shoreline becomes an artificial ring, reject/revert this single change. No main merge or Pages publish.
