@@ -196,13 +196,13 @@ export class ArrivalGarden {
     // walkway and central exhibit approaches. The existing six formal trees
     // remain unchanged; these provide a wooded island backdrop.
     const grove: readonly Vec3[] = [
-      [-128, GROUND_Y, -108], [-143, GROUND_Y, -79], [-151, GROUND_Y, -43],
-      [-155, GROUND_Y, 10], [-138, GROUND_Y, 65], [-112, GROUND_Y, 105],
-      [-75, GROUND_Y, 125], [-38, GROUND_Y, 142], [24, GROUND_Y, 147],
-      [65, GROUND_Y, 130], [105, GROUND_Y, 110], [141, GROUND_Y, 69],
-      [152, GROUND_Y, 35], [151, GROUND_Y, -75], [129, GROUND_Y, -107],
-      [96, GROUND_Y, -126], [49, GROUND_Y, -141], [-8, GROUND_Y, -151],
-      [-65, GROUND_Y, -137], [-102, GROUND_Y, -124],
+      [-128, GROUND_Y - 0.5, -108], [-143, GROUND_Y - 0.5, -79], [-151, GROUND_Y - 0.5, -43],
+      [-155, GROUND_Y - 0.5, 10], [-138, GROUND_Y - 0.5, 65], [-112, GROUND_Y - 0.5, 105],
+      [-75, GROUND_Y - 0.5, 125], [-38, GROUND_Y - 0.5, 142], [24, GROUND_Y - 0.5, 147],
+      [65, GROUND_Y - 0.5, 130], [105, GROUND_Y - 0.5, 110], [141, GROUND_Y - 0.5, 69],
+      [152, GROUND_Y - 0.5, 35], [151, GROUND_Y - 0.5, -75], [129, GROUND_Y - 0.5, -107],
+      [96, GROUND_Y - 0.5, -126], [49, GROUND_Y - 0.5, -141], [-8, GROUND_Y - 0.5, -151],
+      [-65, GROUND_Y - 0.5, -137], [-102, GROUND_Y - 0.5, -124],
     ];
     grove.forEach((p, i) => this.tree(p, 5.0 + (i % 4) * 0.55));
 
