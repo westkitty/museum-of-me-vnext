@@ -3,7 +3,7 @@ import { ResourceScope } from '../../assets/ResourceScope';
 import { CollisionWorld } from '../CollisionWorld';
 import type { QualityTier } from '../../render/QualityTiers';
 import {
-  PATH_CENTERLINES, PIER_CENTERLINE, SCENIC_GROVE_POINTS, SPIRE_GARDEN_CENTER,
+  ISLAND_OUTLINE, PATH_CENTERLINES, PIER_CENTERLINE, SCENIC_GROVE_POINTS, SPIRE_GARDEN_CENTER,
   SPIRE_GARDEN_RADIUS, isSiteLand,
 } from './IslandSiteLayout';
 
@@ -23,6 +23,7 @@ export class IslandLandscape {
     this.buildPaths();
     this.buildSpireGarden();
     this.buildPier();
+    this.buildCoastalRocks();
     this.buildWoodland();
     return this.root;
   }
@@ -148,7 +149,68 @@ export class IslandLandscape {
       edge.position.set(side * 5.35, -0.18, 188);
       this.root.add(edge);
     }
+    // A quiet amber rhythm draws the eye north from the new pier spawn.
+    // Rails only: these visual-only inlays cannot obstruct the walkway.
+    const guideGeometry = this.scope.track(new THREE.BoxGeometry(0.12, 0.06, 1.2));
+    const guideMaterial = this.scope.track(new THREE.MeshBasicMaterial({
+      color: 0xc5a17b, toneMapped: false,
+    }));
+    const guides = new THREE.InstancedMesh(guideGeometry, guideMaterial, 16);
+    guides.name = 'pier-guide-inlays';
+    guides.userData.visualRole = 'pier-wayfinding';
+    const guideTransform = new THREE.Object3D();
+    for (let i = 0; i < 8; i++) {
+      for (const [sideIndex, side] of [-1, 1].entries()) {
+        guideTransform.position.set(side * 5.35, 0.045, 168 + i * 6);
+        guideTransform.rotation.set(0, 0, 0);
+        guideTransform.scale.set(1, 1, 1);
+        guideTransform.updateMatrix();
+        guides.setMatrixAt(i * 2 + sideIndex, guideTransform.matrix);
+      }
+    }
+    guides.instanceMatrix.needsUpdate = true;
+    guides.computeBoundingSphere();
+    this.root.add(guides);
+    this.scope.trackObject(guides);
     this.collision.addFloor(-6, 6, 164, 218, -0.5);
+  }
+
+  /** A single instanced draw of rock outcrops, placed on the real coastline. */
+  private buildCoastalRocks(): void {
+    const target = this.quality === 'low' ? 24 : this.quality === 'medium' ? 48 : 72;
+    const geometry = this.scope.track(new THREE.IcosahedronGeometry(1, 0));
+    const material = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x33494c, roughness: 0.98, metalness: 0,
+      flatShading: true,
+    }));
+    const rocks = new THREE.InstancedMesh(geometry, material, target);
+    rocks.name = 'shoreline-rock-scatter';
+    rocks.userData.visualRole = 'coastal-outcrops';
+    rocks.castShadow = false;
+    rocks.receiveShadow = false;
+    const transform = new THREE.Object3D();
+    let placed = 0;
+    for (let i = 0; i < target; i++) {
+      const segment = i % ISLAND_OUTLINE.length;
+      const [ax, az] = ISLAND_OUTLINE[segment];
+      const [bx, bz] = ISLAND_OUTLINE[(segment + 1) % ISLAND_OUTLINE.length];
+      const t = (Math.floor(i / ISLAND_OUTLINE.length) + 0.6)
+        / (Math.ceil(target / ISLAND_OUTLINE.length) + 0.25);
+      const x = (ax + (bx - ax) * t) * 0.996;
+      const z = (az + (bz - az) * t) * 0.996;
+      if (z > 153 && Math.abs(x) < 27) continue; // clear the entire pier approach
+      const scale = 0.68 + ((i * 7) % 11) * 0.067;
+      transform.position.set(x, -0.52 + scale * 0.35, z);
+      transform.rotation.set(0, (i * 1.618) % (Math.PI * 2), 0);
+      transform.scale.set(scale * 1.25, scale * 0.78, scale);
+      transform.updateMatrix();
+      rocks.setMatrixAt(placed++, transform.matrix);
+    }
+    rocks.count = placed;
+    rocks.instanceMatrix.needsUpdate = true;
+    rocks.computeBoundingSphere();
+    this.root.add(rocks);
+    this.scope.trackObject(rocks);
   }
 
   private buildWoodland(): void {
