@@ -10,13 +10,13 @@ describe('arrival composition visual regression', () => {
     const piers = root.children.filter((node) => node.name === 'monumental-arrival-pier') as THREE.Mesh<THREE.BoxGeometry>[];
     const sideCaps = root.getObjectByName('monumental-arrival-lintel') as THREE.Group;
     expect(piers).toHaveLength(2);
-    expect(piers.map((node) => node.position.x)).toEqual([-23.5, 23.5]);
+    expect(piers.map((node) => node.position.x)).toEqual([-35.5, 35.5]);
     expect(piers.every((node) => node.position.y === 4.9 && node.geometry.parameters.height === 9.8)).toBe(true);
     expect(sideCaps).toBeInstanceOf(THREE.Group);
     expect(sideCaps.children).toHaveLength(4);
     for (const child of sideCaps.children as THREE.Mesh<THREE.BoxGeometry>[]) {
       const halfWidth = child.geometry.parameters.width / 2;
-      expect(Math.abs(child.position.x) - halfWidth).toBeGreaterThan(20);
+      expect(Math.abs(child.position.x) - halfWidth).toBeGreaterThan(32);
       expect(child.position.y).toBeLessThan(11);
     }
     const searchlights = root.children.filter((node) => node.name === 'ceremonial-searchlight') as THREE.Group[];

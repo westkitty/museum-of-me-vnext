@@ -44,19 +44,20 @@ export class ArrivalBeacons {
     const lintel = new THREE.Group();
     lintel.name = 'monumental-arrival-lintel';
     lintel.userData.visualRole = 'split-arrival-caps-open-sightline';
+    lintel.position.z = gatewayZ;
     for (const side of [-1, 1]) {
-      const x = side * 23.5;
+      const x = side * 35.5;
       const pier = new THREE.Mesh(pierGeometry, gatewayStone);
       pier.position.set(x, 4.9, gatewayZ);
       pier.name = 'monumental-arrival-pier';
       this.group.add(pier);
       const cap = new THREE.Mesh(capGeometry, gatewayStone);
       cap.name = `arrival-flanking-capstone-${side}`;
-      cap.position.set(x, 9.85, gatewayZ);
+      cap.position.set(x, 9.85, 0);
       lintel.add(cap);
       const lightLine = new THREE.Mesh(lineGeometry, inlay);
       lightLine.name = `arrival-flanking-inlay-${side}`;
-      lightLine.position.set(x, 9.45, gatewayZ + 1.37);
+      lightLine.position.set(x, 9.45, 1.37);
       lintel.add(lightLine);
     }
     this.group.add(lintel);

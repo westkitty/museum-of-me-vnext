@@ -36,19 +36,28 @@ describe('phase 01 monumental arrival', () => {
     expect(typeof App.prototype.variableUpdate).toBe('function');
     expect(typeof mountCinematicArrival).toBe('function');
   });
-  it('keeps the gateway supports outside the walkable plaza and the lintel overhead', () => {
+  it('keeps split arrival caps outside the plaza with no overhead view-blocking lintel', () => {
     const scope = new ResourceScope('arrival-architecture-test');
     const arrival = new ArrivalBeacons(scope);
     const piers = arrival.group.children.filter((item) => item.name === 'monumental-arrival-pier');
     const lintel = arrival.group.getObjectByName('monumental-arrival-lintel');
     expect(piers).toHaveLength(2);
-    expect(lintel).toBeDefined();
+    expect(lintel).toBeInstanceOf(THREE.Group);
     for (const pier of piers) {
       expect(Math.abs(pier.position.x)).toBeGreaterThan(PLAZA_HALF_WIDTH);
       expect(pier.position.z).toBe(VESTIBULE_TO + 4);
     }
-    expect(lintel!.position.y).toBeGreaterThan(20);
+    // The scene-compatibility node remains, but its children are two small
+    // isolated caps and inlays, never a 76-m cross-axis beam.
+    expect(lintel!.position.y).toBe(0);
     expect(lintel!.position.x).toBe(0);
+    expect(lintel!.children).toHaveLength(4);
+    for (const child of lintel!.children) {
+      const mesh = child as THREE.Mesh<THREE.BoxGeometry>;
+      expect(Math.abs(mesh.position.x)).toBeGreaterThan(PLAZA_HALF_WIDTH);
+      expect(mesh.position.y).toBeLessThan(11);
+      expect(mesh.geometry.parameters.width).toBeLessThan(8);
+    }
     // With yaw zero the visitor looks toward decreasing Z. The gateway must
     // actually frame the entrance ahead, not sit behind the opening camera.
     expect(START_YAW).toBe(0);
