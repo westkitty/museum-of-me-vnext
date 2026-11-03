@@ -465,22 +465,29 @@ export class ArrivalGarden {
 
     // Basin-only material: the entrance fountain retains its existing water.
     const lagoonMaterial = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x2d91b8, roughness: 0.22, metalness: 0.16,
-      emissive: 0x13435a, emissiveIntensity: 0.24,
-      transparent: true, opacity: 0.76, depthWrite: false, side: THREE.DoubleSide,
+      // Shallow turquoise rim, darker central body, less flat pale emission.
+      color: 0x216c91, roughness: 0.29, metalness: 0.19,
+      emissive: 0x0b3448, emissiveIntensity: 0.13,
+      transparent: true, opacity: 0.82, depthWrite: false, side: THREE.DoubleSide,
     }));
     const lagoon = new THREE.Mesh(lagoonGeometry, lagoonMaterial);
     lagoon.name = 'east-sheltered-lagoon';
     lagoon.rotation.x = -Math.PI / 2;
-    lagoon.position.y = GROUND_Y - 0.64;
+    // Expose roughly half a metre of authored stone bank above the water
+    // instead of floating water only 14 cm below the island surface.
+    // Keep the original polygon/bed mesh shared and water placement visual-only.
+    const centerX = LAGOON_OUTLINE.reduce((n, [x]) => n + x, 0) / LAGOON_OUTLINE.length;
+    const centerZ = LAGOON_OUTLINE.reduce((n, [, z]) => n + z, 0) / LAGOON_OUTLINE.length;
+    const waterInset = 0.973;
+    lagoon.scale.set(waterInset, waterInset, 1);
+    lagoon.position.set(centerX * (1 - waterInset), GROUND_Y - 1.01, centerZ * (1 - waterInset));
     lagoon.userData.visualRole = 'enclosed-lagoon';
+    lagoon.userData.waterInset = waterInset;
     this.group.add(lagoon);
 
     // The rock slope runs from the real ground edge to the lagoon bed.
     // All 12 segments are generated from LAGOON_OUTLINE, so no smoothed
     // spline can hang over a different shoreline or fill the cutout again.
-    const centerX = LAGOON_OUTLINE.reduce((n, [x]) => n + x, 0) / LAGOON_OUTLINE.length;
-    const centerZ = LAGOON_OUTLINE.reduce((n, [, z]) => n + z, 0) / LAGOON_OUTLINE.length;
     const wallPositions: number[] = [];
     const wallIndices: number[] = [];
     const bottomY = GROUND_Y - 1.7;
@@ -523,6 +530,30 @@ export class ArrivalGarden {
     )), this.shoreline);
     lagoonBank.name = 'east-lagoon-rock-bank';
     this.group.add(lagoonBank);
+
+    // A second, small *stone* waterline sits on the already-authored inward
+    // slope. It provides an actual depth cue from the east and overhead views
+    // without adding a luminous outline, shallow-water collision or shader.
+    const waterlineCurve = new THREE.CurvePath<THREE.Vector3>();
+    const waterlineInset = 0.025;
+    const waterlinePoints = LAGOON_OUTLINE.map(([x, z]) => new THREE.Vector3(
+      x + (centerX - x) * waterlineInset, GROUND_Y - 1.00,
+      z + (centerZ - z) * waterlineInset,
+    ));
+    for (let i = 0; i < waterlinePoints.length; i++) {
+      waterlineCurve.add(new THREE.LineCurve3(
+        waterlinePoints[i], waterlinePoints[(i + 1) % waterlinePoints.length],
+      ));
+    }
+    const waterlineMat = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x406c72, roughness: 0.94, metalness: 0, flatShading: true,
+    }));
+    const waterline = new THREE.Mesh(this.scope.track(new THREE.TubeGeometry(
+      waterlineCurve, 96, 0.17, 5, true,
+    )), waterlineMat);
+    waterline.name = 'east-lagoon-waterline-stone';
+    waterline.userData.visualRole = 'lagoon-exposed-stone-waterline';
+    this.group.add(waterline);
   }
 
   /** Called from the existing variable-step loop. Reduced motion keeps the

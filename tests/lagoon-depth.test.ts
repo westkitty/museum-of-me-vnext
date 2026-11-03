@@ -58,6 +58,13 @@ describe('subtractive east lagoon', () => {
     expect(wall).toBeTruthy();
     expect(bank).toBeTruthy();
     expect(water.geometry).toBe(bed.geometry);
+    expect(water.position.y).toBeCloseTo(LAND_SUPPORT_Y - 0.51, 5);
+    expect(water.scale.x).toBeCloseTo(0.973);
+    expect(water.scale.y).toBeCloseTo(0.973);
+    const centerX = LAGOON_OUTLINE.reduce((n, [x]) => n + x, 0) / LAGOON_OUTLINE.length;
+    const centerZ = LAGOON_OUTLINE.reduce((n, [, z]) => n + z, 0) / LAGOON_OUTLINE.length;
+    expect(water.position.x).toBeCloseTo(centerX * 0.027, 5);
+    expect(water.position.z).toBeCloseTo(centerZ * 0.027, 5);
     expect(water.position.y).toBeLessThan(LAND_SUPPORT_Y);
     expect(bed.position.y).toBeLessThan(water.position.y - 0.5);
     expect(water.userData.visualRole).toBe('enclosed-lagoon');
@@ -73,6 +80,15 @@ describe('subtractive east lagoon', () => {
       expect(wallPositions.getZ(i * 4 + 1)).toBeCloseTo(bz, 5);
     }
     expect((bank.geometry as THREE.TubeGeometry).parameters.path).toBeInstanceOf(THREE.CurvePath);
+    const waterline = root.getObjectByName('east-lagoon-waterline-stone') as THREE.Mesh<THREE.TubeGeometry>;
+    expect(waterline).toBeTruthy();
+    expect(waterline.userData.visualRole).toBe('lagoon-exposed-stone-waterline');
+    const linePath = waterline.geometry.parameters.path as THREE.CurvePath<THREE.Vector3>;
+    expect(linePath).toBeInstanceOf(THREE.CurvePath);
+    expect(linePath.curves).toHaveLength(LAGOON_OUTLINE.length);
+    const firstPoint = linePath.curves[0].getPoint(0);
+    expect(firstPoint.x).toBeCloseTo(LAGOON_OUTLINE[0][0] + (centerX - LAGOON_OUTLINE[0][0]) * 0.025, 5);
+    expect(firstPoint.y).toBeCloseTo(LAND_SUPPORT_Y - 0.50, 5);
     scope.dispose();
     expect(scope.size).toBe(0);
   });

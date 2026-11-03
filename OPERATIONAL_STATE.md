@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 87,
+  "state_revision": 88,
   "last_updated": "2026-11-03",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -712,3 +712,7 @@ Tests extended in `tests/exterior-shell.test.ts` for roof/world wall extents, ex
 
 ### Exterior S3 woodland-canopy infill experiment — 2026-11-03
 **Evidence state: IMPLEMENTED IN ISOLATED CHILD SOURCE; CI, matched seven-image render, human visual approval and physical-device performance UNVERIFIED until checked.** This bounded candidate follows draft PR #32 at exact head `2299b628f4baa7f6adb1de63042828f64a0b0f4f`; PR #32's four CI jobs passed and seven actual screenshot images were independently hash-verified. Visual comparison of S1/S2 shows persistent widely separated individual trees, especially from west and overhead, unlike the owner's accepted continuous-canopy references. Add one quality-tiered, deterministic instanced set of low-poly canopy-only masses around existing tree positions in `IslandLandscape.ts`: 2/3/4 attempted lobes per tree at low/medium/high. All new infill X/Z on `isSiteLand`, clear of exact paths, entrance, building, lagoon and northwest spire; no new trees, colliders, floor support, animation, lights or external textures. Preserve original 68/112/176 trunks, source names, original tree locations and collisions, low-tier budgets, offline mode, 35 exhibits, six wings and Sanctuary. Test dry-land clearance, deterministic transforms, unchanged collision count and disposal. CI screenshot upload enabled for this child branch only. This remains an aesthetic hypothesis: compare real seven-view PNGs and reject if crown clutter, bad scale or canopy loss of visitor wayfinding outweighs benefit. No merge to main or Pages.
+
+
+### Exterior S4 lagoon depth visual hypothesis — 2026-11-03
+**Evidence state: IMPLEMENTED IN ISOLATED CHILD FEATURE SOURCE ONLY; four-job CI, seven rendered screenshots, visual acceptance and device cost UNVERIFIED.** After S2 actual-image QA found the lagoon still a bright flat plane, a new candidate branch `feat/exterior-lagoon-depth-visual-review-20261103` is stacked atop existing draft PR #33 source `b8a256edb9f91917ea53f7c67c586af7b0bea6d6`. Lagoon-only visual correction: water plane lowered from near ground (-0.64 relative) to -1.01 relative to GROUND_Y; polygon water surface inset 2.7% toward polygon centroid to track the existing sloped walls; less pastel/less emissive water material; one scoped, narrow *stone* waterline on the unchanged bank topology. Original LAGOON_OUTLINE, shared bed/water ShapeGeometry, physical hole, collision, path, original 4-band ocean shader, quality tiers, original 35 exhibits/six wings/Sanctuary and pier arrival remain untouched. Tests assert depth, alignment, unchanged shared geometry and named waterline. Seven exact cameras enabled. **Reject if waterline intersects sloped bank, lake becomes a flat dark hole, broken surf from S2 remains insufficient, WebGL tests fail, or visitor access regresses.** No merge/Pages; rollback a single child commit.
