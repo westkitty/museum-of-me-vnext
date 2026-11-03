@@ -181,9 +181,22 @@ export class ExteriorMuseumShell {
     addInstances(frontPanes, frontSills);
 
     box('north-rear-elevation', [76, 11.5, 1.4], [0, 5.75, -105], spine);
+    // The rear wall's exterior surface is Z=-105.7. Previously, these warm
+    // slits sat at -104.2 behind the opaque rear elevation and were invisible.
     for (const x of [-29, -18, 18, 29]) {
-      box(`north-amber-slit-${x}`, [0.7, 7, 0.12], [x, 5.2, -104.2], amber);
+      box(`north-amber-slit-${x}`, [0.7, 7, 0.12], [x, 5.2, -105.84], amber);
     }
+    // A quiet structural cadence makes the north elevation feel finished,
+    // not a single long flat box. One instanced pilaster draw, no colliders.
+    const rearPilasterGeo = this.scope.track(new THREE.BoxGeometry(0.72, 10.5, 0.48));
+    const rearPilasters = new THREE.InstancedMesh(rearPilasterGeo, trim, 7);
+    rearPilasters.name = 'north-facade-pilasters';
+    rearPilasters.userData.visualRole = 'north-architectural-rhythm';
+    for (const [i, x] of [-34, -23, -12, 0, 12, 23, 34].entries()) {
+      placeInstance(rearPilasters, i, x, 5.25, -105.99);
+    }
+    addInstances(rearPilasters);
+    box('north-facade-cornice', [76, 0.5, 1], [0, 11.45, -105.85], trim);
 
     // Turquoise radial dome, segmented into meridian ribs and a luminous spring ring.
     const dome = new THREE.Mesh(this.scope.track(new THREE.SphereGeometry(15, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2)), glass);
