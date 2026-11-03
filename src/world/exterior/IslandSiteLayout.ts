@@ -26,6 +26,15 @@ export const PATH_CENTERLINES: readonly (readonly (readonly [number, number])[])
   [[-62, 82], [-22, 92], [20, 83], [48, 59], [36, 54]],
 ];
 
+/** Fixed scenic grove coordinates shared by rendering and regression tests. */
+export const SCENIC_GROVE_POINTS: readonly (readonly [number, number])[] = [
+  [-128, -108], [-143, -79], [-151, -43], [-155, 10],
+  [-138, 65], [-112, 105], [-75, 125], [-38, 142],
+  [24, 147], [65, 130], [105, 110], [141, 69],
+  [152, 35], [151, -75], [129, -107], [96, -126],
+  [49, -141], [-8, -151], [-65, -137], [-102, -124],
+];
+
 export const LAND_SUPPORT_Y = -0.5;
 export const LAND_GRID_SIZE = 12;
 

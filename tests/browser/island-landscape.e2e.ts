@@ -19,9 +19,11 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
     if (!app) throw new Error('museum missing');
     app.stop();
     const required = [
-      'night-island-terrain', 'night-island-shoreline', 'east-sheltered-lagoon',
+      'night-island-terrain', 'night-island-shoreline', 'night-island-coastal-skirt',
+      'night-island-tidal-fringe', 'east-sheltered-lagoon',
       'east-lagoon-rock-bank', 'northwest-spire-garden-clearing', 'single-golden-spire',
-      'south-arrival-pier-deck', 'site-path-1', 'perimeter-woodland-trunks',
+      'south-arrival-pier-deck', 'pier-guide-inlays', 'shoreline-rock-scatter',
+      'site-path-1', 'perimeter-woodland-trunks',
     ];
     const present = required.map((name) => Boolean(app.scene.getObjectByName(name)));
     const probes = [

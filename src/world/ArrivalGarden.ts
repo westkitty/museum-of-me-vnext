@@ -131,30 +131,18 @@ export class ArrivalGarden {
           float moonSpecular = pow(max(dot(normal, halfDir), 0.0), 96.0);
           float broadSpecular = pow(max(dot(normal, halfDir), 0.0), 18.0);
 
-          // Approximate the authored irregular island edge closely enough for
-          // a moving breakup line without another mesh, texture, or render pass.
-          float radius = length(vec2(vLocalWater.x, vLocalWater.y / 0.86));
-          float angle = atan(vLocalWater.y / 0.86, vLocalWater.x);
-          float shoreRadius = 182.0
-            + sin(angle * 5.0 + 0.4) * 8.0
-            + sin(angle * 9.0 - 1.2) * 4.0;
-          float shoreDistance = radius - shoreRadius;
-          float shoreBand = 1.0 - smoothstep(1.0, 10.0, max(shoreDistance, 0.0));
-          float foamBreak = 0.5 + 0.5 * sin(angle * 17.0 + radius * 0.21 - time * 0.72);
+          // Surf follows the actual polygonal coast geometry below, not an
+          // unrelated ellipse that draws a detached ring across the ocean.
+          float radius = length(vLocalWater);
           float crest = smoothstep(0.085, 0.19, vWaveHeight);
-          float shoreFoam = shoreBand * smoothstep(0.46, 0.78, foamBreak) * (0.32 + crest * 0.68);
-
-          float shallow = 1.0 - smoothstep(0.0, 28.0, max(shoreDistance, 0.0));
           vec3 deep = vec3(0.004, 0.014, 0.026);
           vec3 skyReflection = vec3(0.035, 0.105, 0.155);
-          vec3 shallowWater = vec3(0.018, 0.115, 0.145);
           vec3 foamColour = vec3(0.31, 0.54, 0.62);
 
           vec3 colour = mix(deep, skyReflection, 0.12 + fresnel * 0.72);
-          colour = mix(colour, shallowWater, shallow * 0.18);
           colour += vec3(0.44, 0.66, 0.88) * broadSpecular * 0.055;
           colour += vec3(0.84, 0.91, 1.0) * moonSpecular * (0.24 + fresnel * 0.52);
-          colour = mix(colour, foamColour, shoreFoam * 0.26);
+          colour = mix(colour, foamColour, crest * 0.045);
 
           // Fade into atmospheric distance instead of exposing a hard disk edge.
           float outerFade = 1.0 - smoothstep(304.0, 329.0, radius);
@@ -301,17 +289,19 @@ export class ArrivalGarden {
   /** Water and shoreline are visual-only: the proven exterior ground and its
    * Sanctuary-trench cut-out remain the sole collision authority. */
   private buildIsland(): void {
-    // The ocean sits below the authored irregular island surface. Its annulus
-    // keeps the distant-water shader and quality-tier behavior inexpensive.
+    // Cover the entire water disc, including under the irregular island and
+    // pier. The old 164 m inner hole exposed empty space where the real
+    // coastline dipped inward. The opaque island hides covered ocean pixels.
     const water = new THREE.Mesh(
-      this.scope.track(new THREE.RingGeometry(164, 330, 124, 12)),
+      this.scope.track(new THREE.RingGeometry(0, 330, 124, 12)),
       this.water,
     );
     water.name = 'night-island-water';
     water.userData.visualRole = 'environment-water';
     water.userData.waveModel = 'deep-water-dispersion';
     water.rotation.x = -Math.PI / 2;
-    water.position.y = GROUND_Y - 0.56;
+    // Four wave bands total <= 0.335 m. Keep crests below island Y=-0.5.
+    water.position.y = GROUND_Y - 0.94;
     water.receiveShadow = false;
     this.group.add(water);
 
@@ -328,10 +318,65 @@ export class ArrivalGarden {
     island.receiveShadow = true;
     this.group.add(island);
 
+    // Seal the ground's actual polygon edge as a shallow, faceted rock bank.
+    // All bands share ISLAND_OUTLINE; no new walkable geometry or colliders.
+    const cliffPositions: number[] = [];
+    const fringePositions: number[] = [];
+    const coastIndices: number[] = [];
+    for (let i = 0; i < ISLAND_OUTLINE.length; i++) {
+      const [ax, az] = ISLAND_OUTLINE[i];
+      const [bx, bz] = ISLAND_OUTLINE[(i + 1) % ISLAND_OUTLINE.length];
+      const offset = i * 4;
+      // Slight outward lean joins ground to water instead of a hard cut edge.
+      cliffPositions.push(
+        ax, GROUND_Y - 0.49, az, bx, GROUND_Y - 0.49, bz,
+        ax * 1.008, GROUND_Y - 1.55, az * 1.008,
+        bx * 1.008, GROUND_Y - 1.55, bz * 1.008,
+      );
+      fringePositions.push(
+        ax * 1.003, GROUND_Y - 0.65, az * 1.003,
+        bx * 1.003, GROUND_Y - 0.65, bz * 1.003,
+        ax * 1.025, GROUND_Y - 0.67, az * 1.025,
+        bx * 1.025, GROUND_Y - 0.67, bz * 1.025,
+      );
+      coastIndices.push(offset, offset + 1, offset + 2, offset + 1, offset + 3, offset + 2);
+    }
+    const bankGeometry = (positions: number[]): THREE.BufferGeometry => {
+      const geometry = this.scope.track(new THREE.BufferGeometry());
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geometry.setIndex(coastIndices);
+      geometry.computeVertexNormals();
+      return geometry;
+    };
+    const bankMat = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x263e43, roughness: 0.98, metalness: 0, flatShading: true,
+      side: THREE.DoubleSide,
+    }));
+    const cliff = new THREE.Mesh(bankGeometry(cliffPositions), bankMat);
+    cliff.name = 'night-island-coastal-skirt';
+    cliff.userData.visualRole = 'coast-edge-seal';
+    this.group.add(cliff);
+
+    // A muted intertidal fringe—not a luminous outline or a fake foam circle.
+    const fringeMat = this.scope.track(new THREE.MeshBasicMaterial({
+      color: 0x64818a, transparent: true, opacity: 0.22,
+      depthWrite: false, side: THREE.DoubleSide, toneMapped: true,
+    }));
+    const fringe = new THREE.Mesh(bankGeometry(fringePositions), fringeMat);
+    fringe.name = 'night-island-tidal-fringe';
+    fringe.userData.visualRole = 'site-aligned-surf';
+    fringe.renderOrder = 1;
+    this.group.add(fringe);
+
+    // Straight segments keep the perimeter line on the same site boundary as
+    // the island, cliff, shoreline fringe, and collision site geometry.
     const shorelinePoints = ISLAND_OUTLINE.map(([x, z]) => new THREE.Vector3(x, GROUND_Y - 0.34, z));
+    const shoreCurve = new THREE.CurvePath<THREE.Vector3>();
+    for (let i = 0; i < shorelinePoints.length; i++) {
+      shoreCurve.add(new THREE.LineCurve3(shorelinePoints[i], shorelinePoints[(i + 1) % shorelinePoints.length]));
+    }
     const shore = new THREE.Mesh(this.scope.track(new THREE.TubeGeometry(
-      new THREE.CatmullRomCurve3(shorelinePoints, true, 'catmullrom', 0.18),
-      128, 0.42, 6, true,
+      shoreCurve, 128, 0.42, 6, true,
     )), this.shoreline);
     shore.name = 'night-island-shoreline';
     shore.userData.visualRole = 'water-boundary';

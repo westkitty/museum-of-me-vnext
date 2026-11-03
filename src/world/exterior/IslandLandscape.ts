@@ -3,7 +3,7 @@ import { ResourceScope } from '../../assets/ResourceScope';
 import { CollisionWorld } from '../CollisionWorld';
 import type { QualityTier } from '../../render/QualityTiers';
 import {
-  PATH_CENTERLINES, PIER_CENTERLINE, SPIRE_GARDEN_CENTER,
+  ISLAND_OUTLINE, PATH_CENTERLINES, PIER_CENTERLINE, SCENIC_GROVE_POINTS, SPIRE_GARDEN_CENTER,
   SPIRE_GARDEN_RADIUS, isSiteLand,
 } from './IslandSiteLayout';
 
@@ -23,6 +23,7 @@ export class IslandLandscape {
     this.buildPaths();
     this.buildSpireGarden();
     this.buildPier();
+    this.buildCoastalRocks();
     this.buildWoodland();
     return this.root;
   }
@@ -148,11 +149,72 @@ export class IslandLandscape {
       edge.position.set(side * 5.35, -0.18, 188);
       this.root.add(edge);
     }
+    // A quiet amber rhythm draws the eye north from the new pier spawn.
+    // Rails only: these visual-only inlays cannot obstruct the walkway.
+    const guideGeometry = this.scope.track(new THREE.BoxGeometry(0.12, 0.06, 1.2));
+    const guideMaterial = this.scope.track(new THREE.MeshBasicMaterial({
+      color: 0xc5a17b, toneMapped: false,
+    }));
+    const guides = new THREE.InstancedMesh(guideGeometry, guideMaterial, 16);
+    guides.name = 'pier-guide-inlays';
+    guides.userData.visualRole = 'pier-wayfinding';
+    const guideTransform = new THREE.Object3D();
+    for (let i = 0; i < 8; i++) {
+      for (const [sideIndex, side] of [-1, 1].entries()) {
+        guideTransform.position.set(side * 5.35, 0.045, 168 + i * 6);
+        guideTransform.rotation.set(0, 0, 0);
+        guideTransform.scale.set(1, 1, 1);
+        guideTransform.updateMatrix();
+        guides.setMatrixAt(i * 2 + sideIndex, guideTransform.matrix);
+      }
+    }
+    guides.instanceMatrix.needsUpdate = true;
+    guides.computeBoundingSphere();
+    this.root.add(guides);
+    this.scope.trackObject(guides);
     this.collision.addFloor(-6, 6, 164, 218, -0.5);
   }
 
+  /** A single instanced draw of rock outcrops, placed on the real coastline. */
+  private buildCoastalRocks(): void {
+    const target = this.quality === 'low' ? 24 : this.quality === 'medium' ? 48 : 72;
+    const geometry = this.scope.track(new THREE.IcosahedronGeometry(1, 0));
+    const material = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x33494c, roughness: 0.98, metalness: 0,
+      flatShading: true,
+    }));
+    const rocks = new THREE.InstancedMesh(geometry, material, target);
+    rocks.name = 'shoreline-rock-scatter';
+    rocks.userData.visualRole = 'coastal-outcrops';
+    rocks.castShadow = false;
+    rocks.receiveShadow = false;
+    const transform = new THREE.Object3D();
+    let placed = 0;
+    for (let i = 0; i < target; i++) {
+      const segment = i % ISLAND_OUTLINE.length;
+      const [ax, az] = ISLAND_OUTLINE[segment];
+      const [bx, bz] = ISLAND_OUTLINE[(segment + 1) % ISLAND_OUTLINE.length];
+      const t = (Math.floor(i / ISLAND_OUTLINE.length) + 0.6)
+        / (Math.ceil(target / ISLAND_OUTLINE.length) + 0.25);
+      const x = (ax + (bx - ax) * t) * 0.996;
+      const z = (az + (bz - az) * t) * 0.996;
+      if (z > 153 && Math.abs(x) < 27) continue; // clear the entire pier approach
+      const scale = 0.68 + ((i * 7) % 11) * 0.067;
+      transform.position.set(x, -0.52 + scale * 0.35, z);
+      transform.rotation.set(0, (i * 1.618) % (Math.PI * 2), 0);
+      transform.scale.set(scale * 1.25, scale * 0.78, scale);
+      transform.updateMatrix();
+      rocks.setMatrixAt(placed++, transform.matrix);
+    }
+    rocks.count = placed;
+    rocks.instanceMatrix.needsUpdate = true;
+    rocks.computeBoundingSphere();
+    this.root.add(rocks);
+    this.scope.trackObject(rocks);
+  }
+
   private buildWoodland(): void {
-    const count = this.quality === 'low' ? 48 : this.quality === 'medium' ? 72 : 96;
+    const count = this.quality === 'low' ? 68 : this.quality === 'medium' ? 112 : 176;
     const trunkGeo = this.scope.track(new THREE.CylinderGeometry(0.34, 0.44, 5.4, 7));
     const crownGeo = this.scope.track(new THREE.IcosahedronGeometry(3.2, 1));
     const trunkMat = this.scope.track(new THREE.MeshStandardMaterial({ color: 0x252d28, roughness: 1 }));
@@ -174,29 +236,11 @@ export class IslandLandscape {
     const dummy = new THREE.Object3D();
     let placed = 0;
     const byPalette = [0, 0, 0];
-    let state = 0x21d47011;
-    const random = () => {
-      state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-      return state / 0x1_0000_0000;
-    };
-    for (let tries = 0; tries < count * 16 && placed < count; tries++) {
-      const x = -172 + random() * 344;
-      const z = -160 + random() * 320;
-      if (!isSiteLand(x, z)) continue;
-      if (Math.hypot(x, z - 128) < 54) continue;
-      if (x > 44 && x < 142 && z > -62 && z < 63) continue;
-      if (Math.hypot(x + 104, z + 82) < 33) continue;
-      if (Math.abs(x) < 50 && Math.abs(z) < 112) continue;
-      if (PATH_CENTERLINES.some((path) => path.slice(0, -1).some((point, index) => {
-        const next = path[index + 1];
-        const dx = next[0] - point[0];
-        const dz = next[1] - point[1];
-        const t = Math.max(0, Math.min(1, ((x - point[0]) * dx + (z - point[1]) * dz) / (dx * dx + dz * dz)));
-        return Math.hypot(x - (point[0] + dx * t), z - (point[1] + dz * t)) < 8;
-      }))) continue;
-      const scale = 0.76 + random() * 0.75;
-      dummy.position.set(x, -0.5 + 2.7 * scale, z);
-      dummy.rotation.y = random() * Math.PI * 2;
+    const occupied: [number, number][] = [];
+    const halfTrunkHeight = (5.4 * 0.82) / 2;
+    const placeTree = (x: number, z: number, scale: number, yaw: number): void => {
+      dummy.position.set(x, -0.5 + halfTrunkHeight * scale, z);
+      dummy.rotation.set(0, yaw, 0);
       dummy.scale.set(0.9 * scale, 0.82 * scale, 0.9 * scale);
       dummy.updateMatrix();
       trunks.setMatrixAt(placed, dummy.matrix);
@@ -205,8 +249,40 @@ export class IslandLandscape {
       dummy.scale.set(1.0 * scale, 0.82 * scale, 0.92 * scale);
       dummy.updateMatrix();
       crowns[palette].setMatrixAt(byPalette[palette]++, dummy.matrix);
-      this.collision.addBox([x, 2.7 * scale, z], [0.44 * scale, 2.7 * scale, 0.44 * scale]);
+      this.collision.addBox([x, -0.5 + halfTrunkHeight * scale, z], [
+        0.44 * scale, halfTrunkHeight * scale, 0.44 * scale,
+      ]);
+      occupied.push([x, z]);
       placed++;
+    };
+    // Fixed grove and procedural woodland use the same four instanced draws.
+    for (const [i, [x, z]] of SCENIC_GROVE_POINTS.entries()) {
+      if (!isSiteLand(x, z)) throw new Error(`Scenic grove point ${i} is outside island land`);
+      placeTree(x, z, 0.94 + (i % 5) * 0.09, (i * 2.4) % (Math.PI * 2));
+    }
+    let state = 0x21d47011;
+    const random = () => {
+      state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+      return state / 0x1_0000_0000;
+    };
+    for (let tries = 0; tries < count * 20 && placed < count; tries++) {
+      const x = -172 + random() * 344;
+      const z = -160 + random() * 320;
+      if (!isSiteLand(x, z)) continue;
+      if (Math.hypot(x, z - 128) < 54) continue;
+      if (x > 44 && x < 142 && z > -62 && z < 63) continue;
+      if (Math.hypot(x + 104, z + 82) < 33) continue;
+      if (Math.abs(x) < 50 && Math.abs(z) < 112) continue;
+      if (occupied.some(([px, pz]) => Math.hypot(x - px, z - pz) < 8)) continue;
+      if (PATH_CENTERLINES.some((path) => path.slice(0, -1).some((point, index) => {
+        const next = path[index + 1];
+        const dx = next[0] - point[0];
+        const dz = next[1] - point[1];
+        const t = Math.max(0, Math.min(1, ((x - point[0]) * dx + (z - point[1]) * dz) / (dx * dx + dz * dz)));
+        return Math.hypot(x - (point[0] + dx * t), z - (point[1] + dz * t)) < 8;
+      }))) continue;
+      const scale = 0.76 + random() * 0.75;
+      placeTree(x, z, scale, random() * Math.PI * 2);
     }
     trunks.count = placed;
     trunks.instanceMatrix.needsUpdate = true;

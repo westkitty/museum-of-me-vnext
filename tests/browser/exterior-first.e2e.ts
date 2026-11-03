@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { START_POSITION } from '../../src/world/start';
+import { LAND_SUPPORT_Y } from '../../src/world/exterior/IslandSiteLayout';
+import { THRESHOLD_PREPARE_Z } from '../../src/world/layout';
 
 test.describe('P1 Exterior-first cold boot and independent world contexts', () => {
   test('cold boot starts exclusively in exterior without loading or constructing interior', async ({ page }) => {
@@ -27,6 +30,12 @@ test.describe('P1 Exterior-first cold boot and independent world contexts', () =
         hasArrivalGarden: Boolean(app.arrivalGarden),
         hasArrivalBeacons: Boolean(app.exteriorWorld.arrivalBeacons),
         spawnPos: [app.player.position.x, app.player.position.y, app.player.position.z],
+        initialSupportY: app.exteriorWorld.collision.supportHeight(
+          app.player.position.x, app.player.position.z, app.player.position.y,
+        ),
+        entrancePromptHidden: document.querySelector<HTMLElement>('.hud__threshold')?.hidden ?? null,
+        interiorImportStarted: app.worldDirector.interiorImportStarted,
+        phase: app.worldDirector.phase,
       };
     });
 
@@ -37,14 +46,51 @@ test.describe('P1 Exterior-first cold boot and independent world contexts', () =
     expect(bootState.hasExteriorWorld).toBe(true);
     expect(bootState.hasArrivalGarden).toBe(true);
     expect(bootState.hasArrivalBeacons).toBe(true);
+    expect(bootState.spawnPos).toEqual([...START_POSITION]);
     expect(bootState.spawnPos[0]).toBeCloseTo(0, 1);
-    expect(bootState.spawnPos[2]).toBeGreaterThan(100);
+    expect(bootState.spawnPos[1]).toBeCloseTo(LAND_SUPPORT_Y, 3);
+    expect(bootState.spawnPos[2]).toBeGreaterThan(170);
+    expect(bootState.spawnPos[2]).toBeGreaterThan(THRESHOLD_PREPARE_Z + 30);
+    expect(bootState.initialSupportY).toBeCloseTo(LAND_SUPPORT_Y, 3);
+    expect(bootState.entrancePromptHidden).toBe(true);
+    expect(bootState.interiorImportStarted).toBe(false);
+    expect(bootState.phase).toBe('EXTERIOR_ACTIVE');
 
     // Verify chunk isolation: no interior or exhibits chunks were requested during cold startup
     const interiorRequests = requests.filter((url) => /interior|exhibits/i.test(url) && !url.includes('exterior'));
     expect(interiorRequests).toEqual([]);
 
     expect(errors).toEqual([]);
+  });
+
+  test('pier start stays outside the entrance prompt; approaching shows it and leaving hides it', async ({ page }) => {
+    await page.goto('/?qa=1', { waitUntil: 'commit' });
+    await page.waitForFunction(() => Boolean(window.__museum));
+
+    const result = await page.evaluate(() => {
+      const app = window.__museum;
+      if (!app) throw new Error('museum missing');
+      app.stop();
+      const prompt = document.querySelector<HTMLElement>('.hud__threshold');
+      if (!prompt) throw new Error('entrance prompt missing');
+
+      app.worldDirector.update(app.player.position);
+      const atPier = { hidden: prompt.hidden, importStarted: app.worldDirector.interiorImportStarted };
+
+      // Walking nearer the museum should still reveal the original prompt.
+      app.player.teleport([0, 0, 150]);
+      app.worldDirector.update(app.player.position);
+      const nearEntrance = { hidden: prompt.hidden, importStarted: app.worldDirector.interiorImportStarted };
+
+      app.player.teleport(app.exteriorWorld.spawnPosition);
+      app.worldDirector.update(app.player.position);
+      const backAtPier = { hidden: prompt.hidden, importStarted: app.worldDirector.interiorImportStarted };
+      return { atPier, nearEntrance, backAtPier };
+    });
+
+    expect(result.atPier).toEqual({ hidden: true, importStarted: false });
+    expect(result.nearEntrance).toEqual({ hidden: false, importStarted: false });
+    expect(result.backAtPier).toEqual({ hidden: true, importStarted: false });
   });
 
   test('exterior player movement is physically supported without interior colliders', async ({ page }) => {

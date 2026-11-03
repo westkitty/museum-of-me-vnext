@@ -343,6 +343,8 @@ export class Museum {
     const dir = faceDirection('s');
 
     // Ground plane wide enough that the building reads as sited, not floating.
+    // This belongs to the separately visible INTERIOR world; it cannot be the
+    // source of outside island/water seams while ExteriorWorld is active.
     const groundGeo = this.scope.track(new THREE.PlaneGeometry(600, 600));
     const ground = new THREE.Mesh(groundGeo, p.floor);
     ground.rotation.x = -Math.PI / 2;
@@ -438,27 +440,39 @@ export class Museum {
       if (!mezzFaces.has(face)) continue;
     }
 
-    // Glass dome. A sphere cap, springing from the drum and reaching the apex.
+    // A true spherical cap with its rim at the drum spring line and its
+    // crown at the specified apex. The previous cap used a full sphere's
+    // radius plus a Y scale, leaving its rim suspended above the drum.
     const domeRadius = circum(ROTUNDA_APOTHEM);
     const rise = DOME_APEX_Y - DOME_SPRING_Y;
-    const domeGeo = this.scope.track(
-      new THREE.SphereGeometry(domeRadius, 40, 20, 0, Math.PI * 2, 0, Math.asin(Math.min(1, domeRadius / Math.hypot(domeRadius, rise)))),
-    );
+    const sphereRadius = (domeRadius * domeRadius + rise * rise) / (2 * rise);
+    const sphereCenterY = DOME_APEX_Y - sphereRadius;
+    const rimAngle = Math.acos((sphereRadius - rise) / sphereRadius);
+    const domeGeo = this.scope.track(new THREE.SphereGeometry(
+      sphereRadius, 48, 20, 0, Math.PI * 2, 0, rimAngle,
+    ));
     const dome = new THREE.Mesh(domeGeo, this.pal.glass());
-    dome.scale.set(1, rise / domeRadius, 1);
-    dome.position.y = DOME_SPRING_Y;
+    dome.position.y = sphereCenterY;
     g.add(dome);
 
-    // Structural dome ribs, so the glass reads as architecture.
-    for (let i = 0; i < 16; i++) {
-      const a = (i / 16) * Math.PI * 2;
+    // Eight meridian ribs follow the same cap, from one spring-line point
+    // over the apex to the opposite point. No second, incompatible dome shape.
+    for (let i = 0; i < 8; i++) {
+      const azimuth = (i / 8) * Math.PI;
+      const points: THREE.Vector3[] = [];
+      for (let step = 0; step <= 32; step++) {
+        const latitude = -rimAngle + (2 * rimAngle * step) / 32;
+        const radial = sphereRadius * Math.sin(latitude);
+        points.push(new THREE.Vector3(
+          Math.sin(azimuth) * radial,
+          sphereCenterY + sphereRadius * Math.cos(latitude),
+          Math.cos(azimuth) * radial,
+        ));
+      }
       const rib = new THREE.Mesh(
-        this.scope.track(new THREE.TorusGeometry(domeRadius * 0.98, 0.18, 6, 24, Math.PI / 2)),
+        this.scope.track(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 48, 0.16, 6, false)),
         p.trim,
       );
-      rib.position.y = DOME_SPRING_Y;
-      rib.scale.set(1, rise / domeRadius, 1);
-      rib.rotation.set(0, a, Math.PI / 2);
       g.add(rib);
     }
 

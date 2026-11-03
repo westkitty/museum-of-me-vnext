@@ -328,7 +328,18 @@ describe('museum environment coherence', () => {
     expect(waterMoon.distanceTo(NIGHT_MOON_DIRECTION)).toBeLessThan(1e-7);
     expect(waterMaterial.fragmentShader).toContain('fresnel');
     expect(waterMaterial.fragmentShader).toContain('moonSpecular');
-    expect(waterMaterial.fragmentShader).toContain('shoreFoam');
+    // The coastline is now physically aligned with the island polygon, not
+    // drawn as an approximate elliptical foam band in the water shader.
+    expect(waterMaterial.fragmentShader).not.toContain('shoreFoam');
+    const coastalSkirt = gardenRoot.getObjectByName('night-island-coastal-skirt') as THREE.Mesh;
+    const tidalFringe = gardenRoot.getObjectByName('night-island-tidal-fringe') as THREE.Mesh;
+    expect(coastalSkirt).toBeTruthy();
+    expect(tidalFringe).toBeTruthy();
+    expect(coastalSkirt.userData.visualRole).toBe('coast-edge-seal');
+    expect(tidalFringe.userData.visualRole).toBe('site-aligned-surf');
+    const ring = waterMesh.geometry as THREE.RingGeometry;
+    expect(ring.parameters.innerRadius).toBe(0);
+    expect(ring.parameters.outerRadius).toBe(330);
     expect(waterMaterial.fragmentShader).not.toContain('fbm');
     expect(waterMaterial.fragmentShader).not.toContain('hash(');
     const initialWaterTime = waterMaterial.uniforms.time.value as number;
