@@ -60,10 +60,10 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
       - name: Validate exterior review render set
-        if: always() && github.event_name == 'pull_request' && (github.head_ref == 'feat/exterior-render-review-20261103' || github.head_ref == 'feat/exterior-composition-forest-review-20261103')
+        if: always() && github.event_name == 'pull_request' && (github.head_ref == 'feat/exterior-render-review-20261103' || github.head_ref == 'feat/exterior-composition-forest-review-20261103' || github.head_ref == 'feat/exterior-night-water-lagoon-review-20261103')
         run: node scripts/finalize-exterior-renders.mjs
       - name: Upload independently rendered exterior views
-        if: always() && github.event_name == 'pull_request' && (github.head_ref == 'feat/exterior-render-review-20261103' || github.head_ref == 'feat/exterior-composition-forest-review-20261103')
+        if: always() && github.event_name == 'pull_request' && (github.head_ref == 'feat/exterior-render-review-20261103' || github.head_ref == 'feat/exterior-composition-forest-review-20261103' || github.head_ref == 'feat/exterior-night-water-lagoon-review-20261103')
         uses: actions/upload-artifact@v4
         with:
           name: museum-exterior-renders-${{ github.event.pull_request.head.sha }}

@@ -6,7 +6,7 @@ import {
   GROUND_Y, PLAZA_DEPTH, VESTIBULE_TO,
   faceDirection, place, type Vec3,
 } from './layout';
-import { ISLAND_OUTLINE, LAGOON_OUTLINE } from './exterior/IslandSiteLayout';
+import { ISLAND_OUTLINE, LAGOON_OUTLINE, isSiteLand } from './exterior/IslandSiteLayout';
 
 /**
  * Exterior Layer-2 dressing for the visitor's first view of the museum.
@@ -47,9 +47,10 @@ export class ArrivalGarden {
     this.poolWater = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x24799b, roughness: 0.18, metalness: 0.28, transparent: true, opacity: 0.68,
     }));
-    this.island = this.mat(0x142d2f, 0.96);
-    // The shoreline is the distant water boundary, not a luminous outline.
-    this.shoreline = this.mat(0x183238, 0.98);
+    // Modest material separation preserves night without losing the land.
+    this.island = this.mat(0x24453f, 0.96);
+    // Stone/vegetation contrast is distinct from the new broken water foam.
+    this.shoreline = this.mat(0x315761, 0.94);
     this.waterTime = { value: 0 };
     const waterUniforms = {
       ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
@@ -135,14 +136,16 @@ export class ArrivalGarden {
           // unrelated ellipse that draws a detached ring across the ocean.
           float radius = length(vLocalWater);
           float crest = smoothstep(0.085, 0.19, vWaveHeight);
-          vec3 deep = vec3(0.004, 0.014, 0.026);
-          vec3 skyReflection = vec3(0.035, 0.105, 0.155);
-          vec3 foamColour = vec3(0.31, 0.54, 0.62);
+          // Keep four-wave dispersion and moon response; shift only the
+          // night palette so top-down land/ocean separation survives.
+          vec3 deep = vec3(0.008, 0.030, 0.060);
+          vec3 skyReflection = vec3(0.040, 0.152, 0.235);
+          vec3 foamColour = vec3(0.27, 0.60, 0.71);
 
-          vec3 colour = mix(deep, skyReflection, 0.12 + fresnel * 0.72);
-          colour += vec3(0.44, 0.66, 0.88) * broadSpecular * 0.055;
-          colour += vec3(0.84, 0.91, 1.0) * moonSpecular * (0.24 + fresnel * 0.52);
-          colour = mix(colour, foamColour, crest * 0.045);
+          vec3 colour = mix(deep, skyReflection, 0.19 + fresnel * 0.65);
+          colour += vec3(0.39, 0.63, 0.82) * broadSpecular * 0.070;
+          colour += vec3(0.78, 0.90, 1.0) * moonSpecular * (0.24 + fresnel * 0.52);
+          colour = mix(colour, foamColour, crest * 0.065);
 
           // Fade into atmospheric distance instead of exposing a hard disk edge.
           float outerFade = 1.0 - smoothstep(304.0, 329.0, radius);
@@ -355,7 +358,7 @@ export class ArrivalGarden {
       return geometry;
     };
     const bankMat = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x263e43, roughness: 0.98, metalness: 0, flatShading: true,
+      color: 0x36535a, roughness: 0.98, metalness: 0, flatShading: true,
       side: THREE.DoubleSide,
     }));
     const cliff = new THREE.Mesh(bankGeometry(cliffPositions), bankMat);
@@ -365,7 +368,7 @@ export class ArrivalGarden {
 
     // A muted intertidal fringe—not a luminous outline or a fake foam circle.
     const fringeMat = this.scope.track(new THREE.MeshBasicMaterial({
-      color: 0x64818a, transparent: true, opacity: 0.22,
+      color: 0x749da7, transparent: true, opacity: 0.28,
       depthWrite: false, side: THREE.DoubleSide, toneMapped: true,
     }));
     const fringe = new THREE.Mesh(bankGeometry(fringePositions), fringeMat);
@@ -382,11 +385,65 @@ export class ArrivalGarden {
       shoreCurve.add(new THREE.LineCurve3(shorelinePoints[i], shorelinePoints[(i + 1) % shorelinePoints.length]));
     }
     const shore = new THREE.Mesh(this.scope.track(new THREE.TubeGeometry(
-      shoreCurve, 128, 0.42, 6, true,
+      shoreCurve, 128, 0.30, 6, true,
     )), this.shoreline);
     shore.name = 'night-island-shoreline';
     shore.userData.visualRole = 'water-boundary';
     this.group.add(shore);
+
+    // A single small, deterministic, indexed wash band follows the actual
+    // authored island perimeter. Breaks and varied widths read as surf, not
+    // a detached continuous neon circle. No animation, shaders or colliders.
+    const washPositions: number[] = [];
+    const washColors: number[] = [];
+    const washIndices: number[] = [];
+    const washPalette = [
+      new THREE.Color(0x438595), new THREE.Color(0x58aabb), new THREE.Color(0x75c6d0),
+    ];
+    for (let edge = 0; edge < ISLAND_OUTLINE.length; edge++) {
+      const [ax, az] = ISLAND_OUTLINE[edge];
+      const [bx, bz] = ISLAND_OUTLINE[(edge + 1) % ISLAND_OUTLINE.length];
+      const dx = bx - ax;
+      const dz = bz - az;
+      const length = Math.hypot(dx, dz);
+      if (length <= 0.01) continue;
+      // The polygon has positive signed area in X/Z: right normal is sea.
+      const nx = dz / length;
+      const nz = -dx / length;
+      const sections = Math.max(1, Math.ceil(length / 12));
+      for (let section = 0; section < sections; section++) {
+        if ((edge * 7 + section * 5) % 9 < 3) continue;
+        const t0 = (section + 0.11) / sections;
+        const t1 = (section + 0.80) / sections;
+        const inner = 0.55 + ((edge + section) % 3) * 0.12;
+        const outer = 2.05 + ((edge * 3 + section) % 4) * 0.25;
+        const vertices = [[t0, inner], [t1, inner], [t0, outer], [t1, outer]] as const;
+        const points = vertices.map(([t, dist]) => [ax + dx * t + nx * dist, az + dz * t + nz * dist] as const);
+        if (points.some(([x, z]) => isSiteLand(x, z))) continue;
+        const y = GROUND_Y - 0.69 - ((edge + section) % 3) * 0.014;
+        const base = washPositions.length / 3;
+        const colour = washPalette[(edge + section) % washPalette.length];
+        for (const [x, z] of points) {
+          washPositions.push(x, y, z);
+          washColors.push(colour.r, colour.g, colour.b);
+        }
+        washIndices.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
+      }
+    }
+    const washGeometry = this.scope.track(new THREE.BufferGeometry());
+    washGeometry.setAttribute('position', new THREE.Float32BufferAttribute(washPositions, 3));
+    washGeometry.setAttribute('color', new THREE.Float32BufferAttribute(washColors, 3));
+    washGeometry.setIndex(washIndices);
+    washGeometry.computeVertexNormals();
+    washGeometry.computeBoundingSphere();
+    const coastalWash = new THREE.Mesh(washGeometry, this.scope.track(new THREE.MeshBasicMaterial({
+      vertexColors: true, transparent: true, opacity: 0.46,
+      depthWrite: false, side: THREE.DoubleSide, toneMapped: true,
+    })));
+    coastalWash.name = 'night-island-broken-surf';
+    coastalWash.userData.visualRole = 'broken-site-aligned-surf';
+    coastalWash.renderOrder = 2;
+    this.group.add(coastalWash);
 
     // Basin, rather than a translucent sticker: the carved opening reveals a
     // dark mineral bed through low, sheltered water. The exact same polygon
@@ -396,7 +453,7 @@ export class ArrivalGarden {
     lagoonShape.closePath();
     const lagoonGeometry = this.scope.track(new THREE.ShapeGeometry(lagoonShape, 2));
     const bedMaterial = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x102e35, roughness: 0.9, metalness: 0.04, side: THREE.DoubleSide,
+      color: 0x123b4b, roughness: 0.9, metalness: 0.04, side: THREE.DoubleSide,
     }));
     const bed = new THREE.Mesh(lagoonGeometry, bedMaterial);
     bed.name = 'east-lagoon-bed';
@@ -406,7 +463,13 @@ export class ArrivalGarden {
     bed.receiveShadow = true;
     this.group.add(bed);
 
-    const lagoon = new THREE.Mesh(lagoonGeometry, this.poolWater);
+    // Basin-only material: the entrance fountain retains its existing water.
+    const lagoonMaterial = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x2d91b8, roughness: 0.22, metalness: 0.16,
+      emissive: 0x13435a, emissiveIntensity: 0.24,
+      transparent: true, opacity: 0.76, depthWrite: false, side: THREE.DoubleSide,
+    }));
+    const lagoon = new THREE.Mesh(lagoonGeometry, lagoonMaterial);
     lagoon.name = 'east-sheltered-lagoon';
     lagoon.rotation.x = -Math.PI / 2;
     lagoon.position.y = GROUND_Y - 0.64;
@@ -437,7 +500,7 @@ export class ArrivalGarden {
     wallGeometry.setIndex(wallIndices);
     wallGeometry.computeVertexNormals();
     const wallMaterial = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x345053, roughness: 0.96, flatShading: true, side: THREE.DoubleSide,
+      color: 0x4b6b6f, roughness: 0.96, flatShading: true, side: THREE.DoubleSide,
     }));
     const wall = new THREE.Mesh(wallGeometry, wallMaterial);
     wall.name = 'east-lagoon-basin-wall';
