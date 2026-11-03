@@ -22,6 +22,29 @@ describe('IslandLandscape', () => {
       expect(position.x).toBeCloseTo(SCENIC_GROVE_POINTS[i][0], 4);
       expect(position.z).toBeCloseTo(SCENIC_GROVE_POINTS[i][1], 4);
     }
+    const firstLobes = first.getObjectByName('woodland-secondary-canopy') as THREE.InstancedMesh;
+    const secondLobes = second.getObjectByName('woodland-secondary-canopy') as THREE.InstancedMesh;
+    const understory = first.getObjectByName('woodland-understory') as THREE.InstancedMesh;
+    const understoryOther = second.getObjectByName('woodland-understory') as THREE.InstancedMesh;
+    expect(firstLobes).toBeInstanceOf(THREE.InstancedMesh);
+    expect(firstLobes.count).toBe(firstTrunks.count);
+    expect(firstLobes.castShadow).toBe(false);
+    expect(understory).toBeInstanceOf(THREE.InstancedMesh);
+    expect(understory.count).toBeGreaterThan(15);
+    expect(understory.count).toBeLessThanOrEqual(firstTrunks.count);
+    expect(understory.castShadow).toBe(false);
+    expect(Array.from(understory.instanceMatrix.array.slice(0, understory.count * 16)))
+      .toEqual(Array.from(understoryOther.instanceMatrix.array.slice(0, understoryOther.count * 16)));
+    expect(Array.from(firstLobes.instanceMatrix.array.slice(0, firstLobes.count * 16)))
+      .toEqual(Array.from(secondLobes.instanceMatrix.array.slice(0, secondLobes.count * 16)));
+    const matrix = new THREE.Matrix4();
+    const point = new THREE.Vector3();
+    for (let i = 0; i < understory.count; i++) {
+      understory.getMatrixAt(i, matrix);
+      point.setFromMatrixPosition(matrix);
+      expect(isSiteLand(point.x, point.z)).toBe(true);
+      expect(Math.hypot(point.x, point.z - 128)).toBeGreaterThanOrEqual(54);
+    }
     expect(secondTrunks.count).toBe(firstTrunks.count);
     expect(Array.from(firstTrunks.instanceMatrix.array.slice(0, firstTrunks.count * 16)))
       .toEqual(Array.from(secondTrunks.instanceMatrix.array.slice(0, secondTrunks.count * 16)));

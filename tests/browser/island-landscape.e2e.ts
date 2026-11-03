@@ -24,6 +24,7 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
       'east-lagoon-bed', 'east-lagoon-basin-wall', 'east-lagoon-rock-bank', 'northwest-spire-garden-clearing', 'single-golden-spire',
       'south-arrival-pier-deck', 'pier-guide-inlays', 'shoreline-rock-scatter',
       'site-path-1', 'perimeter-woodland-trunks',
+      'woodland-secondary-canopy', 'woodland-understory',
     ];
     const present = required.map((name) => Boolean(app.scene.getObjectByName(name)));
     const probes = [

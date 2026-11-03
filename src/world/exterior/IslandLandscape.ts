@@ -226,6 +226,15 @@ export class IslandLandscape {
     const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, count);
     trunks.name = 'perimeter-woodland-trunks';
     trunks.castShadow = true;
+    // A second asymmetric canopy mass creates a layered forest silhouette
+    // rather than a field of identical green polyhedra. One extra draw only.
+    const lobeMaterial = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x294b40, roughness: 0.98,
+    }));
+    const canopyLobes = new THREE.InstancedMesh(crownGeo, lobeMaterial, count);
+    canopyLobes.name = 'woodland-secondary-canopy';
+    canopyLobes.userData.visualRole = 'forest-layered-silhouette';
+    canopyLobes.castShadow = false;
     const crowns = crownMaterials.map((mat, i) => {
       const mesh = new THREE.InstancedMesh(crownGeo, mat, Math.ceil(count / 3));
       mesh.name = `perimeter-woodland-canopy-${i + 1}`;
@@ -249,6 +258,12 @@ export class IslandLandscape {
       dummy.scale.set(1.0 * scale, 0.82 * scale, 0.92 * scale);
       dummy.updateMatrix();
       crowns[palette].setMatrixAt(byPalette[palette]++, dummy.matrix);
+      const angle = placed * 2.399963229728653;
+      dummy.position.set(x + Math.cos(angle) * 1.65 * scale, -0.5 + 5.2 * scale,
+        z + Math.sin(angle) * 1.35 * scale);
+      dummy.scale.set(0.59 * scale, 0.53 * scale, 0.67 * scale);
+      dummy.updateMatrix();
+      canopyLobes.setMatrixAt(placed, dummy.matrix);
       this.collision.addBox([x, -0.5 + halfTrunkHeight * scale, z], [
         0.44 * scale, halfTrunkHeight * scale, 0.44 * scale,
       ]);
@@ -292,5 +307,58 @@ export class IslandLandscape {
       mesh.instanceMatrix.needsUpdate = true;
       this.scope.track(mesh);
     });
+    canopyLobes.count = placed;
+    canopyLobes.instanceMatrix.needsUpdate = true;
+    canopyLobes.computeBoundingSphere();
+    this.root.add(this.scope.track(canopyLobes));
+
+    // A low, collision-free understory fills the visual gaps without raising
+    // the ground or interfering with the museum's authored walking paths.
+    // Its density scales with device quality; there is no extra frame loop.
+    const shrubsPerTree = this.quality === 'low' ? 1 : this.quality === 'medium' ? 2 : 3;
+    const shrubGeo = this.scope.track(new THREE.IcosahedronGeometry(1, 0));
+    const shrubMat = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x2b5447, roughness: 1,
+    }));
+    const understory = new THREE.InstancedMesh(shrubGeo, shrubMat, count * shrubsPerTree);
+    understory.name = 'woodland-understory';
+    understory.userData.visualRole = 'landscape-understory';
+    understory.castShadow = false;
+    understory.receiveShadow = false;
+    let shrubCount = 0;
+    const nearPath = (x: number, z: number): boolean => PATH_CENTERLINES.some((path) =>
+      path.slice(0, -1).some((point, index) => {
+        const next = path[index + 1];
+        const dx = next[0] - point[0];
+        const dz = next[1] - point[1];
+        const t = Math.max(0, Math.min(1,
+          ((x - point[0]) * dx + (z - point[1]) * dz) / (dx * dx + dz * dz)));
+        return Math.hypot(x - (point[0] + dx * t), z - (point[1] + dz * t)) < 5.5;
+      }));
+    for (let i = 0; i < occupied.length; i++) {
+      const [tx, tz] = occupied[i];
+      for (let j = 0; j < shrubsPerTree; j++) {
+        const angle = i * 2.399963229728653 + j * 2.0943951023931953;
+        const distance = 2.8 + j * 1.2;
+        const x = tx + Math.cos(angle) * distance;
+        const z = tz + Math.sin(angle) * distance;
+        if (!isSiteLand(x, z) || nearPath(x, z)) continue;
+        if (Math.abs(x) < 50 && Math.abs(z) < 112) continue;
+        if (Math.hypot(x, z - 128) < 54) continue;
+        if (x > 44 && x < 142 && z > -62 && z < 63) continue;
+        if (Math.hypot(x + 104, z + 82) < 33) continue;
+        const width = 0.9 + ((i + j) % 5) * 0.18;
+        const height = 0.55 + ((i + j * 2) % 3) * 0.14;
+        dummy.position.set(x, -0.5 + height, z);
+        dummy.rotation.set(0, angle * 0.18, 0);
+        dummy.scale.set(width, height, width * 0.89);
+        dummy.updateMatrix();
+        understory.setMatrixAt(shrubCount++, dummy.matrix);
+      }
+    }
+    understory.count = shrubCount;
+    understory.instanceMatrix.needsUpdate = true;
+    understory.computeBoundingSphere();
+    this.root.add(this.scope.track(understory));
   }
 }

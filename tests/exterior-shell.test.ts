@@ -79,4 +79,46 @@ describe('ExteriorMuseumShell', () => {
     scope.dispose();
   });
 
+  it('exposes segmented warm glazing beyond the opaque outside walls and the south facade', () => {
+    const scope = new ResourceScope('exterior-window-facing');
+    const collision = new CollisionWorld();
+    const root = new ExteriorMuseumShell(scope, collision).build();
+    const matrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    for (const side of [-1, 1]) {
+      const wall = root.getObjectByName(`side-facade-${side}`) as THREE.Mesh<THREE.BoxGeometry>;
+      const pane = root.getObjectByName(`amber-window-ribbon-${side}`) as THREE.InstancedMesh;
+      const sill = root.getObjectByName(`cyan-window-sill-${side}`) as THREE.InstancedMesh;
+      const mullions = root.getObjectByName(`facade-window-mullions-${side}`) as THREE.InstancedMesh;
+      expect(pane).toBeInstanceOf(THREE.InstancedMesh);
+      expect(pane.count).toBe(36);
+      expect(sill.count).toBe(36);
+      expect(mullions.count).toBe(37);
+      const exteriorFace = Math.abs(wall.position.x) + wall.geometry.parameters.width / 2;
+      for (let i = 0; i < pane.count; i++) {
+        pane.getMatrixAt(i, matrix);
+        position.setFromMatrixPosition(matrix);
+        const nearFace = Math.abs(position.x) - (pane.geometry as THREE.BoxGeometry).parameters.width / 2;
+        expect(nearFace).toBeGreaterThan(exteriorFace);
+        expect(Math.abs(position.z)).toBeLessThan(96);
+      }
+    }
+    const front = root.getObjectByName('south-ceremonial-window-bays') as THREE.InstancedMesh;
+    const frontSills = root.getObjectByName('south-ceremonial-window-sills') as THREE.InstancedMesh;
+    expect(front).toBeInstanceOf(THREE.InstancedMesh);
+    expect(front.count).toBe(6);
+    expect(frontSills.count).toBe(6);
+    for (let i = 0; i < front.count; i++) {
+      front.getMatrixAt(i, matrix);
+      position.setFromMatrixPosition(matrix);
+      expect(position.z - (front.geometry as THREE.BoxGeometry).parameters.depth / 2).toBeGreaterThan(128.35);
+      expect(Math.abs(position.x)).toBeGreaterThan(3.5);
+      expect(Math.abs(position.x)).toBeLessThan(20);
+    }
+    expect(collision.resolveHorizontal({ x: 0, y: 0, z: 127.5 }, 0.35, 1.8)).toBe(false);
+    scope.dispose();
+    expect(scope.size).toBe(0);
+  });
+
+
 });
