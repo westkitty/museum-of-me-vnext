@@ -356,13 +356,13 @@ export class IslandLandscape {
       trunks.setMatrixAt(placed, dummy.matrix);
       const palette = placed % crownMaterials.length;
       dummy.position.y += 3.7 * scale;
-      dummy.scale.set(1.0 * scale, 0.82 * scale, 0.92 * scale);
+      dummy.scale.set(0.90 * scale, 1.07 * scale, 0.91 * scale);
       dummy.updateMatrix();
       crowns[palette].setMatrixAt(byPalette[palette]++, dummy.matrix);
       const angle = placed * 2.399963229728653;
-      dummy.position.set(x + Math.cos(angle) * 1.65 * scale, -0.5 + 5.2 * scale,
-        z + Math.sin(angle) * 1.35 * scale);
-      dummy.scale.set(0.59 * scale, 0.53 * scale, 0.67 * scale);
+      dummy.position.set(x + Math.cos(angle) * 1.85 * scale, -0.5 + 5.1 * scale,
+        z + Math.sin(angle) * 1.25 * scale);
+      dummy.scale.set(0.62 * scale, 0.69 * scale, 0.67 * scale);
       dummy.updateMatrix();
       canopyLobes.setMatrixAt(placed, dummy.matrix);
       this.collision.addBox([x, -0.5 + halfTrunkHeight * scale, z], [
@@ -371,10 +371,13 @@ export class IslandLandscape {
       occupied.push([x, z]);
       placed++;
     };
+    // Taller, deliberately varied west woodland reads at the building's scale.
+    // Preserve every tree X/Z, the quality-tier counts, instance batches and
+    // existing collision ownership; only trunk/canopy vertical proportions change.
     // Fixed grove and procedural woodland use the same four instanced draws.
     for (const [i, [x, z]] of SCENIC_GROVE_POINTS.entries()) {
       if (!isSiteLand(x, z)) throw new Error(`Scenic grove point ${i} is outside island land`);
-      placeTree(x, z, 0.94 + (i % 5) * 0.09, (i * 2.4) % (Math.PI * 2));
+      placeTree(x, z, (x < -45 ? 1.65 : 1.20) + (i % 5) * 0.16, (i * 2.4) % (Math.PI * 2));
     }
     let state = 0x21d47011;
     const random = () => {
@@ -397,7 +400,7 @@ export class IslandLandscape {
         const t = Math.max(0, Math.min(1, ((x - point[0]) * dx + (z - point[1]) * dz) / (dx * dx + dz * dz)));
         return Math.hypot(x - (point[0] + dx * t), z - (point[1] + dz * t)) < 8;
       }))) continue;
-      const scale = 0.76 + random() * 0.75;
+      const scale = (x < -45 ? 1.52 : 1.22) + random() * (x < -45 ? 0.94 : 0.76);
       placeTree(x, z, scale, random() * Math.PI * 2);
     }
     trunks.count = placed;

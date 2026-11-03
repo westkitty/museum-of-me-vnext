@@ -6,8 +6,8 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 83,
-  "last_updated": "2026-11-02",
+  "state_revision": 85,
+  "last_updated": "2026-11-03",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
 -->
@@ -696,3 +696,11 @@ Tests extended in `tests/exterior-shell.test.ts` for roof/world wall extents, ex
 
 ### Render evidence collection — 2026-11-03
 **State: IMPLEMENTED IN SOURCE, actual render artifact pending CI.** The latest fully-green exterior PR #29 does not publish screenshots for its branch, despite five genuine viewport renders captured by the Playwright exterior test. New follow-on branch `feat/exterior-render-review-20261103` adds two more independent views (pier eye-level and portrait pier) and places all seven PNGs in `test-results/exterior-review-2026-11-03/`, with separate source-linked camera metrics and a manifest verifying PNG headers, dimensions and hashes. The CI browser job uploads this folder via `actions/upload-artifact@v4` only for this branch. `docs/evidence/exterior-review-2026-11-03/README.md` is the permanent discovery pointer. Rendering in CI is actual Three.js Chromium/SwiftShader evidence, not a human acceptance review or representative device FPS. If the artifact is absent, state that clearly rather than implying renders exist. Other PRs/main/Pages untouched.
+
+
+### Pier sightline and western woodland proportion — 2026-11-03
+**Evidence state: IMPLEMENTED IN CHILD FEATURE SOURCE ONLY; exact-head CI and human visual acceptance UNKNOWN.** Child branch `feat/exterior-composition-forest-review-20261103` bases on the unchanged draft PR #30 source head `3876b0ce43c599d9dc12c2239a530a1e48f65b8b`, which provides seven independently byte-verified real Three.js Chromium screenshots. The initial visual review identified a 76-metre-wide, Y=29 overhead black lintel obscuring the entry/dome and a too-small, uniform woodland. This bounded correction changes `ArrivalBeacons` from a spanning gateway to paired 9.8-metre flanking piers, two isolated low capstones and shorter/weaker 32-metre ornamental shafts; it preserves the old `monumental-arrival-lintel` scene node as a grouping identity, not a cross-axis obstruction. `IslandLandscape` retains 68/112/176 quality-tier main trees, existing X/Z placement, collision, deterministic instancing, dry-land masks, and canopy/understory draw count but increases silhouette heights and differentiated western forest scales. A focused geometry test and height-range assertions are added. CI exterior artifact upload is enabled for this child branch, reusing exactly the existing seven camera views and independent PNG filenames for direct comparison with PR #30. No functional changes to pier spawn, modal, building entrances, six wings, 35 exhibit slots, Sanctuary, lagoon, coastal physics, offline runtime, main or Pages. Do not treat commit presence or CI green as aesthetic approval or representative-device proof. Next gate: four exact-head CI jobs, manifest hashing, independent before/after image review and owner visual acceptance. Rollback: revert this single scoped child commit, leaving PR #30 and its source capture contract intact.
+
+
+### Exterior split-gateway compatibility correction — 2026-11-03
+**Evidence state: FIRST CI RUN FAILED at 733 Vitest tests (732 PASS, one stale assertion FAIL); candidate source correction committed, fresh CI required.** First PR #31 exact-head CI on `dce536c` failed its canonical gate in `tests/cinematic-arrival.test.ts` because that old assertion still required the giant overhead lintel (>Y20) and piers at X>34 while the current visual repair lowered/removed the across-axis structure. The failure was a conflicting historical test expectation, not a proven browser runtime defect. Revision moves lower flanking piers/caps to X±35.5 (outside the existing PLAZA_HALF_WIDTH=34 protection), anchors the legacy `monumental-arrival-lintel` grouping node at canonical Z132, and updates the old assertion to require two small separated caps outside the walking plaza with no central overhead beam. Also aligns the new-focused test to X±35.5. Do not relax pier-startup, approach geometry, collision, skyline intent, or render baselines. Four new exact-head CI jobs and matched cameras must be verified before claiming success; no merge/Pages/deploy.
