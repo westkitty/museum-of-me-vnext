@@ -51,6 +51,8 @@ test('P3 compact exterior architecture renders from canonical cameras and remain
   expect(state.names).toContain('south-ceremonial-window-sills');
   expect(state.names).toContain('south-rounded-glazed-portico');
   expect(state.names).toContain('raised-stone-terrace');
+  expect(state.names).toContain('north-facade-pilasters');
+  expect(state.names).toContain('north-facade-cornice');
   expect(state.renders).toHaveLength(5);
   for (const render of state.renders) {
     expect(render.calls).toBeGreaterThan(0);

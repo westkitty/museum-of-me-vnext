@@ -121,4 +121,36 @@ describe('ExteriorMuseumShell', () => {
   });
 
 
+  it('finishes the north elevation with outward facing slit glass and a cornice', () => {
+    const scope = new ResourceScope('north-rear-qa');
+    const collision = new CollisionWorld();
+    const root = new ExteriorMuseumShell(scope, collision).build();
+    const wall = root.getObjectByName('north-rear-elevation') as THREE.Mesh<THREE.BoxGeometry>;
+    const outerFace = wall.position.z - wall.geometry.parameters.depth / 2;
+    const pilasters = root.getObjectByName('north-facade-pilasters') as THREE.InstancedMesh;
+    const cornice = root.getObjectByName('north-facade-cornice') as THREE.Mesh;
+    expect(pilasters).toBeInstanceOf(THREE.InstancedMesh);
+    expect(pilasters.count).toBe(7);
+    expect(cornice).toBeTruthy();
+    const mat = new THREE.Matrix4();
+    const p = new THREE.Vector3();
+    for (let i = 0; i < pilasters.count; i++) {
+      pilasters.getMatrixAt(i, mat);
+      p.setFromMatrixPosition(mat);
+      expect(p.z + (pilasters.geometry as THREE.BoxGeometry).parameters.depth / 2)
+        .toBeLessThan(outerFace);
+      expect(Math.abs(p.x)).toBeLessThan(38);
+    }
+    for (const x of [-29, -18, 18, 29]) {
+      const pane = root.getObjectByName(`north-amber-slit-${x}`) as THREE.Mesh<THREE.BoxGeometry>;
+      expect(pane).toBeTruthy();
+      expect(pane.position.z + pane.geometry.parameters.depth / 2)
+        .toBeLessThan(outerFace);
+    }
+    expect(collision.resolveHorizontal({ x: 0, y: 0, z: 127.5 }, 0.35, 1.8)).toBe(false);
+    scope.dispose();
+    expect(scope.size).toBe(0);
+  });
+
+
 });

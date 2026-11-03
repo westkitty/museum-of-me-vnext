@@ -31,6 +31,7 @@ export class IslandLandscape {
   private buildPaths(): void {
     const pathMat = this.scope.track(new THREE.MeshStandardMaterial({ color: 0xb6a27a, roughness: 0.92, metalness: 0.02 }));
     const lightMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0xffbf78, toneMapped: false }));
+    const markers: { x: number; z: number; id: string }[] = [];
     PATH_CENTERLINES.forEach((points, pathIndex) => {
       const curve = new THREE.CatmullRomCurve3(points.map(([x, z]) => new THREE.Vector3(x, -0.465, z)), false, 'centripetal');
       const samples = curve.getPoints(Math.max(24, points.length * 16));
@@ -58,12 +59,30 @@ export class IslandLandscape {
 
       for (let i = 3; i < samples.length - 3; i += 22) {
         const p = samples[i];
-        const lamp = new THREE.Mesh(this.scope.track(new THREE.SphereGeometry(0.18, 8, 6)), lightMat);
-        lamp.name = `path-ground-light-${pathIndex + 1}-${i}`;
-        lamp.position.set(p.x + (i % 2 ? 2.7 : -2.7), -0.24, p.z);
-        this.root.add(lamp);
+        const x = p.x + (i % 2 ? 2.7 : -2.7);
+        const z = p.z;
+        // Never float a path light over the lagoon or off the island.
+        if (isSiteLand(x, z)) markers.push({ x, z, id: `path-ground-light-${pathIndex + 1}-${i}` });
       }
     });
+    const markerGeo = this.scope.track(new THREE.SphereGeometry(0.18, 8, 6));
+    const batch = new THREE.InstancedMesh(markerGeo, lightMat, markers.length);
+    batch.name = 'path-ground-light-instances';
+    batch.userData.visualRole = 'landscape-path-edge-guidance';
+    batch.userData.sourceMarkerIds = markers.map((marker) => marker.id);
+    const placement = new THREE.Object3D();
+    for (const [i, marker] of markers.entries()) {
+      // Bottom of 18 cm sphere meets the path surface at Y = -0.465.
+      placement.position.set(marker.x, -0.285, marker.z);
+      placement.rotation.set(0, 0, 0);
+      placement.scale.set(1, 1, 1);
+      placement.updateMatrix();
+      batch.setMatrixAt(i, placement.matrix);
+    }
+    batch.instanceMatrix.needsUpdate = true;
+    batch.computeBoundingSphere();
+    this.root.add(batch);
+    this.scope.trackObject(batch);
   }
 
   private buildSpireGarden(): void {
@@ -146,7 +165,8 @@ export class IslandLandscape {
     for (const side of [-1, 1]) {
       const edge = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(0.3, 0.35, 58)), trim);
       edge.name = `pier-edge-${side}`;
-      edge.position.set(side * 5.35, -0.18, 188);
+      // The trim must touch the pier deck at -0.49, not float 0.135 m above it.
+      edge.position.set(side * 5.35, -0.315, 188);
       this.root.add(edge);
     }
     // A quiet amber rhythm draws the eye north from the new pier spawn.
@@ -161,7 +181,8 @@ export class IslandLandscape {
     const guideTransform = new THREE.Object3D();
     for (let i = 0; i < 8; i++) {
       for (const [sideIndex, side] of [-1, 1].entries()) {
-        guideTransform.position.set(side * 5.35, 0.045, 168 + i * 6);
+        // Trim top is slightly visible above the -0.49 m stone walking surface.
+        guideTransform.position.set(side * 5.35, -0.455, 168 + i * 6);
         guideTransform.rotation.set(0, 0, 0);
         guideTransform.scale.set(1, 1, 1);
         guideTransform.updateMatrix();
@@ -172,6 +193,65 @@ export class IslandLandscape {
     guides.computeBoundingSphere();
     this.root.add(guides);
     this.scope.trackObject(guides);
+
+    // The first view is an actual pier landing, not a player floating over
+    // an unmarked slab. One quiet compass ring identifies the spawn while
+    // the north-facing notch points toward the real museum entrance.
+    const compassMaterial = this.scope.track(new THREE.MeshBasicMaterial({
+      color: 0x9f8864, toneMapped: true,
+    }));
+    const compass = new THREE.Mesh(
+      this.scope.track(new THREE.RingGeometry(2.02, 2.13, 48)),
+      compassMaterial,
+    );
+    compass.name = 'pier-arrival-compass';
+    compass.userData.visualRole = 'arrival-orientation';
+    compass.rotation.x = -Math.PI / 2;
+    compass.position.set(0, -0.465, PIER_CENTERLINE[2][1]);
+    this.root.add(compass);
+    const northNotch = new THREE.Mesh(
+      this.scope.track(new THREE.BoxGeometry(0.22, 0.035, 0.72)),
+      guideMaterial,
+    );
+    northNotch.name = 'pier-arrival-north-marker';
+    northNotch.position.set(0, -0.45, PIER_CENTERLINE[2][1] - 2.4);
+    this.root.add(northNotch);
+
+    // Paired low stone sentinels frame the approach from the pier. They make
+    // the dome/portico sightline ceremonial without a cinematic lock, modal,
+    // expensive point light, or a wall across the walking corridor.
+    const sentinelPositions = [172, 180, 188, 196, 204, 212] as const;
+    const sentinelBodyGeo = this.scope.track(new THREE.CylinderGeometry(0.23, 0.32, 1.6, 10));
+    const sentinelCapGeo = this.scope.track(new THREE.CylinderGeometry(0.40, 0.36, 0.14, 12));
+    const sentinelBody = new THREE.InstancedMesh(sentinelBodyGeo, trim, sentinelPositions.length * 2);
+    sentinelBody.name = 'pier-stone-sentinels';
+    sentinelBody.userData.visualRole = 'pier-ceremonial-edges';
+    const sentinelCrown = new THREE.InstancedMesh(sentinelCapGeo, guideMaterial, sentinelPositions.length * 2);
+    sentinelCrown.name = 'pier-amber-sentinel-caps';
+    const sentinelTransform = new THREE.Object3D();
+    for (const [i, z] of sentinelPositions.entries()) {
+      for (const [sideIndex, side] of [-1, 1].entries()) {
+        const index = i * 2 + sideIndex;
+        const x = side * 5.22;
+        sentinelTransform.position.set(x, 0.31, z);
+        sentinelTransform.rotation.set(0, 0, 0);
+        sentinelTransform.scale.set(1, 1, 1);
+        sentinelTransform.updateMatrix();
+        sentinelBody.setMatrixAt(index, sentinelTransform.matrix);
+        sentinelTransform.position.y = 1.17;
+        sentinelTransform.updateMatrix();
+        sentinelCrown.setMatrixAt(index, sentinelTransform.matrix);
+        // The central 9 m walkway remains clear; physical bollards protect
+        // the pier edge rather than being decorative objects one can phase through.
+        this.collision.addBox([x, 0.31, z], [0.32, 0.8, 0.32]);
+      }
+    }
+    for (const mesh of [sentinelBody, sentinelCrown]) {
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
+      this.root.add(mesh);
+      this.scope.trackObject(mesh);
+    }
     this.collision.addFloor(-6, 6, 164, 218, -0.5);
   }
 
