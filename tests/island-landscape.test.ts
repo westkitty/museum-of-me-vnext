@@ -50,6 +50,23 @@ describe('IslandLandscape', () => {
     expect(Array.from(firstTrunks.instanceMatrix.array.slice(0, firstTrunks.count * 16)))
       .toEqual(Array.from(secondTrunks.instanceMatrix.array.slice(0, secondTrunks.count * 16)));
     expect(first.getObjectByName('south-arrival-pier-deck')).toBeTruthy();
+    const pierPiles = first.getObjectByName('pier-foundation-pylons') as THREE.InstancedMesh;
+    const pierPilesSecond = second.getObjectByName('pier-foundation-pylons') as THREE.InstancedMesh;
+    expect(pierPiles).toBeInstanceOf(THREE.InstancedMesh);
+    expect(pierPiles.count).toBe(10);
+    expect(Array.from(pierPiles.instanceMatrix.array.slice(0, pierPiles.count * 16)))
+      .toEqual(Array.from(pierPilesSecond.instanceMatrix.array.slice(0, pierPilesSecond.count * 16)));
+    const pileMatrix = new THREE.Matrix4();
+    const pilePosition = new THREE.Vector3();
+    for (let i = 0; i < pierPiles.count; i++) {
+      pierPiles.getMatrixAt(i, pileMatrix);
+      pilePosition.setFromMatrixPosition(pileMatrix);
+      expect(Math.abs(pilePosition.x)).toBeCloseTo(4.7, 4);
+      expect(pilePosition.y).toBeCloseTo(-2.29, 4);
+      expect(pilePosition.y + 1.8).toBeCloseTo(-0.49, 4);
+      expect(pilePosition.z).toBeGreaterThanOrEqual(168);
+      expect(pilePosition.z).toBeLessThanOrEqual(216);
+    }
     const pierGuides = first.getObjectByName('pier-guide-inlays') as THREE.InstancedMesh;
     const coastalRocks = first.getObjectByName('shoreline-rock-scatter') as THREE.InstancedMesh;
     expect(pierGuides).toBeInstanceOf(THREE.InstancedMesh);

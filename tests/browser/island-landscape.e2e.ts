@@ -23,7 +23,7 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
       'night-island-tidal-fringe', 'east-sheltered-lagoon',
       'east-lagoon-bed', 'east-lagoon-basin-wall', 'east-lagoon-rock-bank', 'northwest-spire-garden-clearing', 'single-golden-spire',
       'south-arrival-pier-deck', 'pier-guide-inlays', 'shoreline-rock-scatter',
-      'pier-arrival-compass', 'pier-arrival-north-marker', 'pier-stone-sentinels',
+      'pier-foundation-pylons', 'pier-arrival-compass', 'pier-arrival-north-marker', 'pier-stone-sentinels',
       'pier-amber-sentinel-caps', 'path-ground-light-instances',
       'site-path-1', 'perimeter-woodland-trunks',
       'woodland-secondary-canopy', 'woodland-understory',

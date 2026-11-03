@@ -153,4 +153,68 @@ describe('ExteriorMuseumShell', () => {
   });
 
 
+  it('seals the roof eaves to outer wall faces while batching all raised ribs', () => {
+    const scope = new ResourceScope('roof-eaves-batched');
+    const root = new ExteriorMuseumShell(scope, new CollisionWorld()).build();
+    const mat = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    for (const side of [-1, 1]) {
+      const wingName = side < 0 ? 'west' : 'east';
+      const roof = root.getObjectByName(`curved-roof-wing-${wingName}`) as THREE.Mesh;
+      const wall = root.getObjectByName(`side-facade-${side}`) as THREE.Mesh;
+      const fascia = root.getObjectByName(`roof-eave-fascia-${side}`) as THREE.Mesh;
+      const seams = root.getObjectByName(`roof-seams-${wingName}`) as THREE.InstancedMesh;
+      expect(fascia).toBeTruthy();
+      expect(seams).toBeInstanceOf(THREE.InstancedMesh);
+      expect(seams.count).toBe(21);
+      const roofBox = new THREE.Box3().setFromObject(roof);
+      const wallBox = new THREE.Box3().setFromObject(wall);
+      const outerEave = side < 0 ? roofBox.min.x : roofBox.max.x;
+      const outerWall = side < 0 ? wallBox.min.x : wallBox.max.x;
+      expect((outerEave - outerWall) * side).toBeGreaterThanOrEqual(0.09);
+      expect(fascia.position.y - 0.19).toBeLessThanOrEqual(9.5);
+      for (let i = 0; i < seams.count; i++) {
+        seams.getMatrixAt(i, mat);
+        position.setFromMatrixPosition(mat);
+        const z = -100 + 10 * i;
+        expect(position.z).toBeCloseTo(z, 5);
+        expect(root.getObjectByName(`roof-seam-${side}-${z}`)).toBeTruthy();
+      }
+    }
+    scope.dispose();
+    expect(scope.size).toBe(0);
+  });
+
+  it('uses deterministic, non-uniform warm bay intensities and preserves entrance clearing', () => {
+    const scope = new ResourceScope('facade-night-rhythm');
+    const collision = new CollisionWorld();
+    const root = new ExteriorMuseumShell(scope, collision).build();
+    for (const side of [-1, 1]) {
+      const windowBays = root.getObjectByName(`amber-window-ribbon-${side}`) as THREE.InstancedMesh;
+      expect(windowBays.instanceColor).toBeTruthy();
+      expect(windowBays.instanceColor?.getX(0)).toBeCloseTo(1, 5);
+      expect(windowBays.instanceColor?.getX(2)).toBeCloseTo(0.25, 5);
+      expect(windowBays.instanceColor?.getX(4)).toBeCloseTo(0.62, 5);
+    }
+    const front = root.getObjectByName('south-ceremonial-window-bays') as THREE.InstancedMesh;
+    expect(front.instanceColor?.getX(1)).toBeCloseTo(0.58, 5);
+    expect(front.instanceColor?.getX(4)).toBeCloseTo(0.76, 5);
+    const inlays = root.getObjectByName('terrace-procession-inlays') as THREE.InstancedMesh;
+    expect(inlays.count).toBe(12);
+    const matrix = new THREE.Matrix4();
+    const point = new THREE.Vector3();
+    for (let i = 0; i < inlays.count; i++) {
+      inlays.getMatrixAt(i, matrix);
+      point.setFromMatrixPosition(matrix);
+      expect(Math.abs(point.x)).toBeCloseTo(6.1, 5);
+      expect(point.y).toBeCloseTo(0.011, 5);
+      expect(point.z).toBeGreaterThanOrEqual(135);
+      expect(point.z).toBeLessThanOrEqual(155);
+    }
+    expect(collision.resolveHorizontal({ x: 0, y: 0, z: 149 }, 0.35, 1.8)).toBe(false);
+    expect(collision.resolveHorizontal({ x: 0, y: 0, z: 127.5 }, 0.35, 1.8)).toBe(false);
+    scope.dispose();
+    expect(scope.size).toBe(0);
+  });
+
 });
