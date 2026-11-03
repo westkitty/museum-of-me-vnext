@@ -342,10 +342,15 @@ export class Museum {
     const p = this.pal.get('plaza');
     const dir = faceDirection('s');
 
-    // The authored island in ArrivalGarden owns visible terrain. The former
-    // 600 m square ground plane extended beyond its shoreline and covered the
-    // water, exposing the legacy rectangular world. Keep the existing ground
-    // collision authority until a separately tested collision migration.
+    // Ground plane wide enough that the building reads as sited, not floating.
+    // This belongs to the separately visible INTERIOR world; it cannot be the
+    // source of outside island/water seams while ExteriorWorld is active.
+    const groundGeo = this.scope.track(new THREE.PlaneGeometry(600, 600));
+    const ground = new THREE.Mesh(groundGeo, p.floor);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = GROUND_Y - 0.5;
+    ground.receiveShadow = true;
+    this.root.add(ground);
     this.addExteriorGroundCollision();
 
     // Arrival plaza: a raised terrace in front of the entrance.
