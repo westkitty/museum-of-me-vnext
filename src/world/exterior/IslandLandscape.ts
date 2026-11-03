@@ -464,5 +464,54 @@ export class IslandLandscape {
     understory.instanceMatrix.needsUpdate = true;
     understory.computeBoundingSphere();
     this.root.add(this.scope.track(understory));
+
+    // The original tree spacing makes the island appear park-like from the
+    // canonical overhead and west cameras. Add canopy-only infill around the
+    // existing trees, without placing another trunk, collider or floor tile.
+    // One instanced low-poly mesh keeps the draw count constant across tiers.
+    const infillPerTree = this.quality === 'low' ? 2 : this.quality === 'medium' ? 3 : 4;
+    const infillGeometry = this.scope.track(new THREE.IcosahedronGeometry(2.7, 0));
+    const infillMaterial = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0xffffff, roughness: 1, metalness: 0,
+    }));
+    const infill = new THREE.InstancedMesh(infillGeometry, infillMaterial, placed * infillPerTree);
+    infill.name = 'woodland-canopy-infill';
+    infill.userData.visualRole = 'dense-layered-woodland-canopy';
+    infill.castShadow = false;
+    infill.receiveShadow = false;
+    const tones = [0x193a32, 0x23493e, 0x2a5145, 0x17352f];
+    const inset = 3.8;
+    let infillCount = 0;
+    for (let i = 0; i < occupied.length; i++) {
+      const [tx, tz] = occupied[i];
+      for (let j = 0; j < infillPerTree; j++) {
+        const angle = i * 2.399963229728653 + j * (Math.PI * 2 / infillPerTree);
+        const distance = inset + j * 1.15;
+        const x = tx + Math.cos(angle) * distance;
+        const z = tz + Math.sin(angle) * distance;
+        // All foliage stays on established land, away from visitor paths,
+        // the pier/garden arrival, walls, lagoon and sacred spire clearing.
+        if (!isSiteLand(x, z) || nearPath(x, z)) continue;
+        if (Math.abs(x) < 50 && Math.abs(z) < 112) continue;
+        if (Math.hypot(x, z - 128) < 54) continue;
+        if (x > 44 && x < 142 && z > -62 && z < 63) continue;
+        if (Math.hypot(x + 104, z + 82) < 33) continue;
+        const width = 0.94 + ((i + j) % 5) * 0.11;
+        const height = 0.72 + ((i + j * 2) % 4) * 0.12;
+        const elevation = 4.7 + ((i * 3 + j) % 5) * 0.78;
+        dummy.position.set(x, -0.5 + elevation, z);
+        dummy.rotation.set(0, angle * 0.17, 0);
+        dummy.scale.set(width, height, width * 0.91);
+        dummy.updateMatrix();
+        infill.setMatrixAt(infillCount, dummy.matrix);
+        infill.setColorAt(infillCount, new THREE.Color(tones[(i + j) % tones.length]));
+        infillCount++;
+      }
+    }
+    infill.count = infillCount;
+    infill.instanceMatrix.needsUpdate = true;
+    if (infill.instanceColor) infill.instanceColor.needsUpdate = true;
+    infill.computeBoundingSphere();
+    this.root.add(this.scope.track(infill));
   }
 }
