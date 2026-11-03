@@ -97,5 +97,14 @@ export function addIslandSupport(collision: CollisionWorld): number {
       count++;
     }
   }
+  // Full-corner tiles deliberately leave a thin unsupported strip inside the
+  // polygonal coast and around lagoon edges. The visible island still extends
+  // to those points: supplement with ONE exactly masked floor so walkers can
+  // reach real land edges without falling through, but never stand on water.
+  // This is a broad-phase AABB with a precise isSiteLand narrow-phase filter.
+  collision.addMaskedFloor(
+    Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs),
+    LAND_SUPPORT_Y, isSiteLand,
+  );
   return count;
 }

@@ -225,20 +225,30 @@ test('admits DexGPT only after entry, then guides through the existing wayfindin
   // collision path as a visitor. The stopped render loop means the test must
   // advance the real fixed and variable updates itself.
   await page.keyboard.down('w');
-  await page.evaluate(async () => {
+  const entered = await page.evaluate(async () => {
     const app = window.__museum;
     if (!app) throw new Error('museum app missing');
     await app.ensureInteriorLoaded();
-    for (let i = 0; i < 700; i++) {
+    let frames = 0;
+    // The pier-first spawn is 58 metres farther from the doorway than the
+    // previous plaza spawn. Drive the real controller until it crosses the
+    // real threshold, rather than assuming 700 fixed ticks is always enough.
+    for (; frames < 2400; frames++) {
       app.fixedUpdate(1 / 60);
       app.variableUpdate(1 / 60);
+      // Let predictive rendering/preparation settle without restarting the
+      // GPU loop or bypassing the visitor's collision path.
+      if (frames % 120 === 0) await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      if (app.activeWorld === 'interior' && app.currentZone === 'south') break;
     }
+    return { world: app.activeWorld, zone: app.currentZone, z: app.player.position.z, frames };
   });
   await page.keyboard.up('w');
-  expect(await page.evaluate(() => window.__museum?.currentZone)).not.toBe('plaza');
+  expect(entered.world).toBe('interior');
+  expect(entered.zone).toBe('south');
+  expect(entered.z).toBeLessThan(128);
 
   await page.keyboard.press('Control+k');
-  expect(await page.evaluate(() => window.__museum?.currentZone)).toBe('south');
   await expect(command).toContainText('Talk to DexGPT');
   await command.getByRole('button', { name: 'Talk to DexGPT — Local museum guide' }).click();
 

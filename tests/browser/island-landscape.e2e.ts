@@ -21,7 +21,7 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
     const required = [
       'night-island-terrain', 'night-island-shoreline', 'night-island-coastal-skirt',
       'night-island-tidal-fringe', 'east-sheltered-lagoon',
-      'east-lagoon-rock-bank', 'northwest-spire-garden-clearing', 'single-golden-spire',
+      'east-lagoon-bed', 'east-lagoon-basin-wall', 'east-lagoon-rock-bank', 'northwest-spire-garden-clearing', 'single-golden-spire',
       'south-arrival-pier-deck', 'pier-guide-inlays', 'shoreline-rock-scatter',
       'site-path-1', 'perimeter-woodland-trunks',
     ];
@@ -33,6 +33,10 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
       ['spire-court', -104, -82, true],
       ['lagoon-bank', 138, 0, true],
       ['lagoon-water', 92, 1, false],
+      ['east-visible-coast', 185, 0, true],
+      ['west-visible-coast', -181, 0, true],
+      ['lagoon-shore-shoulder', 131, 30, true],
+      ['nearshore-water', 190, 0, false],
       ['offshore', 260, 0, false],
     ] as const;
     const supports = probes.map(([id, x, z]) => ({ id, y: app.exteriorWorld.collision.supportHeight(x, z, 0) }));
@@ -76,7 +80,7 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
   expect(result.floorColliderCount).toBeLessThan(1_000);
   expect(result.waterGeometry).toBe('RingGeometry');
   expect(result.supports.find((probe) => probe.id === 'entrance-terrace')?.y).toBe(0);
-  expect(result.supports.filter((probe) => ['pier', 'west-path', 'spire-court', 'lagoon-bank'].includes(probe.id)).every((probe) => probe.y === -0.5)).toBe(true);
+  expect(result.supports.filter((probe) => ['pier', 'west-path', 'spire-court', 'lagoon-bank', 'east-visible-coast', 'west-visible-coast', 'lagoon-shore-shoulder'].includes(probe.id)).every((probe) => probe.y === -0.5)).toBe(true);
   expect(result.traversal.every((probe) => probe.grounded && probe.y >= -0.6)).toBe(true);
   expect(result.routeSupports.filter((support) => support.y === null)).toEqual([]);
   expect(result.cameraRenders).toHaveLength(5);
