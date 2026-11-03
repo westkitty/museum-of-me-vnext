@@ -3,7 +3,7 @@ import { ResourceScope } from '../../assets/ResourceScope';
 import { CollisionWorld } from '../CollisionWorld';
 import type { QualityTier } from '../../render/QualityTiers';
 import {
-  PATH_CENTERLINES, PIER_CENTERLINE, SPIRE_GARDEN_CENTER,
+  PATH_CENTERLINES, PIER_CENTERLINE, SCENIC_GROVE_POINTS, SPIRE_GARDEN_CENTER,
   SPIRE_GARDEN_RADIUS, isSiteLand,
 } from './IslandSiteLayout';
 
@@ -152,7 +152,7 @@ export class IslandLandscape {
   }
 
   private buildWoodland(): void {
-    const count = this.quality === 'low' ? 48 : this.quality === 'medium' ? 72 : 96;
+    const count = this.quality === 'low' ? 68 : this.quality === 'medium' ? 112 : 176;
     const trunkGeo = this.scope.track(new THREE.CylinderGeometry(0.34, 0.44, 5.4, 7));
     const crownGeo = this.scope.track(new THREE.IcosahedronGeometry(3.2, 1));
     const trunkMat = this.scope.track(new THREE.MeshStandardMaterial({ color: 0x252d28, roughness: 1 }));
@@ -174,29 +174,11 @@ export class IslandLandscape {
     const dummy = new THREE.Object3D();
     let placed = 0;
     const byPalette = [0, 0, 0];
-    let state = 0x21d47011;
-    const random = () => {
-      state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-      return state / 0x1_0000_0000;
-    };
-    for (let tries = 0; tries < count * 16 && placed < count; tries++) {
-      const x = -172 + random() * 344;
-      const z = -160 + random() * 320;
-      if (!isSiteLand(x, z)) continue;
-      if (Math.hypot(x, z - 128) < 54) continue;
-      if (x > 44 && x < 142 && z > -62 && z < 63) continue;
-      if (Math.hypot(x + 104, z + 82) < 33) continue;
-      if (Math.abs(x) < 50 && Math.abs(z) < 112) continue;
-      if (PATH_CENTERLINES.some((path) => path.slice(0, -1).some((point, index) => {
-        const next = path[index + 1];
-        const dx = next[0] - point[0];
-        const dz = next[1] - point[1];
-        const t = Math.max(0, Math.min(1, ((x - point[0]) * dx + (z - point[1]) * dz) / (dx * dx + dz * dz)));
-        return Math.hypot(x - (point[0] + dx * t), z - (point[1] + dz * t)) < 8;
-      }))) continue;
-      const scale = 0.76 + random() * 0.75;
-      dummy.position.set(x, -0.5 + 2.7 * scale, z);
-      dummy.rotation.y = random() * Math.PI * 2;
+    const occupied: [number, number][] = [];
+    const halfTrunkHeight = (5.4 * 0.82) / 2;
+    const placeTree = (x: number, z: number, scale: number, yaw: number): void => {
+      dummy.position.set(x, -0.5 + halfTrunkHeight * scale, z);
+      dummy.rotation.set(0, yaw, 0);
       dummy.scale.set(0.9 * scale, 0.82 * scale, 0.9 * scale);
       dummy.updateMatrix();
       trunks.setMatrixAt(placed, dummy.matrix);
@@ -205,8 +187,40 @@ export class IslandLandscape {
       dummy.scale.set(1.0 * scale, 0.82 * scale, 0.92 * scale);
       dummy.updateMatrix();
       crowns[palette].setMatrixAt(byPalette[palette]++, dummy.matrix);
-      this.collision.addBox([x, 2.7 * scale, z], [0.44 * scale, 2.7 * scale, 0.44 * scale]);
+      this.collision.addBox([x, -0.5 + halfTrunkHeight * scale, z], [
+        0.44 * scale, halfTrunkHeight * scale, 0.44 * scale,
+      ]);
+      occupied.push([x, z]);
       placed++;
+    };
+    // Fixed grove and procedural woodland use the same four instanced draws.
+    for (const [i, [x, z]] of SCENIC_GROVE_POINTS.entries()) {
+      if (!isSiteLand(x, z)) throw new Error(`Scenic grove point ${i} is outside island land`);
+      placeTree(x, z, 0.94 + (i % 5) * 0.09, (i * 2.4) % (Math.PI * 2));
+    }
+    let state = 0x21d47011;
+    const random = () => {
+      state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+      return state / 0x1_0000_0000;
+    };
+    for (let tries = 0; tries < count * 20 && placed < count; tries++) {
+      const x = -172 + random() * 344;
+      const z = -160 + random() * 320;
+      if (!isSiteLand(x, z)) continue;
+      if (Math.hypot(x, z - 128) < 54) continue;
+      if (x > 44 && x < 142 && z > -62 && z < 63) continue;
+      if (Math.hypot(x + 104, z + 82) < 33) continue;
+      if (Math.abs(x) < 50 && Math.abs(z) < 112) continue;
+      if (occupied.some(([px, pz]) => Math.hypot(x - px, z - pz) < 8)) continue;
+      if (PATH_CENTERLINES.some((path) => path.slice(0, -1).some((point, index) => {
+        const next = path[index + 1];
+        const dx = next[0] - point[0];
+        const dz = next[1] - point[1];
+        const t = Math.max(0, Math.min(1, ((x - point[0]) * dx + (z - point[1]) * dz) / (dx * dx + dz * dz)));
+        return Math.hypot(x - (point[0] + dx * t), z - (point[1] + dz * t)) < 8;
+      }))) continue;
+      const scale = 0.76 + random() * 0.75;
+      placeTree(x, z, scale, random() * Math.PI * 2);
     }
     trunks.count = placed;
     trunks.instanceMatrix.needsUpdate = true;
