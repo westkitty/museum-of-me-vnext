@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 86,
+  "state_revision": 87,
   "last_updated": "2026-11-03",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -708,3 +708,7 @@ Tests extended in `tests/exterior-shell.test.ts` for roof/world wall extents, ex
 
 ### Exterior S2 night water, lagoon and coast material candidate — 2026-11-03
 **Evidence state: IMPLEMENTED IN SEPARATE CHILD FEATURE SOURCE; all exact-head tests, browser PNGs and visual acceptance PENDING.** Branch `feat/exterior-night-water-lagoon-review-20261103` derives from PR #31 `735c0f3c840e2c0810e1af46a9a31421ca80f2bd`, leaving that draft entrance/woodland correction untouched. Independent material hypothesis based on owner's accepted aspirational references and verified PR #30 darkness: modest color separation in existing island/sea/mineral materials, maintain original four-wave shader, add one static indexed, broken foam mesh following exact ISLAND_OUTLINE (no independent per-segment draw, no new time loop, no physics), distinguish polygonal lagoon water/bed/bank with a scoped lagoon-only MeshStandardMaterial, and preserve entrance fountain water. Tests check mesh bounds, offshore vertices, source IDs, physical exclusions, ring geometry, lagoon depth, disposal and no new collision. Same seven camera views and manifest condition now enabled for this child branch. **No aesthetic approval, real-device FPS, main merge or Pages publication.** Capture actual Chromium frames and compare directly to PR #30 and PR #31; reject if foam reads like a luminous stencil or depth/overdraw regresses. Rollback: revert only this feature child commit.
+
+
+### Exterior S3 woodland-canopy infill experiment — 2026-11-03
+**Evidence state: IMPLEMENTED IN ISOLATED CHILD SOURCE; CI, matched seven-image render, human visual approval and physical-device performance UNVERIFIED until checked.** This bounded candidate follows draft PR #32 at exact head `2299b628f4baa7f6adb1de63042828f64a0b0f4f`; PR #32's four CI jobs passed and seven actual screenshot images were independently hash-verified. Visual comparison of S1/S2 shows persistent widely separated individual trees, especially from west and overhead, unlike the owner's accepted continuous-canopy references. Add one quality-tiered, deterministic instanced set of low-poly canopy-only masses around existing tree positions in `IslandLandscape.ts`: 2/3/4 attempted lobes per tree at low/medium/high. All new infill X/Z on `isSiteLand`, clear of exact paths, entrance, building, lagoon and northwest spire; no new trees, colliders, floor support, animation, lights or external textures. Preserve original 68/112/176 trunks, source names, original tree locations and collisions, low-tier budgets, offline mode, 35 exhibits, six wings and Sanctuary. Test dry-land clearance, deterministic transforms, unchanged collision count and disposal. CI screenshot upload enabled for this child branch only. This remains an aesthetic hypothesis: compare real seven-view PNGs and reject if crown clutter, bad scale or canopy loss of visitor wayfinding outweighs benefit. No merge to main or Pages.
