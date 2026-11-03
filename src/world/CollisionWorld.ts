@@ -25,6 +25,10 @@ export interface Floor {
   readonly minX: number; readonly maxX: number;
   readonly minZ: number; readonly maxZ: number;
   readonly y: number;
+  /** Optional exact land mask for a large, irregular support area.
+   * The same grid remains authoritative for lookup; the mask is tested only
+   * after the broad-phase rectangle has matched. */
+  readonly contains?: (x: number, z: number) => boolean;
 }
 
 export interface Ramp {
@@ -83,6 +87,16 @@ export class CollisionWorld {
     this.add({ kind: 'floor', minX, maxX, minZ, maxZ, y });
   }
 
+  /** Exact support for a polygonal region without a pile of tiny AABBs.
+   * This supplements conservative tiles only where visible land needs it.
+   * No support is granted if the predicate rejects the query coordinate. */
+  addMaskedFloor(
+    minX: number, maxX: number, minZ: number, maxZ: number, y: number,
+    contains: (x: number, z: number) => boolean,
+  ): void {
+    this.add({ kind: 'floor', minX, maxX, minZ, maxZ, y, contains });
+  }
+
   clear(): void {
     this.colliders.length = 0;
     this.grid.clear();
@@ -131,6 +145,7 @@ export class CollisionWorld {
     for (const c of this.near(x, z, 0.6)) {
       if (c.kind === 'wall') continue;
       if (x < c.minX || x > c.maxX || z < c.minZ || z > c.maxZ) continue;
+      if (c.kind === 'floor' && c.contains && !c.contains(x, z)) continue;
       const y = c.kind === 'floor' ? c.y : rampHeight(c, x, z);
       if (y > ceiling) continue;
       if (best === null || y > best) best = y;
