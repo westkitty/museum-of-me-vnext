@@ -162,6 +162,27 @@ export class IslandLandscape {
     terminal.name = 'south-pier-terminal-platform';
     terminal.position.set(0, -0.75, 215);
     this.root.add(terminal);
+    // Ten weathered support pylons extend through the water. Their tops
+    // touch the thin pier deck; all are beneath the walkable surface.
+    const pierPileMaterial = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x293940, roughness: 0.95, metalness: 0.03,
+    }));
+    const pierPileGeo = this.scope.track(new THREE.CylinderGeometry(0.62, 0.76, 3.6, 8));
+    const pierPiles = new THREE.InstancedMesh(pierPileGeo, pierPileMaterial, 10);
+    pierPiles.name = 'pier-foundation-pylons';
+    pierPiles.userData.visualRole = 'supported-pier-construction';
+    const pileTransform = new THREE.Object3D();
+    for (let i = 0; i < 5; i++) {
+      for (const [sideIndex, side] of [-1, 1].entries()) {
+        pileTransform.position.set(side * 4.7, -2.29, 168 + i * 12);
+        pileTransform.updateMatrix();
+        pierPiles.setMatrixAt(i * 2 + sideIndex, pileTransform.matrix);
+      }
+    }
+    pierPiles.instanceMatrix.needsUpdate = true;
+    pierPiles.computeBoundingSphere();
+    this.root.add(pierPiles);
+    this.scope.trackObject(pierPiles);
     for (const side of [-1, 1]) {
       const edge = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(0.3, 0.35, 58)), trim);
       edge.name = `pier-edge-${side}`;

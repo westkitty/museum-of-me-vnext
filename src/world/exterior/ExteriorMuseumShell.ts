@@ -31,7 +31,9 @@ export class ExteriorMuseumShell {
     const cyan = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x40c4d8, toneMapped: false }));
     const jewelMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x4de3f7, toneMapped: false }));
     // Match the roof eaves to the side walls and the rear elevation.
-    const roofWidth = 25;
+    // Outer wall faces are X=±38.8; wings centered at ±25.5 must reach
+    // X=±38.9 to meet and slightly overhang the actual elevation.
+    const roofWidth = 26.8;
     const roofRise = 8.5;
     const roofLength = 210;
     const roofHalfLength = roofLength / 2;
@@ -95,11 +97,15 @@ export class ExteriorMuseumShell {
         const z = (i - (sideWindowCount - 1) / 2) * sideWindowSpacing;
         placeInstance(panes, i, side * 38.95, 5.5, z);
         placeInstance(sills, i, side * 38.98, 4.70, z);
+        // Stable occupancy cadence: some bays dimmed, no flicker or updates.
+        const intensity = i % 11 === 2 ? 0.25 : i % 7 === 4 ? 0.62 : 1;
+        panes.setColorAt(i, new THREE.Color(intensity, intensity, intensity));
       }
       for (let i = 0; i <= sideWindowCount; i++) {
         const z = (i - sideWindowCount / 2) * sideWindowSpacing;
         placeInstance(mullions, i, side * 39.00, 5.5, z);
       }
+      if (panes.instanceColor) panes.instanceColor.needsUpdate = true;
       addInstances(panes, sills, mullions);
     }
 
@@ -113,14 +119,33 @@ export class ExteriorMuseumShell {
       shell.castShadow = true;
       shell.receiveShadow = true;
       g.add(shell);
-      // Twelve crosswise raised seams per wing, shared geometry/material.
+      // Preserve all 21 authored seam positions per wing but draw them in
+      // ONE instanced mesh. Named markers preserve external inspection IDs.
       const seamGeo = this.scope.track(this.barrelRibGeometry(roofWidth + 0.18, roofRise + 0.08));
-      for (let z = -100; z <= 100; z += 10) {
-        const seam = new THREE.Mesh(seamGeo, rib);
-        seam.name = `roof-seam-${side}-${z}`;
-        seam.position.set(x0, 9.5, z);
-        g.add(seam);
+      const seamBatch = new THREE.InstancedMesh(seamGeo, rib, 21);
+      seamBatch.name = `roof-seams-${side < 0 ? 'west' : 'east'}`;
+      seamBatch.userData.visualRole = 'curved-roof-rhythm';
+      seamBatch.position.set(x0, 9.5, 0);
+      const seamDummy = new THREE.Object3D();
+      for (let index = 0; index < 21; index++) {
+        const z = -100 + index * 10;
+        seamDummy.position.set(0, 0, z);
+        seamDummy.updateMatrix();
+        seamBatch.setMatrixAt(index, seamDummy.matrix);
+        const marker = new THREE.Object3D();
+        marker.name = `roof-seam-${side}-${z}`;
+        marker.position.set(x0, 9.5, z);
+        marker.userData.instancedIn = seamBatch.name;
+        g.add(marker);
       }
+      seamBatch.instanceMatrix.needsUpdate = true;
+      seamBatch.computeBoundingSphere();
+      g.add(seamBatch);
+      this.scope.trackObject(seamBatch);
+      // Fascia ties the curved roof eave continuously to the top of the
+      // opaque side wall. A consistent 10 cm overhang closes the former edge.
+      box(`roof-eave-fascia-${side}`, [0.38, 0.38, roofLength],
+        [side * 38.96, 9.52, 0], rib);
       // Rounded endcaps close the barrel ends.
       const endGeo = this.scope.track(this.barrelEndGeometry(roofWidth, roofRise));
       for (const z of [-roofHalfLength + 0.3, roofHalfLength - 0.3]) {
@@ -176,8 +201,11 @@ export class ExteriorMuseumShell {
         const x = side * (6.2 + i * 5);
         placeInstance(frontPanes, index, x, 6.8, ENTRANCE_PORTAL_Z + 0.48);
         placeInstance(frontSills, index, x, 5.68, ENTRANCE_PORTAL_Z + 0.52);
+        const intensity = index === 1 ? 0.58 : index === 4 ? 0.76 : 1;
+        frontPanes.setColorAt(index, new THREE.Color(intensity, intensity, intensity));
       }
     }
+    if (frontPanes.instanceColor) frontPanes.instanceColor.needsUpdate = true;
     addInstances(frontPanes, frontSills);
 
     box('north-rear-elevation', [76, 11.5, 1.4], [0, 5.75, -105], spine);
@@ -229,6 +257,16 @@ export class ExteriorMuseumShell {
 
     // Raised pale-stone terrace, paired planter courts and broad formal stair run.
     box('raised-stone-terrace', [40, 0.5, 30], [0, -0.25, VESTIBULE_TO + 15], stone);
+    const processionGeo = this.scope.track(new THREE.BoxGeometry(0.22, 0.022, 1.4));
+    const procession = new THREE.InstancedMesh(processionGeo, gold, 12);
+    procession.name = 'terrace-procession-inlays';
+    procession.userData.visualRole = 'entrance-approach-orientation';
+    for (let i = 0; i < 6; i++) {
+      for (const [j, side] of [-1, 1].entries()) {
+        placeInstance(procession, i * 2 + j, side * 6.1, 0.011, 135 + i * 4);
+      }
+    }
+    addInstances(procession);
     for (const side of [-1, 1]) {
       box(`terrace-balustrade-${side}`, [0.55, 0.8, 30], [side * 20, 0.4, VESTIBULE_TO + 15], trim);
       const px = side * 14;
