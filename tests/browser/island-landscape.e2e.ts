@@ -1,7 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { PATH_CENTERLINES } from '../../src/world/exterior/IslandSiteLayout';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
+const reviewFolder = 'test-results/exterior-review-2026-11-03';
 
 const cameraViews = [
+  ['pier-arrival', [0, 2.2, 203], [0, 10, 90]],
   ['front-south', [0, 18, 140], [0, 8, 0]],
   ['east-lagoon', [140, 35, 30], [0, 10, 0]],
   ['west-woodland', [-140, 30, -20], [0, 10, 0]],
@@ -86,13 +91,16 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
   expect(result.supports.filter((probe) => ['pier', 'west-path', 'spire-court', 'lagoon-bank', 'east-visible-coast', 'west-visible-coast', 'lagoon-shore-shoulder'].includes(probe.id)).every((probe) => probe.y === -0.5)).toBe(true);
   expect(result.traversal.every((probe) => probe.grounded && probe.y >= -0.6)).toBe(true);
   expect(result.routeSupports.filter((support) => support.y === null)).toEqual([]);
-  expect(result.cameraRenders).toHaveLength(5);
+  expect(result.cameraRenders).toHaveLength(6);
   for (const render of result.cameraRenders) {
     expect(render.calls).toBeGreaterThan(0);
     expect(render.triangles).toBeLessThan(600_000);
   }
+  // These are actual frames from the live Three.js renderer, NOT concept art.
+  // Keep each image as an independent full-size PNG in a dedicated folder.
+  await mkdir(reviewFolder, { recursive: true });
   await page.addStyleTag({ content: '#a11y-root, #ui-root, .cinematic-arrival { display: none !important; }' });
-  for (const [id, position, target] of cameraViews) {
+  for (const [index, [id, position, target]] of cameraViews.entries()) {
     await page.evaluate(({ position: p, target: t }) => {
       const app = window.__museum;
       if (!app) throw new Error('museum missing');
@@ -105,8 +113,37 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
       app.arrivalGarden.update(0, app.preferences.reducedMotion);
       app.renderer.render();
     }, { position, target });
-    await page.locator('#museum-canvas').screenshot({ path: `test-results/p4-${id}.png` });
+    await page.locator('#museum-canvas').screenshot({
+      path: join(reviewFolder, `${String(index + 1).padStart(2, '0')}-${id}.png`),
+      timeout: 30_000,
+    });
   }
+  // One portrait device framing makes pier approach legibility inspectable
+  // without claiming a physical tablet/phone performance result.
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileMetrics = await page.evaluate(() => {
+    const app = window.__museum;
+    if (!app) throw new Error('museum missing');
+    app.renderer.camera.position.set(0, 2.2, 203);
+    app.renderer.camera.lookAt(0, 10, 90);
+    app.renderer.camera.updateProjectionMatrix();
+    app.sky.follow(app.renderer.camera);
+    app.lighting.update([0, 2.2, 203]);
+    app.exteriorWorld.variableUpdate(0, [0, 2.2, 203], 'plaza');
+    app.arrivalGarden.update(0, app.preferences.reducedMotion);
+    app.renderer.render();
+    return { width: app.renderer.canvas.width, height: app.renderer.canvas.height };
+  });
+  await page.locator('#museum-canvas').screenshot({
+    path: join(reviewFolder, '07-mobile-pier-arrival.png'), timeout: 30_000,
+  });
+  await writeFile(join(reviewFolder, 'camera-metrics.json'), JSON.stringify({
+    source: 'Playwright Chromium real WebGL frames',
+    acceptedDesign: false,
+    observations: result.cameraRenders,
+    mobile: mobileMetrics,
+    requiredReview: ['pier-arrival', 'front-south', 'east-lagoon', 'west-woodland', 'high-topdown', 'rear-north', 'mobile-pier-arrival'],
+  }, null, 2));
   expect(result.supports.find((probe) => probe.id === 'lagoon-water')?.y).toBeNull();
   expect(result.supports.find((probe) => probe.id === 'offshore')?.y).toBeNull();
   expect(result.interiorConstructed).toBe(false);
