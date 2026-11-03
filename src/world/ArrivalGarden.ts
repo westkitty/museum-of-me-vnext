@@ -308,6 +308,12 @@ export class ArrivalGarden {
     const shape = new THREE.Shape();
     ISLAND_OUTLINE.forEach(([x, z], i) => i === 0 ? shape.moveTo(x, -z) : shape.lineTo(x, -z));
     shape.closePath();
+    // The sheltered lagoon is absent from physical floor support. Give the
+    // same exclusion to visible terrain instead of painting water over land.
+    const lagoonCutout = new THREE.Path();
+    LAGOON_OUTLINE.forEach(([x, z], i) => i === 0 ? lagoonCutout.moveTo(x, -z) : lagoonCutout.lineTo(x, -z));
+    lagoonCutout.closePath();
+    shape.holes.push(lagoonCutout);
     const island = new THREE.Mesh(
       this.scope.track(new THREE.ShapeGeometry(shape, 2)),
       this.island,
@@ -382,18 +388,75 @@ export class ArrivalGarden {
     shore.userData.visualRole = 'water-boundary';
     this.group.add(shore);
 
+    // Basin, rather than a translucent sticker: the carved opening reveals a
+    // dark mineral bed through low, sheltered water. The exact same polygon
+    // governs the hole, water, bed and stone bank (collision remains separate).
     const lagoonShape = new THREE.Shape();
     LAGOON_OUTLINE.forEach(([x, z], i) => i === 0 ? lagoonShape.moveTo(x, -z) : lagoonShape.lineTo(x, -z));
     lagoonShape.closePath();
-    const lagoon = new THREE.Mesh(this.scope.track(new THREE.ShapeGeometry(lagoonShape, 2)), this.poolWater);
+    const lagoonGeometry = this.scope.track(new THREE.ShapeGeometry(lagoonShape, 2));
+    const bedMaterial = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x102e35, roughness: 0.9, metalness: 0.04, side: THREE.DoubleSide,
+    }));
+    const bed = new THREE.Mesh(lagoonGeometry, bedMaterial);
+    bed.name = 'east-lagoon-bed';
+    bed.rotation.x = -Math.PI / 2;
+    bed.position.y = GROUND_Y - 1.7;
+    bed.userData.visualRole = 'lagoon-mineral-bed';
+    bed.receiveShadow = true;
+    this.group.add(bed);
+
+    const lagoon = new THREE.Mesh(lagoonGeometry, this.poolWater);
     lagoon.name = 'east-sheltered-lagoon';
     lagoon.rotation.x = -Math.PI / 2;
-    lagoon.position.y = GROUND_Y - 0.43;
+    lagoon.position.y = GROUND_Y - 0.64;
     lagoon.userData.visualRole = 'enclosed-lagoon';
     this.group.add(lagoon);
+
+    // The rock slope runs from the real ground edge to the lagoon bed.
+    // All 12 segments are generated from LAGOON_OUTLINE, so no smoothed
+    // spline can hang over a different shoreline or fill the cutout again.
+    const centerX = LAGOON_OUTLINE.reduce((n, [x]) => n + x, 0) / LAGOON_OUTLINE.length;
+    const centerZ = LAGOON_OUTLINE.reduce((n, [, z]) => n + z, 0) / LAGOON_OUTLINE.length;
+    const wallPositions: number[] = [];
+    const wallIndices: number[] = [];
+    const bottomY = GROUND_Y - 1.7;
+    for (let i = 0; i < LAGOON_OUTLINE.length; i++) {
+      const [ax, az] = LAGOON_OUTLINE[i];
+      const [bx, bz] = LAGOON_OUTLINE[(i + 1) % LAGOON_OUTLINE.length];
+      const base = i * 4;
+      wallPositions.push(
+        ax, GROUND_Y - 0.5, az, bx, GROUND_Y - 0.5, bz,
+        ax + (centerX - ax) * 0.055, bottomY, az + (centerZ - az) * 0.055,
+        bx + (centerX - bx) * 0.055, bottomY, bz + (centerZ - bz) * 0.055,
+      );
+      wallIndices.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
+    }
+    const wallGeometry = this.scope.track(new THREE.BufferGeometry());
+    wallGeometry.setAttribute('position', new THREE.Float32BufferAttribute(wallPositions, 3));
+    wallGeometry.setIndex(wallIndices);
+    wallGeometry.computeVertexNormals();
+    const wallMaterial = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x345053, roughness: 0.96, flatShading: true, side: THREE.DoubleSide,
+    }));
+    const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+    wall.name = 'east-lagoon-basin-wall';
+    wall.userData.visualRole = 'lagoon-stone-slope';
+    wall.receiveShadow = true;
+    this.group.add(wall);
+
+    // Keep the named original perimeter bank, but follow the literal outline.
+    const lagoonCurve = new THREE.CurvePath<THREE.Vector3>();
+    for (let i = 0; i < LAGOON_OUTLINE.length; i++) {
+      const [ax, az] = LAGOON_OUTLINE[i];
+      const [bx, bz] = LAGOON_OUTLINE[(i + 1) % LAGOON_OUTLINE.length];
+      lagoonCurve.add(new THREE.LineCurve3(
+        new THREE.Vector3(ax, GROUND_Y - 0.36, az),
+        new THREE.Vector3(bx, GROUND_Y - 0.36, bz),
+      ));
+    }
     const lagoonBank = new THREE.Mesh(this.scope.track(new THREE.TubeGeometry(
-      new THREE.CatmullRomCurve3(LAGOON_OUTLINE.map(([x, z]) => new THREE.Vector3(x, GROUND_Y - 0.25, z)), true, 'catmullrom', 0.16),
-      64, 1.2, 6, true,
+      lagoonCurve, 96, 0.58, 6, true,
     )), this.shoreline);
     lagoonBank.name = 'east-lagoon-rock-bank';
     this.group.add(lagoonBank);
