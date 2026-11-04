@@ -24,7 +24,10 @@ describe('exterior S2 night water and coastline', () => {
     expect(indices!.count).toBe(positions.count / 4 * 6);
     for (let i = 0; i < positions.count; i++) {
       expect(isSiteLand(positions.getX(i), positions.getZ(i))).toBe(false);
-      expect(positions.getY(i)).toBeLessThan(-0.65);
+      // Foam must be offshore and above the maximum modeled ocean crest,
+      // while remaining below the actual dry-land support height.
+      expect(positions.getY(i)).toBeGreaterThan(-0.605);
+      expect(positions.getY(i)).toBeLessThan(-0.5);
     }
     expect(root.getObjectByName('night-island-shoreline')).toBeTruthy();
     expect(root.getObjectByName('night-island-tidal-fringe')).toBeTruthy();
@@ -43,11 +46,13 @@ describe('exterior S2 night water and coastline', () => {
     expect(ocean.material.vertexShader).toContain('accumulateWave');
     expect(ocean.material.fragmentShader).toContain('vec3(0.008, 0.030, 0.060)');
     const lagoon = root.getObjectByName('east-sheltered-lagoon') as THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
-    expect(lagoon.material.opacity).toBeCloseTo(0.76);
+    expect(lagoon.material.opacity).toBeCloseTo(0.72);
     expect(lagoon.material.depthWrite).toBe(false);
-    expect(lagoon.material.emissiveIntensity).toBeCloseTo(0.24);
+    expect(lagoon.material.emissiveIntensity).toBeCloseTo(0.08);
+    expect(lagoon.material.map).toBeInstanceOf(THREE.DataTexture);
+    expect(lagoon.userData.surfaceVariation).toBe('shore-distance-and-static-ripples');
     const bed = root.getObjectByName('east-lagoon-bed') as THREE.Mesh<THREE.BufferGeometry>;
-    expect(lagoon.geometry).toBe(bed.geometry);
+    expect(lagoon.geometry).not.toBe(bed.geometry);
     expect(lagoon.position.y).toBeGreaterThan(bed.position.y);
     scope.dispose();
     expect(scope.size).toBe(0);

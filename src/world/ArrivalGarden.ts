@@ -391,14 +391,15 @@ export class ArrivalGarden {
     shore.userData.visualRole = 'water-boundary';
     this.group.add(shore);
 
-    // A single small, deterministic, indexed wash band follows the actual
-    // authored island perimeter. Breaks and varied widths read as surf, not
-    // a detached continuous neon circle. No animation, shaders or colliders.
+    // The S2 wash sat below the ocean's highest wave crest and barely read
+    // in the real top-down screenshots. Keep a single discontinuous indexed
+    // strip, but put its tops above the 0.335-m crest and below dry land.
+    // This is static coastal foam, not an animated second ocean or a ring.
     const washPositions: number[] = [];
     const washColors: number[] = [];
     const washIndices: number[] = [];
     const washPalette = [
-      new THREE.Color(0x438595), new THREE.Color(0x58aabb), new THREE.Color(0x75c6d0),
+      new THREE.Color(0x70b9c7), new THREE.Color(0xa6dae0), new THREE.Color(0x4a94a8),
     ];
     for (let edge = 0; edge < ISLAND_OUTLINE.length; edge++) {
       const [ax, az] = ISLAND_OUTLINE[edge];
@@ -410,17 +411,17 @@ export class ArrivalGarden {
       // The polygon has positive signed area in X/Z: right normal is sea.
       const nx = dz / length;
       const nz = -dx / length;
-      const sections = Math.max(1, Math.ceil(length / 12));
+      const sections = Math.max(1, Math.ceil(length / 10));
       for (let section = 0; section < sections; section++) {
         if ((edge * 7 + section * 5) % 9 < 3) continue;
-        const t0 = (section + 0.11) / sections;
-        const t1 = (section + 0.80) / sections;
-        const inner = 0.55 + ((edge + section) % 3) * 0.12;
-        const outer = 2.05 + ((edge * 3 + section) % 4) * 0.25;
+        const t0 = (section + 0.07) / sections;
+        const t1 = (section + 0.74) / sections;
+        const inner = 0.72 + ((edge + section) % 3) * 0.14;
+        const outer = 3.3 + ((edge * 3 + section) % 4) * 0.35;
         const vertices = [[t0, inner], [t1, inner], [t0, outer], [t1, outer]] as const;
         const points = vertices.map(([t, dist]) => [ax + dx * t + nx * dist, az + dz * t + nz * dist] as const);
         if (points.some(([x, z]) => isSiteLand(x, z))) continue;
-        const y = GROUND_Y - 0.69 - ((edge + section) % 3) * 0.014;
+        const y = GROUND_Y - 0.555 - ((edge + section) % 3) * 0.006;
         const base = washPositions.length / 3;
         const colour = washPalette[(edge + section) % washPalette.length];
         for (const [x, z] of points) {
@@ -437,7 +438,7 @@ export class ArrivalGarden {
     washGeometry.computeVertexNormals();
     washGeometry.computeBoundingSphere();
     const coastalWash = new THREE.Mesh(washGeometry, this.scope.track(new THREE.MeshBasicMaterial({
-      vertexColors: true, transparent: true, opacity: 0.46,
+      vertexColors: true, transparent: true, opacity: 0.70,
       depthWrite: false, side: THREE.DoubleSide, toneMapped: true,
     })));
     coastalWash.name = 'night-island-broken-surf';
@@ -445,13 +446,82 @@ export class ArrivalGarden {
     coastalWash.renderOrder = 2;
     this.group.add(coastalWash);
 
-    // Basin, rather than a translucent sticker: the carved opening reveals a
-    // dark mineral bed through low, sheltered water. The exact same polygon
-    // governs the hole, water, bed and stone bank (collision remains separate).
+    // The dry-land cutout and mineral bed use the exact authored polygon.
+    // The waterline alone is inset slightly down the existing twelve-sided
+    // slope so the basin wall is genuinely visible above the water. All
+    // physics and site topology still derive only from LAGOON_OUTLINE.
     const lagoonShape = new THREE.Shape();
     LAGOON_OUTLINE.forEach(([x, z], i) => i === 0 ? lagoonShape.moveTo(x, -z) : lagoonShape.lineTo(x, -z));
     lagoonShape.closePath();
     const lagoonGeometry = this.scope.track(new THREE.ShapeGeometry(lagoonShape, 2));
+    const centerX = LAGOON_OUTLINE.reduce((n, [x]) => n + x, 0) / LAGOON_OUTLINE.length;
+    const centerZ = LAGOON_OUTLINE.reduce((n, [, z]) => n + z, 0) / LAGOON_OUTLINE.length;
+    // The lower waterline occupies a slightly smaller polygon on the exact
+    // original wall slope. It adds no new navigable land or water collision.
+    const waterlineInset = 0.034;
+    const lagoonSurfaceShape = new THREE.Shape();
+    LAGOON_OUTLINE.forEach(([x, z], i) => {
+      const wx = x + (centerX - x) * waterlineInset;
+      const wz = z + (centerZ - z) * waterlineInset;
+      if (i === 0) lagoonSurfaceShape.moveTo(wx, -wz);
+      else lagoonSurfaceShape.lineTo(wx, -wz);
+    });
+    lagoonSurfaceShape.closePath();
+    const lagoonSurfaceGeometry = this.scope.track(new THREE.ShapeGeometry(lagoonSurfaceShape, 2));
+
+    // One tiny deterministic depth/ripple map gives this motionless sheltered
+    // water actual variation without another shader pass, time loop, network
+    // texture, or a second graphics draw call. Pixel depth is the distance to
+    // the REAL polygon wall, so the shallow edge follows irregular geography.
+    const minX = Math.min(...LAGOON_OUTLINE.map(([x]) => x));
+    const maxX = Math.max(...LAGOON_OUTLINE.map(([x]) => x));
+    const minZ = Math.min(...LAGOON_OUTLINE.map(([, z]) => z));
+    const maxZ = Math.max(...LAGOON_OUTLINE.map(([, z]) => z));
+    const waterVertices = lagoonSurfaceGeometry.getAttribute('position');
+    const surfaceUV = lagoonSurfaceGeometry.getAttribute('uv');
+    for (let i = 0; i < waterVertices.count; i++) {
+      surfaceUV.setXY(i,
+        (waterVertices.getX(i) - minX) / (maxX - minX),
+        (waterVertices.getY(i) + maxZ) / (maxZ - minZ));
+    }
+    surfaceUV.needsUpdate = true;
+    const texSize = 128;
+    const texels = new Uint8Array(texSize * texSize * 4);
+    for (let ty = 0; ty < texSize; ty++) {
+      const z = maxZ - ((ty + 0.5) / texSize) * (maxZ - minZ);
+      for (let tx = 0; tx < texSize; tx++) {
+        const x = minX + ((tx + 0.5) / texSize) * (maxX - minX);
+        let distance = Infinity;
+        for (let edge = 0; edge < LAGOON_OUTLINE.length; edge++) {
+          const [ax, az] = LAGOON_OUTLINE[edge];
+          const [bx, bz] = LAGOON_OUTLINE[(edge + 1) % LAGOON_OUTLINE.length];
+          const dx = bx - ax;
+          const dz = bz - az;
+          const t = Math.max(0, Math.min(1,
+            ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
+          distance = Math.min(distance, Math.hypot(x - (ax + t * dx), z - (az + t * dz)));
+        }
+        const shallow = Math.exp(-distance / 7);
+        const ripples = Math.sin(x * 0.51 + z * 0.08) *
+          Math.sin(z * 0.58 - x * 0.19);
+        const caustics = Math.pow(Math.max(0,
+          Math.sin(x * 0.86 + z * 0.47 + Math.sin(z * 0.31))), 8);
+        const offset = (ty * texSize + tx) * 4;
+        texels[offset] = Math.round(22 + 13 * shallow + 8 * ripples + 10 * caustics);
+        texels[offset + 1] = Math.round(70 + 35 * shallow + 15 * ripples + 14 * caustics);
+        texels[offset + 2] = Math.round(103 + 31 * shallow + 16 * ripples + 14 * caustics);
+        texels[offset + 3] = 255;
+      }
+    }
+    const lagoonTexture = this.scope.track(new THREE.DataTexture(
+      texels, texSize, texSize, THREE.RGBAFormat, THREE.UnsignedByteType,
+    ));
+    lagoonTexture.colorSpace = THREE.SRGBColorSpace;
+    lagoonTexture.minFilter = THREE.LinearFilter;
+    lagoonTexture.magFilter = THREE.LinearFilter;
+    lagoonTexture.generateMipmaps = false;
+    lagoonTexture.needsUpdate = true;
+
     const bedMaterial = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x123b4b, roughness: 0.9, metalness: 0.04, side: THREE.DoubleSide,
     }));
@@ -463,24 +533,25 @@ export class ArrivalGarden {
     bed.receiveShadow = true;
     this.group.add(bed);
 
-    // Basin-only material: the entrance fountain retains its existing water.
+    // Preserve fountain materials; the lagoon has its own subtly textured
+    // water surface, no broad glossy strip or uniform emissive blue plate.
     const lagoonMaterial = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x2d91b8, roughness: 0.22, metalness: 0.16,
-      emissive: 0x13435a, emissiveIntensity: 0.24,
-      transparent: true, opacity: 0.76, depthWrite: false, side: THREE.DoubleSide,
+      map: lagoonTexture, color: 0xffffff, roughness: 0.52, metalness: 0.04,
+      emissive: 0x0c2838, emissiveIntensity: 0.08,
+      transparent: true, opacity: 0.72, depthWrite: false, side: THREE.DoubleSide,
     }));
-    const lagoon = new THREE.Mesh(lagoonGeometry, lagoonMaterial);
+    const lagoon = new THREE.Mesh(lagoonSurfaceGeometry, lagoonMaterial);
     lagoon.name = 'east-sheltered-lagoon';
     lagoon.rotation.x = -Math.PI / 2;
-    lagoon.position.y = GROUND_Y - 0.64;
+    lagoon.position.y = GROUND_Y - 0.95;
     lagoon.userData.visualRole = 'enclosed-lagoon';
+    lagoon.userData.waterlineInset = waterlineInset;
+    lagoon.userData.surfaceVariation = 'shore-distance-and-static-ripples';
     this.group.add(lagoon);
 
     // The rock slope runs from the real ground edge to the lagoon bed.
     // All 12 segments are generated from LAGOON_OUTLINE, so no smoothed
     // spline can hang over a different shoreline or fill the cutout again.
-    const centerX = LAGOON_OUTLINE.reduce((n, [x]) => n + x, 0) / LAGOON_OUTLINE.length;
-    const centerZ = LAGOON_OUTLINE.reduce((n, [, z]) => n + z, 0) / LAGOON_OUTLINE.length;
     const wallPositions: number[] = [];
     const wallIndices: number[] = [];
     const bottomY = GROUND_Y - 1.7;
