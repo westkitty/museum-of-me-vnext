@@ -278,7 +278,8 @@ export class IslandLandscape {
 
   /** A single instanced draw of rock outcrops, placed on the real coastline. */
   private buildCoastalRocks(): void {
-    const target = this.quality === 'low' ? 24 : this.quality === 'medium' ? 48 : 72;
+    // Twice the shoreline rock detail, still a single non-colliding draw.
+    const target = this.quality === 'low' ? 48 : this.quality === 'medium' ? 96 : 144;
     const geometry = this.scope.track(new THREE.IcosahedronGeometry(1, 0));
     const material = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x33494c, roughness: 0.98, metalness: 0,
@@ -419,7 +420,8 @@ export class IslandLandscape {
     // A low, collision-free understory fills the visual gaps without raising
     // the ground or interfering with the museum's authored walking paths.
     // Its density scales with device quality; there is no extra frame loop.
-    const shrubsPerTree = this.quality === 'low' ? 1 : this.quality === 'medium' ? 2 : 3;
+    // Double per-tree groundcover without adding tree colliders or passes.
+    const shrubsPerTree = this.quality === 'low' ? 2 : this.quality === 'medium' ? 4 : 6;
     const shrubGeo = this.scope.track(new THREE.IcosahedronGeometry(1, 0));
     const shrubMat = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x2b5447, roughness: 1,
@@ -521,7 +523,10 @@ export class IslandLandscape {
     // path relocation, continuous uniform neon ring or new animation loop.
     const beltOffsets = this.quality === 'low' ? [11, 24]
       : this.quality === 'medium' ? [11, 23, 35] : [11, 21, 31, 41];
-    const beltStep = this.quality === 'low' ? 10.5 : this.quality === 'medium' ? 8.5 : 7.5;
+    // Twofold visible forest coverage: S5 had 213/358/513 accepted belt crowns.
+    // 0.48x sampling spacing gives 429/731/1041 accepted crowns with the
+    // SAME site/path exclusions (2.01-2.04x), not duplicated clumps in place.
+    const beltStep = this.quality === 'low' ? 5.04 : this.quality === 'medium' ? 4.08 : 3.60;
     const beltCapacity = ISLAND_OUTLINE.reduce((total, [ax, az], i) => {
       const [bx, bz] = ISLAND_OUTLINE[(i + 1) % ISLAND_OUTLINE.length];
       return total + Math.ceil(Math.hypot(bx - ax, bz - az) / beltStep) * beltOffsets.length;

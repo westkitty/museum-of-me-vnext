@@ -15,3 +15,9 @@ Generate irregular low-poly forest crowns in 2/3/4 quality-tier lanes along the 
 4. Human aesthetic and representative-device FPS are independent unknowns; CI green is not sign-off.
 
 No changes to the site outline, lagoon hole, island physics, pier spawn, threshold, six wings, 35 exhibits, Sanctuary, `main`, or Pages.
+
+## S5b candidate: twofold forests and nature, requested for final public release
+
+Twofold **accepted visual forest** relative to S5 sampled sites (independent deterministic calibration, browser confirmation required): low 213 → 429, medium 358 → 731, high 513 → 1041. The original physically colliding trunks remain 68/112/176, with no extra locomotion barriers. Understory candidate density attempts double from 1/2/3 to 2/4/6 per trunk; shoreline rock target attempts double from 24/48/72 to 48/96/144, each using existing single InstancedMesh rather than new draw calls. Geographic masks, path clearance, stable seeds and quality tiers must remain intact.
+
+S4 visually failing synthetic water ripples and rectangular surf are corrected in the same bounded release candidate: smooth-noise warped and subdued 128² static lagoon texture, and six-vertex tapered broken surf wedges. No time-based shader, external textures, collision, physical site changes, extra source animation loop, or API requests. This is **IMPLEMENTED SOURCE CANDIDATE**, not proof of appearance. Require all four CI jobs on final source head, exact seven-camera full-size Chromium images with hash/size manifest, separate comparison against S4/S5 and performance budgets. Keep main and Pages untouched if any required gate fails; if all pass, publish only the explicitly requested release via existing main and pages-preview fast-forward route, and verify hosted SHA.

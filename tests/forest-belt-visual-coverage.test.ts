@@ -18,7 +18,7 @@ function distanceToPath(x: number, z: number): number {
 
 describe('S5 shoreline-belt forest visual coverage', () => {
   for (const [tier, min, max] of [
-    ['low', 150, 260], ['medium', 260, 460], ['high', 420, 650],
+    ['low', 425, 455], ['medium', 725, 750], ['high', 1035, 1070],
   ] as const) {
     it(`fills distinct forest areas on ${tier} without new physical support or forbidden placements`, () => {
       const scope = new ResourceScope(`forest-belt-${tier}`);
@@ -26,14 +26,23 @@ describe('S5 shoreline-belt forest visual coverage', () => {
       const root = new IslandLandscape(scope, collision, tier).build();
       const belt = root.getObjectByName('woodland-forest-belt') as THREE.InstancedMesh;
       const existingTrunks = root.getObjectByName('perimeter-woodland-trunks') as THREE.InstancedMesh;
+      const shrubs = root.getObjectByName('woodland-understory') as THREE.InstancedMesh;
+      const rocks = root.getObjectByName('shoreline-rock-scatter') as THREE.InstancedMesh;
       expect(belt).toBeInstanceOf(THREE.InstancedMesh);
       expect(belt.userData.visualRole).toBe('shoreline-authored-overlapping-forest-canopy');
       expect(belt.count).toBeGreaterThan(min);
       expect(belt.count).toBeLessThan(max);
+      // Compared with the actual S5 site-masked output, not raw attempts.
+      const s5Visible = tier === 'low' ? 213 : tier === 'medium' ? 358 : 513;
+      expect(belt.count).toBeGreaterThanOrEqual(s5Visible * 2);
       expect(belt.instanceColor).toBeTruthy();
       expect(belt.castShadow).toBe(false);
       expect(belt.receiveShadow).toBe(false);
       expect(existingTrunks.count).toBe(tier === 'low' ? 68 : tier === 'medium' ? 112 : 176);
+      expect(shrubs.count).toBeGreaterThan(tier === 'low' ? 60 : tier === 'medium' ? 135 : 235);
+      expect(shrubs.count).toBeLessThanOrEqual(existingTrunks.count * (tier === 'low' ? 2 : tier === 'medium' ? 4 : 6));
+      expect(rocks.count).toBeGreaterThan(tier === 'low' ? 32 : tier === 'medium' ? 65 : 100);
+      expect(rocks.count).toBeLessThanOrEqual(tier === 'low' ? 48 : tier === 'medium' ? 96 : 144);
       const positions = new THREE.Vector3();
       const matrix = new THREE.Matrix4();
       const quadrants = [0, 0, 0, 0];
