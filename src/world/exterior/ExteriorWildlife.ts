@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../../assets/ResourceScope';
 import type { QualityTier } from '../../render/QualityTiers';
-import { ISLAND_OUTLINE, LAGOON_OUTLINE, PATH_CENTERLINES, isLagoon, isSiteLand } from './IslandSiteLayout';
+import { LAGOON_OUTLINE, PATH_CENTERLINES, isLagoon, isSiteLand } from './IslandSiteLayout';
 
 type Creature = { x: number; z: number; phase: number; radius: number; speed: number; height: number };
 export const WILDLIFE_COUNTS = {
