@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ResourceScope } from '../src/assets/ResourceScope';
 import { CollisionWorld } from '../src/world/CollisionWorld';
 import { ArrivalGarden } from '../src/world/ArrivalGarden';
-import { addIslandSupport, LAGOON_OUTLINE, LAND_SUPPORT_Y } from '../src/world/exterior/IslandSiteLayout';
+import { addIslandSupport, isLagoon, LAGOON_OUTLINE, LAND_SUPPORT_Y } from '../src/world/exterior/IslandSiteLayout';
 
 function coveredByTriangle(geometry: THREE.BufferGeometry, x: number, y: number): boolean {
   const positions = geometry.getAttribute('position');
@@ -57,8 +57,15 @@ describe('subtractive east lagoon', () => {
     expect(bed).toBeTruthy();
     expect(wall).toBeTruthy();
     expect(bank).toBeTruthy();
-    expect(water.geometry).toBe(bed.geometry);
-    expect(water.position.y).toBeLessThan(LAND_SUPPORT_Y);
+    // Lower water has its own outline-derived polygon so the preexisting
+    // sloped bank is visible; the mineral bed keeps the original polygon.
+    expect(water.geometry).not.toBe(bed.geometry);
+    expect(water.position.y).toBeLessThan(LAND_SUPPORT_Y - 0.3);
+    expect(water.userData.waterlineInset).toBeCloseTo(0.034);
+    const waterVertices = water.geometry.getAttribute('position');
+    for (let i = 0; i < waterVertices.count; i++) {
+      expect(isLagoon(waterVertices.getX(i), -waterVertices.getY(i))).toBe(true);
+    }
     expect(bed.position.y).toBeLessThan(water.position.y - 0.5);
     expect(water.userData.visualRole).toBe('enclosed-lagoon');
     expect(wall.userData.visualRole).toBe('lagoon-stone-slope');
