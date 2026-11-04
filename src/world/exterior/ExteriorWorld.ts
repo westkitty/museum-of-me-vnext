@@ -174,6 +174,7 @@ export class ExteriorWorld {
 
   setWaterQuality(tier: QualityTier): void {
     this.arrivalGarden.setWaterQuality(tier);
+    this.wildlife.setQuality(tier);
   }
 
   authorableSceneRoots(): readonly { readonly id: string; readonly root: THREE.Object3D }[] {

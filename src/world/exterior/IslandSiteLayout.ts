@@ -15,6 +15,29 @@ export const LAGOON_OUTLINE: readonly (readonly [number, number])[] = [
   [124, 22], [111, 43], [89, 49], [67, 36], [58, 17], [64, 2],
 ];
 
+/** The actual filled waterline, inset from the basin rim; keep all uses identical. */
+export const LAGOON_WATERLINE_INSET = 0.034;
+const lagoonCenterX = LAGOON_OUTLINE.reduce((sum, [x]) => sum + x, 0) / LAGOON_OUTLINE.length;
+const lagoonCenterZ = LAGOON_OUTLINE.reduce((sum, [, z]) => sum + z, 0) / LAGOON_OUTLINE.length;
+export const LAGOON_SURFACE_OUTLINE: readonly (readonly [number, number])[] = LAGOON_OUTLINE.map(([x, z]) =>
+  [x + (lagoonCenterX - x) * LAGOON_WATERLINE_INSET,
+    z + (lagoonCenterZ - z) * LAGOON_WATERLINE_INSET] as const);
+
+/** Minimum distance to the filled waterline; zero outside it. */
+export function lagoonWaterClearance(x: number, z: number): number {
+  if (!insidePolygon(x, z, LAGOON_SURFACE_OUTLINE)) return 0;
+  let clearance = Infinity;
+  for (let i = 0; i < LAGOON_SURFACE_OUTLINE.length; i++) {
+    const [ax, az] = LAGOON_SURFACE_OUTLINE[i];
+    const [bx, bz] = LAGOON_SURFACE_OUTLINE[(i + 1) % LAGOON_SURFACE_OUTLINE.length];
+    const dx = bx - ax;
+    const dz = bz - az;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
+    clearance = Math.min(clearance, Math.hypot(x - (ax + t * dx), z - (az + t * dz)));
+  }
+  return clearance;
+}
+
 export const SPIRE_GARDEN_CENTER: Vec3 = [-104, -0.5, -82];
 export const SPIRE_GARDEN_RADIUS = 23;
 export const PIER_CENTERLINE: readonly (readonly [number, number])[] = [[0, 157], [0, 176], [0, 196], [0, 218]];

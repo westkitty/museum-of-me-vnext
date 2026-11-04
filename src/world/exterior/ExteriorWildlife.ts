@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../../assets/ResourceScope';
 import type { QualityTier } from '../../render/QualityTiers';
-import { LAGOON_OUTLINE, PATH_CENTERLINES, isLagoon, isSiteLand } from './IslandSiteLayout';
+import { LAGOON_OUTLINE, PATH_CENTERLINES, isSiteLand, lagoonWaterClearance } from './IslandSiteLayout';
 
 type Creature = { x: number; z: number; phase: number; radius: number; speed: number; height: number };
 export const WILDLIFE_COUNTS = {
@@ -39,7 +39,8 @@ export class ExteriorWildlife {
 
   constructor(private readonly scope: ResourceScope, tier: QualityTier) {
     this.root.name = 'island-wildlife';
-    const sizes = WILDLIFE_COUNTS[tier];
+    // Reserve bounded high-tier capacity so later settings changes can grow as well as shrink.
+    const sizes = WILDLIFE_COUNTS.high;
 
     for (let attempt = 0; attempt < 8000 && this.butterflySites.length < sizes.butterflies; attempt++) {
       const x = -166 + seed01(attempt * 23 + 13) * 332;
@@ -72,9 +73,11 @@ export class ExteriorWildlife {
       const x = minX + 4 + seed01(i * 19 + 157) * (maxX - minX - 8);
       const z = minZ + 4 + seed01(i * 23 + 91) * (maxZ - minZ - 8);
       const radius = 1.0 + seed01(i * 5 + 67) * 1.45;
-      const margin = radius + 0.8;
-      if (!isLagoon(x, z) || !isLagoon(x + margin, z) || !isLagoon(x - margin, z)
-        || !isLagoon(x, z + margin) || !isLagoon(x, z - margin)) continue;
+      // Protect the entire instanced fish silhouette, not only its center.
+      // Maximum geometry extent is 1.34, maximum instance scale is 0.91.
+      // The inset waterline clearance covers every orbit angle and bank slope.
+      const margin = radius + 1.34 * 0.91 + 0.05;
+      if (lagoonWaterClearance(x, z) <= margin) continue;
       this.fishSites.push({ x, z, phase: seed01(i * 37) * Math.PI * 2, radius,
         speed: 0.14 + seed01(i * 11 + 31) * 0.25, height: -1.075 });
     }
@@ -96,7 +99,16 @@ export class ExteriorWildlife {
         0, 0, 1.15, 0, 0, -0.8, 0.43, 0, -0.15,
         0, 0, -0.8, -0.55, 0, -1.34, 0.55, 0, -1.34],
       this.fishSites, [0x9bd2d3, 0xd7b980, 0xb1c6c6, 0x88b3ba]);
-    this.writeTransforms(0);
+    this.setQuality(tier);
+  }
+
+  /** Change visible populations without rebuilding the scene or allocating new GPU resources. */
+  setQuality(tier: QualityTier): void {
+    const sizes = WILDLIFE_COUNTS[tier];
+    this.butterflies.count = sizes.butterflies;
+    this.birds.count = sizes.birds;
+    this.fish.count = sizes.fish;
+    this.writeTransforms(this.time);
   }
 
   private makeBatch(name: string, vertices: number[], sites: Creature[], colors: number[]): THREE.InstancedMesh {
@@ -122,7 +134,7 @@ export class ExteriorWildlife {
   }
 
   private writeTransforms(t: number): void {
-    for (let i = 0; i < this.butterflySites.length; i++) {
+    for (let i = 0; i < this.butterflies.count; i++) {
       const s = this.butterflySites[i];
       const angle = t * s.speed + s.phase;
       this.temp.position.set(s.x + Math.cos(angle) * s.radius,
@@ -133,7 +145,7 @@ export class ExteriorWildlife {
       this.temp.updateMatrix();
       this.butterflies.setMatrixAt(i, this.temp.matrix);
     }
-    for (let i = 0; i < this.birdSites.length; i++) {
+    for (let i = 0; i < this.birds.count; i++) {
       const s = this.birdSites[i];
       const angle = t * s.speed + s.phase;
       this.temp.position.set(s.x + Math.cos(angle) * s.radius,
@@ -143,7 +155,7 @@ export class ExteriorWildlife {
       this.temp.updateMatrix();
       this.birds.setMatrixAt(i, this.temp.matrix);
     }
-    for (let i = 0; i < this.fishSites.length; i++) {
+    for (let i = 0; i < this.fish.count; i++) {
       const s = this.fishSites[i];
       const angle = t * s.speed + s.phase;
       this.temp.position.set(s.x + Math.cos(angle) * s.radius,

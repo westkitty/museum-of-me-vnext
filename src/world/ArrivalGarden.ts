@@ -6,7 +6,7 @@ import {
   GROUND_Y, PLAZA_DEPTH, VESTIBULE_TO,
   faceDirection, place, type Vec3,
 } from './layout';
-import { ISLAND_OUTLINE, LAGOON_OUTLINE, isSiteLand } from './exterior/IslandSiteLayout';
+import { ISLAND_OUTLINE, LAGOON_OUTLINE, LAGOON_SURFACE_OUTLINE, LAGOON_WATERLINE_INSET, isSiteLand } from './exterior/IslandSiteLayout';
 
 /**
  * Exterior Layer-2 dressing for the visitor's first view of the museum.
@@ -468,11 +468,8 @@ export class ArrivalGarden {
     const centerZ = LAGOON_OUTLINE.reduce((n, [, z]) => n + z, 0) / LAGOON_OUTLINE.length;
     // The lower waterline occupies a slightly smaller polygon on the exact
     // original wall slope. It adds no new navigable land or water collision.
-    const waterlineInset = 0.034;
     const lagoonSurfaceShape = new THREE.Shape();
-    LAGOON_OUTLINE.forEach(([x, z], i) => {
-      const wx = x + (centerX - x) * waterlineInset;
-      const wz = z + (centerZ - z) * waterlineInset;
+    LAGOON_SURFACE_OUTLINE.forEach(([wx, wz], i) => {
       if (i === 0) lagoonSurfaceShape.moveTo(wx, -wz);
       else lagoonSurfaceShape.lineTo(wx, -wz);
     });
@@ -572,7 +569,7 @@ export class ArrivalGarden {
     lagoon.rotation.x = -Math.PI / 2;
     lagoon.position.y = GROUND_Y - 0.95;
     lagoon.userData.visualRole = 'enclosed-lagoon';
-    lagoon.userData.waterlineInset = waterlineInset;
+    lagoon.userData.waterlineInset = LAGOON_WATERLINE_INSET;
     lagoon.userData.surfaceVariation = 'shore-distance-and-static-ripples';
     this.group.add(lagoon);
 
