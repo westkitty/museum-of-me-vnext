@@ -513,5 +513,91 @@ export class IslandLandscape {
     if (infill.instanceColor) infill.instanceColor.needsUpdate = true;
     infill.computeBoundingSphere();
     this.root.add(this.scope.track(infill));
+
+    // S5: S3 lobe infill clustered around existing trunk centres but left
+    // vast visible gaps. Fill the independent perimeter FOREST BIOME rather
+    // than continuing to pile round crowns at those same positions.
+    // This is render-only ground-rooted foliage: no colliders, floor support,
+    // path relocation, continuous uniform neon ring or new animation loop.
+    const beltOffsets = this.quality === 'low' ? [11, 24]
+      : this.quality === 'medium' ? [11, 23, 35] : [11, 21, 31, 41];
+    const beltStep = this.quality === 'low' ? 10.5 : this.quality === 'medium' ? 8.5 : 7.5;
+    const beltCapacity = ISLAND_OUTLINE.reduce((total, [ax, az], i) => {
+      const [bx, bz] = ISLAND_OUTLINE[(i + 1) % ISLAND_OUTLINE.length];
+      return total + Math.ceil(Math.hypot(bx - ax, bz - az) / beltStep) * beltOffsets.length;
+    }, 0);
+    const beltGeometry = this.scope.track(new THREE.IcosahedronGeometry(4.1, 1));
+    const beltMaterial = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0xffffff, roughness: 0.98, metalness: 0,
+    }));
+    const belt = new THREE.InstancedMesh(beltGeometry, beltMaterial, beltCapacity);
+    belt.name = 'woodland-forest-belt';
+    belt.userData.visualRole = 'shoreline-authored-overlapping-forest-canopy';
+    belt.castShadow = false;
+    belt.receiveShadow = false;
+    const beltColours = [0x326652, 0x427963, 0x295844, 0x356f5b, 0x396d56];
+    const beltTint = new THREE.Color();
+    const forestPathClear = (x: number, z: number): boolean => !PATH_CENTERLINES.some((path) =>
+      path.slice(0, -1).some(([ax, az], index) => {
+        const [bx, bz] = path[index + 1];
+        const dx = bx - ax, dz = bz - az;
+        const t = Math.max(0, Math.min(1,
+          ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
+        return Math.hypot(x - (ax + t * dx), z - (az + t * dz)) < 10.5;
+      }));
+    const clearFootprint = (x: number, z: number): boolean => {
+      const margin = 6.4;
+      return isSiteLand(x, z)
+        && isSiteLand(x + margin, z) && isSiteLand(x - margin, z)
+        && isSiteLand(x, z + margin) && isSiteLand(x, z - margin)
+        && forestPathClear(x, z)
+        && !(Math.abs(x) < 55 && Math.abs(z) < 118)
+        && Math.hypot(x, z - 128) >= 60
+        && !(x > 39 && x < 147 && z > -67 && z < 68)
+        && Math.hypot(x + 104, z + 82) >= 38
+        && !(z > 155 && Math.abs(x) < 26);
+    };
+    const hash01 = (n: number): number => {
+      const v = Math.sin(n * 12.9898) * 43758.5453;
+      return v - Math.floor(v);
+    };
+    let beltCount = 0;
+    for (let edge = 0; edge < ISLAND_OUTLINE.length; edge++) {
+      const [ax, az] = ISLAND_OUTLINE[edge];
+      const [bx, bz] = ISLAND_OUTLINE[(edge + 1) % ISLAND_OUTLINE.length];
+      const dx = bx - ax, dz = bz - az;
+      const length = Math.hypot(dx, dz);
+      if (length < 0.01) continue;
+      // Positive site winding in X/Z; left-hand normal points INLAND.
+      const nx = -dz / length, nz = dx / length;
+      const sections = Math.ceil(length / beltStep);
+      for (let lane = 0; lane < beltOffsets.length; lane++) {
+        for (let section = 0; section < sections; section++) {
+          const seed = 11_039 + edge * 271 + lane * 37 + section * 19;
+          const t = (section + 0.5 + (lane % 2 ? 0.08 : -0.08)
+            + (hash01(seed) - 0.5) * 0.24) / sections;
+          const offset = beltOffsets[lane] + (hash01(seed + 17) - 0.5) * 2.5;
+          const x = ax + dx * t + nx * offset;
+          const z = az + dz * t + nz * offset;
+          if (!clearFootprint(x, z)) continue;
+          const sx = 0.98 + hash01(seed + 31) * 0.32;
+          const sy = 0.88 + hash01(seed + 47) * 0.56;
+          const sz = 0.96 + hash01(seed + 53) * 0.31;
+          const height = 4.1 * sy;
+          dummy.position.set(x, -0.5 + height * 0.78, z);
+          dummy.rotation.set(0, hash01(seed + 71) * Math.PI * 2, 0);
+          dummy.scale.set(sx, sy, sz);
+          dummy.updateMatrix();
+          belt.setMatrixAt(beltCount, dummy.matrix);
+          belt.setColorAt(beltCount, beltTint.setHex(beltColours[(edge + lane + section) % beltColours.length]));
+          beltCount++;
+        }
+      }
+    }
+    belt.count = beltCount;
+    belt.instanceMatrix.needsUpdate = true;
+    if (belt.instanceColor) belt.instanceColor.needsUpdate = true;
+    belt.computeBoundingSphere();
+    this.root.add(this.scope.track(belt));
   }
 }

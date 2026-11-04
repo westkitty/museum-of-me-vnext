@@ -31,7 +31,7 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
       'pier-foundation-pylons', 'pier-arrival-compass', 'pier-arrival-north-marker', 'pier-stone-sentinels',
       'pier-amber-sentinel-caps', 'path-ground-light-instances',
       'site-path-1', 'perimeter-woodland-trunks',
-      'woodland-secondary-canopy', 'woodland-understory',
+      'woodland-secondary-canopy', 'woodland-understory', 'woodland-forest-belt',
     ];
     const present = required.map((name) => Boolean(app.scene.getObjectByName(name)));
     const probes = [
