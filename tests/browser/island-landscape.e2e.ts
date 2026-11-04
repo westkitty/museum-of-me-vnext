@@ -121,9 +121,14 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
   // One portrait device framing makes pier approach legibility inspectable
   // without claiming a physical tablet/phone performance result.
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForFunction(() => window.innerWidth === 390 && window.innerHeight === 844);
+  // Window resize can clear the backbuffer after a stopped test scene rendered;
+  // settle layout before explicitly resizing and drawing the portrait frame.
+  await page.waitForTimeout(100);
   const mobileMetrics = await page.evaluate(() => {
     const app = window.__museum;
     if (!app) throw new Error('museum missing');
+    app.renderer.resize();
     app.renderer.camera.position.set(0, 2.2, 203);
     app.renderer.camera.lookAt(0, 10, 90);
     app.renderer.camera.updateProjectionMatrix();
@@ -132,11 +137,18 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
     app.exteriorWorld.variableUpdate(0, [0, 2.2, 203], 'plaza');
     app.arrivalGarden.update(0, app.preferences.reducedMotion);
     app.renderer.render();
-    return { width: app.renderer.canvas.width, height: app.renderer.canvas.height };
+    return {
+      width: app.renderer.canvas.width, height: app.renderer.canvas.height,
+      contextLost: app.renderer.isContextLost,
+    };
   });
-  await page.locator('#museum-canvas').screenshot({
+  expect(mobileMetrics.contextLost).toBe(false);
+  const mobilePng = await page.locator('#museum-canvas').screenshot({
     path: join(reviewFolder, '07-mobile-pier-arrival.png'), timeout: 30_000,
   });
+  // S5b had a 2.7-kB near-black portrait image yet all browser tests passed.
+  // Reject that known regression instead of uploading it as valid evidence.
+  expect(mobilePng.byteLength).toBeGreaterThan(20_000);
   await writeFile(join(reviewFolder, 'camera-metrics.json'), JSON.stringify({
     source: 'Playwright Chromium real WebGL frames',
     acceptedDesign: false,

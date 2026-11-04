@@ -18,7 +18,7 @@ function distanceToPath(x: number, z: number): number {
 
 describe('S5 shoreline-belt forest visual coverage', () => {
   for (const [tier, min, max] of [
-    ['low', 425, 455], ['medium', 725, 750], ['high', 1035, 1070],
+    ['low', 425, 460], ['medium', 715, 750], ['high', 1025, 1070],
   ] as const) {
     it(`fills distinct forest areas on ${tier} without new physical support or forbidden placements`, () => {
       const scope = new ResourceScope(`forest-belt-${tier}`);
@@ -29,7 +29,9 @@ describe('S5 shoreline-belt forest visual coverage', () => {
       const shrubs = root.getObjectByName('woodland-understory') as THREE.InstancedMesh;
       const rocks = root.getObjectByName('shoreline-rock-scatter') as THREE.InstancedMesh;
       expect(belt).toBeInstanceOf(THREE.InstancedMesh);
-      expect(belt.userData.visualRole).toBe('shoreline-authored-overlapping-forest-canopy');
+      expect(belt.userData.visualRole).toBe('island-masked-woodland-distribution');
+      // Low-end devices should pay one-quarter of the forest-belt geometry cost.
+      expect(belt.geometry.getAttribute('position').count).toBe(tier === 'low' ? 60 : 240);
       expect(belt.count).toBeGreaterThan(min);
       expect(belt.count).toBeLessThan(max);
       // Compared with the actual S5 site-masked output, not raw attempts.

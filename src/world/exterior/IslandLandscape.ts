@@ -516,28 +516,27 @@ export class IslandLandscape {
     infill.computeBoundingSphere();
     this.root.add(this.scope.track(infill));
 
-    // S5: S3 lobe infill clustered around existing trunk centres but left
-    // vast visible gaps. Fill the independent perimeter FOREST BIOME rather
-    // than continuing to pile round crowns at those same positions.
-    // This is render-only ground-rooted foliage: no colliders, floor support,
-    // path relocation, continuous uniform neon ring or new animation loop.
-    const beltOffsets = this.quality === 'low' ? [11, 24]
-      : this.quality === 'medium' ? [11, 23, 35] : [11, 21, 31, 41];
-    // Twofold visible forest coverage: S5 had 213/358/513 accepted belt crowns.
-    // 0.48x sampling spacing gives 429/731/1041 accepted crowns with the
-    // SAME site/path exclusions (2.01-2.04x), not duplicated clumps in place.
-    const beltStep = this.quality === 'low' ? 5.04 : this.quality === 'medium' ? 4.08 : 3.60;
-    const beltCapacity = ISLAND_OUTLINE.reduce((total, [ax, az], i) => {
-      const [bx, bz] = ISLAND_OUTLINE[(i + 1) % ISLAND_OUTLINE.length];
-      return total + Math.ceil(Math.hypot(bx - ax, bz - az) / beltStep) * beltOffsets.length;
-    }, 0);
-    const beltGeometry = this.scope.track(new THREE.IcosahedronGeometry(4.1, 1));
+    // S5c: actual renderer screenshots showed the doubled shoreline lanes
+    // as a regular perimeter hedge, with the *interior* forest still empty.
+    // Occupy the real island's protected forest areas instead: a deterministic
+    // jittered grid is site-masked against water, routes and visitor landmarks.
+    // All new crowns remain render-only. No physical trunks or colliders move.
+    const step = this.quality === 'low' ? 10.45 : this.quality === 'medium' ? 8.10 : 6.78;
+    const minX = Math.min(...ISLAND_OUTLINE.map(([x]) => x));
+    const maxX = Math.max(...ISLAND_OUTLINE.map(([x]) => x));
+    const minZ = Math.min(...ISLAND_OUTLINE.map(([, z]) => z));
+    const maxZ = Math.max(...ISLAND_OUTLINE.map(([, z]) => z));
+    const columns = Math.ceil((maxX - minX) / step);
+    const rows = Math.ceil((maxZ - minZ) / step);
+    // Low tier uses 20 triangles/crown rather than 80, reducing the forest
+    // geometry burden without changing canopy counts, clearing or material.
+    const beltGeometry = this.scope.track(new THREE.IcosahedronGeometry(4.1, this.quality === 'low' ? 0 : 1));
     const beltMaterial = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0xffffff, roughness: 0.98, metalness: 0,
     }));
-    const belt = new THREE.InstancedMesh(beltGeometry, beltMaterial, beltCapacity);
-    belt.name = 'woodland-forest-belt';
-    belt.userData.visualRole = 'shoreline-authored-overlapping-forest-canopy';
+    const belt = new THREE.InstancedMesh(beltGeometry, beltMaterial, columns * rows);
+    belt.name = 'woodland-forest-belt'; // keep inspector/CI scene identity
+    belt.userData.visualRole = 'island-masked-woodland-distribution';
     belt.castShadow = false;
     belt.receiveShadow = false;
     const beltColours = [0x326652, 0x427963, 0x295844, 0x356f5b, 0x396d56];
@@ -567,36 +566,23 @@ export class IslandLandscape {
       return v - Math.floor(v);
     };
     let beltCount = 0;
-    for (let edge = 0; edge < ISLAND_OUTLINE.length; edge++) {
-      const [ax, az] = ISLAND_OUTLINE[edge];
-      const [bx, bz] = ISLAND_OUTLINE[(edge + 1) % ISLAND_OUTLINE.length];
-      const dx = bx - ax, dz = bz - az;
-      const length = Math.hypot(dx, dz);
-      if (length < 0.01) continue;
-      // Positive site winding in X/Z; left-hand normal points INLAND.
-      const nx = -dz / length, nz = dx / length;
-      const sections = Math.ceil(length / beltStep);
-      for (let lane = 0; lane < beltOffsets.length; lane++) {
-        for (let section = 0; section < sections; section++) {
-          const seed = 11_039 + edge * 271 + lane * 37 + section * 19;
-          const t = (section + 0.5 + (lane % 2 ? 0.08 : -0.08)
-            + (hash01(seed) - 0.5) * 0.24) / sections;
-          const offset = beltOffsets[lane] + (hash01(seed + 17) - 0.5) * 2.5;
-          const x = ax + dx * t + nx * offset;
-          const z = az + dz * t + nz * offset;
-          if (!clearFootprint(x, z)) continue;
-          const sx = 0.98 + hash01(seed + 31) * 0.32;
-          const sy = 0.88 + hash01(seed + 47) * 0.56;
-          const sz = 0.96 + hash01(seed + 53) * 0.31;
-          const height = 4.1 * sy;
-          dummy.position.set(x, -0.5 + height * 0.78, z);
-          dummy.rotation.set(0, hash01(seed + 71) * Math.PI * 2, 0);
-          dummy.scale.set(sx, sy, sz);
-          dummy.updateMatrix();
-          belt.setMatrixAt(beltCount, dummy.matrix);
-          belt.setColorAt(beltCount, beltTint.setHex(beltColours[(edge + lane + section) % beltColours.length]));
-          beltCount++;
-        }
+    for (let col = 0; col < columns; col++) {
+      for (let row = 0; row < rows; row++) {
+        const seed = 19_431 + col * 3719 + row * 1097;
+        const x = minX + (col + 0.5) * step + (hash01(seed) - 0.5) * step * 0.66;
+        const z = minZ + (row + 0.5) * step + (hash01(seed + 11) - 0.5) * step * 0.66;
+        if (!clearFootprint(x, z)) continue;
+        const sx = 0.78 + hash01(seed + 31) * 0.78;
+        const sy = 0.85 + hash01(seed + 47) * 1.10;
+        const sz = 0.79 + hash01(seed + 53) * 0.70;
+        const height = 4.1 * sy;
+        dummy.position.set(x, -0.5 + height * 0.78, z);
+        dummy.rotation.set(0, hash01(seed + 71) * Math.PI * 2, 0);
+        dummy.scale.set(sx, sy, sz);
+        dummy.updateMatrix();
+        belt.setMatrixAt(beltCount, dummy.matrix);
+        belt.setColorAt(beltCount, beltTint.setHex(beltColours[(col + row) % beltColours.length]));
+        beltCount++;
       }
     }
     belt.count = beltCount;
