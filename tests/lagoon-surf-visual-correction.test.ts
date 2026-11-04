@@ -58,7 +58,7 @@ describe('S4 lagoon waterline and visible surf correction', () => {
     const foam = root.getObjectByName('night-island-broken-surf') as THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
     const ocean = root.getObjectByName('night-island-water') as THREE.Mesh<THREE.RingGeometry>;
     expect(foam.material.opacity).toBeGreaterThan(0.6);
-    expect(foam.geometry.getIndex()!.count).toBe(foam.geometry.getAttribute('position').count / 4 * 6);
+    expect(foam.geometry.getIndex()!.count).toBe(foam.geometry.getAttribute('position').count / 6 * 12);
     const positions = foam.geometry.getAttribute('position');
     for (let i = 0; i < positions.count; i++) {
       expect(positions.getY(i)).toBeGreaterThan(ocean.position.y + 0.335);

@@ -19,9 +19,9 @@ describe('exterior S2 night water and coastline', () => {
     const positions = surf.geometry.getAttribute('position');
     const indices = surf.geometry.getIndex();
     expect(positions.count).toBeGreaterThan(ISLAND_OUTLINE.length * 4);
-    expect(positions.count).toBeLessThan(600);
+    expect(positions.count).toBeLessThan(1000);
     expect(indices).toBeTruthy();
-    expect(indices!.count).toBe(positions.count / 4 * 6);
+    expect(indices!.count).toBe(positions.count / 6 * 12);
     for (let i = 0; i < positions.count; i++) {
       expect(isSiteLand(positions.getX(i), positions.getZ(i))).toBe(false);
       // Foam must be offshore and above the maximum modeled ocean crest,

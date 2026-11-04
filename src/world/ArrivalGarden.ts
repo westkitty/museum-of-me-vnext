@@ -418,7 +418,14 @@ export class ArrivalGarden {
         const t1 = (section + 0.74) / sections;
         const inner = 0.72 + ((edge + section) % 3) * 0.14;
         const outer = 3.3 + ((edge * 3 + section) % 4) * 0.35;
-        const vertices = [[t0, inner], [t1, inner], [t0, outer], [t1, outer]] as const;
+        // Three offset cross-sections form tapered, irregular breaking-crest
+        // wedges. Prior rectangular quads read as evenly spaced neon dashes.
+        const mid = (t0 + t1) / 2 + Math.sin(edge * 17.1 + section * 8.3) * (t1 - t0) * 0.085;
+        const vertices = [
+          [t0, inner + 0.75], [t0, inner + 0.88],
+          [mid, inner], [mid + (t1 - t0) * 0.035, outer],
+          [t1, inner + 0.42], [t1, inner + 0.57],
+        ] as const;
         const points = vertices.map(([t, dist]) => [ax + dx * t + nx * dist, az + dz * t + nz * dist] as const);
         if (points.some(([x, z]) => isSiteLand(x, z))) continue;
         const y = GROUND_Y - 0.555 - ((edge + section) % 3) * 0.006;
@@ -428,7 +435,10 @@ export class ArrivalGarden {
           washPositions.push(x, y, z);
           washColors.push(colour.r, colour.g, colour.b);
         }
-        washIndices.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
+        washIndices.push(
+          base, base + 2, base + 1, base + 1, base + 2, base + 3,
+          base + 2, base + 4, base + 3, base + 3, base + 4, base + 5,
+        );
       }
     }
     const washGeometry = this.scope.track(new THREE.BufferGeometry());
@@ -487,6 +497,21 @@ export class ArrivalGarden {
     surfaceUV.needsUpdate = true;
     const texSize = 128;
     const texels = new Uint8Array(texSize * texSize * 4);
+    // Bounded smooth noise warps the former aligned sine stripes; the pond
+    // stays still and deterministic. No frame callback or extra shader pass.
+    const cellHash = (ix: number, iz: number): number => {
+      let h = Math.imul(ix, 374761393) ^ Math.imul(iz, 668265263);
+      h = Math.imul(h ^ (h >>> 13), 1274126177);
+      return ((h ^ (h >>> 16)) >>> 0) / 0xffffffff;
+    };
+    const smoothNoise = (u: number, v: number): number => {
+      const ix = Math.floor(u), iz = Math.floor(v);
+      const fx = u - ix, fz = v - iz;
+      const sx = fx * fx * (3 - 2 * fx), sz = fz * fz * (3 - 2 * fz);
+      const a = cellHash(ix, iz) * (1 - sx) + cellHash(ix + 1, iz) * sx;
+      const b = cellHash(ix, iz + 1) * (1 - sx) + cellHash(ix + 1, iz + 1) * sx;
+      return a * (1 - sz) + b * sz;
+    };
     for (let ty = 0; ty < texSize; ty++) {
       const z = maxZ - ((ty + 0.5) / texSize) * (maxZ - minZ);
       for (let tx = 0; tx < texSize; tx++) {
@@ -502,14 +527,16 @@ export class ArrivalGarden {
           distance = Math.min(distance, Math.hypot(x - (ax + t * dx), z - (az + t * dz)));
         }
         const shallow = Math.exp(-distance / 7);
-        const ripples = Math.sin(x * 0.51 + z * 0.08) *
-          Math.sin(z * 0.58 - x * 0.19);
+        const slow = smoothNoise(x * 0.075, z * 0.094);
+        const fine = smoothNoise(x * 0.23 + 3.7, z * 0.29 - 9.2);
+        const ripples = Math.sin(x * 0.24 + z * 0.17 + slow * 6.4)
+          * Math.sin(z * 0.32 - x * 0.11 + fine * 4.8);
         const caustics = Math.pow(Math.max(0,
-          Math.sin(x * 0.86 + z * 0.47 + Math.sin(z * 0.31))), 8);
+          Math.sin(x * 0.33 + z * 0.20 + fine * 3.0)), 8);
         const offset = (ty * texSize + tx) * 4;
-        texels[offset] = Math.round(22 + 13 * shallow + 8 * ripples + 10 * caustics);
-        texels[offset + 1] = Math.round(70 + 35 * shallow + 15 * ripples + 14 * caustics);
-        texels[offset + 2] = Math.round(103 + 31 * shallow + 16 * ripples + 14 * caustics);
+        texels[offset] = Math.round(26 + 16 * shallow + 5 * ripples + 5 * caustics + slow * 5);
+        texels[offset + 1] = Math.round(75 + 30 * shallow + 8 * ripples + 7 * caustics + slow * 8);
+        texels[offset + 2] = Math.round(108 + 27 * shallow + 9 * ripples + 8 * caustics + fine * 6);
         texels[offset + 3] = 255;
       }
     }

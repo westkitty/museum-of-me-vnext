@@ -278,7 +278,8 @@ export class IslandLandscape {
 
   /** A single instanced draw of rock outcrops, placed on the real coastline. */
   private buildCoastalRocks(): void {
-    const target = this.quality === 'low' ? 24 : this.quality === 'medium' ? 48 : 72;
+    // Twice the shoreline rock detail, still a single non-colliding draw.
+    const target = this.quality === 'low' ? 48 : this.quality === 'medium' ? 96 : 144;
     const geometry = this.scope.track(new THREE.IcosahedronGeometry(1, 0));
     const material = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x33494c, roughness: 0.98, metalness: 0,
@@ -419,7 +420,8 @@ export class IslandLandscape {
     // A low, collision-free understory fills the visual gaps without raising
     // the ground or interfering with the museum's authored walking paths.
     // Its density scales with device quality; there is no extra frame loop.
-    const shrubsPerTree = this.quality === 'low' ? 1 : this.quality === 'medium' ? 2 : 3;
+    // Double per-tree groundcover without adding tree colliders or passes.
+    const shrubsPerTree = this.quality === 'low' ? 2 : this.quality === 'medium' ? 4 : 6;
     const shrubGeo = this.scope.track(new THREE.IcosahedronGeometry(1, 0));
     const shrubMat = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x2b5447, roughness: 1,
@@ -513,5 +515,80 @@ export class IslandLandscape {
     if (infill.instanceColor) infill.instanceColor.needsUpdate = true;
     infill.computeBoundingSphere();
     this.root.add(this.scope.track(infill));
+
+    // S5c: actual renderer screenshots showed the doubled shoreline lanes
+    // as a regular perimeter hedge, with the *interior* forest still empty.
+    // Occupy the real island's protected forest areas instead: a deterministic
+    // jittered grid is site-masked against water, routes and visitor landmarks.
+    // All new crowns remain render-only. No physical trunks or colliders move.
+    const step = this.quality === 'low' ? 10.45 : this.quality === 'medium' ? 8.10 : 6.78;
+    const minX = Math.min(...ISLAND_OUTLINE.map(([x]) => x));
+    const maxX = Math.max(...ISLAND_OUTLINE.map(([x]) => x));
+    const minZ = Math.min(...ISLAND_OUTLINE.map(([, z]) => z));
+    const maxZ = Math.max(...ISLAND_OUTLINE.map(([, z]) => z));
+    const columns = Math.ceil((maxX - minX) / step);
+    const rows = Math.ceil((maxZ - minZ) / step);
+    // Low tier uses 20 triangles/crown rather than 80, reducing the forest
+    // geometry burden without changing canopy counts, clearing or material.
+    const beltGeometry = this.scope.track(new THREE.IcosahedronGeometry(4.1, this.quality === 'low' ? 0 : 1));
+    const beltMaterial = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0xffffff, roughness: 0.98, metalness: 0,
+    }));
+    const belt = new THREE.InstancedMesh(beltGeometry, beltMaterial, columns * rows);
+    belt.name = 'woodland-forest-belt'; // keep inspector/CI scene identity
+    belt.userData.visualRole = 'island-masked-woodland-distribution';
+    belt.castShadow = false;
+    belt.receiveShadow = false;
+    const beltColours = [0x326652, 0x427963, 0x295844, 0x356f5b, 0x396d56];
+    const beltTint = new THREE.Color();
+    const forestPathClear = (x: number, z: number): boolean => !PATH_CENTERLINES.some((path) =>
+      path.slice(0, -1).some(([ax, az], index) => {
+        const [bx, bz] = path[index + 1];
+        const dx = bx - ax, dz = bz - az;
+        const t = Math.max(0, Math.min(1,
+          ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
+        return Math.hypot(x - (ax + t * dx), z - (az + t * dz)) < 10.5;
+      }));
+    const clearFootprint = (x: number, z: number): boolean => {
+      const margin = 6.4;
+      return isSiteLand(x, z)
+        && isSiteLand(x + margin, z) && isSiteLand(x - margin, z)
+        && isSiteLand(x, z + margin) && isSiteLand(x, z - margin)
+        && forestPathClear(x, z)
+        && !(Math.abs(x) < 55 && Math.abs(z) < 118)
+        && Math.hypot(x, z - 128) >= 60
+        && !(x > 39 && x < 147 && z > -67 && z < 68)
+        && Math.hypot(x + 104, z + 82) >= 38
+        && !(z > 155 && Math.abs(x) < 26);
+    };
+    const hash01 = (n: number): number => {
+      const v = Math.sin(n * 12.9898) * 43758.5453;
+      return v - Math.floor(v);
+    };
+    let beltCount = 0;
+    for (let col = 0; col < columns; col++) {
+      for (let row = 0; row < rows; row++) {
+        const seed = 19_431 + col * 3719 + row * 1097;
+        const x = minX + (col + 0.5) * step + (hash01(seed) - 0.5) * step * 0.66;
+        const z = minZ + (row + 0.5) * step + (hash01(seed + 11) - 0.5) * step * 0.66;
+        if (!clearFootprint(x, z)) continue;
+        const sx = 0.78 + hash01(seed + 31) * 0.78;
+        const sy = 0.85 + hash01(seed + 47) * 1.10;
+        const sz = 0.79 + hash01(seed + 53) * 0.70;
+        const height = 4.1 * sy;
+        dummy.position.set(x, -0.5 + height * 0.78, z);
+        dummy.rotation.set(0, hash01(seed + 71) * Math.PI * 2, 0);
+        dummy.scale.set(sx, sy, sz);
+        dummy.updateMatrix();
+        belt.setMatrixAt(beltCount, dummy.matrix);
+        belt.setColorAt(beltCount, beltTint.setHex(beltColours[(col + row) % beltColours.length]));
+        beltCount++;
+      }
+    }
+    belt.count = beltCount;
+    belt.instanceMatrix.needsUpdate = true;
+    if (belt.instanceColor) belt.instanceColor.needsUpdate = true;
+    belt.computeBoundingSphere();
+    this.root.add(this.scope.track(belt));
   }
 }
