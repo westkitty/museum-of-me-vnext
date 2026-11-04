@@ -18,7 +18,7 @@ function distanceToPath(x: number, z: number): number {
 
 describe('S5 shoreline-belt forest visual coverage', () => {
   for (const [tier, min, max] of [
-    ['low', 425, 460], ['medium', 715, 750], ['high', 1025, 1070],
+    ['low', 890, 915], ['medium', 1450, 1490], ['high', 2090, 2140],
   ] as const) {
     it(`fills distinct forest areas on ${tier} without new physical support or forbidden placements`, () => {
       const scope = new ResourceScope(`forest-belt-${tier}`);
@@ -28,23 +28,26 @@ describe('S5 shoreline-belt forest visual coverage', () => {
       const existingTrunks = root.getObjectByName('perimeter-woodland-trunks') as THREE.InstancedMesh;
       const shrubs = root.getObjectByName('woodland-understory') as THREE.InstancedMesh;
       const rocks = root.getObjectByName('shoreline-rock-scatter') as THREE.InstancedMesh;
+      const flowers = root.getObjectByName('island-wildflower-glades') as THREE.InstancedMesh;
       expect(belt).toBeInstanceOf(THREE.InstancedMesh);
       expect(belt.userData.visualRole).toBe('island-masked-woodland-distribution');
       // Low-end devices should pay one-quarter of the forest-belt geometry cost.
-      expect(belt.geometry.getAttribute('position').count).toBe(tier === 'low' ? 60 : 240);
+      expect(belt.geometry.getAttribute('position').count).toBe(tier === 'high' ? 240 : 60);
       expect(belt.count).toBeGreaterThan(min);
       expect(belt.count).toBeLessThan(max);
       // Compared with the actual S5 site-masked output, not raw attempts.
-      const s5Visible = tier === 'low' ? 213 : tier === 'medium' ? 358 : 513;
-      expect(belt.count).toBeGreaterThanOrEqual(s5Visible * 2);
+      const lastRelease = tier === 'low' ? 438 : tier === 'medium' ? 725 : 1040;
+      expect(belt.count).toBeGreaterThanOrEqual(lastRelease * 2);
       expect(belt.instanceColor).toBeTruthy();
       expect(belt.castShadow).toBe(false);
       expect(belt.receiveShadow).toBe(false);
       expect(existingTrunks.count).toBe(tier === 'low' ? 68 : tier === 'medium' ? 112 : 176);
       expect(shrubs.count).toBeGreaterThan(tier === 'low' ? 60 : tier === 'medium' ? 135 : 235);
-      expect(shrubs.count).toBeLessThanOrEqual(existingTrunks.count * (tier === 'low' ? 2 : tier === 'medium' ? 4 : 6));
+      expect(shrubs.count).toBeLessThanOrEqual(existingTrunks.count * (tier === 'low' ? 4 : tier === 'medium' ? 8 : 12));
       expect(rocks.count).toBeGreaterThan(tier === 'low' ? 32 : tier === 'medium' ? 65 : 100);
-      expect(rocks.count).toBeLessThanOrEqual(tier === 'low' ? 48 : tier === 'medium' ? 96 : 144);
+      expect(rocks.count).toBeLessThanOrEqual(tier === 'low' ? 96 : tier === 'medium' ? 192 : 288);
+      expect(flowers.count).toBeGreaterThan(tier === 'low' ? 40 : tier === 'medium' ? 100 : 170);
+      expect(flowers.count).toBeLessThanOrEqual(tier === 'low' ? 64 : tier === 'medium' ? 144 : 240);
       const positions = new THREE.Vector3();
       const matrix = new THREE.Matrix4();
       const quadrants = [0, 0, 0, 0];

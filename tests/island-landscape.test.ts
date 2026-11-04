@@ -45,7 +45,7 @@ describe('IslandLandscape', () => {
     expect(firstLobes.castShadow).toBe(false);
     expect(understory).toBeInstanceOf(THREE.InstancedMesh);
     expect(understory.count).toBeGreaterThan(15);
-    expect(understory.count).toBeLessThanOrEqual(firstTrunks.count * 2);
+    expect(understory.count).toBeLessThanOrEqual(firstTrunks.count * 4);
     expect(understory.castShadow).toBe(false);
     expect(Array.from(understory.instanceMatrix.array.slice(0, understory.count * 16)))
       .toEqual(Array.from(understoryOther.instanceMatrix.array.slice(0, understoryOther.count * 16)));
@@ -86,7 +86,7 @@ describe('IslandLandscape', () => {
     expect(pierGuides.count).toBe(16);
     expect(coastalRocks).toBeInstanceOf(THREE.InstancedMesh);
     expect(coastalRocks.count).toBeGreaterThan(10);
-    expect(coastalRocks.count).toBeLessThanOrEqual(48);
+    expect(coastalRocks.count).toBeLessThanOrEqual(96);
 
     const lights = first.getObjectByName('path-ground-light-instances') as THREE.InstancedMesh;
     const lightsOther = second.getObjectByName('path-ground-light-instances') as THREE.InstancedMesh;

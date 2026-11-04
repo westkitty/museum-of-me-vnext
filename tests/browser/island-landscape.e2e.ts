@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import type * as THREE from 'three';
 import { PATH_CENTERLINES } from '../../src/world/exterior/IslandSiteLayout';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -32,6 +33,7 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
       'pier-amber-sentinel-caps', 'path-ground-light-instances',
       'site-path-1', 'perimeter-woodland-trunks',
       'woodland-secondary-canopy', 'woodland-understory', 'woodland-forest-belt',
+      'island-wildflower-glades', 'island-butterflies', 'coastal-bird-flocks', 'lagoon-fish-school',
     ];
     const present = required.map((name) => Boolean(app.scene.getObjectByName(name)));
     const probes = [
@@ -72,8 +74,14 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
         triangles: app.renderer.renderer.info.render.triangles,
       });
     }
+    const wildlife = {
+      butterflies: (app.scene.getObjectByName('island-butterflies') as THREE.InstancedMesh | undefined)?.count,
+      birds: (app.scene.getObjectByName('coastal-bird-flocks') as THREE.InstancedMesh | undefined)?.count,
+      fish: (app.scene.getObjectByName('lagoon-fish-school') as THREE.InstancedMesh | undefined)?.count,
+    };
     return {
       present,
+      wildlife,
       supports,
       interiorConstructed: app.interiorConstructed,
       activeWorld: app.activeWorld,
@@ -85,6 +93,9 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
     };
   }, { route: PATH_CENTERLINES, views: cameraViews });
   expect(result.present.every(Boolean)).toBe(true);
+  expect(result.wildlife.butterflies).toBeGreaterThan(0);
+  expect(result.wildlife.birds).toBeGreaterThan(0);
+  expect(result.wildlife.fish).toBeGreaterThan(0);
   expect(result.floorColliderCount).toBeLessThan(1_000);
   expect(result.waterGeometry).toBe('RingGeometry');
   expect(result.supports.find((probe) => probe.id === 'entrance-terrace')?.y).toBe(0);
@@ -153,6 +164,7 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
     source: 'Playwright Chromium real WebGL frames',
     acceptedDesign: false,
     observations: result.cameraRenders,
+    wildlife: result.wildlife,
     mobile: mobileMetrics,
     requiredReview: ['pier-arrival', 'front-south', 'east-lagoon', 'west-woodland', 'high-topdown', 'rear-north', 'mobile-pier-arrival'],
   }, null, 2));

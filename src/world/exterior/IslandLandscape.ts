@@ -25,6 +25,7 @@ export class IslandLandscape {
     this.buildPier();
     this.buildCoastalRocks();
     this.buildWoodland();
+    this.buildWildflowerGlades();
     return this.root;
   }
 
@@ -279,7 +280,7 @@ export class IslandLandscape {
   /** A single instanced draw of rock outcrops, placed on the real coastline. */
   private buildCoastalRocks(): void {
     // Twice the shoreline rock detail, still a single non-colliding draw.
-    const target = this.quality === 'low' ? 48 : this.quality === 'medium' ? 96 : 144;
+    const target = this.quality === 'low' ? 96 : this.quality === 'medium' ? 192 : 288;
     const geometry = this.scope.track(new THREE.IcosahedronGeometry(1, 0));
     const material = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x33494c, roughness: 0.98, metalness: 0,
@@ -421,7 +422,7 @@ export class IslandLandscape {
     // the ground or interfering with the museum's authored walking paths.
     // Its density scales with device quality; there is no extra frame loop.
     // Double per-tree groundcover without adding tree colliders or passes.
-    const shrubsPerTree = this.quality === 'low' ? 2 : this.quality === 'medium' ? 4 : 6;
+    const shrubsPerTree = this.quality === 'low' ? 4 : this.quality === 'medium' ? 8 : 12;
     const shrubGeo = this.scope.track(new THREE.IcosahedronGeometry(1, 0));
     const shrubMat = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x2b5447, roughness: 1,
@@ -521,7 +522,10 @@ export class IslandLandscape {
     // Occupy the real island's protected forest areas instead: a deterministic
     // jittered grid is site-masked against water, routes and visitor landmarks.
     // All new crowns remain render-only. No physical trunks or colliders move.
-    const step = this.quality === 'low' ? 10.45 : this.quality === 'medium' ? 8.10 : 6.78;
+    // Doubled from the last LIVE S5c release (438/725/1040 accepted crowns).
+    // Exact site-mask calibration: 901/1469/2111 low/medium/high.
+    // Maintain the original land/path/landmark exclusion envelope.
+    const step = this.quality === 'low' ? 7.315 : this.quality === 'medium' ? 5.670 : 4.746;
     const minX = Math.min(...ISLAND_OUTLINE.map(([x]) => x));
     const maxX = Math.max(...ISLAND_OUTLINE.map(([x]) => x));
     const minZ = Math.min(...ISLAND_OUTLINE.map(([, z]) => z));
@@ -530,7 +534,7 @@ export class IslandLandscape {
     const rows = Math.ceil((maxZ - minZ) / step);
     // Low tier uses 20 triangles/crown rather than 80, reducing the forest
     // geometry burden without changing canopy counts, clearing or material.
-    const beltGeometry = this.scope.track(new THREE.IcosahedronGeometry(4.1, this.quality === 'low' ? 0 : 1));
+    const beltGeometry = this.scope.track(new THREE.IcosahedronGeometry(4.1, this.quality === 'high' ? 1 : 0));
     const beltMaterial = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0xffffff, roughness: 0.98, metalness: 0,
     }));
@@ -590,5 +594,60 @@ export class IslandLandscape {
     if (belt.instanceColor) belt.instanceColor.needsUpdate = true;
     belt.computeBoundingSphere();
     this.root.add(this.scope.track(belt));
+  }
+
+
+  /** Quiet glade flowers: one tiny instanced draw, no floor/collision mutation. */
+  private buildWildflowerGlades(): void {
+    const target = this.quality === 'low' ? 64 : this.quality === 'medium' ? 144 : 240;
+    const geometry = this.scope.track(new THREE.TetrahedronGeometry(0.45, 0));
+    const material = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0xffffff, roughness: 0.92, metalness: 0,
+      emissive: 0x101613, emissiveIntensity: 0.12,
+      flatShading: true,
+    }));
+    const blooms = new THREE.InstancedMesh(geometry, material, target);
+    blooms.name = 'island-wildflower-glades';
+    blooms.userData.visualRole = 'moonlit-woodland-wildflowers';
+    blooms.castShadow = false;
+    blooms.receiveShadow = false;
+    const color = new THREE.Color();
+    const palette = [0x91a9b4, 0xaaa077, 0x8e98b3, 0x8cb3a2];
+    const dummy = new THREE.Object3D();
+    let seed = 0x52f29b7;
+    const rnd = (): number => {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      return seed / 0x100000000;
+    };
+    let count = 0;
+    for (let i = 0; i < target * 60 && count < target; i++) {
+      const x = -177 + rnd() * 354;
+      const z = -165 + rnd() * 330;
+      if (!isSiteLand(x, z) || !isSiteLand(x + 1.5, z) || !isSiteLand(x - 1.5, z)) continue;
+      if (Math.abs(x) < 56 && Math.abs(z) < 120) continue;
+      if (Math.hypot(x, z - 128) < 58) continue;
+      if (x > 42 && x < 147 && z > -68 && z < 70) continue;
+      if (Math.hypot(x + 104, z + 82) < 40) continue;
+      if (PATH_CENTERLINES.some((path) => path.slice(0, -1).some(([ax, az], n) => {
+        const [bx, bz] = path[n + 1];
+        const dx = bx - ax, dz = bz - az;
+        const t = Math.max(0, Math.min(1,
+          ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
+        return Math.hypot(x - (ax + dx * t), z - (az + dz * t)) < 5.2;
+      }))) continue;
+      const size = 0.6 + rnd() * 0.72;
+      dummy.position.set(x, -0.5 + size * 0.25, z);
+      dummy.rotation.set(0, rnd() * Math.PI * 2, 0);
+      dummy.scale.set(size, size * 0.72, size);
+      dummy.updateMatrix();
+      blooms.setMatrixAt(count, dummy.matrix);
+      blooms.setColorAt(count, color.setHex(palette[count % palette.length]));
+      count++;
+    }
+    blooms.count = count;
+    blooms.instanceMatrix.needsUpdate = true;
+    if (blooms.instanceColor) blooms.instanceColor.needsUpdate = true;
+    blooms.computeBoundingSphere();
+    this.root.add(this.scope.track(blooms));
   }
 }

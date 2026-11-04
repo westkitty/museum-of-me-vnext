@@ -6,6 +6,7 @@ import { ArrivalBeacons } from '../ArrivalBeacons';
 import { ExteriorIdentity } from '../ExteriorIdentity';
 import { ExteriorMuseumShell } from './ExteriorMuseumShell';
 import { IslandLandscape } from './IslandLandscape';
+import { ExteriorWildlife } from './ExteriorWildlife';
 import { addIslandSupport } from './IslandSiteLayout';
 import { START_POSITION, START_YAW } from '../start';
 import {
@@ -38,6 +39,7 @@ export class ExteriorWorld {
   readonly exteriorIdentity: ExteriorIdentity;
   readonly museumShell: ExteriorMuseumShell;
   readonly islandLandscape: IslandLandscape;
+  readonly wildlife: ExteriorWildlife;
 
   readonly spawnPosition: Vec3 = START_POSITION;
   readonly spawnYaw = START_YAW;
@@ -74,6 +76,9 @@ export class ExteriorWorld {
 
     this.islandLandscape = new IslandLandscape(this.scope, this.collision, qualityTier);
     this.root.add(this.islandLandscape.build());
+
+    this.wildlife = new ExteriorWildlife(this.scope, qualityTier);
+    this.root.add(this.wildlife.root);
 
     this.arrivalBeacons = new ArrivalBeacons(this.scope);
     this.root.add(this.arrivalBeacons.group);
@@ -179,8 +184,8 @@ export class ExteriorWorld {
     // Exterior fixed simulation ticks (foliage, particles, etc. in future phases)
   }
 
-  variableUpdate(_dt: number, _eye: readonly [number, number, number], _zone: ZoneId): void {
-    // Exterior per-frame visual updates
+  variableUpdate(dt: number, eye: readonly [number, number, number], _zone: ZoneId, reducedMotion = false): void {
+    this.wildlife.update(dt, eye, reducedMotion);
   }
 
   dispose(): void {

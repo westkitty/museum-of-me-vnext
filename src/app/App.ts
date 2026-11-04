@@ -566,7 +566,7 @@ export class App implements LoopCallbacks {
       }
     }
     if (this.activeWorld === 'exterior') {
-      this.exteriorWorld.variableUpdate(dt, eye, zone);
+      this.exteriorWorld.variableUpdate(dt, eye, zone, this.preferences.reducedMotion);
     }
 
     this.lighting.update(eye);
