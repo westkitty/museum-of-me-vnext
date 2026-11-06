@@ -1,6 +1,12 @@
 # Museum of Me vNext — Deployment
 
-**Current truth (October 12, 2026):** Development `main` is `4a464ebd5c6d09265e559b7b1299f025c399aa56` with all four exact-head GitHub Actions jobs green. The existing *public preview* at `https://westkitty.github.io/museum-of-me-vnext/` still serves older `pages-preview` `e6b0a5f63ae37a9ef0d915f7bec6d9567206aa89`. This is not a newly deployed current-main build or an approved 1.0 release. Publication remains separately owner-controlled.
+**Recorded published baseline (November 5, 2026):** The last independently verified published source
+was `4442b4914de22f7759a713ed7299687554be1559`, with development Actions run
+[`41830167975`](https://github.com/westkitty/museum-of-me-vnext/actions/runs/41830167975) and Pages
+run [`41831365883`](https://github.com/westkitty/museum-of-me-vnext/actions/runs/41831365883).
+This is prior verified evidence supplied with the architecture correction task, not a fresh hosted
+readback. Local architecture corrections based on that SHA are unpublished. The public preview at
+`https://westkitty.github.io/museum-of-me-vnext/` remains pre-1.0; publication is owner-controlled.
 
 ## What has to be hosted
 
@@ -10,7 +16,7 @@ The build plan's Phase 14 recommends Cloudflare Pages for the shell plus Cloudfl
 
 ## Pre-1.0 build and verification
 
-Before any new public deployment is considered, verify the exact selected development commit. Current `main` passed GitHub Actions run `38310708395`, but future changes require fresh proof:
+Before any new public deployment is considered, verify the exact selected development commit. The recorded baseline passed development run `41830167975`; every later change requires fresh proof:
 
 ```bash
 npm ci
@@ -49,7 +55,7 @@ Root directory:       repository root
 
 ### GitHub Pages — manual fallback only
 
-`.github/workflows/deploy-pages.yml` runs on either an explicit `workflow_dispatch` or a push to the dedicated `pages-preview` branch; **ordinary `main` pushes do not deploy**. The current hosted preview is `e6b0a5f`; a future approved build of the current `main` must use `VITE_PUBLIC_BASE=/museum-of-me-vnext/` and pass its Pages artifact and live SHA checks. This hosting path is a development preview, not an automatic production 1.0 release. Do not change `pages-preview` without a distinct owner publication decision.
+`.github/workflows/deploy-pages.yml` runs on either an explicit `workflow_dispatch` or a push to the dedicated `pages-preview` branch; **ordinary `main` pushes do not deploy**. The last verified published source is `4442b491`; a future approved build must use `VITE_PUBLIC_BASE=/museum-of-me-vnext/` and pass its Pages artifact and live SHA checks. This hosting path is a development preview, not an automatic production 1.0 release. Do not change `pages-preview` without a distinct owner publication decision.
 
 ## Direct refresh
 
@@ -88,4 +94,4 @@ The exact merge/deploy/verify/tag ordering is governed by `docs/RELEASE_RUNBOOK.
 
 ## Publication boundary
 
-An older public Pages preview URL already exists, but no automatic promotion of current `main` to that URL, Cloudflare production deployment, history rewrite, or `v1.0.0` tag is authorized by green repository checks. Publishing the updated represented-project collection remains an owner-controlled action.
+A public Pages preview URL already exists, but no automatic promotion of current `main` to that URL, Cloudflare production deployment, history rewrite, or `v1.0.0` tag is authorized by green repository checks. Publishing the updated represented-project collection remains an owner-controlled action.

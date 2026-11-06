@@ -48,7 +48,7 @@ src/
   exhibits/     ExhibitHost, registry, 35 modules by wing
   assets/       AssetManager, manifest, ResourceScope, procedural generators
   audio/        AudioManager, zones, synthesised ambience (muted by default)
-  content/      generated collection (64 projects, 35 exhibits)
+  content/      generated living collection (73 projects, 35 exhibits)
   state/        preferences, journal, versioned persistence
   ui/           HUD, Map, Journal, DeepPanel, Settings — all DOM
   accessibility/ reduced motion, focus, DOM mirrors of world text
@@ -111,6 +111,10 @@ scope.dispose();          // disposes everything tracked, asserts count === 0
 
 `ExhibitHost` creates one scope per exhibit and asserts it drains on unmount. This is what makes the
 "memory settles rather than climbs" requirement (Phase 12) testable rather than aspirational.
+File-backed `AssetManager` consumers receive separate scene graphs and skeletons. A manager-owned
+prototype scope leases shared geometry/materials/textures until the last consumer releases its scope;
+consumer cancellation cannot dispose another consumer's resources. Population clones release their
+own skeletons, while their scoped prototype leases retain the shared GPU resources.
 
 ## Exterior-first residency and interior streaming
 
@@ -134,7 +138,8 @@ single loop owner.
 
 Capsule player against a static broadphase of axis-aligned boxes and explicit ramp planes, built
 alongside the architecture (`CollisionWorld`). Stairs get invisible ramp colliders. No physics engine.
-Resolution is iterative depenetration with a grounded check; no jump.
+Resolution is iterative depenetration with a grounded check and a grounded one-shot Space jump.
+The Rotunda flight pad and development-only free flight retain their separate movement policies.
 
 ## Runtime cost: the two numbers that matter
 
@@ -152,9 +157,17 @@ reintroduces either cost fails the build.
 
 ## Quality tiers
 
-`low` / `medium` / `high`, auto-selected at boot from a short GPU probe, manually overridable in
-settings. Tiers control device pixel ratio cap, shadow map presence and size, ambient particle
-counts, and Layer-2 streaming radius. DPR is capped at 2 on every tier.
+`low` / `medium` / `high`, auto-selected at boot from CPU/memory, user-agent and screen signals,
+manually overridable in settings. Tiers control device pixel ratio cap, shadow map presence and size,
+ambient populations, landscape detail and streaming radii. DPR is capped at 2 on every tier.
+
+`App.setQuality()` propagates to `ExteriorWorld` and rebuilds only the landscape's render-only
+vegetation, coastal rocks and flower batches in a reusable child `ResourceScope`. Old instancing
+buffers, geometry and materials are released on each change; paths, pier, landmarks, shell and
+construction-time physical colliders remain intact. Each tier reproduces its deterministic initial
+visual layout. Physical woodland colliders retain the boot tier's original layout during changes.
+Ordinary `InstancedMesh` batching and tier-specific geometry detail are active; distance-driven
+runtime LOD is not enabled. Wildlife retains its existing bounded capacity and tier counts.
 
 ## UI is DOM
 

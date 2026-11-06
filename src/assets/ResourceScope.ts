@@ -64,7 +64,8 @@ export class ResourceScope {
       // and those leak unless the mesh itself is disposed. track() ignores
       // anything without a dispose method, so this is safe for plain meshes.
       this.track(node);
-      const mesh = node as THREE.Mesh;
+      const mesh = node as THREE.SkinnedMesh;
+      if (mesh.isSkinnedMesh) this.track(mesh.skeleton);
       if (mesh.geometry) this.track(mesh.geometry);
       const mat = mesh.material;
       if (!mat) return;

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
 import { Wayfinding } from '../src/world/Wayfinding';
 import { AmbientVisitors } from '../src/world/AmbientVisitors';
@@ -160,6 +160,39 @@ describe('ambient visitors', () => {
     expect(v.group.userData.loadError).toMatch(/missing governed visitor asset/);
     v.dispose();
     scope.dispose();
+  });
+
+  it('disposes population skeletons while retaining shared prototype geometry across quality rebuilds', async () => {
+    const scope = new ResourceScope('animated-crowd');
+    const prototypes: THREE.SkinnedMesh[] = [];
+    const loader = { load: async (id: string, assetScope: ResourceScope): Promise<LoadedAsset> => {
+      const asset = visitorAsset(id);
+      asset.object.clear();
+      const mesh = new THREE.SkinnedMesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial());
+      const bone = new THREE.Bone();
+      mesh.add(bone);
+      mesh.bind(new THREE.Skeleton([bone]));
+      asset.object.add(mesh);
+      prototypes.push(mesh);
+      assetScope.trackObject(asset.object);
+      return asset;
+    } };
+    const visitors = new AmbientVisitors(scope, 6);
+    await visitors.setPopulation(loader, 6);
+    const skeletonDisposals: ReturnType<typeof vi.spyOn>[] = [];
+    visitors.group.traverse((node) => {
+      if ((node as THREE.SkinnedMesh).isSkinnedMesh) {
+        skeletonDisposals.push(vi.spyOn((node as THREE.SkinnedMesh).skeleton, 'dispose'));
+      }
+    });
+    const geometryDisposals = prototypes.map((mesh) => vi.spyOn(mesh.geometry, 'dispose'));
+    await visitors.setPopulation(loader, 4);
+    expect(skeletonDisposals).toHaveLength(6);
+    for (const spy of skeletonDisposals) expect(spy).toHaveBeenCalledOnce();
+    for (const spy of geometryDisposals) expect(spy).not.toHaveBeenCalled();
+    visitors.dispose();
+    scope.dispose();
+    for (const spy of geometryDisposals) expect(spy).toHaveBeenCalledOnce();
   });
 
   it('reuses governed prototypes when quality changes rebuild the bounded crowd', async () => {

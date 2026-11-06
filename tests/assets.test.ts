@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import * as THREE from 'three';
+import type { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { AssetManager } from '../src/assets/AssetManager';
 import { ResourceScope } from '../src/assets/ResourceScope';
 import {
@@ -172,6 +173,158 @@ describe('AssetManager (Phase 4 gate)', () => {
     const loaded = await am.load('t.animated', scope);
     expect(loaded.animations).toEqual([walk]);
     scope.dispose();
+  });
+});
+
+describe('file asset consumer ownership', () => {
+  function fixture() {
+    registerAsset({
+      id: 't.shared', title: 'Shared rig', kind: 'glb', source: 'external', project: null,
+      creator: 'Test', license: 'CC0', url: './shared.glb', budgetKB: 1,
+      streamingGroup: 'shell', attribution: 'Test, CC0',
+    });
+    const manager = new AssetManager();
+    const scene = new THREE.Group();
+    const geometry = new THREE.BoxGeometry();
+    const texture = new THREE.Texture();
+    const material = new THREE.MeshBasicMaterial({ map: texture });
+    const mesh = new THREE.SkinnedMesh(geometry, material);
+    const bone = new THREE.Bone();
+    bone.name = 'hip';
+    mesh.add(bone);
+    mesh.bind(new THREE.Skeleton([bone]));
+    scene.add(mesh);
+    const clip = new THREE.AnimationClip('Walk', 1, [new THREE.NumberKeyframeTrack('hip.position[x]', [0, 1], [0, 2])]);
+    let resolve!: (gltf: GLTF) => void;
+    let reject!: (error: Error) => void;
+    const load = vi.fn((...[_url, onLoad, onProgress, onError]: Parameters<GLTFLoader['load']>) => {
+      resolve = onLoad;
+      reject = onError!;
+      onProgress!({ total: 4096, loaded: 4096 } as ProgressEvent);
+    });
+    (manager as unknown as { gltf: unknown }).gltf = { load };
+    const flush = async () => { await Promise.resolve(); await Promise.resolve(); };
+    return { manager, load, scene, geometry, material, texture, clip, flush,
+      succeed: () => resolve({ scene, animations: [clip] } as GLTF), fail: () => reject(new Error('fixture load failed')) };
+  }
+
+  for (const first of [0, 1]) it(`keeps independent skeletons and shared GPU resources alive when consumer ${first} unloads first`, async () => {
+    const f = fixture();
+    const scopes = [new ResourceScope('a'), new ResourceScope('b')];
+    const requests = scopes.map((scope) => f.manager.load('t.shared', scope));
+    await f.flush();
+    f.succeed();
+    const assets = await Promise.all(requests);
+    expect(f.load).toHaveBeenCalledTimes(1);
+    expect(assets[0].object).not.toBe(assets[1].object);
+    expect(assets[0].object).not.toBe(f.scene);
+    const meshes = assets.map((asset) => asset.object.children[0] as THREE.SkinnedMesh);
+    expect(meshes[0].skeleton).not.toBe(meshes[1].skeleton);
+    expect(meshes[0].skeleton.bones[0]).not.toBe(meshes[1].skeleton.bones[0]);
+    const disposals = [f.geometry, f.material, f.texture].map((r) => vi.spyOn(r, 'dispose'));
+    const boneDisposals = meshes.map((mesh) => vi.spyOn(mesh.skeleton, 'dispose'));
+    for (const asset of assets) {
+      expect(asset.id).toBe('t.shared');
+      expect(asset.bytes).toBe(4096);
+      expect(asset.animations).toEqual([f.clip]);
+    }
+    scopes[first].dispose();
+    for (const spy of disposals) expect(spy).not.toHaveBeenCalled();
+    expect(boneDisposals[first]).toHaveBeenCalledTimes(1);
+    const survivor = 1 - first;
+    const mixer = new THREE.AnimationMixer(assets[survivor].object);
+    mixer.clipAction(assets[survivor].animations[0]).play();
+    mixer.update(0.25);
+    expect(meshes[survivor].skeleton.bones[0].position.x).toBeCloseTo(0.5);
+    mixer.stopAllAction();
+    mixer.uncacheRoot(assets[survivor].object);
+    scopes[survivor].dispose();
+    for (const spy of disposals) expect(spy).toHaveBeenCalledTimes(1);
+    for (const spy of boneDisposals) expect(spy).toHaveBeenCalledTimes(1);
+    expect(scopes.map((scope) => scope.size)).toEqual([0, 0]);
+    f.manager.dispose();
+  });
+
+  it('cancels either pending consumer without cancelling the other or allocating into the cancelled scope', async () => {
+    for (const first of [0, 1]) {
+      _resetAssetRegistry();
+      const f = fixture();
+      const scopes = [new ResourceScope('a'), new ResourceScope('b')];
+      const controllers = [new AbortController(), new AbortController()];
+      const loads = scopes.map((scope, index) => f.manager.load('t.shared', scope, { signal: controllers[index].signal }));
+      const cancelled = expect(loads[first]).rejects.toThrow(/cancelled/i);
+      await f.flush();
+      controllers[first].abort();
+      f.succeed();
+      await cancelled;
+      const survivor = await loads[1 - first];
+      expect(survivor.object.children).toHaveLength(1);
+      expect(scopes[first].size).toBe(0);
+      expect(f.load).toHaveBeenCalledTimes(1);
+      scopes.forEach((scope) => scope.dispose());
+      f.manager.dispose();
+    }
+  });
+
+  it('handles pre-abort and manager teardown without leaking pending prototypes', async () => {
+    const f = fixture();
+    const early = new AbortController();
+    early.abort();
+    const scopes = [new ResourceScope('pre-abort'), new ResourceScope('manager-gone')];
+    await expect(f.manager.load('t.shared', scopes[0], { signal: early.signal })).rejects.toThrow(/cancelled/i);
+    expect(f.load).not.toHaveBeenCalled();
+    const request = f.manager.load('t.shared', scopes[1]);
+    const cancelled = expect(request).rejects.toThrow(/cancelled/i);
+    await f.flush();
+    const disposed = vi.spyOn(f.geometry, 'dispose');
+    f.manager.dispose();
+    await cancelled;
+    f.succeed();
+    await f.flush();
+    expect(disposed).toHaveBeenCalledOnce();
+    expect(scopes.map((scope) => scope.size)).toEqual([0, 0]);
+    scopes.forEach((scope) => scope.dispose());
+  });
+
+  it('retains an active lease through manager teardown until its consumer releases it', async () => {
+    const f = fixture();
+    const scope = new ResourceScope('active');
+    const request = f.manager.load('t.shared', scope);
+    await f.flush();
+    f.succeed();
+    const asset = await request;
+    const disposed = vi.spyOn(f.geometry, 'dispose');
+    f.manager.dispose();
+    expect(disposed).not.toHaveBeenCalled();
+    expect(asset.object.children).toHaveLength(1);
+    scope.dispose();
+    expect(disposed).toHaveBeenCalledOnce();
+  });
+
+  it('releases late results after scope teardown and retries a failed shared load', async () => {
+    const f = fixture();
+    const scope = new ResourceScope('gone');
+    const request = f.manager.load('t.shared', scope);
+    const cancelled = expect(request).rejects.toThrow(/cancelled|disposed/i);
+    await f.flush();
+    scope.dispose();
+    const released = vi.spyOn(f.geometry, 'dispose');
+    f.succeed();
+    await cancelled;
+    expect(released).toHaveBeenCalledTimes(1);
+    const a = new ResourceScope('retry-a');
+    const b = new ResourceScope('retry-b');
+    const failed = [f.manager.load('t.shared', a), f.manager.load('t.shared', b)];
+    const assertions = failed.map((promise) => expect(promise).rejects.toThrow('fixture load failed'));
+    await f.flush();
+    f.fail();
+    await Promise.all(assertions);
+    expect(a.size + b.size).toBe(0);
+    const retry = f.manager.load('t.shared', a);
+    await f.flush();
+    f.succeed();
+    expect((await retry).id).toBe('t.shared');
+    a.dispose(); b.dispose(); f.manager.dispose();
   });
 });
 

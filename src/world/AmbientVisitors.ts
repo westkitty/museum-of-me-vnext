@@ -220,11 +220,23 @@ export class AmbientVisitors {
     for (const walker of this.walkers) {
       walker.mixer.stopAllAction();
       walker.mixer.uncacheRoot(walker.mesh);
-      walker.mesh.removeFromParent();
+      this.releaseActor(walker.mesh);
     }
-    for (const observer of this.observers) observer.mesh.removeFromParent();
+    for (const observer of this.observers) this.releaseActor(observer.mesh);
     this.walkers.length = 0;
     this.observers.length = 0;
+  }
+
+  private releaseActor(root: THREE.Object3D): void {
+    // Population clones share leased prototype geometry/materials, but own
+    // skeleton bone textures created by the renderer. Release only those.
+    const skeletons = new Set<THREE.Skeleton>();
+    root.traverse((node) => {
+      const mesh = node as THREE.SkinnedMesh;
+      if (mesh.isSkinnedMesh) skeletons.add(mesh.skeleton);
+    });
+    for (const skeleton of skeletons) skeleton.dispose();
+    root.removeFromParent();
   }
 
   private authorPath(index: number, random: () => number): Vec3[] {

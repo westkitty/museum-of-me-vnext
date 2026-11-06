@@ -393,7 +393,7 @@ export class App implements LoopCallbacks {
     this.adaptiveResolution.reset();
     const radius = this.renderer.quality.exhibitStreamRadius;
     this.streaming?.setRadii(radius + 14, radius + 30, radius);
-    this.exteriorWorld.setWaterQuality(this.renderer.quality.tier);
+    this.exteriorWorld.setQuality(this.renderer.quality.tier);
     this.scheduleAmbientPopulation(false);
     savePreferences(this.preferences);
   }

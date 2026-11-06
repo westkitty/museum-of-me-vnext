@@ -1,11 +1,55 @@
 import * as THREE from 'three';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ResourceScope } from '../src/assets/ResourceScope';
 import { CollisionWorld } from '../src/world/CollisionWorld';
 import { IslandLandscape } from '../src/world/exterior/IslandLandscape';
 import { SCENIC_GROVE_POINTS, isSiteLand } from '../src/world/exterior/IslandSiteLayout';
 
 describe('IslandLandscape', () => {
+  it('changes only visual detail across repeated tiers, preserving collision and deterministic batches', () => {
+    const scope = new ResourceScope('live-landscape');
+    const collision = new CollisionWorld();
+    const landscape = new IslandLandscape(scope, collision, 'high');
+    const root = landscape.build();
+    const physical = JSON.stringify(collision);
+    const pier = root.getObjectByName('south-arrival-pier-deck');
+    const paths = root.getObjectByName('site-path-1');
+    const initialSize = scope.size;
+    const initialChildren = root.children.length;
+    const oldBelt = root.getObjectByName('woodland-forest-belt') as THREE.InstancedMesh;
+    const disposed = vi.spyOn(oldBelt.geometry, 'dispose');
+    const setTier = (tier: 'low' | 'medium' | 'high'): void => {
+      // Optional call lets this regression fail on behavior before the API exists.
+      (landscape as IslandLandscape & { setQuality?: (tier: string) => void }).setQuality?.(tier);
+    };
+    for (const tier of ['low', 'medium', 'high', 'low', 'medium', 'high'] as const) {
+      setTier(tier);
+      const referenceScope = new ResourceScope('reference');
+      const reference = new IslandLandscape(referenceScope, new CollisionWorld(), tier).build();
+      for (const name of ['perimeter-woodland-trunks', 'woodland-understory', 'woodland-canopy-infill',
+        'woodland-forest-belt', 'shoreline-rock-scatter', 'island-wildflower-glades']) {
+        const actual = root.getObjectByName(name) as THREE.InstancedMesh;
+        const expected = reference.getObjectByName(name) as THREE.InstancedMesh;
+        expect(actual.count, name + ' ' + tier).toBe(expected.count);
+        expect(actual.geometry.getAttribute('position').count).toBe(expected.geometry.getAttribute('position').count);
+        expect(Array.from(actual.instanceMatrix.array)).toEqual(Array.from(expected.instanceMatrix.array));
+        expect(actual.instanceColor?.array).toEqual(expected.instanceColor?.array);
+      }
+      expect(JSON.stringify(collision)).toBe(physical);
+      expect(root.getObjectByName('south-arrival-pier-deck')).toBe(pier);
+      expect(root.getObjectByName('site-path-1')).toBe(paths);
+      expect(root.children.length).toBe(initialChildren);
+      expect(scope.size).toBe(initialSize);
+      referenceScope.dispose();
+    }
+    expect(disposed).toHaveBeenCalledTimes(1);
+    const belt = root.getObjectByName('woodland-forest-belt');
+    setTier('high');
+    expect(root.getObjectByName('woodland-forest-belt')).toBe(belt);
+    scope.dispose();
+    expect(scope.size).toBe(0);
+  });
+
   it('is deterministic, instanced, and disposes its resources', () => {
     const firstScope = new ResourceScope('landscape-a');
     const secondScope = new ResourceScope('landscape-b');

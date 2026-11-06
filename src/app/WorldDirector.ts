@@ -190,7 +190,9 @@ export class WorldDirector {
 
     // 1. Predictive interior load on approach toward south entrance doorway (z <= 134)
     if (this.activeWorld === 'exterior' && !this.interiorImportStarted && playerPosition.z <= THRESHOLD_PREPARE_Z) {
-      void this.prepareInterior();
+      // prepareInterior records and displays the failure, and remains rejecting
+      // for explicit callers. This predictive request has no awaiting caller.
+      void this.prepareInterior().catch(() => undefined);
     }
 
     // 2. World boundary handoff across doorway portal plane (z = 128):

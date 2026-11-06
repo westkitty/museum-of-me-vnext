@@ -73,6 +73,11 @@ The 3D presentation now prioritizes the model: both outer sidebars start folded,
 
 This feature is being reviewed on its own branch; passing CI does not by itself certify real-device visual quality or 1.0 maturity.
 
+Quality settings apply live to deterministic landscape detail, wildlife, water and streaming. Landscape
+changes preserve the existing physical colliders, paths, pier and landmarks; visual detail batches
+release their old GPU resources rather than retaining High detail on Low. Instancing and tier-specific
+geometry detail are active; distance-based runtime LOD remains disabled.
+
 ## Validate it
 
 ```bash

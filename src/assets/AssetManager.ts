@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import type { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
@@ -37,17 +38,22 @@ export interface LoadOptions {
 }
 
 /**
- * The museum's one asset entry point (plan §23, §26, §27).
- *
- * Every asset is fetched or generated through here, so every asset has a
- * manifest record, a provenance entry, a budget, and a disposal path. There is
- * no second way to get geometry into the scene.
+ * Governed manifest-backed asset loading (plan §23, §26, §27).
+ * Direct world builders also create scoped procedural geometry; this manager
+ * owns registered generators and file-backed model loading.
  */
 export interface AssetLoadTiming {
   readonly id: string;
   readonly kind: string;
   readonly elapsedMs: number;
   readonly reportedBytes: number;
+}
+
+interface SharedFile {
+  readonly scope: ResourceScope;
+  readonly promise: Promise<LoadedAsset>;
+  users: number;
+  settled: boolean;
 }
 
 export class AssetManager {
@@ -60,7 +66,10 @@ export class AssetManager {
   }
 
   private readonly generators = new Map<string, ProceduralGenerator>();
-  private readonly inFlight = new Map<string, Promise<LoadedAsset>>();
+  // One decoded prototype per live asset, owned independently of any caller.
+  private readonly inFlight = new Map<string, SharedFile>();
+  private readonly pendingLoads = new Set<() => void>();
+  private disposed = false;
   private readonly bytesById = new Map<string, number>();
 
   private renderer: THREE.WebGLRenderer | null = null;
@@ -125,9 +134,12 @@ export class AssetManager {
 
   /**
    * Load an asset into a caller-owned scope. The caller disposes the scope; the
-   * manager never holds a reference, so there is no cache to leak.
+   * manager releases a file prototype after its last consumer leaves. File
+   * objects/skeletons are independent; their GPU resources are leased together.
+   * Do not trackObject() the returned file object into another scope.
    */
   async load(id: string, scope: ResourceScope, opts: LoadOptions = {}): Promise<LoadedAsset> {
+    if (this.disposed || scope.isDisposed || opts.signal?.aborted) throw new CancelledError(id);
     const record = getAsset(id);
     if (!record) throw new Error(`Unknown asset "${id}" — every asset needs a manifest record`);
 
@@ -157,47 +169,90 @@ export class AssetManager {
   private async loadFile(record: AssetRecord, scope: ResourceScope, opts: LoadOptions): Promise<LoadedAsset> {
     if (!record.url) throw new Error(`Asset "${record.id}" is ${record.kind} but declares no url`);
     await this.ensureFileLoaders();
+    if (this.disposed || scope.isDisposed || opts.signal?.aborted) throw new CancelledError(record.id);
 
-    const existing = this.inFlight.get(record.id);
-    if (existing) {
-      const done = await existing;
-      return done;
-    }
+    const entry = this.inFlight.get(record.id) ?? this.startFile(record);
+    entry.users++;
+    return new Promise<LoadedAsset>((resolve, reject) => {
+      const instanceScope = new ResourceScope(`asset-instance:${record.id}`);
+      let object: THREE.Object3D | null = null;
+      let released = false;
+      const stopWaiting = (): void => {
+        opts.signal?.removeEventListener('abort', cancel);
+        this.pendingLoads.delete(cancel);
+      };
+      const lease = { dispose: (): void => {
+        if (released) return;
+        released = true;
+        stopWaiting();
+        object?.removeFromParent();
+        instanceScope.dispose();
+        entry.users--;
+        this.releaseFile(record.id, entry);
+        reject(new CancelledError(record.id));
+      } };
+      const cancel = (): void => {
+        lease.dispose();
+        scope.untrack(lease);
+      };
+      scope.track(lease);
+      this.pendingLoads.add(cancel);
+      opts.signal?.addEventListener('abort', cancel, { once: true });
 
-    const promise = new Promise<LoadedAsset>((resolve, reject) => {
-      const onAbort = () => reject(new CancelledError(record.id));
-      opts.signal?.addEventListener('abort', onAbort, { once: true });
-      this.gltf!.load(
-        record.url!,
-        (gltf) => {
-          opts.signal?.removeEventListener('abort', onAbort);
-          if (opts.signal?.aborted) {
-            disposeSubtree(gltf.scene);
-            reject(new CancelledError(record.id));
-            return;
-          }
-          scope.trackObject(gltf.scene);
-          resolve({
-            id: record.id,
-            object: gltf.scene,
-            animations: gltf.animations,
-            bytes: this.bytesById.get(record.id) ?? 0,
-            loadMs: 0,
+      void entry.promise.then((source) => {
+        if (released) return;
+        try {
+          object = cloneSkeleton(source.object);
+          object.traverse((node) => {
+            // Geometry/materials/textures belong to the shared prototype. Each
+            // clone owns its skeleton (including a renderer-created bone texture)
+            // and any per-object instancing buffers.
+            const mesh = node as THREE.SkinnedMesh;
+            if (mesh.isSkinnedMesh) instanceScope.track(mesh.skeleton);
+            if ((node as THREE.InstancedMesh).isInstancedMesh) instanceScope.track(node);
           });
-        },
-        (event) => {
-          if (event.total > 0) this.bytesById.set(record.id, event.loaded);
-        },
-        (err) => {
-          opts.signal?.removeEventListener('abort', onAbort);
-          reject(err instanceof Error ? err : new Error(String(err)));
-        },
-      );
-    }).finally(() => this.inFlight.delete(record.id));
+          stopWaiting();
+          resolve({ ...source, object });
+        } catch (error) {
+          reject(error);
+          cancel();
+        }
+      }, (error: unknown) => {
+        if (released) return;
+        // Preserve the loader failure for this consumer; teardown must not
+        // replace it with a cancellation error.
+        reject(error);
+        cancel();
+      });
+    });
+  }
 
-    this.inFlight.set(record.id, promise);
-    const done = await promise;
-    return done;
+  private startFile(record: AssetRecord): SharedFile {
+    const scope = new ResourceScope(`asset-prototype:${record.id}`);
+    this.bytesById.delete(record.id);
+    const source = new Promise<LoadedAsset>((resolve, reject) => {
+      this.gltf!.load(record.url!, (gltf) => {
+        scope.trackObject(gltf.scene);
+        resolve({ id: record.id, object: gltf.scene, animations: gltf.animations,
+          bytes: this.bytesById.get(record.id) ?? 0, loadMs: 0 });
+      }, (event) => {
+        if (event.total > 0) this.bytesById.set(record.id, event.loaded);
+      }, (error) => reject(error instanceof Error ? error : new Error(String(error))));
+    });
+    const entry: SharedFile = { scope, users: 0, settled: false,
+      promise: source.finally(() => {
+        entry.settled = true;
+        this.releaseFile(record.id, entry);
+      }),
+    };
+    this.inFlight.set(record.id, entry);
+    return entry;
+  }
+
+  private releaseFile(id: string, entry: SharedFile): void {
+    if (entry.users !== 0 || !entry.settled) return;
+    entry.scope.dispose();
+    if (this.inFlight.get(id) === entry) this.inFlight.delete(id);
   }
 
   private checkBudget(record: AssetRecord, bytes: number): void {
@@ -210,6 +265,9 @@ export class AssetManager {
   }
 
   dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    for (const cancel of this.pendingLoads) cancel();
     this.ktx2?.dispose();
     this.draco?.dispose();
     this.generators.clear();
@@ -226,20 +284,9 @@ export class AssetManager {
 
 /** Dispose an object graph that no scope owns — used on cancelled loads. */
 export function disposeSubtree(root: THREE.Object3D): void {
-  root.traverse((node) => {
-    const mesh = node as THREE.Mesh;
-    mesh.geometry?.dispose?.();
-    const material = mesh.material;
-    if (!material) return;
-    for (const m of Array.isArray(material) ? material : [material]) {
-      for (const value of Object.values(m as unknown as Record<string, unknown>)) {
-        if (value && typeof value === 'object' && (value as { isTexture?: boolean }).isTexture) {
-          (value as THREE.Texture).dispose();
-        }
-      }
-      m.dispose();
-    }
-  });
+  const scope = new ResourceScope('unowned-subtree');
+  scope.trackObject(root);
+  scope.dispose();
   root.removeFromParent();
   root.clear();
 }

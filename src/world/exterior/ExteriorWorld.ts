@@ -172,6 +172,11 @@ export class ExteriorWorld {
     );
   }
 
+  setQuality(tier: QualityTier): void {
+    this.islandLandscape.setQuality(tier);
+    this.setWaterQuality(tier);
+  }
+
   setWaterQuality(tier: QualityTier): void {
     this.arrivalGarden.setWaterQuality(tier);
     this.wildlife.setQuality(tier);

@@ -327,3 +327,91 @@ test('context loss during preparation cannot strand the visitor in a committing 
   expect(recovered.world).toBe('interior');
   expect(recovered.phase).toBe('INTERIOR_ACTIVE');
 });
+
+test('automatic preparation failure reports feedback without unhandled rejection; explicit retry recovers entry', async ({ page }) => {
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  const rejections: string[] = [];
+  const failures: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error' && message.text().includes('[WorldDirector]')) failures.push(message.text());
+  });
+  await page.exposeFunction('recordPreparationRejection', (message: string) => rejections.push(message));
+  await page.addInitScript(() => {
+    window.addEventListener('unhandledrejection', (event) => {
+      void (window as unknown as Window & { recordPreparationRejection: (message: string) => Promise<void> })
+        .recordPreparationRejection(String(event.reason));
+    });
+  });
+  await page.goto('/?qa=1', { waitUntil: 'commit' });
+  await page.waitForFunction(() => Boolean(window.__museum));
+  await page.route('**/src/world/InteriorWorld.ts*', (route) =>
+    route.fulfill({ status: 404, contentType: 'text/plain', body: 'Injected predictive import failure' }));
+  await page.evaluate(() => {
+    const app = window.__museum!;
+    app.stop();
+    app.setQuality('low');
+    app.renderer.renderer.setPixelRatio(0.5);
+    app.renderer.renderer.setSize(320, 180, false);
+    app.player.teleport([0, 0, 133]);
+    app.worldDirector.update(app.player.position);
+  });
+  await page.waitForFunction(() => window.__museum?.worldDirector.phase === 'PREPARATION_FAILED');
+  await expect(page.getByRole('button', { name: 'Reload and retry' })).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('island remains available');
+  const outside = await page.evaluate(() => {
+    const app = window.__museum!;
+    app.player.teleport([0, 0, 150]);
+    app.worldDirector.update(app.player.position);
+    return { world: app.activeWorld, phase: app.worldDirector.phase,
+      failure: app.interiorLoadTelemetry.lastFailure, visible: app.exteriorWorld.root.visible,
+      z: app.player.position.z, constructed: app.interiorConstructed };
+  });
+  expect(outside).toMatchObject({ world: 'exterior', phase: 'PREPARATION_FAILED', visible: true, z: 150, constructed: false });
+  expect(outside.failure).toMatch(/404|Failed to fetch dynamically imported module/);
+  // Live keyboard movement still works outside; failure installs no freeze.
+  await page.keyboard.down('s');
+  const moved = await page.evaluate(() => {
+    const app = window.__museum!;
+    for (let i = 0; i < 30; i++) app.fixedUpdate(1 / 60);
+    return app.player.position.z;
+  });
+  await page.keyboard.up('s');
+  expect(moved).toBeGreaterThan(outside.z);
+  expect(failures).toHaveLength(1);
+  expect(rejections).toEqual([]);
+  expect(errors).toEqual([]);
+  await page.unroute('**/src/world/InteriorWorld.ts*');
+  await page.evaluate(() => {
+    const app = window.__museum!;
+    app.player.teleport([0, 0, 133]);
+    app.worldDirector.update(app.player.position);
+  });
+  // Reload is deliberate: browsers may cache a rejected dynamic module import.
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'commit' }),
+    page.getByRole('button', { name: 'Reload and retry' }).click(),
+  ]);
+  await page.waitForFunction(() => Boolean(window.__museum));
+  await page.evaluate(() => {
+    const app = window.__museum!;
+    app.setQuality('low');
+    app.renderer.renderer.setPixelRatio(0.5);
+    app.renderer.renderer.setSize(320, 180, false);
+    app.player.teleport([0, 0, 133]);
+    app.worldDirector.update(app.player.position);
+  });
+  await page.waitForFunction(() => window.__museum?.interiorWorld?.streaming.telemetry.prewarmReady === true);
+  const entered = await page.evaluate(() => {
+    const app = window.__museum!;
+    app.stop();
+    app.player.teleport([0, 0, 126]);
+    app.worldDirector.update(app.player.position);
+    return { world: app.activeWorld, failure: app.interiorLoadTelemetry.lastFailure,
+      exteriorVisible: app.exteriorWorld.root.visible, interiorVisible: app.interiorWorld?.root.visible };
+  });
+  expect(entered).toEqual({ world: 'interior', failure: null, exteriorVisible: false, interiorVisible: true });
+  expect(rejections).toEqual([]);
+  expect(errors).toEqual([]);
+});

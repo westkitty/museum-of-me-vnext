@@ -1,12 +1,19 @@
 # Asset Pipeline
 
-## The one entry point
+## Governed loading and direct builders
 
-Everything visible in the museum comes through `AssetManager.load(id, scope)`.
-There is no second path. That single choke point is what makes every asset
-governed: it refuses any id without a manifest record, it tracks bytes against
-the declared budget, and it hands ownership to a caller-supplied `ResourceScope`
-so disposal is the caller's explicit responsibility rather than a hope.
+`AssetManager.load(id, scope)` handles registered procedural generators and locally bundled GLB
+models. It requires a manifest record, records load timing and byte budgets, and ties each consumer
+to a caller-supplied `ResourceScope`. It is not a universal geometry-creation path: world/landscape,
+exhibit and Workshop builders also construct scoped procedural geometry directly; curated raster
+artwork has its own governed local asset records, and `AudioManager` synthesizes sound.
+
+For GLBs, concurrent consumers share one load and a manager-owned prototype scope, while each gets
+an independent scene graph and skeletons through `SkeletonUtils.clone`. Geometry, materials,
+textures and immutable animation clips are shared under scoped leases, released when the last
+consumer leaves. Caller scopes own the lease and clone-specific skeleton resources; do not call
+`trackObject()` on a returned file object into another scope. Ambient population clones retain their
+prototype lease and dispose their own skeletons when removed.
 
 ```ts
 const scope = new ResourceScope('E19');
@@ -23,12 +30,12 @@ scope.dispose();          // asserts it drained to zero
 |---|---|---|---|
 | `procedural` | a registered generator function, run at load time | 0 KB transferred | authored here, unambiguously owned |
 | `glb` | GLTFLoader, with KTX2 + Meshopt + Draco wired | declared per asset | source hash + processed hash |
-| `texture` | KTX2Loader | declared per asset | source hash + processed hash |
+| local raster artwork | dedicated curated artwork builders | declared/validated local files | curated records + processed hashes |
+| optional compressed formats | KTX2/Meshopt/Draco loader support wired, not activated by current models | per manifest when activated | source hash + processed hash |
 | `audio` | synthesised at runtime by `AudioManager`, muted by default | 0 KB | authored here |
 
-Procedural is the default (see `ASSET_POLICY.md`). The file-backed path is fully
-implemented and tested so an authentic project artifact can be carried in
-whenever one is better than a generator.
+Procedural is the default (see `ASSET_POLICY.md`). The active file-backed path loads locally bundled Quaternius GLBs with verified animation clips.
+The manifest's additional kind names do not establish a generic texture/audio loading API.
 
 ## Registering an asset
 
@@ -41,7 +48,8 @@ assets.registerGenerator('starsilk.loom', (scope, detail) => { … });
 ```
 
 `registerGenerator` throws for an id with no manifest record, so an
-undocumented asset cannot reach the scene even by accident.
+unregistered procedural generator cannot be loaded through that API. Direct builders remain
+subject to the asset, privacy, provenance and resource-scope checks.
 
 ## Determinism
 
@@ -53,7 +61,9 @@ lets a specific arrangement be described by its seed rather than stored.
 ## Cancellation
 
 `load()` accepts an `AbortSignal`. A cancelled load never returns a partially
-built object and never allocates into the caller's scope. This is what lets the
+built object. A pending lease is removed on cancellation without allocating a consumer scene or
+skeleton. A cancelled consumer does not cancel another consumer's request; late results are released
+when no consumers remain. Scope or manager teardown also cancels pending consumers. This lets the
 StreamingManager change its mind when a visitor turns around mid-approach.
 
 ## Budgets

@@ -27,7 +27,7 @@
       "physicsEngine": false,
       "streaming": "three-layer proximity streaming",
       "lod": false,
-      "instancing": false
+      "instancing": true
     },
     "interaction": {
       "pointerLock": true,

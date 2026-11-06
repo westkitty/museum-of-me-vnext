@@ -10,23 +10,45 @@ import {
 /** Paths, woodland, western spire court and the axial south pier. */
 export class IslandLandscape {
   readonly root = new THREE.Group();
+  private readonly detailScope: ResourceScope;
+  private detailObjects: THREE.Object3D[] = [];
+  private built = false;
 
   constructor(
     private readonly scope: ResourceScope,
     private readonly collision: CollisionWorld,
-    private readonly quality: QualityTier,
+    private quality: QualityTier,
   ) {
     this.root.name = 'island-landscape';
+    this.detailScope = scope.track(new ResourceScope('island-landscape-detail'));
   }
 
   build(): THREE.Group {
+    if (this.built) return this.root;
+    this.built = true;
     this.buildPaths();
     this.buildSpireGarden();
     this.buildPier();
-    this.buildCoastalRocks();
-    this.buildWoodland();
-    this.buildWildflowerGlades();
+    this.buildDetail(true);
     return this.root;
+  }
+
+  /** Replace render-only batches; the construction-time collision world is immutable. */
+  setQuality(tier: QualityTier): void {
+    if (tier === this.quality || this.scope.isDisposed) return;
+    this.quality = tier;
+    if (!this.built) return;
+    for (const object of this.detailObjects) object.removeFromParent();
+    this.detailScope.releaseAll();
+    this.buildDetail(false);
+  }
+
+  private buildDetail(registerCollision: boolean): void {
+    const first = this.root.children.length;
+    this.buildCoastalRocks();
+    this.buildWoodland(registerCollision);
+    this.buildWildflowerGlades();
+    this.detailObjects = this.root.children.slice(first);
   }
 
   private buildPaths(): void {
@@ -281,8 +303,8 @@ export class IslandLandscape {
   private buildCoastalRocks(): void {
     // Twice the shoreline rock detail, still a single non-colliding draw.
     const target = this.quality === 'low' ? 96 : this.quality === 'medium' ? 192 : 288;
-    const geometry = this.scope.track(new THREE.IcosahedronGeometry(1, 0));
-    const material = this.scope.track(new THREE.MeshStandardMaterial({
+    const geometry = this.detailScope.track(new THREE.IcosahedronGeometry(1, 0));
+    const material = this.detailScope.track(new THREE.MeshStandardMaterial({
       color: 0x33494c, roughness: 0.98, metalness: 0,
       flatShading: true,
     }));
@@ -313,25 +335,26 @@ export class IslandLandscape {
     rocks.instanceMatrix.needsUpdate = true;
     rocks.computeBoundingSphere();
     this.root.add(rocks);
-    this.scope.trackObject(rocks);
+    this.detailScope.trackObject(rocks);
   }
 
-  private buildWoodland(): void {
+  private buildWoodland(registerCollision: boolean): void {
     const count = this.quality === 'low' ? 68 : this.quality === 'medium' ? 112 : 176;
-    const trunkGeo = this.scope.track(new THREE.CylinderGeometry(0.34, 0.44, 5.4, 7));
-    const crownGeo = this.scope.track(new THREE.IcosahedronGeometry(3.2, 1));
-    const trunkMat = this.scope.track(new THREE.MeshStandardMaterial({ color: 0x252d28, roughness: 1 }));
+    const trunkGeo = this.detailScope.track(new THREE.CylinderGeometry(0.34, 0.44, 5.4, 7));
+    const crownGeo = this.detailScope.track(new THREE.IcosahedronGeometry(3.2, 1));
+    const trunkMat = this.detailScope.track(new THREE.MeshStandardMaterial({ color: 0x252d28, roughness: 1 }));
     const crownMaterials = [
-      this.scope.track(new THREE.MeshStandardMaterial({ color: 0x15302d, roughness: 0.98 })),
-      this.scope.track(new THREE.MeshStandardMaterial({ color: 0x1d3934, roughness: 0.98 })),
-      this.scope.track(new THREE.MeshStandardMaterial({ color: 0x23423a, roughness: 0.98 })),
+      this.detailScope.track(new THREE.MeshStandardMaterial({ color: 0x15302d, roughness: 0.98 })),
+      this.detailScope.track(new THREE.MeshStandardMaterial({ color: 0x1d3934, roughness: 0.98 })),
+      this.detailScope.track(new THREE.MeshStandardMaterial({ color: 0x23423a, roughness: 0.98 })),
     ];
     const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, count);
     trunks.name = 'perimeter-woodland-trunks';
+    trunks.userData.spatialFeatureId = 'grove-perimeter-trunks';
     trunks.castShadow = true;
     // A second asymmetric canopy mass creates a layered forest silhouette
     // rather than a field of identical green polyhedra. One extra draw only.
-    const lobeMaterial = this.scope.track(new THREE.MeshStandardMaterial({
+    const lobeMaterial = this.detailScope.track(new THREE.MeshStandardMaterial({
       color: 0x294b40, roughness: 0.98,
     }));
     const canopyLobes = new THREE.InstancedMesh(crownGeo, lobeMaterial, count);
@@ -367,7 +390,7 @@ export class IslandLandscape {
       dummy.scale.set(0.62 * scale, 0.69 * scale, 0.67 * scale);
       dummy.updateMatrix();
       canopyLobes.setMatrixAt(placed, dummy.matrix);
-      this.collision.addBox([x, -0.5 + halfTrunkHeight * scale, z], [
+      if (registerCollision) this.collision.addBox([x, -0.5 + halfTrunkHeight * scale, z], [
         0.44 * scale, halfTrunkHeight * scale, 0.44 * scale,
       ]);
       occupied.push([x, z]);
@@ -407,24 +430,24 @@ export class IslandLandscape {
     }
     trunks.count = placed;
     trunks.instanceMatrix.needsUpdate = true;
-    this.root.add(this.scope.track(trunks));
+    this.root.add(this.detailScope.track(trunks));
     crowns.forEach((mesh, index) => {
       mesh.count = byPalette[index];
       mesh.instanceMatrix.needsUpdate = true;
-      this.scope.track(mesh);
+      this.detailScope.track(mesh);
     });
     canopyLobes.count = placed;
     canopyLobes.instanceMatrix.needsUpdate = true;
     canopyLobes.computeBoundingSphere();
-    this.root.add(this.scope.track(canopyLobes));
+    this.root.add(this.detailScope.track(canopyLobes));
 
     // A low, collision-free understory fills the visual gaps without raising
     // the ground or interfering with the museum's authored walking paths.
     // Its density scales with device quality; there is no extra frame loop.
     // Double per-tree groundcover without adding tree colliders or passes.
     const shrubsPerTree = this.quality === 'low' ? 4 : this.quality === 'medium' ? 8 : 12;
-    const shrubGeo = this.scope.track(new THREE.IcosahedronGeometry(1, 0));
-    const shrubMat = this.scope.track(new THREE.MeshStandardMaterial({
+    const shrubGeo = this.detailScope.track(new THREE.IcosahedronGeometry(1, 0));
+    const shrubMat = this.detailScope.track(new THREE.MeshStandardMaterial({
       color: 0x2b5447, roughness: 1,
     }));
     const understory = new THREE.InstancedMesh(shrubGeo, shrubMat, count * shrubsPerTree);
@@ -466,15 +489,15 @@ export class IslandLandscape {
     understory.count = shrubCount;
     understory.instanceMatrix.needsUpdate = true;
     understory.computeBoundingSphere();
-    this.root.add(this.scope.track(understory));
+    this.root.add(this.detailScope.track(understory));
 
     // The original tree spacing makes the island appear park-like from the
     // canonical overhead and west cameras. Add canopy-only infill around the
     // existing trees, without placing another trunk, collider or floor tile.
     // One instanced low-poly mesh keeps the draw count constant across tiers.
     const infillPerTree = this.quality === 'low' ? 2 : this.quality === 'medium' ? 3 : 4;
-    const infillGeometry = this.scope.track(new THREE.IcosahedronGeometry(2.7, 0));
-    const infillMaterial = this.scope.track(new THREE.MeshStandardMaterial({
+    const infillGeometry = this.detailScope.track(new THREE.IcosahedronGeometry(2.7, 0));
+    const infillMaterial = this.detailScope.track(new THREE.MeshStandardMaterial({
       color: 0xffffff, roughness: 1, metalness: 0,
     }));
     const infill = new THREE.InstancedMesh(infillGeometry, infillMaterial, placed * infillPerTree);
@@ -515,7 +538,7 @@ export class IslandLandscape {
     infill.instanceMatrix.needsUpdate = true;
     if (infill.instanceColor) infill.instanceColor.needsUpdate = true;
     infill.computeBoundingSphere();
-    this.root.add(this.scope.track(infill));
+    this.root.add(this.detailScope.track(infill));
 
     // S5c: actual renderer screenshots showed the doubled shoreline lanes
     // as a regular perimeter hedge, with the *interior* forest still empty.
@@ -534,8 +557,8 @@ export class IslandLandscape {
     const rows = Math.ceil((maxZ - minZ) / step);
     // Low tier uses 20 triangles/crown rather than 80, reducing the forest
     // geometry burden without changing canopy counts, clearing or material.
-    const beltGeometry = this.scope.track(new THREE.IcosahedronGeometry(4.1, this.quality === 'high' ? 1 : 0));
-    const beltMaterial = this.scope.track(new THREE.MeshStandardMaterial({
+    const beltGeometry = this.detailScope.track(new THREE.IcosahedronGeometry(4.1, this.quality === 'high' ? 1 : 0));
+    const beltMaterial = this.detailScope.track(new THREE.MeshStandardMaterial({
       color: 0xffffff, roughness: 0.98, metalness: 0,
     }));
     const belt = new THREE.InstancedMesh(beltGeometry, beltMaterial, columns * rows);
@@ -593,15 +616,15 @@ export class IslandLandscape {
     belt.instanceMatrix.needsUpdate = true;
     if (belt.instanceColor) belt.instanceColor.needsUpdate = true;
     belt.computeBoundingSphere();
-    this.root.add(this.scope.track(belt));
+    this.root.add(this.detailScope.track(belt));
   }
 
 
   /** Quiet glade flowers: one tiny instanced draw, no floor/collision mutation. */
   private buildWildflowerGlades(): void {
     const target = this.quality === 'low' ? 64 : this.quality === 'medium' ? 144 : 240;
-    const geometry = this.scope.track(new THREE.TetrahedronGeometry(0.45, 0));
-    const material = this.scope.track(new THREE.MeshStandardMaterial({
+    const geometry = this.detailScope.track(new THREE.TetrahedronGeometry(0.45, 0));
+    const material = this.detailScope.track(new THREE.MeshStandardMaterial({
       color: 0xffffff, roughness: 0.92, metalness: 0,
       emissive: 0x101613, emissiveIntensity: 0.12,
       flatShading: true,
@@ -648,6 +671,6 @@ export class IslandLandscape {
     blooms.instanceMatrix.needsUpdate = true;
     if (blooms.instanceColor) blooms.instanceColor.needsUpdate = true;
     blooms.computeBoundingSphere();
-    this.root.add(this.scope.track(blooms));
+    this.root.add(this.detailScope.track(blooms));
   }
 }
