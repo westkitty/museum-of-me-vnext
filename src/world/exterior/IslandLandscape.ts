@@ -599,9 +599,11 @@ export class IslandLandscape {
         const x = minX + (col + 0.5) * step + (hash01(seed) - 0.5) * step * 0.66;
         const z = minZ + (row + 0.5) * step + (hash01(seed + 11) - 0.5) * step * 0.66;
         if (!clearFootprint(x, z)) continue;
-        const sx = 0.78 + hash01(seed + 31) * 0.78;
-        const sy = 0.85 + hash01(seed + 47) * 1.10;
-        const sz = 0.79 + hash01(seed + 53) * 0.70;
+        // Composition experiment: retain the accepted site mask and crown count,
+        // but vary smaller silhouettes to expose woodland depth and paths.
+        const sx = 0.66 + hash01(seed + 31) * 0.64;
+        const sy = 0.60 + hash01(seed + 47) * 0.90;
+        const sz = 0.67 + hash01(seed + 53) * 0.62;
         const height = 4.1 * sy;
         dummy.position.set(x, -0.5 + height * 0.78, z);
         dummy.rotation.set(0, hash01(seed + 71) * Math.PI * 2, 0);
