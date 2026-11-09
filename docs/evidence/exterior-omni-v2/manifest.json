@@ -1,0 +1,401 @@
+{
+  "revision": "LOCAL_CANDIDATE",
+  "createdAt": "2026-11-09T11:45:24.940Z",
+  "captureType": "real Three.js browser render / Playwright Chromium",
+  "evidenceFolder": "docs/evidence/exterior-omni-v2",
+  "imageCount": 30,
+  "images": [
+    {
+      "name": "01-pier-arrival.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 314709,
+      "sha256": "3dadcbc4e535bf33be6e43b1110e7938852721c783a19d7cc95673167588b305",
+      "calls": 724,
+      "triangles": 140636
+    },
+    {
+      "name": "02-front-south.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 273348,
+      "sha256": "b494d2cf0f739642fcc62e874d5842998824085acff868dd3b2499e18495c25a",
+      "calls": 356,
+      "triangles": 125188
+    },
+    {
+      "name": "03-east-lagoon.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 295209,
+      "sha256": "e40bd8683812adbccb639b0b90b96374f94801660155c20c83e7d9dc66123e59",
+      "calls": 557,
+      "triangles": 129712
+    },
+    {
+      "name": "04-west-woodland.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 328313,
+      "sha256": "91ed7677190768265ed868e12fc0125107e5b9f3d0341091948a1ce6f9eecd88",
+      "calls": 482,
+      "triangles": 134830
+    },
+    {
+      "name": "05-high-topdown.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 380123,
+      "sha256": "ed813ea56efbb13b84b91b75a0b2e6b253031d717499d0e2969f56f5c0e8f768",
+      "calls": 605,
+      "triangles": 132688
+    },
+    {
+      "name": "06-rear-north.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 265746,
+      "sha256": "24281de0aa0128c7a0d26e915a4e97904b7453cac91a61fbad33163ec15f5547",
+      "calls": 661,
+      "triangles": 135834
+    },
+    {
+      "name": "feat-01-arrival-axis-walkway.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 236220,
+      "sha256": "9117874e7885b2ef709464dd63dfe0acbc3577c0ba7ab0fe4c87abe883f851e0",
+      "calls": 595,
+      "triangles": 138982
+    },
+    {
+      "name": "feat-01-arrival-axis-detail.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 137771,
+      "sha256": "922204f6a1cba7ba5be161d1ee4ce7f25da42a01d2f779a27ab9410d316d0f7b",
+      "calls": 447,
+      "triangles": 129134
+    },
+    {
+      "name": "feat-02-reflecting-rill.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 198830,
+      "sha256": "f14a401893f62679dafdba0a391c69d61b5e0638ca0805848c14bc91cab6acc5",
+      "calls": 117,
+      "triangles": 91232
+    },
+    {
+      "name": "feat-03-living-fern-ravine.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 32415,
+      "sha256": "1ff7fe130e110f79cc2a182e178fa88c0800e4e7a4da5a0e818e512aff5bb996",
+      "calls": 116,
+      "triangles": 98202
+    },
+    {
+      "name": "feat-04-pollinator-meadow.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 34327,
+      "sha256": "3a1945477ea055268c3839b8c8c3722ad71a688d7551a9490ad62c5be018ef31",
+      "calls": 131,
+      "triangles": 86620
+    },
+    {
+      "name": "feat-05-neolithic-stone-circle.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 41498,
+      "sha256": "8d221624e2d0f977106ffad84e41003dacfc99162ddc123f27e6898216aedc11",
+      "calls": 53,
+      "triangles": 92242
+    },
+    {
+      "name": "feat-06-observation-hide-approach.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 226299,
+      "sha256": "1b91b7acea9df9de6a0add6697920950b90996b78a0ea884fdddc394d17d60da",
+      "calls": 68,
+      "triangles": 106828
+    },
+    {
+      "name": "feat-06-observation-hide-lagoon-view.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 136137,
+      "sha256": "6a9fef640b220e12d296e3c0b50af4b75d9ac8c2fa7bd05a103bc0d017a47f4f",
+      "calls": 60,
+      "triangles": 106532
+    },
+    {
+      "name": "feat-07-sculptural-wind-grove.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 191202,
+      "sha256": "aca0e3b76c6f192d58e060da8506d38808a730c09bc04408657dae061b26a095",
+      "calls": 56,
+      "triangles": 96354
+    },
+    {
+      "name": "feat-08-ancient-tree-landmark.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 78055,
+      "sha256": "b5293880d028e7089bfa999f32c29e83aa1d7f4a8c6f3fc1c3ecfd4c8260a65b",
+      "calls": 57,
+      "triangles": 103877
+    },
+    {
+      "name": "feat-09-moonlit-lantern-path.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 215482,
+      "sha256": "a8eb20d27231a1e87a56989a2017efa750e49711f656512df725d6b3af05e184",
+      "calls": 394,
+      "triangles": 130318
+    },
+    {
+      "name": "feat-10-coastal-tidepool-garden.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 83830,
+      "sha256": "b88f304bdecca488305a90840e65e28f0267be8901d56cf58f31d173b1b79053",
+      "calls": 41,
+      "triangles": 94736
+    },
+    {
+      "name": "feat-11-astronomical-terrace.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 166165,
+      "sha256": "28db0c69b6c8b25ff3ef357ada610c11401b18a135aebfd948124ed224a62025",
+      "calls": 363,
+      "triangles": 123895
+    },
+    {
+      "name": "feat-12-rear-garden-reveal.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 118819,
+      "sha256": "2f68830427151b3e4047a6c56e5ea8bfc82352d44f342b120c6be82fda1e8750",
+      "calls": 62,
+      "triangles": 102536
+    },
+    {
+      "name": "feat-12-rear-garden-reverse-vista.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 110069,
+      "sha256": "434f9f37a49a1a057812378e5104dbbe7ff61b59e0b9824a0aa8aa881b5204ae",
+      "calls": 682,
+      "triangles": 136216
+    },
+    {
+      "name": "view-fountain-and-forecourt.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 205323,
+      "sha256": "321c7fd61b7127328a21e8cc0071766762e50476ce9c6d1fcb1bd24b5e9022cc",
+      "calls": 477,
+      "triangles": 131310
+    },
+    {
+      "name": "view-benches-and-tables.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 192559,
+      "sha256": "b5f6dca0712e2d46f5e1706a1d2d5a9badca42e3c9c52e86804ed768edad5ca0",
+      "calls": 117,
+      "triangles": 91030
+    },
+    {
+      "name": "view-animal-statuary-hare.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 45840,
+      "sha256": "a325fd5d645b847c8a2871c4fd74a7bd08fc8f783bab086ac1be52667d305b5c",
+      "calls": 127,
+      "triangles": 93330
+    },
+    {
+      "name": "view-animal-statuary-otter.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 275837,
+      "sha256": "f23587ceb312239b1022cae2f207603bb541b352e321c2ab06817e086593bfe5",
+      "calls": 54,
+      "triangles": 106136
+    },
+    {
+      "name": "view-animal-statuary-owl.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 159632,
+      "sha256": "493ceacd46a89458423b70119be91c573727f345be1b53be22b7f0a325645689",
+      "calls": 36,
+      "triangles": 96174
+    },
+    {
+      "name": "view-neolithic-stele.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 130592,
+      "sha256": "c8a629c62496fe349a1bfa5b995bc1a52f5c57d9ae913218fa1f2adf0e9266b9",
+      "calls": 42,
+      "triangles": 86722
+    },
+    {
+      "name": "view-exterior-looking-in.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 138115,
+      "sha256": "32b248968ec80e2bce4ddfa3ddd9f7f3aa865d24fd1c38cfab722970db1d8979",
+      "calls": 337,
+      "triangles": 124480
+    },
+    {
+      "name": "view-interior-looking-out.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 214848,
+      "sha256": "23a31cd77c661330dea74dc08561fc178d62b202a89cb194e03766169fa526b3",
+      "calls": 203,
+      "triangles": 97338
+    },
+    {
+      "name": "07-mobile-pier-arrival.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 104741,
+      "sha256": "c554833c0fd195d6ae6650f4d23e8fd3b63d5a9f43d52972f86c9cb6e63ca3be",
+      "calls": 391,
+      "triangles": 130526
+    }
+  ],
+  "traversalCheckpoints": [
+    {
+      "id": "pier-spawn",
+      "x": 0,
+      "z": 196,
+      "support": -0.5,
+      "playerY": -0.5,
+      "grounded": true
+    },
+    {
+      "id": "arrival-axis",
+      "x": 0,
+      "z": 156,
+      "support": 0,
+      "playerY": 0,
+      "grounded": true
+    },
+    {
+      "id": "reflecting-rill-bridge",
+      "x": -5,
+      "z": 143.4,
+      "support": 0,
+      "playerY": 0,
+      "grounded": true
+    },
+    {
+      "id": "terrace-fountain",
+      "x": 0,
+      "z": 142,
+      "support": 0,
+      "playerY": 0,
+      "grounded": true
+    },
+    {
+      "id": "astronomical-terrace",
+      "x": -34,
+      "z": 134,
+      "support": 0,
+      "playerY": -0.3,
+      "grounded": true
+    },
+    {
+      "id": "pollinator-meadow",
+      "x": -68,
+      "z": 118,
+      "support": -0.5,
+      "playerY": -0.5,
+      "grounded": true
+    },
+    {
+      "id": "fern-ravine",
+      "x": -126,
+      "z": -2,
+      "support": -0.5,
+      "playerY": -0.5,
+      "grounded": true
+    },
+    {
+      "id": "neolithic-circle",
+      "x": -72,
+      "z": -118,
+      "support": -0.5,
+      "playerY": -0.5,
+      "grounded": true
+    },
+    {
+      "id": "rear-garden-reveal",
+      "x": 0,
+      "z": -120,
+      "support": -0.5,
+      "playerY": 0.54,
+      "grounded": true
+    },
+    {
+      "id": "ancient-tree",
+      "x": 38,
+      "z": -88,
+      "support": -0.5,
+      "playerY": -0.5,
+      "grounded": true
+    },
+    {
+      "id": "lantern-path",
+      "x": 27,
+      "z": -54,
+      "support": -0.5,
+      "playerY": -0.5,
+      "grounded": true
+    },
+    {
+      "id": "observation-hide",
+      "x": 52,
+      "z": -14,
+      "support": -0.5,
+      "playerY": -0.5,
+      "grounded": true
+    },
+    {
+      "id": "tidepool-garden",
+      "x": 136,
+      "z": 36,
+      "support": -0.5,
+      "playerY": -0.5,
+      "grounded": true
+    },
+    {
+      "id": "wind-grove",
+      "x": 48,
+      "z": 108,
+      "support": -0.5,
+      "playerY": -0.5,
+      "grounded": true
+    }
+  ],
+  "thresholdHandoff": {
+    "interiorReady": true,
+    "insideWorld": "interior",
+    "exteriorVisibleWhileInside": false,
+    "interiorVisibleWhileInside": true,
+    "returnedWorld": "exterior",
+    "exteriorVisibleAfterReturn": true
+  }
+}

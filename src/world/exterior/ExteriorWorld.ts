@@ -7,6 +7,7 @@ import { ExteriorIdentity } from '../ExteriorIdentity';
 import { ExteriorMuseumShell } from './ExteriorMuseumShell';
 import { IslandLandscape } from './IslandLandscape';
 import { ExteriorWildlife } from './ExteriorWildlife';
+import { ExteriorSignatureFeatures } from './ExteriorSignatureFeatures';
 import { addIslandSupport } from './IslandSiteLayout';
 import { START_POSITION, START_YAW } from '../start';
 import {
@@ -40,6 +41,7 @@ export class ExteriorWorld {
   readonly museumShell: ExteriorMuseumShell;
   readonly islandLandscape: IslandLandscape;
   readonly wildlife: ExteriorWildlife;
+  readonly signatureFeatures: ExteriorSignatureFeatures;
 
   readonly spawnPosition: Vec3 = START_POSITION;
   readonly spawnYaw = START_YAW;
@@ -80,6 +82,9 @@ export class ExteriorWorld {
     this.wildlife = new ExteriorWildlife(this.scope, qualityTier);
     this.root.add(this.wildlife.root);
 
+    this.signatureFeatures = new ExteriorSignatureFeatures(this.scope, this.collision, qualityTier);
+    this.root.add(this.signatureFeatures.root);
+
     this.arrivalBeacons = new ArrivalBeacons(this.scope);
     this.root.add(this.arrivalBeacons.group);
 
@@ -117,13 +122,21 @@ export class ExteriorWorld {
     const midZ = (fromZ + toZ) / 2;
 
     const wallMat = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x141a22, roughness: 0.85, metalness: 0.15,
+      color: 0x1c222a, roughness: 0.85, metalness: 0.15,
     }));
     const floorMat = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x11161d, roughness: 0.7, metalness: 0.2,
+      color: 0x181e26, roughness: 0.7, metalness: 0.2,
     }));
-    const portalBackdropMat = this.scope.track(new THREE.MeshBasicMaterial({
-      color: 0x05070a,
+    // Warm, softly illuminated foyer backdrop prevents doorway from reading as a dead black void
+    const portalBackdropMat = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x2d2218, roughness: 0.82, metalness: 0.1,
+      emissive: 0x24180d, emissiveIntensity: 0.5,
+    }));
+    const bronzeArchMat = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0xb89252, metalness: 0.65, roughness: 0.35,
+    }));
+    const amberSconceMat = this.scope.track(new THREE.MeshBasicMaterial({
+      color: 0xffbf78, toneMapped: false,
     }));
 
     // Vestibule floor inside doorway buffer
@@ -157,6 +170,24 @@ export class ExteriorWorld {
     back.position.set(0, GROUND_Y + 4.5, fromZ);
     this.root.add(back);
 
+    // Warm rotunda portal arch preview on the foyer backdrop
+    const foyerArch = new THREE.Mesh(
+      this.scope.track(new THREE.TorusGeometry(3.5, 0.18, 8, 24, Math.PI)),
+      bronzeArchMat,
+    );
+    foyerArch.position.set(0, GROUND_Y + 0.5, fromZ + 0.05);
+    this.root.add(foyerArch);
+
+    // Warm architectural foyer sconces
+    for (const s of [-1, 1]) {
+      const sconce = new THREE.Mesh(
+        this.scope.track(new THREE.BoxGeometry(0.18, 0.45, 0.18)),
+        amberSconceMat,
+      );
+      sconce.position.set(s * (hw - 0.2), GROUND_Y + 3.8, midZ);
+      this.root.add(sconce);
+    }
+
     // Front facade wall with portal opening at toZ (z = 128)
     const halfOpening = PORTAL_WIDTH / 2; // 3.5
     const leftWidth = PLAZA_HALF_WIDTH - halfOpening;
@@ -174,6 +205,7 @@ export class ExteriorWorld {
 
   setQuality(tier: QualityTier): void {
     this.islandLandscape.setQuality(tier);
+    this.signatureFeatures.setQuality(tier);
     this.setWaterQuality(tier);
   }
 
@@ -192,6 +224,7 @@ export class ExteriorWorld {
 
   variableUpdate(dt: number, eye: readonly [number, number, number], _zone: ZoneId, reducedMotion = false): void {
     this.wildlife.update(dt, eye, reducedMotion);
+    this.signatureFeatures.update(dt, reducedMotion);
   }
 
   dispose(): void {

@@ -33,7 +33,30 @@ Structural/collision-authoritative museum systems remain locked in Workshop Core
 
 Useful shortcuts while Workshop is open: `W/E/R` move/rotate/scale · `G` snap to supporting floor · `Cmd/Ctrl+D` duplicate · `Delete` remove · `Cmd/Ctrl+Z` undo · `Shift+Cmd/Ctrl+Z` redo · `Cmd/Ctrl+S` save.
 
-The current exterior includes a complete world-relative crystalline Blood Ring orbit and a visual-only night-island water surface with slow organic motion. Neither changes collision ownership; reduced motion freezes the water. Their final visual quality remains a human judgment, not something an automated gate can declare finished.
+The current exterior includes a complete world-relative crystalline Blood Ring orbit and a visual-only night-island water surface with slow organic motion. Neither changes collision ownership; reduced motion freezes the water.
+
+### Exterior Omni & Island Experience (V3 Uplift)
+
+The island exterior features an authored, walkable visitor landscape featuring 12 signature additions and outdoor furnishings that frame the museum entrance, shoreline, woodlands, and rear grounds:
+
+1. **Arrival Axis Luminous Inlay:** Luminous pale stone walkway embedded with bronze fossil and leaf medallions extending from the pier to the forecourt.
+2. **Sculpted Reflecting Rill & West Basin:** Flowing water rill connecting the central forecourt fountain to a sunken west reflecting basin, spanned by a flush stone step-over bridge.
+3. **Living Fern Ravine:** Deep emerald fern garden nestled among mossy boulders and roots along the west woodland approach.
+4. **Wildflower Pollinator Meadow:** Native wildflower meadow with purple coneflowers, bluebells, and fluttering bounded butterflies.
+5. **Neolithic Stone Circle & Altar:** Eight weathered menhirs with petroglyphic engravings, uplighting, center offering altar, and interpretive plinth.
+6. **Wildlife Observation Hide:** Slotted timber bird-hide on the eastern lagoon bank with bench seating and a panoramic viewing aperture.
+7. **Sculptural Kinetic Wind Grove:** Four bronze aerodynamic pylons with gentle breeze-driven rotating vanes.
+8. **Ancient-Tree Landmark:** Gnarled centuries-old oak with buttress roots, weeping canopy, and naturalist bird perches.
+9. **Moonlit Lantern Bollard Path:** Shielded bronze path bollards casting amber ground light pools along the north perimeter route.
+10. **Coastal Tidepool Garden:** Stepped basalt pools along the southeast coast with transparent seawater, shells, and sea anemones.
+11. **Terrace of Astronomical Markers:** Southwest stone terrace featuring eight engraved seasonal markers and a central bronze gnomon.
+12. **Monumental Rear-Garden Reveal:** Symmetrical stone terracing behind the north museum facade, with accessible dual ramps, stone stairs, manicured boxwood parterres, and the soaring bronze "Wings of Dawn" raptor sculpture.
+
+**Outdoor Furnishings & Statuary:** Teak and bronze seating along promenades, bronze animal sculptures (Hare, River Otter, Horned Owl), and Neolithic megaliths (Sandstone Stele, Dolmen).
+
+**Hard Streaming Boundary:** When `activeWorld === 'exterior'`, 0 interior render/update objects reside in the active scene graph. The entrance vestibule at `z=128` presents a warm, illuminated interior foyer visible from outside. Crossing the threshold executes an atomic one-frame world transition, with exterior landscape visible back through the entrance portal.
+
+Full evidence, collision verification, and performance data are documented in `docs/evidence/exterior-omni-v2/FEATURE_MATRIX.md` with full-resolution screenshots in `docs/evidence/exterior-omni-v2/`.
 
 ## Developer free flight and manual sky clock
 

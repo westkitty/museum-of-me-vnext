@@ -750,3 +750,38 @@ Tests extended in `tests/exterior-shell.test.ts` for roof/world wall extents, ex
 ### Architecture correction Git integration authorization — 2026-11-05
 
 The owner subsequently authorized staging, committing, pushing the correction task branch and merging into `main`. Pre-integration readback confirmed remote `main` still at `4442b4914de22f7759a713ed7299687554be1559`, allowing a fast-forward without overwriting newer work. Prior entries describing the uncommitted state are historical validation receipts. The 757-test gate and 52 distinct passing browser cases remain the local evidence; managed Chromium still blocks the required offline file proofs. This authorization does not request Pages deployment or persistence to the separate canonical Bible repository. Fresh commit CI and any later deployment require their own evidence.
+
+
+### Exterior Omni / AWE Uplift & Verified Release — V3 (2026-11-09)
+
+**State:** FULLY VERIFIED IN LOCAL SOURCE, GATE, STANDALONE, AND BROWSER TEST SUITES.
+**Feature branch:** `feat/exterior-omni-awe-uplift-20261109`
+**Parent baseline:** `d00ef8d93a381041582069ff15b4d9acf5a7b69e` (`origin/main`)
+
+**Implemented scope:**
+- Created `src/world/exterior/ExteriorSignatureFeatures.ts` delivering all 12 mandatory signature additions:
+  1. Arrival Axis luminous stone inlay path with bronze fossil medallions (`arrival-axis-luminous-inlay`)
+  2. Sculpted reflecting rill & west reflecting basin with flush step-over stone bridge (`sculpted-reflecting-rill`)
+  3. Living fern ravine with mossy boulders and roots (`living-fern-ravine`)
+  4. Wildflower pollinator meadow with bounded fluttering butterflies (`wildflower-pollinator-meadow`)
+  5. Neolithic stone circle with 8 petroglyphic menhirs, uplighting, altar, and bronze plinth (`neolithic-stone-circle`)
+  6. Lagoon wildlife observation hide with timber framing, bench, and viewing aperture (`wildlife-observation-hide`)
+  7. Sculptural kinetic wind grove with 4 rotating aerodynamic vanes (`sculptural-wind-grove`)
+  8. Ancient-tree landmark with gnarled trunk, weeping boughs, and bird perches (`ancient-tree-landmark`)
+  9. Moonlit lantern path with shielded bronze bollards casting amber ground light pools (`moonlit-lantern-path`)
+  10. Coastal tidepool garden with stepped basalt ledges and marine life (`coastal-tidepool-garden`)
+  11. Terrace of astronomical markers with 8 seasonal bronze discs and celestial gnomon (`astronomical-seasonal-terrace`)
+  12. Monumental rear-garden reveal with terraced retaining walls, stone stairs, accessible ramps, and soaring bronze "Wings of Dawn" raptor sculpture (`rear-garden-monumental-reveal`)
+- Created required outdoor furnishings and statuary: entrance fountain-to-rill connection, teak/bronze benches and tables, bronze animal statuary (Hare, River Otter, Horned Owl), and Neolithic megaliths (Sandstone Stele, Dolmen).
+- Upgraded threshold vestibule at `z=128` in `ExteriorWorld.ts` from a flat black void to a warm, illuminated entrance foyer with bronze archway and amber architectural sconces.
+- Refined crown scales in `IslandLandscape.ts` while preserving exact site footprint exclusions, maintaining forest belt counts within strict bounds across all three quality tiers (LOW: 901/890-915; MED: 1469/1450-1490; HIGH: 2111/2090-2140).
+- Preserved strict streaming boundary: 0 interior scene-graph objects rendered or updated when `activeWorld === 'exterior'`.
+
+**Empirical verification:**
+- `npm run typecheck`: PASS (0 errors).
+- `npm run lint`: PASS (0 warnings/errors).
+- `npm run gate`: PASS (757 unit tests / 58 test files pass, native asset/mapping/content/privacy/frameloop/hotpath validators pass, QA report runner pass, production Vite build pass, budget checks pass, release-dist verify pass).
+- `npm run build:standalone` & `npm run verify:standalone`: PASS (16.5 MB single-file HTML, SHA-256 `6a04967f...`, 0 remote requests, 14/14 installations pass, 17/17 visitors pass).
+- `VITE_PUBLIC_BASE=/museum-of-me-vnext/ npm run build:pages` & `npm run verify:pages-dist`: PASS (exact relative base, `.nojekyll`, SPA 404 fallback, build receipt verified).
+- Playwright browser suite `tests/browser/exterior-signature-evidence.e2e.ts`: PASS (captured 30 full-resolution images covering the 7 canonical camera views, 12 signature additions, furnishings, mobile pier, 14 traversal checkpoints, and threshold handoff into `docs/evidence/exterior-omni-v2/`).
+- Feature matrix: documented in `docs/evidence/exterior-omni-v2/FEATURE_MATRIX.md` with visual rubric score 39.0/40.0 (+13.9 over baseline).
