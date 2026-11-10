@@ -101,6 +101,7 @@ export class App implements LoopCallbacks {
   private developmentTool: { update(dt: number): void; dispose(): void } | null = null;
   private developerOverlay: { update(): void; dispose(): void } | null = null;
   private workshopUpdate: (() => void) | null = null;
+  private workshopCameraOverride: (() => void) | null = null;
   private environmentVisibility: ((zone: ZoneId, deep: boolean, wings: ReadonlySet<string>) => void) | null = null;
   private readonly roomCullingEnabled: boolean;
   private arrivalUpdate: (() => void) | null = null;
@@ -449,6 +450,10 @@ export class App implements LoopCallbacks {
     this.arrivalUpdate = update;
   }
 
+  setWorkshopCameraOverride(update: (() => void) | null): void {
+    this.workshopCameraOverride = update;
+  }
+
   setWorkshopUpdate(update: (() => void) | null): void {
     this.workshopUpdate = update;
   }
@@ -609,6 +614,7 @@ export class App implements LoopCallbacks {
       this.camera.rotation.x += offset.pitch;
       this.sky.follow(this.camera);
     }
+    this.workshopCameraOverride?.();
     this.renderer.render();
     if (!this.renderer.isContextLost && this.activeWorld === 'interior'
       && this.interiorLoadTelemetry.firstInteriorFrameAtMs === null) {
