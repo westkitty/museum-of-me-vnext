@@ -366,12 +366,15 @@ export class Workshop {
     this.refresh();
   }
 
-  private commitTransform(): void {
+  private commitTransform(changed?: InputKey): void {
     const object = this.object();
     const record = this.record();
     const sceneEntry = this.sceneEntry();
     if (!object || (!record && !sceneEntry)) return;
     const v = Object.fromEntries(INPUT_KEYS.map((key) => [key, Number(this.inputs[key].value)])) as Record<InputKey, number>;
+    if (changed?.startsWith('s') && this.uniformScaleInput.checked) {
+      v.sx = v.sy = v.sz = v[changed];
+    }
     if (Object.values(v).some((value) => !Number.isFinite(value))) return this.note('Transform values must be finite.', 'error');
     const before = this.placements.captureManifest();
     object.position.set(
@@ -381,9 +384,9 @@ export class Workshop {
     );
     object.rotation.set(v.rx * RAD, v.ry * RAD, v.rz * RAD);
     object.scale.set(
-      THREE.MathUtils.clamp(v.sx, 0.05, 20),
-      THREE.MathUtils.clamp(v.sy, 0.05, 20),
-      THREE.MathUtils.clamp(v.sz, 0.05, 20),
+      THREE.MathUtils.clamp(v.sx, 0.05, 100),
+      THREE.MathUtils.clamp(v.sy, 0.05, 100),
+      THREE.MathUtils.clamp(v.sz, 0.05, 100),
     );
     const label = record?.label ?? sceneEntry?.label ?? this.selectedId ?? 'object';
     let after: WorkshopPlacementManifest;
@@ -400,6 +403,125 @@ export class Workshop {
     this.history.push(`Transform ${label}`, before, after);
     this.selectionBox?.update();
     this.refresh();
+  }
+
+  private commitAppearance(): void {
+    const record = this.record();
+    if (!record) return;
+    const depth = Number(this.depthInput.value);
+    const color = this.paintInput.value;
+    if (!/^#[0-9a-f]{6}$/i.test(color) || !Number.isFinite(depth) || depth < 0.01 || depth > 2) {
+      return this.note('Color or wall thickness is invalid.', 'error');
+    }
+    const before = this.placements.captureManifest();
+    try {
+      const after = this.placements.setRecord({
+        ...record, color, depth,
+        collision: this.collisionInput.value as 'none' | 'solid',
+        event: this.eventInput.value as 'none' | 'announce',
+      });
+      this.history.push(`Finish ${record.label}`, before, after);
+      this.select(record.id);
+      this.note('Finish and behavior updated in preview. Save to build to persist.', 'ok');
+      this.refresh();
+    } catch (error) {
+      this.placements.replaceManifest(before);
+      this.note(error instanceof Error ? error.message : 'Finish change was rejected.', 'error');
+    }
+  }
+
+  private beginWallPlacement(): void {
+    const record = this.record();
+    if (!record || (record.prefab !== 'wall-art' && record.prefab !== 'wall-panel')) {
+      return this.note('Select a wall-art or wall-panel object first.', 'warn');
+    }
+    this.wallPlacementActive = true;
+    this.note('Click a visible vertical wall surface in the museum to attach this object.', 'ok');
+  }
+
+  private mountOnWall(): void {
+    const record = this.record();
+    if (!record) return;
+    const root = this.app.activeWorld === 'exterior' ? this.app.exteriorWorld.root : this.app.museum?.root;
+    if (!root) return this.note('Active world geometry is unavailable.', 'warn');
+    this.raycaster.setFromCamera(this.pointer, this.app.camera);
+    const hits = this.raycaster.intersectObject(root, true);
+    const normalMatrix = new THREE.Matrix3();
+    for (const hit of hits) {
+      if (!hit.face) continue;
+      hit.object.updateWorldMatrix(true, false);
+      normalMatrix.getNormalMatrix(hit.object.matrixWorld);
+      const normal = hit.face.normal.clone().applyMatrix3(normalMatrix).normalize();
+      if (Math.abs(normal.y) > 0.35) continue;
+      const pose = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
+      const rotation = new THREE.Euler().setFromQuaternion(pose, 'XYZ');
+      const offset = (record.depth ?? 0.055) / 2 + 0.018;
+      const position = hit.point.clone().addScaledVector(normal, offset);
+      const before = this.placements.captureManifest();
+      try {
+        const after = this.placements.setRecord({
+          ...record, anchor: 'wall', worldId: this.app.activeWorld,
+          position: [position.x, position.y, position.z],
+          rotation: [rotation.x, rotation.y, rotation.z],
+          collision: record.collision ?? 'none',
+        });
+        this.history.push(`Mount ${record.label}`, before, after);
+        this.wallPlacementActive = false;
+        this.select(record.id);
+        this.note(`${record.label} attached. Adjust width, height and depth in the inspector.`, 'ok');
+        this.refresh();
+      } catch (error) {
+        this.note(error instanceof Error ? error.message : 'Wall placement violates museum conservation.', 'error');
+      }
+      return;
+    }
+    this.note('No vertical surface found here. Try another wall.', 'warn');
+  }
+
+  private async importArtwork(): Promise<void> {
+    const record = this.record();
+    const file = this.imageInput.files?.[0];
+    if (!file || record?.prefab !== 'wall-art') return;
+    if (!file.type.startsWith('image/') || file.size > 15 * 1024 * 1024) {
+      this.imageInput.value = '';
+      return this.note('Choose an image under 15 MB.', 'error');
+    }
+    this.note('Preparing local artwork…', 'ok');
+    try {
+      const bitmap = await createImageBitmap(file);
+      const factor = Math.min(1, 2048 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(bitmap.width * factor));
+      canvas.height = Math.max(1, Math.round(bitmap.height * factor));
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Image canvas unavailable');
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      const blob = await new Promise<Blob | null>((resolveBlob) => canvas.toBlob(resolveBlob, 'image/webp', 0.86));
+      if (!blob || blob.type !== 'image/webp' || blob.size > 3 * 1024 * 1024) {
+        throw new Error('Image conversion failed or exceeded 3 MB');
+      }
+      const response = await fetch(MEDIA_ENDPOINT, {
+        method: 'POST', headers: { 'Content-Type': 'image/webp' }, body: blob,
+      });
+      const result = await response.json() as { ok?: boolean; image?: string; error?: string };
+      if (!response.ok || !result.ok || !result.image) throw new Error(result.error ?? 'Local artwork import failed');
+      const current = this.record();
+      if (!current || current.id !== record.id) {
+        this.note('Artwork imported but selection changed. Re-select artwork to apply.', 'warn');
+        return;
+      }
+      const before = this.placements.captureManifest();
+      const after = this.placements.setRecord({ ...current, image: result.image });
+      this.history.push(`Import artwork ${record.label}`, before, after);
+      this.select(record.id);
+      this.note('Artwork loaded into the museum. Save the build; review image files before publishing.', 'ok');
+      this.refresh();
+    } catch (error) {
+      this.note(error instanceof Error ? error.message : 'Artwork import failed.', 'error');
+    } finally {
+      this.imageInput.value = '';
+    }
   }
 
   private undo(): void { this.applyHistory(this.history.undo(), 'Undo'); }
@@ -495,6 +617,11 @@ export class Workshop {
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
+    if (this.wallPlacementActive) {
+      event.preventDefault();
+      this.mountOnWall();
+      return;
+    }
     const hit = this.authorableHit(false);
     this.select(hit?.id ?? null);
     if (!hit) this.note('Protected scene geometry. Only registered dressing objects can be edited.', 'warn');
@@ -511,9 +638,9 @@ export class Workshop {
         THREE.MathUtils.clamp(object.position.z, -500, 500),
       );
       object.scale.set(
-        THREE.MathUtils.clamp(object.scale.x, 0.05, 20),
-        THREE.MathUtils.clamp(object.scale.y, 0.05, 20),
-        THREE.MathUtils.clamp(object.scale.z, 0.05, 20),
+        THREE.MathUtils.clamp(object.scale.x, 0.05, 100),
+        THREE.MathUtils.clamp(object.scale.y, 0.05, 100),
+        THREE.MathUtils.clamp(object.scale.z, 0.05, 100),
       );
     }
     this.selectionBox?.update();
@@ -559,6 +686,13 @@ export class Workshop {
       return;
     }
     if (!this.openState) return;
+    if (event.code === 'Escape' && this.wallPlacementActive) {
+      this.wallPlacementActive = false;
+      this.note('Wall attachment cancelled.', 'warn');
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     const mod = event.metaKey || event.ctrlKey;
     if (mod && event.code === 'KeyS') { event.preventDefault(); void this.save(); }
     else if (!editing && mod && event.code === 'KeyZ') {
