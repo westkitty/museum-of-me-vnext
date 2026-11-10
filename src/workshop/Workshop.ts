@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { TransformControls, type TransformControlsMode } from 'three/examples/jsm/controls/TransformControls.js';
 import type { App } from '../app/App';
 import type { MuseumPlacements } from './MuseumPlacements';
+import { BuilderCamera, type BuilderView } from './BuilderCamera';
 import type { AuthorableSceneEntry, AuthorableSceneTransform } from './AuthorableSceneRegistry';
 import { WORKSHOP_PREFABS, type WorkshopPrefabId } from './catalog';
 import { conservationErrors, validateWorkshopConservation } from './conservation';
@@ -16,6 +17,8 @@ import './workshop.css';
 const RAD = Math.PI / 180;
 const DEG = 180 / Math.PI;
 const SAVE_ENDPOINT = '/__museum-workshop/save';
+const MEDIA_ENDPOINT = '/__museum-workshop/media';
+const GRID_SNAP = [0, 0.05, 0.1, 0.25, 0.5, 1] as const;
 const INPUT_KEYS = ['px', 'py', 'pz', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz'] as const;
 type InputKey = (typeof INPUT_KEYS)[number];
 
@@ -25,6 +28,18 @@ export class Workshop {
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
   private readonly transform: TransformControls;
+  private readonly camera: BuilderCamera;
+  private readonly paintInput: HTMLInputElement;
+  private readonly imageInput: HTMLInputElement;
+  private readonly depthInput: HTMLInputElement;
+  private readonly collisionInput: HTMLSelectElement;
+  private readonly eventInput: HTMLSelectElement;
+  private readonly snapInput: HTMLSelectElement;
+  private readonly uniformScaleInput: HTMLInputElement;
+  private wallPlacementActive = false;
+  private savedVisitorPosition: THREE.Vector3 | null = null;
+  private savedVisitorYaw = 0;
+  private savedVisitorWorld: 'interior' | 'exterior' = 'exterior';
   private readonly helper: THREE.Object3D;
   private readonly history = new WorkshopHistory();
   private readonly inputs = {} as Record<InputKey, HTMLInputElement>;
@@ -57,8 +72,16 @@ export class Workshop {
     this.saveButton = this.el<HTMLButtonElement>('save');
     this.undoButton = this.el<HTMLButtonElement>('undo');
     this.redoButton = this.el<HTMLButtonElement>('redo');
+    this.paintInput = this.el<HTMLInputElement>('paint');
+    this.imageInput = this.el<HTMLInputElement>('image');
+    this.depthInput = this.el<HTMLInputElement>('depth');
+    this.collisionInput = this.el<HTMLSelectElement>('collision');
+    this.eventInput = this.el<HTMLSelectElement>('event');
+    this.snapInput = this.el<HTMLSelectElement>('grid-snap');
+    this.uniformScaleInput = this.el<HTMLInputElement>('uniform-scale');
     for (const key of INPUT_KEYS) this.inputs[key] = this.el<HTMLInputElement>(key);
 
+    this.camera = new BuilderCamera(app);
     this.transform = new TransformControls(app.camera, app.renderer.canvas);
     this.helper = this.transform.getHelper();
     this.helper.name = 'museum-workshop-transform-controls';
@@ -72,6 +95,8 @@ export class Workshop {
 
     this.bindUi();
     this.transform.addEventListener('mouseDown', this.onTransformStart);
+    this.transform.addEventListener('mouseDown', this.onDragCameraDisable);
+    this.transform.addEventListener('mouseUp', this.onDragCameraEnable);
     this.transform.addEventListener('mouseUp', this.onTransformEnd);
     this.transform.addEventListener('objectChange', this.onTransformChange);
     app.renderer.canvas.addEventListener('pointerdown', this.onCanvasPointerDown);
@@ -89,11 +114,15 @@ export class Workshop {
     }
     if (targetId) this.select(targetId);
     this.openState = true;
+    this.savedVisitorPosition = this.app.player.position.clone();
+    this.savedVisitorYaw = this.app.player.yaw;
+    this.savedVisitorWorld = this.app.activeWorld;
     this.root.hidden = false;
     this.app.input.releasePointerLock();
     this.app.input.uiCaptured = true;
     this.app.player.setFrozen(true);
     this.app.ui.setBuildModeActive(true);
+    this.camera.open();
     this.transform.enabled = true;
     this.helper.visible = this.selectedId !== null;
     if (this.selectionBox) this.selectionBox.visible = true;
@@ -105,11 +134,20 @@ export class Workshop {
     if (!this.openState) return;
     this.openState = false;
     this.root.hidden = true;
+    this.camera.close();
+    this.wallPlacementActive = false;
     this.transform.enabled = false;
     this.helper.visible = false;
     if (this.selectionBox) this.selectionBox.visible = false;
     this.app.input.uiCaptured = false;
     this.app.player.setFrozen(false);
+    // Return to the original visitor context after builder world survey.
+    const wasWorld = this.savedVisitorWorld;
+    const original = this.savedVisitorPosition?.clone() ?? null;
+    const yaw = this.savedVisitorYaw;
+    this.savedVisitorPosition = null;
+    if (wasWorld === 'exterior' && this.app.activeWorld !== 'exterior') this.app.worldDirector.switchToExterior();
+    if (original) this.app.player.teleport([original.x, original.y, original.z], yaw);
     this.app.ui.setBuildModeActive(false);
     this.app.ui.hud.setWorkshopCue(null);
   }
@@ -135,11 +173,14 @@ export class Workshop {
     this.app.renderer.canvas.removeEventListener('pointerdown', this.onCanvasPointerDown);
     document.removeEventListener('keydown', this.onKeyDown, true);
     this.transform.removeEventListener('mouseDown', this.onTransformStart);
+    this.transform.removeEventListener('mouseDown', this.onDragCameraDisable);
+    this.transform.removeEventListener('mouseUp', this.onDragCameraEnable);
     this.transform.removeEventListener('mouseUp', this.onTransformEnd);
     this.transform.removeEventListener('objectChange', this.onTransformChange);
     this.transform.detach();
     this.transform.disconnect();
     this.helper.removeFromParent();
+    this.camera.dispose();
     this.clearSelectionBox();
     this.root.remove();
   }
@@ -158,7 +199,25 @@ export class Workshop {
     this.redoButton.addEventListener('click', () => this.redo());
     this.labelInput.addEventListener('change', () => this.commitMetadata());
     this.anchorInput.addEventListener('change', () => this.commitMetadata());
-    for (const input of Object.values(this.inputs)) input.addEventListener('change', () => this.commitTransform());
+    for (const [key, input] of Object.entries(this.inputs)) {
+      input.addEventListener('change', () => this.commitTransform(key as InputKey));
+    }
+    this.paintInput.addEventListener('change', () => this.commitAppearance());
+    this.depthInput.addEventListener('change', () => this.commitAppearance());
+    this.collisionInput.addEventListener('change', () => this.commitAppearance());
+    this.eventInput.addEventListener('change', () => this.commitAppearance());
+    this.imageInput.addEventListener('change', () => void this.importArtwork());
+    this.el<HTMLButtonElement>('place-wall').addEventListener('click', () => this.beginWallPlacement());
+    this.snapInput.addEventListener('change', () => this.configureSnap());
+    this.el<HTMLButtonElement>('view-dollhouse').addEventListener('click', () => this.setView('dollhouse'));
+    this.el<HTMLButtonElement>('view-orbit').addEventListener('click', () => this.setView('orbit'));
+    this.el<HTMLButtonElement>('view-top').addEventListener('click', () => this.setView('top'));
+    this.el<HTMLButtonElement>('focus').addEventListener('click', () => {
+      const object = this.object();
+      if (object) this.camera.focus(object);
+    });
+    this.el<HTMLButtonElement>('world-exterior').addEventListener('click', () => void this.switchWorld('exterior'));
+    this.el<HTMLButtonElement>('world-interior').addEventListener('click', () => void this.switchWorld('interior'));
 
     const palette = this.el('palette');
     for (const prefab of WORKSHOP_PREFABS) {
@@ -182,6 +241,42 @@ export class Workshop {
     this.el<HTMLButtonElement>('space').textContent = space === 'world' ? 'World' : 'Local';
   }
 
+  private readonly onDragCameraDisable = (): void => this.camera.setDragging(true);
+  private readonly onDragCameraEnable = (): void => this.camera.setDragging(false);
+
+  private configureSnap(): void {
+    const value = Number(this.snapInput.value);
+    if (!GRID_SNAP.includes(value as typeof GRID_SNAP[number])) return;
+    this.transform.setTranslationSnap(value || null);
+    this.transform.setRotationSnap(value ? 5 * RAD : null);
+    this.transform.setScaleSnap(value || null);
+    this.note(value ? `Grid snap: ${value} m` : 'Free placement enabled', 'ok');
+  }
+
+  private setView(view: BuilderView): void {
+    this.camera.setView(view);
+    this.refresh();
+  }
+
+  private async switchWorld(world: 'interior' | 'exterior'): Promise<void> {
+    if (world === this.app.activeWorld) return;
+    if (world === 'interior') {
+      this.note('Preparing museum interior…', 'ok');
+      const ready = await this.app.worldDirector.switchToInterior();
+      if (!ready) return this.note('Interior preparation is not ready.', 'warn');
+      this.app.player.teleport([7, 0, 0]);
+    } else {
+      this.app.worldDirector.switchToExterior();
+      const original = this.savedVisitorWorld === 'exterior' ? this.savedVisitorPosition : null;
+      if (original) this.app.player.teleport([original.x, original.y, original.z], this.savedVisitorYaw);
+      else this.app.player.teleport([0, 0, 150]);
+    }
+    // Keep editing the real active world, never simultaneously render both.
+    this.camera.close();
+    this.camera.open();
+    this.refresh();
+  }
+
   private add(prefab: WorkshopPrefabId): void {
     const before = this.placements.captureManifest();
     if (before.objects.length >= 256) return this.note('Workshop object limit reached.', 'error');
@@ -201,11 +296,13 @@ export class Workshop {
       position: [x, y, z],
       rotation: [0, Math.atan2(-direction.x, -direction.z), 0],
       scale: [1, 1, 1],
+      worldId: this.app.activeWorld,
     };
     const after = this.placements.setRecord(record);
     this.history.push(`Add ${record.label}`, before, after);
     this.select(record.id);
-    this.note(`${record.label} added.`, 'ok');
+    if (prefab === 'wall-art' || prefab === 'wall-panel') this.beginWallPlacement();
+    else this.note(`${record.label} added.`, 'ok');
     this.refresh();
   }
 
