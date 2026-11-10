@@ -11,6 +11,8 @@ export interface TextTextureOptions {
   readonly titleSize?: number;
   readonly bodySize?: number;
   readonly padding?: number;
+  readonly paddingX?: number;
+  readonly paddingY?: number;
   readonly align?: 'left' | 'center';
   readonly rule?: boolean;
   readonly font?: string;
@@ -36,7 +38,8 @@ export function createTextTexture(
 ): THREE.CanvasTexture {
   const width = opts.width ?? 1024;
   const height = opts.height ?? 512;
-  const padding = opts.padding ?? 56;
+  const paddingX = opts.paddingX ?? opts.padding ?? 56;
+  const paddingY = opts.paddingY ?? opts.padding ?? 56;
   const bodySize = opts.bodySize ?? 30;
   let titleSize = opts.titleSize ?? 46;
   const font = opts.font ?? 'Georgia, "Iowan Old Style", serif';
@@ -53,32 +56,32 @@ export function createTextTexture(
   const align = opts.align ?? 'left';
   ctx.textAlign = align === 'center' ? 'center' : 'left';
   ctx.textBaseline = 'top';
-  const x = align === 'center' ? width / 2 : padding;
-  let y = padding;
+  const x = align === 'center' ? width / 2 : paddingX;
+  let y = paddingY;
 
   if (opts.title) {
     ctx.fillStyle = opts.titleColor ?? '#241d14';
     ctx.font = `600 ${titleSize}px ${font}`;
     if (opts.fitTitle) {
-      const available = height - padding * 2;
-      const maxWidth = width - padding * 2;
+      const available = height - paddingY * 2;
+      const maxWidth = width - paddingX * 2;
       const fits = () => {
         const lines = countWrappedLines(ctx, opts.title!, maxWidth);
         return lines.count * titleSize * 1.15 <= available && lines.widest <= maxWidth;
       };
-      while (titleSize > 16 && !fits()) {
+      while (titleSize > 22 && !fits()) {
         titleSize -= 2;
         ctx.font = `600 ${titleSize}px ${font}`;
       }
       const used = countWrappedLines(ctx, opts.title, maxWidth).count * titleSize * 1.15;
-      y = padding + Math.max(0, (available - used) / 2);
+      y = paddingY + Math.max(0, (available - used) / 2);
     }
-    y = drawWrapped(ctx, opts.title, x, y, width - padding * 2, titleSize * 1.15, align, width);
+    y = drawWrapped(ctx, opts.title, x, y, width - paddingX * 2, titleSize * 1.15, align, width);
     y += 14;
     if (opts.rule !== false) {
       ctx.fillStyle = '#b39b52';
-      const ruleWidth = align === 'center' ? (width - padding * 2) * 0.4 : width - padding * 2;
-      ctx.fillRect(align === 'center' ? (width - ruleWidth) / 2 : padding, y, ruleWidth, 3);
+      const ruleWidth = align === 'center' ? (width - paddingX * 2) * 0.4 : width - paddingX * 2;
+      ctx.fillRect(align === 'center' ? (width - ruleWidth) / 2 : paddingX, y, ruleWidth, 3);
       y += 26;
     }
   }
@@ -86,9 +89,9 @@ export function createTextTexture(
   ctx.fillStyle = opts.color ?? '#2e2619';
   ctx.font = `${bodySize}px ${font}`;
   for (const paragraph of paragraphs) {
-    y = drawWrapped(ctx, paragraph, x, y, width - padding * 2, bodySize * 1.42, align, width);
+    y = drawWrapped(ctx, paragraph, x, y, width - paddingX * 2, bodySize * 1.42, align, width);
     y += bodySize * 0.7;
-    if (y > height - padding) break;
+    if (y > height - paddingY) break;
   }
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -98,30 +101,36 @@ export function createTextTexture(
   return scope.track(texture);
 }
 
-/** How many lines `drawWrapped` will use, and the widest of them. */
+/** How many lines `drawWrapped` will use, and the widest of them. Respects explicit newlines. */
 function countWrappedLines(
   ctx: CanvasRenderingContext2D,
   text: string,
   maxWidth: number,
 ): { count: number; widest: number } {
-  let line = '';
   let count = 0;
   let widest = 0;
-  for (const word of text.split(/\s+/)) {
-    const candidate = line ? `${line} ${word}` : word;
-    if (ctx.measureText(candidate).width > maxWidth && line) {
+  const sections = text.split('\n');
+
+  for (const section of sections) {
+    let line = '';
+    const words = section.trim().split(/\s+/);
+    for (const word of words) {
+      if (!word) continue;
+      const candidate = line ? `${line} ${word}` : word;
+      if (ctx.measureText(candidate).width > maxWidth && line) {
+        widest = Math.max(widest, ctx.measureText(line).width);
+        count++;
+        line = word;
+      } else {
+        line = candidate;
+      }
+    }
+    if (line) {
       widest = Math.max(widest, ctx.measureText(line).width);
       count++;
-      line = word;
-    } else {
-      line = candidate;
     }
   }
-  if (line) {
-    widest = Math.max(widest, ctx.measureText(line).width);
-    count++;
-  }
-  return { count, widest };
+  return { count: Math.max(1, count), widest };
 }
 
 function drawWrapped(
@@ -134,24 +143,28 @@ function drawWrapped(
   align: 'left' | 'center',
   canvasWidth: number,
 ): number {
-  const words = text.split(/\s+/);
-  let line = '';
   let cursorY = y;
   const drawX = align === 'center' ? canvasWidth / 2 : x;
+  const sections = text.split('\n');
 
-  for (const word of words) {
-    const candidate = line ? `${line} ${word}` : word;
-    if (ctx.measureText(candidate).width > maxWidth && line) {
+  for (const section of sections) {
+    let line = '';
+    const words = section.trim().split(/\s+/);
+    for (const word of words) {
+      if (!word) continue;
+      const candidate = line ? `${line} ${word}` : word;
+      if (ctx.measureText(candidate).width > maxWidth && line) {
+        ctx.fillText(line, drawX, cursorY);
+        cursorY += lineHeight;
+        line = word;
+      } else {
+        line = candidate;
+      }
+    }
+    if (line) {
       ctx.fillText(line, drawX, cursorY);
       cursorY += lineHeight;
-      line = word;
-    } else {
-      line = candidate;
     }
-  }
-  if (line) {
-    ctx.fillText(line, drawX, cursorY);
-    cursorY += lineHeight;
   }
   return cursorY;
 }

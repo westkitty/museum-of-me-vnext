@@ -247,15 +247,10 @@ export class HeliocideObservatory extends ExhibitBase {
       this.recordLamps.push(face);
 
       this.buildEvidenceShape(witness, record);
-      const label = buildLabel(scope, record.label, 1.55);
-      label.position.set(0, 1.93, 0);
+      const label = buildLabel(scope, `${record.era}\n${record.label}`, 1.45, 0.42);
+      label.position.set(0, 2.05, 0);
       witness.add(label);
       scope.track(label.geometry);
-
-      const eraLabel = buildLabel(scope, record.era, 1.45);
-      eraLabel.position.set(0, 2.34, 0);
-      witness.add(eraLabel);
-      scope.track(eraLabel.geometry);
 
       this.control({
         object: witness,

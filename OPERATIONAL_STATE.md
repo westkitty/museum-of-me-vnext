@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 96,
+  "state_revision": 97,
   "last_updated": "2026-11-10",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -930,3 +930,49 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 **Continuity:** `docs/COMPLETION_MATRIX.md` updated (queue item 3 marked repaired/resolved; queue items 4–5 remain open).
 
 **Resume here:** queue item 4 (second look at long captions museum-wide) and queue item 5 (front corners wing furnishings survey).
+
+
+### Completion pass 5 — Museum-wide caption legibility and typography repair (2026-11-10)
+
+**State:** IMPLEMENTED AND LOCALLY VERIFIED ON THE SAME LOCAL BRANCH. NOT PUSHED, NOT MERGED, NOT DEPLOYED.
+**Branch:** `feat/completion-guide-and-drift-20261109`; pass 5 started from local commit `36c29a8d8ab7e6829341de83d688d1b21a62313d`; `origin/main` still `a96d2f7`.
+**Product status unchanged:** ACTIVE DEVELOPMENT / PRE-1.0. Verdict: PARTIAL.
+
+**Verification closed (all on the final pass-5 working tree, system Chrome via `MUSEUM_BROWSER_EXECUTABLE`):**
+- `npm run gate`: PASS — 781 unit tests across 61 files (including `tests/caption-typography.test.ts`), all validators (mapping, content, privacy, frameloop, hotpaths, assets, exhibits, source parity), QA report runner, production build, budgets, `verify:dist`.
+- `npm run typecheck` & `npm run lint`: PASS — 0 errors, 0 warnings.
+- `npx vitest run tests/caption-typography.test.ts tests/exhibit-plinth.test.ts tests/exhibit-quality.test.ts`: PASS — 322 tests passing across typography, plinths, and exhibit quality suites.
+- `npm run build:standalone` + `npm run verify:standalone`: PASS — static checks sha256 `618700fd...`, offline browser (cold exterior start, 2 round trips, 17 visitors, 6 requests), `runtime-source-qa` 14/14 installations and 17/17 visitors, 0 remote requests.
+- `playwright.capture.config.ts` + `tests/browser/caption-evidence.capture.ts`: Captured 26 paired before-and-after screenshots across representative exhibits in all six wings from normal visitor standing eye-level.
+
+**Confirmed defects repaired:**
+- **Shared Typography Engine (`TextTexture.ts` & `Furniture.ts`):**
+  - Upgraded `labelMaterial` to support dynamic canvas resolution tiers: 2048px for wide banners (`>= 3.2m`), 1024px for standard plates (`>= 1.2m`), and 512px for small pedestals/consoles (`< 1.2m`), eliminating texture pixelation at standard visitor distances.
+  - Implemented proportional vertical padding in `scaledTextOptions`: calculated as fraction of canvas height (`Math.min(Math.round(canvasHeight * 0.16), Math.round(20 * scale))`), preventing thin strip banners (aspect ratios 0.10–0.22) from starving font size and shrinking text into unreadable slivers.
+  - Added explicit newline preservation (`\n`) to `TextTexture.ts` so curated multi-line captions and titles wrap cleanly at authored semantic boundaries without awkward run-on word wrapping.
+  - Raised title size floor in `fitTitle` to 22px to prevent title collapse on tight plaques.
+- **Physical Exhibit Caption & Layout Repairs (11 Bays):**
+  - **E15 Agent Control & Capability Laboratory:** Relocated RepoForge compiler banner (`Y=3.85, Z=-5.3`) and predecessor lineage banner (`Y=4.85, Z=-6.55`), completely eliminating direct physical plate occlusion.
+  - **E16 Performance Capture & Media Transformation:** Separated `LINEAGE` and `privacy` wall banners; raised `verifyLabel` (`CLEARCUT LOCAL`) to `(1.65, 3.65, -2.74)` clearing plinth shadow; raised `sourceLabel` (`CHARACTER PERFORMANCE CAPTURE`) to `(-2.05, 3.25, -2.65)` clearing the mannequin head.
+  - **E35 Local Specialist Systems Lab:** Mounted `wallLabel` (`Trust boundary — nothing crosses`) at `(0, 3.6, -1.55)` directly on the front face of the near partition post, fixing the post splitting the caption text in half.
+  - **E20 Utility & Privacy Bench:** Moved `absent` (`There is no delete lever on this bench.`) to `(0, 3.75, -7.15)` on the back wall, fully unblocking the museum wall plaque (`Utility & Privacy Bench`); lowered `meter` assembly down to `Y=1.35` onto the bench surface, eliminating mid-air floating occlusion.
+  - **E11 Continuity Systems:** Re-authored lineage banner into clean two-line layout (`KinDex → Bible Repo → Selfsame\nHe-Maker / Project Sentinel → recovery evidence`) at `(-1.2, 4.35, -6.5)`, clearing `HE-MAKER · PROJECT RECOVERY`; formatted table record cards with distinct state header and description.
+  - **E30 AetherVFX:** Converted arrow sequence into structured two-line layout (`telegraph → travel → impact → field → residue\nmutation is state, not decoration`) at `(0, 4.35, -6.2)`, eliminating awkward 3-line word wrapping.
+  - **E26 WestCat Systems:** Relocated lineage board and label to `(-2.3, 3.85, -6.6)`, fully visible above `WESTCAT OVERLAY` and clearing the central artwork screen.
+  - **E34 BigMac Backbone:** Raised receipt banner to `(0, 4.85, -6.4)` to clear the daemon sphere at high DPI.
+  - **E08 Heliocide Observatory:** Consolidated dual stacked black boxes on each witness pedestal into a single unified plaque (`${record.era}\n${record.label}`) at `(0, 2.05, 0)`, eliminating redundant geometry and visual clutter.
+  - **E07 Terraforming Laboratory:** Refined `status` banner at `(0, 4.35, -6.2)`.
+  - **E32 S'mores Katamari:** Raised compression note to `Y=1.85` inside the diorama.
+
+**Visual and automated evidence captured:**
+- 26 screenshots (13 before, 13 after) stored in `docs/evidence/caption-repairs-pass5-20261110/` covering E01, E07, E08, E11, E15, E16, E18, E20, E26, E30, E32, E34, E35 from natural visitor eye level.
+- Dedicated unit suite `tests/caption-typography.test.ts` verifying explicit newline preservation, font size floor enforcement, and multi-tier resolution sizing.
+
+**Invariants preserved:**
+- All 35 exhibits, 73 projects, 6 wings, Rotunda flight pad, separate Dexter Sanctuary, single frame loop, and 14 source installations intact.
+- Memory and texture transfer remain within the 20 MiB standalone allocation budget.
+- Sanctuary guide routing remains PROPOSED, not implemented.
+
+**Continuity:** `docs/COMPLETION_MATRIX.md` updated (queue item 4 marked repaired; queue item 5 front corners wing furnishings survey is next).
+
+**Resume here:** queue item 5 (front corners wing furnishings survey across the 13 installation host bays).

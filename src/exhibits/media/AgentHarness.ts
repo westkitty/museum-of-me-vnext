@@ -93,13 +93,13 @@ export class AgentHarness extends ExhibitBase {
       activate: () => this.invokeSelected(),
     });
 
-    const repoForgeLabel = buildLabel(scope, 'REPOFORGE · CAPABILITY & AUTHORITY COMPILER', 2.8);
+    const repoForgeLabel = buildLabel(scope, 'REPOFORGE · CAPABILITY & AUTHORITY COMPILER', 3.2, 0.16);
     repoForgeLabel.position.set(0, 3.85, -5.3);
     this.group.add(repoForgeLabel);
     scope.track(repoForgeLabel.geometry);
 
-    const oldHarness = buildLabel(scope, 'PREDECESSORS: Code Harness · OpenCode Harness    persistence remains outside the rack', 4.0);
-    oldHarness.position.set(0, 4.35, -6.0); this.group.add(oldHarness); scope.track(oldHarness.geometry);
+    const oldHarness = buildLabel(scope, 'PREDECESSORS: Code Harness · OpenCode Harness\nPersistence remains outside the rack', 4.4, 0.18);
+    oldHarness.position.set(0, 4.85, -6.55); this.group.add(oldHarness); scope.track(oldHarness.geometry);
   }
 
   private invokeSelected(): void {

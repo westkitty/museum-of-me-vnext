@@ -19,7 +19,7 @@ function scaledTextOptions(
   scale: number,
 ): TextTextureOptions {
   const scaled = { ...opts };
-  for (const key of ['width', 'height', 'titleSize', 'bodySize', 'padding'] as const) {
+  for (const key of ['width', 'height', 'titleSize', 'bodySize', 'padding', 'paddingX', 'paddingY'] as const) {
     const value = opts[key];
     if (value !== undefined) scaled[key] = Math.max(1, Math.round(value * scale));
   }
@@ -202,17 +202,22 @@ const LABEL_ASPECT = 0.32;
  * stays sharp.
  */
 function labelMaterial(scope: ResourceScope, text: string, width: number, aspect: number): THREE.MeshStandardMaterial {
-  const canvasWidth = width > 2 ? 1024 : 512;
+  const canvasWidth = width >= 3.2 ? 2048 : width >= 1.2 ? 1024 : 512;
   const scale = canvasWidth / 512;
+  const canvasHeight = Math.max(48, Math.round(canvasWidth * aspect));
+  const padX = Math.round(28 * scale);
+  const padY = Math.max(6, Math.min(Math.round(canvasHeight * 0.16), Math.round(20 * scale)));
+
   return textMaterial(scope, [], {
     width: canvasWidth,
-    height: Math.max(48, Math.round(canvasWidth * aspect)),
+    height: canvasHeight,
     title: text,
-    titleSize: Math.round(56 * scale),
+    titleSize: Math.round(54 * scale),
     fitTitle: true,
     align: 'center',
     rule: false,
-    padding: Math.round(24 * scale * Math.min(1, aspect / LABEL_ASPECT + 0.25)),
+    paddingX: padX,
+    paddingY: padY,
     background: '#1a1712',
     titleColor: '#e8d9b0',
   });

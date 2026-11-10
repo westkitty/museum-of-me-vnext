@@ -99,8 +99,8 @@ export class TerraformingLaboratory extends ExhibitBase {
       this.ctx.announce('NULLIFIED. Active Starsilk colour drains from the laboratory. Macro and Starbinding controls remain inert until full reset; ordinary planet physics may still step.');
     }});
 
-    const status = buildLabel(scope, 'ONE SHARED STATE · HARD ZERO-STARSILK COLLAPSE · POSITIVE SYRIN CONTACT NULLIFIES', 4.35);
-    status.position.set(0, 4.55, -6.4); this.group.add(status); scope.track(status.geometry);
+    const status = buildLabel(scope, 'ONE SHARED STATE · HARD ZERO-STARSILK COLLAPSE · POSITIVE SYRIN CONTACT NULLIFIES', 4.8, 0.16);
+    status.position.set(0, 4.35, -6.2); this.group.add(status); scope.track(status.geometry);
   }
 
   private operate(index: number): void {

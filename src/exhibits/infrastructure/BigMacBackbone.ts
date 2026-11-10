@@ -141,8 +141,8 @@ export class BigMacBackbone extends ExhibitBase {
       const label = buildLabel(scope, state.label, 0.72); label.position.set(-2.5 + i, 1.52, -2.13); this.group.add(label); scope.track(label.geometry);
     });
 
-    const receipt = buildLabel(scope, 'REQUESTED → ATTEMPTED → CHANGED? → VERIFIED    FAILED / UNKNOWN stay distinct', 5.6, STRIP);
-    receipt.position.set(0, 4.45, -6.4); this.group.add(receipt); scope.track(receipt.geometry);
+    const receipt = buildLabel(scope, 'REQUESTED → ATTEMPTED → CHANGED? → VERIFIED    FAILED / UNKNOWN stay distinct', 5.6, 0.12);
+    receipt.position.set(0, 4.85, -6.4); this.group.add(receipt); scope.track(receipt.geometry);
     this.applyReceiptVisualState();
   }
 

@@ -72,8 +72,8 @@ export class ContinuitySystems extends ExhibitBase {
       card.position.copy(home); this.group.add(card);
       this.cards.push(card); this.cardHomes.push(home);
 
-      const label = buildLabel(scope, `${record.state.toUpperCase()}\n${record.text}`, 0.9);
-      label.position.set(home.x, 1.1, home.z); label.rotation.x = -Math.PI / 2;
+      const label = buildLabel(scope, `${record.state.toUpperCase()}\n${record.text}`, 0.92, 0.58);
+      label.position.set(home.x, 1.06, home.z); label.rotation.x = -Math.PI / 2;
       this.group.add(label); scope.track(label.geometry);
 
       this.control({
@@ -196,8 +196,8 @@ export class ContinuitySystems extends ExhibitBase {
       },
     });
 
-    const lineage = buildLabel(scope, 'KinDex → Bible Repo → Selfsame    He-Maker / Project Sentinel → recovery evidence', 4.15);
-    lineage.position.set(0, 4.25, -6.4); this.group.add(lineage); scope.track(lineage.geometry);
+    const lineage = buildLabel(scope, 'KinDex → Bible Repo → Selfsame\nHe-Maker / Project Sentinel → recovery evidence', 4.2, 0.22);
+    lineage.position.set(-1.2, 4.35, -6.5); this.group.add(lineage); scope.track(lineage.geometry);
 
     this.applyRecoveryVisualState();
   }
