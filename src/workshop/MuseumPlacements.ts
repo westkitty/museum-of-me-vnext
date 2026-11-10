@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { ResourceScope } from '../assets/ResourceScope';
 import { type WorkshopPrefabId } from './catalog';
+import type { CollisionWorld } from '../world/CollisionWorld';
+import type { InteractionManager } from '../interaction/InteractionManager';
 import { AuthorableSceneRegistry, type AuthorableSceneTransform } from './AuthorableSceneRegistry';
 import { validateWorkshopManifestForMuseum } from './conservation';
 import {
@@ -25,6 +27,11 @@ export class MuseumPlacements {
   private readonly scope = new ResourceScope('museum-placements');
   private readonly registry: AuthorableSceneRegistry | null;
   private manifest: WorkshopPlacementManifest;
+  private readonly boundCollisions = new Set<CollisionWorld>();
+  private readonly interactionDisposers: Array<() => void> = [];
+  private interaction: InteractionManager | null = null;
+  private onAnnounce: ((message: string) => void) | null = null;
+  private activeWorld: 'exterior' | 'interior' = 'exterior';
 
   constructor(rawManifest: unknown, registry: AuthorableSceneRegistry | null = null) {
     this.group.name = 'museum-authored-placements';
@@ -38,6 +45,41 @@ export class MuseumPlacements {
   }
 
   get objectCount(): number { return this.roots.size; }
+
+  bindInteractions(manager: InteractionManager, announce: (message: string) => void): void {
+    this.interaction = manager;
+    this.onAnnounce = announce;
+    this.rebuild();
+  }
+
+  /** Invoked by the existing App loop; no second frame loop or engine. */
+  syncWorld(world: 'exterior' | 'interior', exterior: CollisionWorld, interior?: CollisionWorld): void {
+    this.activeWorld = world;
+    for (const record of this.manifest.objects) {
+      const root = this.roots.get(record.id);
+      if (root) root.visible = !record.worldId || record.worldId === 'shared' || record.worldId === world;
+    }
+    this.syncCollision(exterior, 'exterior');
+    if (interior) this.syncCollision(interior, 'interior');
+  }
+
+  private syncCollision(target: CollisionWorld, world: 'exterior' | 'interior'): void {
+    if (this.boundCollisions.has(target)) return;
+    this.boundCollisions.add(target);
+    for (const record of this.manifest.objects) {
+      if (record.collision !== 'solid') continue;
+      if (record.worldId && record.worldId !== 'shared' && record.worldId !== world) continue;
+      const root = this.roots.get(record.id);
+      if (!root) continue;
+      root.updateWorldMatrix(true, true);
+      const box = new THREE.Box3().setFromObject(root);
+      if (box.isEmpty()) continue;
+      target.setDynamicWall(record.id, {
+        kind: 'wall', minX: box.min.x, maxX: box.max.x, minY: box.min.y,
+        maxY: box.max.y, minZ: box.min.z, maxZ: box.max.z,
+      });
+    }
+  }
 
   getObject(id: string): THREE.Object3D | null {
     return this.roots.get(id) ?? this.registry?.get(id)?.root ?? null;
@@ -122,6 +164,11 @@ export class MuseumPlacements {
   }
 
   dispose(): void {
+    for (const release of this.interactionDisposers.splice(0)) release();
+    for (const target of this.boundCollisions) {
+      for (const record of this.manifest.objects) target.setDynamicWall(record.id, null);
+    }
+    this.boundCollisions.clear();
     this.group.removeFromParent();
     this.group.clear();
     this.roots.clear();
@@ -129,6 +176,11 @@ export class MuseumPlacements {
   }
 
   private rebuild(): void {
+    for (const release of this.interactionDisposers.splice(0)) release();
+    for (const target of this.boundCollisions) {
+      for (const record of this.manifest.objects) target.setDynamicWall(record.id, null);
+    }
+    this.boundCollisions.clear();
     this.group.clear();
     this.roots.clear();
     this.scope.releaseAll();
@@ -137,7 +189,18 @@ export class MuseumPlacements {
     const materials = this.createMaterials();
 
     for (const record of this.manifest.objects) {
-      const root = this.buildPrefab(record.prefab, materials);
+      const root = this.buildPrefab(record, materials);
+      if (record.color) {
+        root.traverse((node) => {
+          const mesh = node as THREE.Mesh;
+          if (!mesh.isMesh || mesh.userData.workshopImageSurface) return;
+          const material = mesh.material;
+          if (material instanceof THREE.MeshStandardMaterial) {
+            mesh.material = this.scope.track(material.clone());
+            (mesh.material as THREE.MeshStandardMaterial).color.set(record.color!);
+          }
+        });
+      }
       root.name = `workshop:${record.id}`;
       root.userData.workshopId = record.id;
       root.userData.workshopPrefab = record.prefab;
@@ -150,6 +213,28 @@ export class MuseumPlacements {
       this.scope.trackObject(root);
       this.group.add(root);
       this.roots.set(record.id, root);
+      if (record.event === 'announce' && this.interaction) {
+        const release = this.interaction.register(`workshop:${record.id}`, {
+          object: root,
+          label: () => `Inspect ${record.label}`,
+          description: `Inspect authored museum object ${record.label}`,
+          activate: () => this.onAnnounce?.(`Museum object: ${record.label}`),
+        });
+        this.interactionDisposers.push(release);
+      }
+      if (record.prefab === 'wall-art' && record.image) {
+        const surface = root.getObjectByName('workshop-art-surface') as THREE.Mesh | undefined;
+        if (surface) {
+          const url = `${import.meta.env.BASE_URL}${record.image}`;
+          const texture = this.scope.track(new THREE.TextureLoader().load(url, () => {
+            this.scope && (surface.material as THREE.MeshBasicMaterial).needsUpdate;
+          }, undefined, () => {
+            console.warn('[Museum Builder] artwork missing:', record.image);
+          }));
+          texture.colorSpace = THREE.SRGBColorSpace;
+          surface.material = this.scope.track(new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
+        }
+      }
     }
   }
 
@@ -168,9 +253,9 @@ export class MuseumPlacements {
     };
   }
 
-  private buildPrefab(prefab: WorkshopPrefabId, materials: PlacementMaterials): THREE.Group {
+  private buildPrefab(record: WorkshopPlacementRecord, materials: PlacementMaterials): THREE.Group {
     const root = new THREE.Group();
-    switch (prefab) {
+    switch (record.prefab) {
       case 'display-plinth': {
         root.add(this.mesh(new THREE.CylinderGeometry(0.78, 0.88, 1.02, 12), materials.stone, [0, 0.51, 0]));
         root.add(this.mesh(new THREE.CylinderGeometry(0.82, 0.82, 0.08, 12), materials.accent, [0, 1.06, 0]));
@@ -189,6 +274,23 @@ export class MuseumPlacements {
         root.add(this.mesh(new THREE.CylinderGeometry(0.36, 0.44, 0.08, 12), materials.stone, [0, 0.04, 0]));
         root.add(this.mesh(new THREE.BoxGeometry(0.09, 1.45, 0.09), materials.dark, [0, 0.76, 0]));
         root.add(this.mesh(new THREE.BoxGeometry(1.25, 0.48, 0.08), materials.accent, [0, 1.54, 0]));
+        break;
+      }
+      case 'sculpture-sphere': {
+        root.add(this.mesh(new THREE.SphereGeometry(0.5, 24, 16), materials.accent, [0, 0, 0]));
+        break;
+      }
+      case 'wall-art': {
+        const depth = record.depth ?? 0.055;
+        root.add(this.mesh(new THREE.BoxGeometry(1.08, 1.08, depth), materials.wood, [0, 0, 0]));
+        const surface = this.mesh(new THREE.PlaneGeometry(1, 1), materials.stone, [0, 0, depth / 2 + 0.003]);
+        surface.name = 'workshop-art-surface';
+        surface.userData.workshopImageSurface = true;
+        root.add(surface);
+        break;
+      }
+      case 'wall-panel': {
+        root.add(this.mesh(new THREE.BoxGeometry(1, 1, record.depth ?? 0.025), materials.stone, [0, 0, 0]));
         break;
       }
       case 'artifact-table': {
