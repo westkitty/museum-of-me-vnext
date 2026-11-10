@@ -147,7 +147,11 @@ export class Workshop {
     const yaw = this.savedVisitorYaw;
     this.savedVisitorPosition = null;
     if (wasWorld === 'exterior' && this.app.activeWorld !== 'exterior') this.app.worldDirector.switchToExterior();
-    if (original) this.app.player.teleport([original.x, original.y, original.z], yaw);
+    if (wasWorld === 'interior' && this.app.activeWorld !== 'interior') {
+      void this.app.worldDirector.switchToInterior().then(() => {
+        if (original) this.app.player.teleport([original.x, original.y, original.z], yaw);
+      }).catch((error) => console.error('[Museum Builder] restore interior failed', error));
+    } else if (original) this.app.player.teleport([original.x, original.y, original.z], yaw);
     this.app.ui.setBuildModeActive(false);
     this.app.ui.hud.setWorkshopCue(null);
   }
@@ -358,7 +362,10 @@ export class Workshop {
     if (!record) return;
     const label = this.labelInput.value.trim();
     const anchor = this.anchorInput.value as WorkshopAnchor;
-    if (!label || label.length > 80 || (anchor !== 'floor' && anchor !== 'free')) return this.refreshInspector();
+    if (!label || label.length > 80 || (anchor !== 'floor' && anchor !== 'free' && anchor !== 'wall')) return this.refreshInspector();
+    if (anchor === 'wall' && record.prefab !== 'wall-art' && record.prefab !== 'wall-panel') {
+      return this.note('Wall mounting requires wall art or a paintable panel.', 'warn');
+    }
     const before = this.placements.captureManifest();
     const after = this.placements.setRecord({ ...record, label, anchor });
     this.history.push(`Edit ${record.label}`, before, after);
@@ -848,8 +855,8 @@ const WORKSHOP_HTML = `
   <span><kbd>F</kbd>Select/Edit object</span><span><kbd>F8</kbd>toggle</span><span><kbd>Esc</kbd>exit</span><span><kbd>W</kbd>move</span><span><kbd>E</kbd>rotate</span><span><kbd>R</kbd>scale</span><span><kbd>G</kbd>floor</span>
   <span><kbd>⌘/Ctrl+D</kbd>duplicate</span><span><kbd>Delete</kbd>remove</span><span><kbd>⌘/Ctrl+Z</kbd>undo</span><span><kbd>⇧⌘/Ctrl+Z</kbd>redo</span><span><kbd>⌘/Ctrl+S</kbd>save</span>
 </nav>
-<aside class="workshop-panel" data-workshop="panel" tabindex="-1" aria-label="Museum Workshop development editor">
-  <header><div><span>DEVELOPMENT ONLY</span><h2>Museum Workshop</h2></div><b>safe objects</b></header>
+<aside class="workshop-panel" data-workshop="panel" tabindex="-1" aria-label="Museum Builder development editor">
+  <header><div><span>DEVELOPMENT ONLY</span><h2>Museum Builder</h2></div><b>local authoring</b></header>
   <section><h3>Selection</h3><strong data-workshop="selection-title"></strong><p class="workshop-muted" data-workshop="selection-meta"></p>
     <label>Label<input data-workshop="label" maxlength="80"></label>
     <label>Anchor<select data-workshop="anchor"><option value="floor">Floor anchored</option><option value="free">Free placement</option><option value="wall">Wall mounted</option></select></label>
