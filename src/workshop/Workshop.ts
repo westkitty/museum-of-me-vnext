@@ -718,7 +718,14 @@ export class Workshop {
     this.refreshOutliner();
     this.undoButton.disabled = !this.history.canUndo;
     this.redoButton.disabled = !this.history.canRedo;
-    const placementSelected = this.record() !== null;
+    const placement = this.record();
+    const placementSelected = placement !== null;
+    this.el<HTMLButtonElement>('place-wall').disabled = placement?.prefab !== 'wall-art' && placement?.prefab !== 'wall-panel';
+    this.el<HTMLButtonElement>('focus').disabled = !this.object();
+    this.root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach((button) => {
+      button.dataset.active = String(button.dataset.view === this.camera.currentView);
+    });
+    this.el<HTMLElement>('world-indicator').textContent = `Editing: ${this.app.activeWorld === 'exterior' ? 'Island' : 'Museum'}`;
     this.el<HTMLButtonElement>('duplicate').disabled = !placementSelected;
     this.el<HTMLButtonElement>('delete').disabled = !placementSelected;
     this.el<HTMLButtonElement>('floor').disabled = !placementSelected;
@@ -735,10 +742,20 @@ export class Workshop {
     this.labelInput.disabled = disabled || sceneEntry !== null;
     this.anchorInput.disabled = disabled || sceneEntry !== null;
     for (const input of Object.values(this.inputs)) input.disabled = disabled;
+    this.uniformScaleInput.disabled = disabled;
+    this.paintInput.disabled = !record;
+    this.depthInput.disabled = record?.prefab !== 'wall-art' && record?.prefab !== 'wall-panel';
+    this.collisionInput.disabled = !record;
+    this.eventInput.disabled = !record;
+    this.imageInput.disabled = record?.prefab !== 'wall-art';
     if ((!record && !sceneEntry) || !object) {
       this.title.textContent = 'Nothing selected';
       this.meta.textContent = 'Click an authored object or choose one below.';
       this.labelInput.value = '';
+      this.paintInput.value = '#a3b5bd';
+      this.depthInput.value = '0.055';
+      this.collisionInput.value = 'none';
+      this.eventInput.value = 'none';
       for (const input of Object.values(this.inputs)) input.value = '';
       return;
     }
@@ -748,6 +765,10 @@ export class Workshop {
       : `${sceneEntry!.id} · existing scene · ${sceneEntry!.source} · ${sceneEntry!.collisionPolicy}`;
     this.labelInput.value = record?.label ?? sceneEntry!.label;
     this.anchorInput.value = record?.anchor ?? 'free';
+    this.paintInput.value = record?.color ?? '#a3b5bd';
+    this.depthInput.value = String(record?.depth ?? 0.055);
+    this.collisionInput.value = record?.collision ?? 'none';
+    this.eventInput.value = record?.event ?? 'none';
     const values: Record<InputKey, number> = {
       px: object.position.x, py: object.position.y, pz: object.position.z,
       rx: object.rotation.x * DEG, ry: object.rotation.y * DEG, rz: object.rotation.z * DEG,
@@ -815,6 +836,10 @@ export class Workshop {
 const WORKSHOP_HTML = `
 <div class="workshop-toolbar">
   <button type="button" data-mode="translate">Move</button><button type="button" data-mode="rotate">Rotate</button><button type="button" data-mode="scale">Scale</button>
+  <button type="button" data-view="dollhouse" data-workshop="view-dollhouse">Dollhouse</button>
+  <button type="button" data-view="orbit" data-workshop="view-orbit">Orbit</button>
+  <button type="button" data-view="top" data-workshop="view-top">Top</button>
+  <button type="button" data-workshop="world-exterior">Island</button><button type="button" data-workshop="world-interior">Museum</button>
   <button type="button" data-workshop="space">World</button><button type="button" data-workshop="floor">Snap floor</button>
   <button type="button" data-workshop="undo">Undo</button><button type="button" data-workshop="redo">Redo</button>
   <button type="button" data-workshop="save">Save to build</button><button type="button" data-workshop="exit">Exit F8</button>
@@ -827,15 +852,29 @@ const WORKSHOP_HTML = `
   <header><div><span>DEVELOPMENT ONLY</span><h2>Museum Workshop</h2></div><b>safe objects</b></header>
   <section><h3>Selection</h3><strong data-workshop="selection-title"></strong><p class="workshop-muted" data-workshop="selection-meta"></p>
     <label>Label<input data-workshop="label" maxlength="80"></label>
-    <label>Anchor<select data-workshop="anchor"><option value="floor">Floor anchored</option><option value="free">Free placement</option></select></label>
+    <label>Anchor<select data-workshop="anchor"><option value="floor">Floor anchored</option><option value="free">Free placement</option><option value="wall">Wall mounted</option></select></label>
     <div class="workshop-row"><button type="button" data-workshop="duplicate">Duplicate</button><button type="button" data-workshop="delete">Delete</button></div>
   </section>
   <section><h3>Transform</h3>
     <div class="workshop-vector"><span>Position</span><input type="number" step=".05" data-workshop="px"><input type="number" step=".05" data-workshop="py"><input type="number" step=".05" data-workshop="pz"></div>
     <div class="workshop-vector"><span>Rotation °</span><input type="number" step="1" data-workshop="rx"><input type="number" step="1" data-workshop="ry"><input type="number" step="1" data-workshop="rz"></div>
-    <div class="workshop-vector"><span>Scale</span><input type="number" min=".05" max="20" step=".05" data-workshop="sx"><input type="number" min=".05" max="20" step=".05" data-workshop="sy"><input type="number" min=".05" max="20" step=".05" data-workshop="sz"></div>
+    <div class="workshop-vector"><span>Scale</span><input type="number" min=".05" max="100" step=".05" data-workshop="sx" aria-label="Scale X"><input type="number" min=".05" max="100" step=".05" data-workshop="sy" aria-label="Scale Y"><input type="number" min=".05" max="100" step=".05" data-workshop="sz" aria-label="Scale Z"></div>
+    <label><span>Proportions</span><span><input type="checkbox" data-workshop="uniform-scale"> Lock uniform scaling</span></label>
+    <label>Grid<select data-workshop="grid-snap"><option value="0">Off — free</option><option value=".05">5 cm</option><option value=".1" selected>10 cm</option><option value=".25">25 cm</option><option value=".5">50 cm</option><option value="1">1 metre</option></select></label>
+    <button type="button" data-workshop="focus">Focus selection</button>
   </section>
-  <section><h3>Add safe object</h3><div class="workshop-palette" data-workshop="palette"></div></section>
+  <section><h3>Surface, finish &amp; behavior</h3>
+    <label>Paint<input data-workshop="paint" type="color" value="#a3b5bd"></label>
+    <label>Depth (m)<input data-workshop="depth" type="number" min=".01" max="2" step=".01" value=".055"></label>
+    <button type="button" data-workshop="place-wall">Attach selected to wall</button>
+    <label>Artwork image<input data-workshop="image" type="file" accept="image/*"></label>
+    <p class="workshop-muted">Images become local WebP files in public/workshop-media. Review before committing or publishing.</p>
+    <label>Collision<select data-workshop="collision"><option value="none">Walk through (none)</option><option value="solid">Solid bounding box</option></select></label>
+    <label>On interact<select data-workshop="event"><option value="none">No action</option><option value="announce">Announce object name</option></select></label>
+    <p class="workshop-muted">Protected geometry and routes remain locked. No arbitrary scripts are executed.</p>
+  </section>
+  <section><h3>Add object</h3><div class="workshop-palette" data-workshop="palette"></div></section>
   <section><h3>Placed objects</h3><div class="workshop-outliner" data-workshop="outliner"></div></section>
+  <p data-workshop="world-indicator" class="workshop-muted">Editing: Island</p>
   <div class="workshop-status" data-workshop="status" role="status" aria-live="polite"></div>
 </aside>`;
