@@ -14,6 +14,12 @@ export interface TextTextureOptions {
   readonly align?: 'left' | 'center';
   readonly rule?: boolean;
   readonly font?: string;
+  /**
+   * Shrink the title until every word of it fits the canvas, and centre it
+   * vertically. For single-purpose labels, where a clipped sentence is worse
+   * than a smaller one.
+   */
+  readonly fitTitle?: boolean;
 }
 
 /**
@@ -32,7 +38,7 @@ export function createTextTexture(
   const height = opts.height ?? 512;
   const padding = opts.padding ?? 56;
   const bodySize = opts.bodySize ?? 30;
-  const titleSize = opts.titleSize ?? 46;
+  let titleSize = opts.titleSize ?? 46;
   const font = opts.font ?? 'Georgia, "Iowan Old Style", serif';
 
   const canvas = document.createElement('canvas');
@@ -53,6 +59,20 @@ export function createTextTexture(
   if (opts.title) {
     ctx.fillStyle = opts.titleColor ?? '#241d14';
     ctx.font = `600 ${titleSize}px ${font}`;
+    if (opts.fitTitle) {
+      const available = height - padding * 2;
+      const maxWidth = width - padding * 2;
+      const fits = () => {
+        const lines = countWrappedLines(ctx, opts.title!, maxWidth);
+        return lines.count * titleSize * 1.15 <= available && lines.widest <= maxWidth;
+      };
+      while (titleSize > 16 && !fits()) {
+        titleSize -= 2;
+        ctx.font = `600 ${titleSize}px ${font}`;
+      }
+      const used = countWrappedLines(ctx, opts.title, maxWidth).count * titleSize * 1.15;
+      y = padding + Math.max(0, (available - used) / 2);
+    }
     y = drawWrapped(ctx, opts.title, x, y, width - padding * 2, titleSize * 1.15, align, width);
     y += 14;
     if (opts.rule !== false) {
@@ -76,6 +96,32 @@ export function createTextTexture(
   texture.anisotropy = 4;
   texture.needsUpdate = true;
   return scope.track(texture);
+}
+
+/** How many lines `drawWrapped` will use, and the widest of them. */
+function countWrappedLines(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+): { count: number; widest: number } {
+  let line = '';
+  let count = 0;
+  let widest = 0;
+  for (const word of text.split(/\s+/)) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (ctx.measureText(candidate).width > maxWidth && line) {
+      widest = Math.max(widest, ctx.measureText(line).width);
+      count++;
+      line = word;
+    } else {
+      line = candidate;
+    }
+  }
+  if (line) {
+    widest = Math.max(widest, ctx.measureText(line).width);
+    count++;
+  }
+  return { count, widest };
 }
 
 function drawWrapped(
