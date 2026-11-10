@@ -93,8 +93,14 @@ export class DrakkenCompendium extends ExhibitBase {
     DRAKKEN_REFERENCE_STATIONS.forEach((reference, i) => {
       const station = new THREE.Group();
       const m = transforms[i];
-      station.position.setFromMatrixPosition(m).add(new THREE.Vector3(0, 0, -3.4));
-      station.rotation.y = Math.atan2(station.position.x, station.position.z + 3.4);
+      if (i === 0) {
+        // Station 0 stands in front of the bay's central plinth rather than intersecting it.
+        station.position.set(0, 0, 2.1);
+        station.rotation.y = 0;
+      } else {
+        station.position.setFromMatrixPosition(m).add(new THREE.Vector3(0, 0, -3.4));
+        station.rotation.y = Math.atan2(station.position.x, station.position.z + 3.4);
+      }
       this.group.add(station);
       this.stations.push(station);
 

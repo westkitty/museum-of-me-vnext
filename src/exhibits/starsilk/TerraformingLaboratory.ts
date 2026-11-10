@@ -56,20 +56,28 @@ export class TerraformingLaboratory extends ExhibitBase {
     this.atmosphere = new THREE.Mesh(scope.track(new THREE.SphereGeometry(2.28, 28, 20)), scope.track(new THREE.MeshStandardMaterial({ color: 0x7fb8e0, transparent: true, opacity: 0.08, roughness: 0.1, side: THREE.DoubleSide })));
     this.atmosphere.position.copy(this.world.position); this.group.add(this.atmosphere);
 
-    const deck = new THREE.Mesh(scope.track(new THREE.RingGeometry(2.1, 5.4, 42)), this.standard(0x29283a, { roughness: 0.88 }));
+    const deck = new THREE.Mesh(
+      scope.track(new THREE.RingGeometry(2.1, 5.4, 42, 1, -0.15 * Math.PI, 1.3 * Math.PI)),
+      this.standard(0x29283a, { roughness: 0.88 }),
+    );
     deck.rotation.x = -Math.PI / 2; deck.position.set(0, 0.04, -4.0); this.group.add(deck);
 
     STATIONS.forEach((station, i) => {
       const a = (i / STATIONS.length) * Math.PI * 2 - Math.PI / 2;
       const x = Math.cos(a) * 4.35;
       const z = -4.0 + Math.sin(a) * 3.45;
+      // Station 3 stands in front of the plinth rather than intersecting it.
+      const xPos = i === 3 ? -1.1 : x;
+      const zPos = i === 3 ? 2.1 : z;
+      const yRot = i === 3 ? 0 : -a + Math.PI / 2;
+
       const c = buildConsole(scope, 0.7, 0.5, 1.0, this.standard(0x343247, { roughness: 0.65 }));
-      c.position.set(x, 0, z); c.rotation.y = -a + Math.PI / 2; this.group.add(c); this.stationMeshes.push(c);
+      c.position.set(xPos, 0, zPos); c.rotation.y = yRot; this.group.add(c); this.stationMeshes.push(c);
       const lamp = new THREE.Mesh(scope.track(new THREE.SphereGeometry(0.075, 10, 8)), this.emissive(station.colour, i === 0 ? 1.2 : 0.12));
       lamp.position.set(0, 1.22, 0); c.add(lamp); this.stationLamps.push(lamp);
       const label = buildLabel(scope, `${i + 1}. ${station.name}`, 0.76); label.position.set(0, 1.03, 0.24); label.rotation.x = -Math.PI / 2.1; c.add(label); scope.track(label.geometry);
 
-      const from = new THREE.Vector3(x, 1.15, z);
+      const from = new THREE.Vector3(xPos, 1.15, zPos);
       const to = this.world.position.clone();
       const curve = new THREE.CatmullRomCurve3([from, from.clone().lerp(to, 0.5).add(new THREE.Vector3(0, 0.8, 0)), to]);
       this.sharedCurves.push(curve);
@@ -78,10 +86,12 @@ export class TerraformingLaboratory extends ExhibitBase {
       this.control({ object: c, label: `Operate ${station.name} station`, description: station.note, activate: () => this.operate(i) });
     });
 
-    this.pulse = new Pulse(scope, 0.1, this.emissive(0xffffff, 1.9)); this.group.add(this.pulse.mesh);
+    this.pulse = new Pulse(scope, 0.1, this.emissive(0xffffff, 1.9));
+    this.pulse.mesh.position.copy(this.world.position);
+    this.group.add(this.pulse.mesh);
 
     const nullify = buildConsole(scope, 0.76, 0.5, 1.0, this.standard(0x4f252c, { roughness: 0.6 }));
-    nullify.position.set(0, 0, -0.35); this.group.add(nullify);
+    nullify.position.set(1.1, 0, 2.1); this.group.add(nullify);
     const nullLabel = buildLabel(scope, 'SYRIN CONTACT', 0.72); nullLabel.position.set(0, 1.02, 0.2); nullLabel.rotation.x = -Math.PI / 2.1; nullify.add(nullLabel); scope.track(nullLabel.geometry);
     this.control({ object: nullify, label: 'Inject positive Syrin contact', description: 'Any positive contact nullifies the active Starsilk runtime. This is a hard exception, not a resistance roll.', activate: () => {
       if (this.nullified) { this.ctx.announce('Starsilk is already nullified. Only a full laboratory reset restores the runtime.'); return; }

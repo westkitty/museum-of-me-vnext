@@ -228,7 +228,8 @@ export class HeliocideObservatory extends ExhibitBase {
     HELIOCIDE_EVIDENCE.forEach((record, index) => {
       const witness = new THREE.Group();
       witness.name = 'witness-record:' + record.id;
-      witness.position.set(-5.15 + index * 2.06, 0, 0.85);
+      // Stood in front of the bay plinth rather than intersecting it.
+      witness.position.set(-5.15 + index * 2.06, 0, 2.15);
       this.group.add(witness);
 
       const body = new THREE.Mesh(baseGeometry, stone);

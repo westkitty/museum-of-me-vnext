@@ -26,16 +26,16 @@ person still has to look at. Nothing here is a human PASS.
 | ID | Wing | Exhibit | Represents | Copy | Automated contract | Visitor meaning / visual | Lead |
 |---|---|---|---|---|---|---|---|
 | E01 | north | Starsilk Universe | Starsilk Universe | base | PASS | UNVERIFIED | — |
-| E02 | north | Drakken Terraforming Compendium | Drakken Terraforming Compendium; Drakken Field Anatomy Archive | revision 2 | PASS | UNVERIFIED | P006 not named in the bay source; MEASURED (pass 2): an exhibit part intersects the bay plinth |
+| E02 | north | Drakken Terraforming Compendium | Drakken Terraforming Compendium; Drakken Field Anatomy Archive | revision 2 | PASS | VERIFIED BY BROWSER (pass 3); human acceptance pending | P006 not named in the bay source; REPAIRED (pass 3): Station 0 moved to (0, 0, 2.1) clear of bay plinth; 0 intersections measured |
 | E03 | north | Orbital Tomb | Orbital Tomb | base | PASS | UNVERIFIED | — |
 | E04 | north | Starsilk Possibility Cartographer | Starsilk Possibility Cartographer | base | PASS | UNVERIFIED | — |
 | E05 | north | StarSilk Maker | StarSilk Maker | base | PASS | UNVERIFIED | — |
 | E06 | north | Starsilk Compendium: Character & Canon Archive | Starsilk Compendium | revision 2 | PASS | UNVERIFIED | — |
-| E07 | north | Drakken Terraforming Laboratory | The Drakken Terraforming Laboratory | revision 2 | PASS | UNVERIFIED | MEASURED (pass 2): an exhibit part intersects the bay plinth |
-| E08 | north | Heliocide Observatory | Heliocide Observatory | base | PASS | UNVERIFIED | MEASURED (pass 2): an exhibit part intersects the bay plinth |
+| E07 | north | Drakken Terraforming Laboratory | The Drakken Terraforming Laboratory | revision 2 | PASS | VERIFIED BY BROWSER (pass 3); human acceptance pending | REPAIRED (pass 3): deck ring clamped clear of plinth, Station 3 and Syrin Contact console moved to z=2.1, pulse centered on planet; 0 intersections measured |
+| E08 | north | Heliocide Observatory | Heliocide Observatory | base | PASS | VERIFIED BY BROWSER (pass 3); human acceptance pending | REPAIRED (pass 3): witness records row moved to z=2.15 clear of bay plinth; 0 intersections measured |
 | E09 | west | Museum Evolution | Museum of Me / The Reliquary of Iterative Becoming; Modern 3D Browser Game Toolkit | revision 2 | PASS | UNVERIFIED | — |
 | E10 | west | WorldsVault Lineage | WorldsVault Uplink; CanonForge; WorldsVault | base | PASS | UNVERIFIED | — |
-| E11 | west | Selfsame: Continuity & Authority Systems | KinDex Handoff; ChatGPT Bible Repo; Project Forge; He-Maker; Selfsame; Project Sentinel | revision 2 | PASS | UNVERIFIED | 3 of 6 lineage projects not named in the bay source; MEASURED (pass 2): an exhibit part intersects the bay plinth |
+| E11 | west | Selfsame: Continuity & Authority Systems | KinDex Handoff; ChatGPT Bible Repo; Project Forge; He-Maker; Selfsame; Project Sentinel | revision 2 | PASS | VERIFIED BY BROWSER (pass 3); human acceptance pending | 3 of 6 lineage projects not named in the bay source; REPAIRED (pass 3): TRY OPERATION console moved to (0, 0, 2.1) clear of bay plinth; 0 intersections measured |
 | E12 | west | Rhetorical InDEX | Rhetorical InDEX | revision 2 | PASS | UNVERIFIED | — |
 | E13 | media | Suno Studio | Suno AI Lyrics and Manual | base | PASS | UNVERIFIED | — |
 | E14 | media | Promptcraft & Vibe Coding | Visual Prompt Systems Registry; Vibe Coding Nexus / DexGate Academy; DexEnhance | revision 2 | PASS | UNVERIFIED | 2 of 3 projects not named in the bay source |
@@ -92,11 +92,8 @@ Ranked by visitor impact, release relevance, evidence strength and risk.
 1. **Human device walkthrough (owner).** Nine acceptance judgments and at least six telemetry snapshots
    with `?qa=1`, from scratch. Still the largest gap. The installation move in pass 2 changes what every
    one of the 13 host bays looks like on entry, so earlier impressions of those bays do not carry over.
-2. **Bay plinth conflicts in E02, E07, E08 and E11.** Measured intersections between an exhibit part and
-   the bay plinth; same class of defect repaired in E17 and E34. Look, then move the offending part.
-3. **Look at the remaining nine "Lead" exhibits** (E02, E11, E14, E15, E16, E20, E23, E26, E35) for
-   projects that are named only on the lectern. E17 and E34 showed the pattern is real: both had
-   projects with no presence in the bay.
+2. **Bay plinth conflicts in E02, E07, E08 and E11.** **REPAIRED (pass 3)** — measured intersections in all four bays resolved; 0 intersections verified in `tests/exhibit-plinth.test.ts`. Before and after visual evidence captured in `docs/evidence/plinth-repairs-20261109/`.
+3. **Look at the remaining seven "Lead" exhibits** (E14, E15, E16, E20, E23, E26, E35) for projects that are named only on the lectern. E20 and E35 inspected in pass 3: 0 plinth intersections; both confirm the pattern where projects are represented conceptually and on the lectern rather than with dedicated physical in-bay nameplates.
 4. **Second look at long captions museum-wide.** The clipping repair is global, but only E17 and E34
    were viewed after it. Some captions may now be set small; a strip aspect may suit them better.
 5. **Front corners of the 13 host bays.** Installations now stand there. Checked by measurement against
@@ -106,12 +103,12 @@ Ranked by visitor impact, release relevance, evidence strength and risk.
 7. **Repository hygiene (owner).** Ten draft exterior PRs (#27–#37) predate the merged V3 work; `main`
    is unprotected.
 
-Closed in pass 2: offline standalone, Workshop and Pages proofs and the full Chromium suite were run at
-this revision (see `OPERATIONAL_STATE.md`).
+Closed in pass 2 & 3: offline standalone, Workshop and Pages proofs and the full Chromium suite were run at
+this revision (see `OPERATIONAL_STATE.md`); all 4 plinth conflicts (E02, E07, E08, E11) repaired and visually verified.
 
 ## Release blockers
 
-**Machine-verifiable, still open:** queue items 2–5; exact-head CI for this branch (not pushed).
+**Machine-verifiable, still open:** queue items 3–5; exact-head CI for this branch (not pushed).
 
 **Owner-dependent:** human walkthrough and its nine judgments; audio, pointer-lock and device FPS
 checks; whether to merge this branch; any Pages publication; any 1.0 declaration; queue items 6 and 7;

@@ -117,7 +117,8 @@ export class ContinuitySystems extends ExhibitBase {
     });
 
     const attempt = buildConsole(scope, 0.78, 0.5, 1.0, bronze);
-    attempt.position.set(0, 0, -0.55); this.group.add(attempt);
+    // Stood in front of the bay plinth rather than inside it.
+    attempt.position.set(0, 0, 2.1); this.group.add(attempt);
     const attemptLabel = buildLabel(scope, 'TRY OPERATION', 0.72);
     attemptLabel.position.set(0, 1.02, 0.2); attemptLabel.rotation.x = -Math.PI / 2.1;
     attempt.add(attemptLabel); scope.track(attemptLabel.geometry);

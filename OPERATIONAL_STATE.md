@@ -6,8 +6,8 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 94,
-  "last_updated": "2026-11-09",
+  "state_revision": 95,
+  "last_updated": "2026-11-10",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
 -->
@@ -844,8 +844,49 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - Label captions must fit their plate. Do not reintroduce fixed-size label text.
 - The 2.6 m bay plinth and its collider remain at every bay anchor. Exhibit parts must not be placed inside it.
 
-**Still open (measured, not yet repaired):** exhibit parts intersect the bay plinth in E02, E07, E08 and E11.
+**Still open (measured, not yet repaired):** none from queue item 2; all four plinth conflicts resolved in pass 3.
 
 **Continuity:** matrix and queue updated in `docs/COMPLETION_MATRIX.md`; Sanctuary routing proposal in `docs/SANCTUARY_ROUTING_PROPOSAL.md` (owner decision pending, not implemented); pending Bible entry extended in `docs/MUSEUM_BIBLE_APPEND_2026-11-09_COMPLETION_PASS_1.md`. The canonical Bible repository was not modified.
 
 **Resume here:** open E02, E07, E08 and E11, find the part that intersects the bay plinth, move it clear, and re-run the plinth measurement; then continue the lead-exhibit review with E20 and E35.
+
+
+### Completion pass 3 — Antigravity continuation: E02, E07, E08, E11 plinth repairs & E20/E35 inspection (2026-11-10)
+
+**State:** IMPLEMENTED AND LOCALLY VERIFIED ON THE SAME LOCAL BRANCH. NOT PUSHED, NOT MERGED, NOT DEPLOYED.
+**Branch:** `feat/completion-guide-and-drift-20261109`; pass 3 started at `77fc0017534167ba9bd956a64d36ea1dea760661` (cherry-picked docs commit `56171035d36ed691370e793a44b9369759db8710` from `handoff/antigravity-20261109-9ce00a5`); all 7 Fable completion commits preserved (`67e4934`, `5faffdc`, `69fe4a3`, `a98f01f`, `3fa2af8`, `8c77775`, `9ce00a5`); `origin/main` still `a96d2f7`.
+**Product status unchanged:** ACTIVE DEVELOPMENT / PRE-1.0. Verdict: PARTIAL.
+
+**Verification closed (all on the final pass-3 working tree, system Chrome via `MUSEUM_BROWSER_EXECUTABLE`):**
+- `npm run gate`: PASS — 776 unit tests / 60 files, all validators (mapping, content, privacy, frameloop, hotpaths, assets, exhibits, source parity), QA report runner, production build, budgets, `verify:dist`.
+- `npx vitest run tests/exhibit-plinth.test.ts`: PASS — 1 test, 0 plinth intersections across all repaired bays.
+- `npm run build:standalone` + `npm run verify:standalone`: PASS — static checks sha256 `429c31b1...`, offline browser (cold exterior start, 2 round trips, 17 visitors, 6 requests), `runtime-source-qa` 14/14 installations and 17/17 visitors, 0 remote requests.
+- `npm run test:workshop`: PASS — 1/1 live authoring case and authored standalone. Authored placements=2, zone=plaza, requests=1.
+- `VITE_PUBLIC_BASE=/museum-of-me-vnext/ npm run build:pages` + `npm run verify:pages-dist`: PASS — 4 assets verified, build receipt sha matched, source-pinned workbench present, `.nojekyll` and SPA fallback present.
+
+**Confirmed defects repaired:**
+- **E02 Drakken Terraforming Compendium.** Station 0 ("Fault-Tongue") was placed at local `(0, 0, 1.2)`, intersecting the front edge of the 2.6 m bay plinth (`PLINTH_BOX` `z` extent `[-1.3, 1.3]`). Station 0 relocated to `(0, 0, 2.1)` with `rotation.y = 0` to stand cleanly in front of the plinth.
+- **E07 Drakken Terraforming Laboratory.** Station 3 ("Siege Wall") was placed at `(-1.1, 0, -0.55)` and the "SYRIN CONTACT" console was placed at `(1.1, 0, -0.35)`, both embedded directly inside the solid central plinth. Furthermore, the 5.4 m outer radius deck ring reached `z = +1.4` across the plinth origin, and the planetary expansion wave `pulse.mesh` was defaulted to origin `(0, 0, 0)`. The deck ring was clamped to `[-0.15 * Math.PI, 1.3 * Math.PI]` so it terminates cleanly at `z = -1.55` before reaching the plinth; Station 3 moved to `(-1.1, 0, 2.1)`; Syrin Contact console moved to `(1.1, 0, 2.1)`; and `pulse.mesh` positioned at the terraformed planet center `(0, 5.0, -4.0)`.
+- **E08 Heliocide Observatory.** The row of six witness records was aligned at `z = 0.85` spanning `x = -5.15` to `+5.15`, directly embedding records 2 ("Ruby Eclipse") and 3 ("Aureal Gate") inside the solid stone of the central plinth. The entire row moved forward to `z = 2.15` (`witness.position.set(-5.15 + index * 2.06, 0, 2.15)`), positioning all six records cleanly in front of the plinth on the floor.
+- **E11 Selfsame: Continuity & Authority Systems.** The bronze "TRY OPERATION" console was located at `(0, 0, -0.55)`, burying it inside the plinth with only its angled faceplate poking out. The console moved to `(0, 0, 2.1)` to stand proudly on the floor in front of the plinth.
+
+**Visual and automated evidence captured:**
+- Separate before and after screenshots captured with Playwright + Chrome in `docs/evidence/plinth-repairs-20261109/`:
+  - `E02-before.png` vs `E02-after.png`: Station 0 stood inside plinth front lip; now stands independently on the floor in front of the plinth.
+  - `E07-before.png` vs `E07-after.png`: Consoles and deck submerged inside plinth; now stand symmetrically in front of plinth with clear line of sight to the central plinth and planet.
+  - `E08-before.png` vs `E08-after.png`: Witness records 2 & 3 embedded in stone; now all six records stand unobstructed in front of the plinth.
+  - `E11-before.png` vs `E11-after.png`: Console embedded in plinth; now fully visible and interactable in front of the purple plinth.
+- Automated regression suite added: `tests/exhibit-plinth.test.ts` (0 intersections measured against `PLINTH_BOX`).
+
+**Lead exhibit inspections (E20 and E35):**
+- **E20 Utility & Privacy Bench:** 0 plinth intersections measured (all bench, files, meter, and bins geometry reside at `z <= -2.4`). Inspection confirms that the 3 mapped projects (DexCleaner, DexSort, SpaceWise) are represented through functional categories and the lectern/plaque, rather than dedicated physical signage in the bay.
+- **E35 Local Specialist Systems Lab:** 0 plinth intersections measured (wall, benches, and consoles reside at `z <= -1.6`). Inspection confirms that the 2 mapped projects (Big Mac FaceTools and OSINT Box) are represented by the twin laboratory bays (synthetic face detection vs local fabricated investigation) and lectern/plaque metadata, rather than explicit project nameplates.
+
+**Invariants preserved:**
+- All 35 exhibits, 73 projects, 6 wings, Rotunda flight pad, separate Dexter Sanctuary, single frame loop, and 14 source installations intact.
+- Bay plinths and colliders untouched and unweakened.
+- Sanctuary guide routing remains PROPOSED, not implemented.
+
+**Continuity:** `docs/COMPLETION_MATRIX.md` updated (queue item 2 marked repaired; queue item 3 updated with E20/E35 findings).
+
+**Resume here:** continue lead-exhibit review on remaining lead bays (E14, E15, E16, E23, E26) for in-bay project representation.
