@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 97,
+  "state_revision": 98,
   "last_updated": "2026-11-10",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -976,3 +976,41 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 **Continuity:** `docs/COMPLETION_MATRIX.md` updated (queue item 4 marked repaired; queue item 5 front corners wing furnishings survey is next).
 
 **Resume here:** queue item 5 (front corners wing furnishings survey across the 13 installation host bays).
+
+
+### Completion pass 6 — Source installation spatial integration & visitor clearance (2026-11-10)
+
+**State:** IMPLEMENTED AND LOCALLY VERIFIED ON THE SAME LOCAL BRANCH. NOT PUSHED, NOT MERGED, NOT DEPLOYED.
+**Branch:** `feat/completion-guide-and-drift-20261109`; pass 6 started from local commit `3d3fbf7ba094989378792b053f4bbd7cb4687f19`; `origin/main` still `a96d2f7`.
+**Product status unchanged:** ACTIVE DEVELOPMENT / PRE-1.0. Verdict: PARTIAL.
+
+**Verification closed (all on the final pass-6 working tree, system Chrome via `MUSEUM_BROWSER_EXECUTABLE`):**
+- `npm run gate`: PASS — 786 unit tests across 62 files (including `tests/installation-clearance.test.ts`), all validators (mapping, content, privacy, frameloop, hotpaths, assets, exhibits, source parity), QA report runner, production build, budgets, `verify:dist`.
+- `npm run typecheck` & `npm run lint`: PASS — 0 errors, 0 warnings.
+- `npx vitest run tests/installation-clearance.test.ts tests/source-installations.test.ts tests/caption-typography.test.ts tests/exhibit-plinth.test.ts`: PASS — 30 tests passing across installation clearance, source installations, typography, and plinth suites.
+- `npm run build:standalone` + `npm run verify:standalone`: PASS — static checks sha256 `618700fd...`, offline browser (cold exterior start, 2 round trips, 17 visitors, 6 requests), `runtime-source-qa` 14/14 installations and 17/17 visitors, 0 remote requests.
+- `npm run test:workshop`: PASS — Museum Workshop authors safe objects and persists through the dev-only save bridge (33.7s, authored placements=2, requests=1).
+- `VITE_PUBLIC_BASE=/museum-of-me-vnext/ npm run build:pages` + `verify:pages-dist`: PASS — 4 JS/CSS references use `/museum-of-me-vnext/`, build receipt, .nojekyll, SPA fallback, source-pinned workbench present.
+- `tests/browser/installation-clearance.capture.ts`: Captured 26 screenshots (entrance & interaction views for all 13 installations) in `docs/evidence/installation-clearance-pass6-20261110/`.
+- Full 53-test Chromium browser test suite (`npm run test:e2e`): Executed and verified clean.
+
+**Confirmed survey & clearance findings:**
+- **Central Plinth Clearance:** All 13 wing installations maintain 6.34m–7.75m of clearance from central bay plinths (anchor boxes), exceeding the 4.0m requirement. 0 measured mesh intersections with exhibit hero apparatus.
+- **Doorway & Route Clearance:** Doorway distances exceed 3.0m for installation bodies and 2.0m for lecterns, leaving the 8.0m–9.0m bay doorways completely unobstructed for first-person entry and exit.
+- **Wing Furnishings & Detailing Separation:** Wing hall furnishings (`WingFurnishings`), hall benches (`Detailing`), and indoor planters (`EnvironmentDressing`) reside strictly in the main corridors within lateral bounds ($\le \text{hallHalfWidth}$, i.e. 6.5m–9.0m). Installations reside deep in bay corners behind wall returns at lateral offsets $>9.75\text{--}11.75\text{ m}$ (and $14.88\text{ m}$ in media wing), with zero spatial conflict or sightline clutter.
+- **Mutual Clearance in E26:** The two installations sharing E26 (`westcat-east` at $Z = 56.7$ and `westcat-familiar` at $Z = 45.3$) maintain $11.4\text{ m}$ of separation, with their respective lecterns separated by $5.6\text{ m}$.
+- **Focus, Engagement & Operability:** In real-browser evaluation across all 13 wing instances, every installation successfully acquires raycast focus from its standard reading/interaction point, transitions to engaged state, displays its authoritative source status string, and correctly handles control key dispatches.
+- **Sanctuary Isolation Intact:** Dexter Sanctuary installation (`dexgpt`) remains distinct and preserved in the separate rearmost subterranean chamber.
+
+**Visual and automated evidence captured:**
+- 26 screenshots (13 entrance views, 13 interaction views) and machine-readable `survey-results.json` in `docs/evidence/installation-clearance-pass6-20261110/`.
+- Dedicated regression test suite `tests/installation-clearance.test.ts` (5 tests).
+
+**Invariants preserved:**
+- All 35 exhibits, 73 projects, 6 wings, Rotunda flight pad, separate Dexter Sanctuary, single frame loop, and 14 source installations intact.
+- Bay plinths and colliders untouched and unweakened.
+- Sanctuary guide routing remains PROPOSED, not implemented.
+
+**Continuity:** `docs/COMPLETION_MATRIX.md` updated (queue item 5 marked surveyed & verified; all machine-verifiable queue items 2, 3, 4, 5 closed).
+
+**Resume here:** Owner device walkthrough and remaining human acceptance judgments.

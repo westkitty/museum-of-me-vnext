@@ -95,18 +95,17 @@ Ranked by visitor impact, release relevance, evidence strength and risk.
 2. **Bay plinth conflicts in E02, E07, E08 and E11.** **REPAIRED (pass 3)** — measured intersections in all four bays resolved; 0 intersections verified in `tests/exhibit-plinth.test.ts`. Before and after visual evidence captured in `docs/evidence/plinth-repairs-20261109/`.
 3. **Lead exhibits physical representation** (E02, E11, E14, E15, E16, E17, E20, E23, E26, E34, E35). **REPAIRED / RESOLVED (passes 2, 3, 4)** — all lead exhibits inspected and brought to clear physical and conceptual representation. Pass 4 repaired E14, E15, E16, E23, E26; plinth clearance verified across all exhibits (including pulse starting points in E15 and E16). Before and after visual evidence captured in `docs/evidence/lead-exhibits-pass4-20261110/`. Full 53/53 Chromium browser suite verified clean (32.2m).
 4. **Second look at long captions museum-wide.** **REPAIRED (pass 5)** — text engine upgraded with canvas resolution tiers (up to 2048px for wide architectural banners), explicit newline formatting (`\n`), title font size floor (22px), and proportional padding for low-aspect strip banners. Visual caption occlusions, overlaps, bad aspect ratios, and awkward line wraps repaired across 11 bays (E07, E08, E11, E15, E16, E20, E26, E30, E32, E34, E35). 26 paired before-and-after screenshots captured from natural visitor viewpoints in `docs/evidence/caption-repairs-pass5-20261110/`. 5 dedicated unit tests passing in `tests/caption-typography.test.ts`.
-5. **Front corners of the 13 host bays.** Installations now stand there. Checked by measurement against
-   exhibit geometry and by eye in E17 only; wing furnishings in those corners were not surveyed.
+5. **Front corners of the 13 host bays.** **SURVEYED & VERIFIED (pass 6)** — all 13 wing source installations surveyed across their 12 host bays (E01, E03, E07, E08, E14, E17, E18, E20, E23, E26 [westcat-east & westcat-familiar], E31, E32). Plinth distance measured at 6.34m–7.75m (>4.0m requirement, 0 intersections). Doorway threshold clearance >3.0m verified. Separation against wing hall furnishings, benches, and plants proven (installations sit deep in bay corners behind wall returns at lateral offset >9.75m vs hall furnishings at <=wing.hallHalfWidth). Dedicated regression suite `tests/installation-clearance.test.ts` (5 tests) added. 26 browser screenshots captured across entrance and interaction viewpoints in `docs/evidence/installation-clearance-pass6-20261110/`. All 13 instances acquire focus, engage, and remain operable.
 6. **Guide routing to the Dexter Sanctuary.** Bounded proposal written:
    `docs/SANCTUARY_ROUTING_PROPOSAL.md`. Owner decision pending; not implemented.
 7. **Repository hygiene (owner).** Ten draft exterior PRs (#27–#37) predate the merged V3 work; `main`
    is unprotected.
 
-Closed in pass 2, 3, 4 & 5: offline standalone, Workshop and Pages proofs, all 4 plinth conflicts, all lead exhibits physical representation, museum-wide caption legibility and typography repairs, and the full Chromium suite were run and passed at this revision (see `OPERATIONAL_STATE.md`).
+Closed in pass 2, 3, 4, 5 & 6: offline standalone, Workshop and Pages proofs, all 4 plinth conflicts, all lead exhibits physical representation, museum-wide caption legibility and typography repairs, source installation clearance survey and regression suite, and the full Chromium suite were run and passed at this revision (see `OPERATIONAL_STATE.md`).
 
 ## Release blockers
 
-**Machine-verifiable, still open:** queue item 5; exact-head CI for this branch (not pushed).
+**Machine-verifiable, still open:** exact-head CI for this branch (not pushed). All machine-verifiable matrix queue items 2, 3, 4, and 5 are repaired and verified.
 
 **Owner-dependent:** human walkthrough and its nine judgments; audio, pointer-lock and device FPS
 checks; whether to merge this branch; any Pages publication; any 1.0 declaration; queue items 6 and 7;
