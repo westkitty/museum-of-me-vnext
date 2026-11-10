@@ -856,7 +856,7 @@ const WORKSHOP_HTML = `
   <span><kbd>⌘/Ctrl+D</kbd>duplicate</span><span><kbd>Delete</kbd>remove</span><span><kbd>⌘/Ctrl+Z</kbd>undo</span><span><kbd>⇧⌘/Ctrl+Z</kbd>redo</span><span><kbd>⌘/Ctrl+S</kbd>save</span>
 </nav>
 <aside class="workshop-panel" data-workshop="panel" tabindex="-1" aria-label="Museum Builder development editor">
-  <header><div><span>DEVELOPMENT ONLY</span><h2>Museum Builder</h2></div><b>local authoring</b></header>
+  <header><div><span>DEVELOPMENT ONLY</span><h2>Museum Workshop</h2><p class="workshop-muted">Unified Builder</p></div><b>local authoring</b></header>
   <section><h3>Selection</h3><strong data-workshop="selection-title"></strong><p class="workshop-muted" data-workshop="selection-meta"></p>
     <label>Label<input data-workshop="label" maxlength="80"></label>
     <label>Anchor<select data-workshop="anchor"><option value="floor">Floor anchored</option><option value="free">Free placement</option><option value="wall">Wall mounted</option></select></label>
