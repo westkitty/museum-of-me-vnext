@@ -27,7 +27,7 @@ export class MuseumPlacements {
   private readonly scope = new ResourceScope('museum-placements');
   private readonly registry: AuthorableSceneRegistry | null;
   private manifest: WorkshopPlacementManifest;
-  private readonly boundCollisions = new Set<CollisionWorld>();
+  private readonly boundCollisions = new Map<CollisionWorld, Set<string>>();
   private readonly interactionDisposers: Array<() => void> = [];
   private interaction: InteractionManager | null = null;
   private onAnnounce: ((message: string) => void) | null = null;
@@ -65,7 +65,8 @@ export class MuseumPlacements {
 
   private syncCollision(target: CollisionWorld, world: 'exterior' | 'interior'): void {
     if (this.boundCollisions.has(target)) return;
-    this.boundCollisions.add(target);
+    const ids = new Set<string>();
+    this.boundCollisions.set(target, ids);
     for (const record of this.manifest.objects) {
       if (record.collision !== 'solid') continue;
       if (record.worldId && record.worldId !== 'shared' && record.worldId !== world) continue;
@@ -74,6 +75,7 @@ export class MuseumPlacements {
       root.updateWorldMatrix(true, true);
       const box = new THREE.Box3().setFromObject(root);
       if (box.isEmpty()) continue;
+      ids.add(record.id);
       target.setDynamicWall(record.id, {
         kind: 'wall', minX: box.min.x, maxX: box.max.x, minY: box.min.y,
         maxY: box.max.y, minZ: box.min.z, maxZ: box.max.z,
@@ -165,8 +167,8 @@ export class MuseumPlacements {
 
   dispose(): void {
     for (const release of this.interactionDisposers.splice(0)) release();
-    for (const target of this.boundCollisions) {
-      for (const record of this.manifest.objects) target.setDynamicWall(record.id, null);
+    for (const [target, ids] of this.boundCollisions) {
+      for (const id of ids) target.setDynamicWall(id, null);
     }
     this.boundCollisions.clear();
     this.group.removeFromParent();
@@ -177,8 +179,8 @@ export class MuseumPlacements {
 
   private rebuild(): void {
     for (const release of this.interactionDisposers.splice(0)) release();
-    for (const target of this.boundCollisions) {
-      for (const record of this.manifest.objects) target.setDynamicWall(record.id, null);
+    for (const [target, ids] of this.boundCollisions) {
+      for (const id of ids) target.setDynamicWall(id, null);
     }
     this.boundCollisions.clear();
     this.group.clear();
@@ -226,9 +228,7 @@ export class MuseumPlacements {
         const surface = root.getObjectByName('workshop-art-surface') as THREE.Mesh | undefined;
         if (surface) {
           const url = `${import.meta.env.BASE_URL}${record.image}`;
-          const texture = this.scope.track(new THREE.TextureLoader().load(url, () => {
-            this.scope && (surface.material as THREE.MeshBasicMaterial).needsUpdate;
-          }, undefined, () => {
+          const texture = this.scope.track(new THREE.TextureLoader().load(url, undefined, undefined, () => {
             console.warn('[Museum Builder] artwork missing:', record.image);
           }));
           texture.colorSpace = THREE.SRGBColorSpace;
