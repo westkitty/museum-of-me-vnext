@@ -1,5 +1,6 @@
 import { mkdir, rename, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import {
@@ -14,6 +15,8 @@ import {
 } from '../src/workshop/schema';
 
 const ENDPOINT = '/__museum-workshop/save';
+const MEDIA_ENDPOINT = '/__museum-workshop/media';
+const MAX_MEDIA_BYTES = 3 * 1024 * 1024;
 const MAX_BODY_BYTES = 256 * 1024;
 
 function isLoopback(address: string | undefined): boolean {
@@ -55,6 +58,24 @@ async function readBody(req: IncomingMessage): Promise<string> {
       body += chunk;
     });
     req.on('end', () => resolveBody(body));
+    req.on('error', reject);
+  });
+}
+
+async function readMedia(req: IncomingMessage): Promise<Buffer> {
+  return await new Promise<Buffer>((resolveBody, reject) => {
+    let bytes = 0;
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => {
+      bytes += chunk.length;
+      if (bytes > MAX_MEDIA_BYTES) {
+        reject(new Error('Artwork is larger than the 3 MB editor limit'));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on('end', () => resolveBody(Buffer.concat(chunks)));
     req.on('error', reject);
   });
 }
@@ -103,6 +124,39 @@ export function museumWorkshopSavePlugin(): Plugin {
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const url = req.url?.split('?')[0] ?? '';
+        if (url === MEDIA_ENDPOINT) {
+          if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'POST required' });
+          if (!isLoopback(req.socket.remoteAddress) || !isSameOriginRequest(req)) {
+            return json(res, 403, { ok: false, error: 'Local, same-origin authoring only' });
+          }
+          if (req.headers['content-type'] !== 'image/webp') {
+            return json(res, 415, { ok: false, error: 'WebP image required' });
+          }
+          try {
+            const bytes = await readMedia(req);
+            if (bytes.length < 16 || bytes.toString('ascii', 0, 4) !== 'RIFF'
+              || bytes.toString('ascii', 8, 12) !== 'WEBP') {
+              return json(res, 400, { ok: false, error: 'Invalid WebP image header' });
+            }
+            const hash = createHash('sha256').update(bytes).digest('hex');
+            const directory = resolve(process.cwd(), 'public/workshop-media');
+            const filename = `${hash}.webp`;
+            await mkdir(directory, { recursive: true });
+            const target = resolve(directory, filename);
+            const temp = `${target}.tmp-${process.pid}`;
+            await writeFile(temp, bytes);
+            await rename(temp, target);
+            return json(res, 200, {
+              ok: true, image: `workshop-media/${filename}`,
+              note: 'Local public asset. Review before committing or publishing.',
+            });
+          } catch (error) {
+            if (!req.destroyed) json(res, 400, {
+              ok: false, error: error instanceof Error ? error.message : 'Artwork import failed',
+            });
+            return;
+          }
+        }
         if (url !== ENDPOINT) {
           next();
           return;
