@@ -38,10 +38,11 @@ export class BuilderCamera {
     if (this.active) return;
     this.active = true;
     this.orbit.enabled = true;
+    // Preserve the visitor's current view on entry. Clicking an existing
+    // object must keep selecting that same object; dollhouse is an explicit mode.
     const player = this.app.player.position;
-    const target = new THREE.Vector3(player.x, player.y + 2, player.z);
-    this.orbit.target.copy(target);
-    this.app.camera.position.copy(target).add(new THREE.Vector3(22, 21, 22));
+    const direction = this.app.camera.getWorldDirection(new THREE.Vector3());
+    this.orbit.target.copy(this.app.camera.position).addScaledVector(direction, 8);
     this.orbit.update();
     this.grid.position.set(0, this.app.player.collisionWorld.supportHeight(player.x, player.z, player.y, 2) ?? player.y, 0);
     this.grid.visible = true;
