@@ -289,6 +289,32 @@ describe('installation spatial contract', () => {
     }
   });
 
+  it('seats each wing installation in a front corner, clear of the space exhibits build in', () => {
+    // Every bespoke exhibit builds at or behind its bay anchor and within five
+    // metres of the bay's centre line. An installation seated there stands on
+    // exhibit lecterns and consoles, which is the defect this guards against.
+    for (const p of INSTALLATION_PLACEMENTS) {
+      if (p.host === 'sanctuary') continue;
+      const bay = PLACEMENT_BY_EXHIBIT.get(p.host)!;
+      const length = Math.hypot(bay.facing[0], bay.facing[2]);
+      const toHall = [bay.facing[0] / length, bay.facing[2] / length];
+      const along = [toHall[1], -toHall[0]];
+      const local = (v: readonly number[]) => {
+        const dx = v[0] - bay.anchor[0];
+        const dz = v[2] - bay.anchor[2];
+        return { side: dx * along[0] + dz * along[1], front: dx * toHall[0] + dz * toHall[1] };
+      };
+      const seat = local(p.position);
+      const lectern = local(p.lectern);
+      // Nearest edge of the installation to the back of the bay stays in the front half.
+      expect(seat.front - 2.35, `${p.id} front`).toBeGreaterThan(1.5);
+      expect(Math.abs(seat.side) - 1.9, `${p.id} side`).toBeGreaterThan(2.5);
+      // It faces the bay's centre line: its lectern is nearer the entry path than it is.
+      expect(Math.abs(lectern.side), `${p.id} lectern`).toBeLessThan(Math.abs(seat.side));
+      expect(lectern.front, `${p.id} lectern depth`).toBeCloseTo(seat.front, 5);
+    }
+  });
+
   it('keeps two installations sharing one bay clear of each other', () => {
     for (let i = 0; i < INSTALLATION_PLACEMENTS.length; i++) {
       for (let j = i + 1; j < INSTALLATION_PLACEMENTS.length; j++) {

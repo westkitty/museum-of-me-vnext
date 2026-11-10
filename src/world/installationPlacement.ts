@@ -24,8 +24,8 @@ import { SPATIAL_CONTRACT } from '../content/installationState';
  *   and the sanctuary standing rearmost behind the rest of the museum.
  *
  * Each installation is placed inside the bay of the vNext exhibit its project
- * was frozen onto, offset clear of that bay's bespoke hero object, which is
- * never moved, recoloured or lifecycle-coupled.
+ * was frozen onto, in a front corner clear of everything that bay's bespoke
+ * exhibit builds, which is never moved, recoloured or lifecycle-coupled.
  */
 
 export interface InstallationPlacement {
@@ -117,19 +117,41 @@ export function computeInstallationPlacements(): readonly InstallationPlacement[
     const wing = placement ? WING_BY_ID.get(placement.wing) : undefined;
     if (!placement || !wing) continue;
 
-    // `facing` points from the bay back toward the hall. Deeper into the bay is
-    // the opposite direction; along the hall is its perpendicular.
+    // `facing` points from the bay back toward the hall; along the hall is its
+    // perpendicular.
+    //
+    // Every bespoke exhibit builds toward the back and centre of its bay: its
+    // hero object, consoles and its own lectern all stand at or behind the
+    // anchor. The front corners, either side of the doorway behind the return
+    // of the hall wall, are the one part of a bay no exhibit uses. An
+    // installation therefore stands in a front corner, turned to face the
+    // bay's centre line, so a visitor walking in meets its lectern beside the
+    // entry path and nothing of the bespoke exhibit is covered. (It used to be
+    // seated deep in the bay, where it stood on top of exhibit lecterns and
+    // consoles in eleven of the thirteen host bays.)
     const toHall = unit(placement.facing);
-    const deeper: Vec3 = [-toHall[0], 0, -toHall[2]];
     const along = rightOf(toHall);
+    const side = peers.length === 1 || seat === 0 ? -1 : 1;
+    const outward: Vec3 = [along[0] * side, 0, along[2] * side];
+    const inward: Vec3 = [-outward[0], 0, -outward[2]];
 
-    const alongSpan = Math.min(4.6, wing.bayHalfAlong - 3.2);
-    const depthSpan = Math.min(4.2, wing.bayDepth / 2 - 3.6);
-    const alongOffset = peers.length === 1 ? -alongSpan : (seat === 0 ? -alongSpan : alongSpan);
+    // In the installation's own frame the footprint is `half[0]` wide and
+    // `half[1]` deep. Turned sideways, its depth runs along the hall and its
+    // width runs from the back of the corner toward the doorway wall.
+    const WALL_CLEARANCE = 0.4;
+    const alongOffset = wing.bayHalfAlong - half[1] - WALL_CLEARANCE;
+    const towardHall = wing.bayDepth / 2 - half[0] - WALL_CLEARANCE;
 
-    const position = add(add(placement.anchor, deeper, depthSpan), along, alongOffset);
-    const lectern = add(position, toHall, 2.9);
-    const interactionPoint = add(position, toHall, 3.9);
+    const position = add(add(placement.anchor, toHall, towardHall), outward, alongOffset);
+    const lectern = add(position, inward, 2.9);
+    const interactionPoint = add(position, inward, 3.9);
+
+    // The collider is axis-aligned in world space, so express the turned
+    // footprint as world half-extents.
+    const worldFootprint: [number, number] = [
+      Math.abs(outward[0]) * half[1] + Math.abs(toHall[0]) * half[0],
+      Math.abs(outward[2]) * half[1] + Math.abs(toHall[2]) * half[0],
+    ];
 
     out.push({
       id: spec.id, host, position, lectern, interactionPoint,
@@ -137,8 +159,8 @@ export function computeInstallationPlacements(): readonly InstallationPlacement[
       interactionRadius: contract.interactionRadius,
       cameraSafeDistance: contract.cameraSafeDistance,
       lecternCollisionRadius: contract.lecternCollisionRadius,
-      footprint: half,
-      facing: deeper,
+      footprint: worldFootprint,
+      facing: outward,
       sourceWing: spec.wing,
       sourceOrder: sourceOrderWithinWing(spec.id),
     });

@@ -110,9 +110,9 @@
       ],
       "errors": [],
       "interactionPoint": [
-        -16.3,
+        -10.75,
         0,
-        -37.6
+        -34.800000000000004
       ],
       "requiredParts": [
         "loom-frame",
@@ -219,9 +219,9 @@
       ],
       "errors": [],
       "interactionPoint": [
-        -16.3,
+        -10.75,
         0,
-        -91.6
+        -88.8
       ],
       "requiredParts": [
         "planet-core",
@@ -293,9 +293,9 @@
       ],
       "errors": [],
       "interactionPoint": [
-        -16.3,
+        -10.75,
         0,
-        -55.6
+        -52.800000000000004
       ],
       "requiredParts": [
         "gas-giant",
@@ -381,9 +381,9 @@
       ],
       "errors": [],
       "interactionPoint": [
-        17.300000000000015,
+        11.750000000000014,
         0,
-        109.6
+        106.8
       ],
       "requiredParts": [
         "katamari-ball",
@@ -469,9 +469,9 @@
       ],
       "errors": [],
       "interactionPoint": [
-        17.300000000000008,
+        11.750000000000007,
         0,
-        55.6
+        52.800000000000004
       ],
       "requiredParts": [
         "steep-road",
@@ -550,9 +550,9 @@
       ],
       "errors": [],
       "interactionPoint": [
-        -17.29999999999999,
+        -11.74999999999999,
         0,
-        82.4
+        85.2
       ],
       "requiredParts": [
         "living-island",
@@ -631,9 +631,9 @@
       ],
       "errors": [],
       "interactionPoint": [
-        -12.869343417595173,
+        -17.642314190604367,
         10,
-        -31.254119728445392
+        -30.72378964255548
       ],
       "requiredParts": [
         "vibe-reservoir",
@@ -726,9 +726,9 @@
       ],
       "errors": [],
       "interactionPoint": [
-        17.300000000000008,
+        11.750000000000007,
         0,
-        46.4
+        49.199999999999996
       ],
       "requiredParts": [
         "familiar-body",
@@ -814,9 +814,9 @@
       ],
       "errors": [],
       "interactionPoint": [
-        16.3,
+        10.75,
         0,
-        -82.4
+        -85.2
       ],
       "requiredParts": [
         "solar-core",
@@ -895,9 +895,9 @@
       ],
       "errors": [],
       "interactionPoint": [
-        37.6,
+        34.800000000000004,
         0,
-        -15.300000000000002
+        -9.750000000000002
       ],
       "requiredParts": [
         "microphone-capsule",
@@ -962,9 +962,9 @@
       ],
       "errors": [],
       "interactionPoint": [
-        28.4,
+        31.2,
         0,
-        15.299999999999999
+        9.749999999999998
       ],
       "requiredParts": [
         "mac-terminal",
@@ -1057,9 +1057,9 @@
       ],
       "errors": [],
       "interactionPoint": [
-        91.6,
+        88.8,
         0,
-        -15.300000000000006
+        -9.750000000000005
       ],
       "requiredParts": [
         "source-root",
@@ -1145,9 +1145,9 @@
       ],
       "errors": [],
       "interactionPoint": [
-        46.4,
+        49.199999999999996,
         0,
-        15.299999999999995
+        9.749999999999996
       ],
       "requiredParts": [
         "vault-ring",
