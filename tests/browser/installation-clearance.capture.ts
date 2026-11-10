@@ -44,9 +44,26 @@ test('capture inspection evidence and verify clearance for all 13 wing source in
     { id: 'smores-katamari', host: 'E32', wing: 'south' },
   ];
 
+  const ACTION_KEYS: Record<string, string> = {
+    'starsilk-atlas': 'ArrowRight',
+    'orbital-tomb': 'ArrowRight',
+    'drakken-sandbox': 'Space',
+    'heliocide': 'KeyB',
+    'vibe-nexus': 'Space',
+    'dexdictate': 'Space',
+    'tablet-link': 'Space',
+    'dexvault': 'Space',
+    'osint-box': 'Space',
+    'westcat-east': 'Space',
+    'westcat-familiar': 'Space',
+    'parable': 'KeyC',
+    'smores-katamari': 'KeyW',
+  };
+
   const surveyResults: Record<string, unknown>[] = [];
 
   for (const { id, host: hostId, wing } of installations) {
+    const actionKey = ACTION_KEYS[id] ?? 'Space';
     // 1. Prepare bay and exhibit
     const result = await page.evaluate(async ({ id, hostId, wing }) => {
       const app = window.__museum!;
@@ -112,7 +129,7 @@ test('capture inspection evidence and verify clearance for all 13 wing source in
     await page.screenshot({ path: `${outDir}/${id}-entrance.png` });
 
     // 2. Set up interaction view
-    const interactionResult = await page.evaluate(async ({ id, wing }) => {
+    const interactionResult = await page.evaluate(async ({ id, wing, actionKey }) => {
       const app = window.__museum!;
       const runtime = app.sourceInstallations!.get(id)!;
       const p = runtime.placement;
@@ -140,14 +157,13 @@ test('capture inspection evidence and verify clearance for all 13 wing source in
       app.interaction.activate();
       const engaged = app.sourceInstallations!.activeId === id;
 
-      // Exercise primary control
+      // Exercise primary action control
       let stateChanged = false;
       const beforeState = JSON.stringify(runtime.state);
-      const controls = runtime.spec.controls ?? [];
-      if (controls.length > 0) {
-        const [, code] = controls[0];
-        window.dispatchEvent(new KeyboardEvent('keydown', { code: String(code), bubbles: true }));
-        window.dispatchEvent(new KeyboardEvent('keyup', { code: String(code), bubbles: true }));
+      const keyToDispatch = actionKey ?? (runtime.spec.controls?.[0]?.[1] ? String(runtime.spec.controls[0][1]) : null);
+      if (keyToDispatch) {
+        window.dispatchEvent(new KeyboardEvent('keydown', { code: keyToDispatch, bubbles: true }));
+        window.dispatchEvent(new KeyboardEvent('keyup', { code: keyToDispatch, bubbles: true }));
         const afterState = JSON.stringify(runtime.state);
         stateChanged = beforeState !== afterState;
       }
@@ -162,7 +178,7 @@ test('capture inspection evidence and verify clearance for all 13 wing source in
         stateChanged,
         statusLine: app.sourceInstallations!.status(id),
       };
-    }, { id, wing });
+    }, { id, wing, actionKey });
 
     // Capture interaction view screenshot
     await page.screenshot({ path: `${outDir}/${id}-interaction.png` });
@@ -188,5 +204,6 @@ test('capture inspection evidence and verify clearance for all 13 wing source in
     expect(item.distToPlinth, `${item.id} plinth distance`).toBeGreaterThan(4.0);
     expect(item.focusAcquired, `${item.id} focus acquired`).toBe(true);
     expect(item.engaged, `${item.id} engaged`).toBe(true);
+    expect(item.stateChanged, `${item.id} state changed`).toBe(true);
   }
 });

@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 98,
+  "state_revision": 99,
   "last_updated": "2026-11-10",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -1013,4 +1013,33 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 
 **Continuity:** `docs/COMPLETION_MATRIX.md` updated (queue item 5 marked surveyed & verified; all machine-verifiable queue items 2, 3, 4, 5 closed).
 
-**Resume here:** Owner device walkthrough and remaining human acceptance judgments.
+**Resume here:** Completion pass 7 (Source installation control verification & final interaction closure).
+
+
+### Completion pass 7 — Source installation control verification & final interaction closure (2026-11-10)
+
+**State:** IMPLEMENTED AND LOCALLY VERIFIED ON THE SAME LOCAL BRANCH. NOT PUSHED, NOT MERGED, NOT DEPLOYED.
+**Branch:** `feat/completion-guide-and-drift-20261109`; pass 7 started from local commit `200524f593a0b83fd24e715119f243b9dd65dba8`; `origin/main` still `a96d2f7`.
+**Product status unchanged:** ACTIVE DEVELOPMENT / PRE-1.0. Verdict: PARTIAL (Owner device walkthrough and remaining human acceptance judgments remain).
+
+**Verification closed (all on the final pass-7 working tree, system Chrome via `MUSEUM_BROWSER_EXECUTABLE`):**
+- `npm run gate`: PASS — 788 unit tests across 63 files (including `tests/installation-controls.test.ts`), all release tools, all content/mapping/privacy/frameloop/hotpaths/assets/exhibits/source-parity validators, QA report runner, production build, budgets, `verify:dist`.
+- `npm run typecheck` & `npm run lint`: PASS — 0 errors, 0 warnings.
+- `npx vitest run tests/installation-controls.test.ts tests/installation-clearance.test.ts tests/source-installations.test.ts`: PASS — 26 tests passing across control adjudication, installation clearance, and source installation suites.
+- `npm run build:standalone` + `npm run verify:standalone`: PASS — static checks sha256 `618700fd...`, offline browser (cold exterior start, 2 round trips, 17 visitors, 6 requests), `runtime-source-qa` 14/14 installations and 17/17 visitors, 0 remote requests.
+- `tests/browser/installation-clearance.capture.ts`: Captured real Chromium execution across all 13 wing source installations, generating updated `survey-results.json` and 26 high-resolution interaction and entrance screenshots in `docs/evidence/installation-clearance-pass6-20261110/`. 13/13 installations verified with `focusAcquired: true`, `engaged: true`, and `stateChanged: true`.
+- `docs/evidence/installation-clearance-pass6-20261110/control-adjudication-pass7.json`: Generated machine-readable adjudication report documenting all 8 targets as `Verdict: PASS` with exact root-cause analysis and evidence links.
+
+**Confirmed adjudication & interaction closure findings:**
+- **Root Cause Verified:** In Pass 6, `tests/browser/installation-clearance.capture.ts` dispatched `controls[0]` unconditionally. For 8 installations (`orbital-tomb`, `drakken-sandbox`, `vibe-nexus`, `dexdictate`, `dexvault`, `osint-box`, `westcat-east`, and `westcat-familiar`), `controls[0]` is either clamped at index 0 (e.g. `ArrowLeft` for `month = 0`) or is an idempotent mode/query selector key (`Digit1` when index 0 is already active). Re-selecting the already active index produced an identical state (`beforeState === afterState`), yielding `stateChanged: false` solely due to test harness limitation.
+- **Underlying Code Correctness:** No underlying defects existed in the source installation state machines. When dispatched with their authored action keys (`Space`, `ArrowRight`, `KeyB`, `KeyC`, `KeyW`), all 8 installations actively mutate state, update their status descriptions, and cleanly reset via `KeyR`/`KeyX`.
+- **E2E Browser Verification:** In real Chromium, all 13 wing installations acquire focus, enter the engaged state, and mutate their interactive state upon action key dispatch.
+
+**Invariants preserved:**
+- All 35 exhibits, 73 projects, 6 wings, Rotunda flight pad, separate Dexter Sanctuary, single frame loop, and 14 source installations intact.
+- Plinth geometry, doorway access, and corridor furnishing clearances untouched and verified.
+- Sanctuary guide routing remains PROPOSED, not implemented.
+
+**Continuity:** `docs/COMPLETION_MATRIX.md` updated (queue item 5 closed with full control adjudication and interaction closure).
+
+**Resume here:** Owner device walkthrough and remaining human acceptance judgments (Queue Item 1).
