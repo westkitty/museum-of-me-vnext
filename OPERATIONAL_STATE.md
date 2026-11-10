@@ -6,8 +6,8 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 92,
-  "last_updated": "2026-11-04",
+  "state_revision": 93,
+  "last_updated": "2026-11-09",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
 -->
@@ -785,3 +785,32 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - `VITE_PUBLIC_BASE=/museum-of-me-vnext/ npm run build:pages` & `npm run verify:pages-dist`: PASS (exact relative base, `.nojekyll`, SPA 404 fallback, build receipt verified).
 - Playwright browser suite `tests/browser/exterior-signature-evidence.e2e.ts`: PASS (captured 30 full-resolution images covering the 7 canonical camera views, 12 signature additions, furnishings, mobile pier, 14 traversal checkpoints, and threshold handoff into `docs/evidence/exterior-omni-v2/`).
 - Feature matrix: documented in `docs/evidence/exterior-omni-v2/FEATURE_MATRIX.md` with visual rubric score 39.0/40.0 (+13.9 over baseline).
+
+
+### Completion pass 1 — collection-count drift and guide comprehension (2026-11-09)
+
+**State:** IMPLEMENTED AND LOCALLY VERIFIED ON A LOCAL BRANCH. NOT PUSHED, NOT MERGED, NOT DEPLOYED.
+**Branch:** `feat/completion-guide-and-drift-20261109`, cut from `main` = `origin/main` = `a96d2f74bc2057d25a6cc324c4f79a4588144a16`.
+**Product status unchanged:** ACTIVE DEVELOPMENT / PRE-1.0. Verdict for this pass: PARTIAL.
+
+**Confirmed defects repaired:**
+- Visitor copy still said "Among sixty-four projects" in two places (E27 plaque in `data/exhibit-content.json`; The Full Weasel deep text in `data/projects/south.json`) although the living collection holds 73. Both now read "seventy-three". The claim that it is the one completed-and-playable project was checked against all 73 status lines and holds.
+- `scripts/validate-content.mjs` now fails the gate when any visitor-facing sentence states a project or exhibit total that disagrees with the living data. Proven both ways: it rejects the old copy with two findings and passes the corrected copy.
+- The DexGPT guide failed ordinary questions. Before: "where is the Full Weasel" listed the wings, "what is DexDictate" and "tell me about starsilk" fell through to the fallback, any question containing "help" returned controls, and it could not say what the museum is, where the visitor is, or what to do at an exhibit. `src/guide/DeterministicMuseumGuide.ts` now resolves names inside natural sentences, searches subjects over the collection's own words, answers status questions from project status lines, describes the current exhibit or zone, lists a wing's exhibits, explains the Rotunda/stairs/flight pad, and keeps DexGPT, Dexter and the Sanctuary distinct. Every answer still derives from the generated collection, the Journal and the visitor's location. No network, no provider, no new dependency, no second content authority.
+- `src/ui/MuseumGuidePanel.ts` offers seven example questions and the query field has its own row; `src/app/UILayer.ts` passes the existing `currentExhibitId`/`zoneLabel` to the guide.
+
+**Evidence at this working tree:**
+- `npm run gate`: PASS — 768 unit tests / 58 files (was 757), all validators, production build, budgets, `verify:dist`.
+- `tests/guide.test.ts`: 18 cases, including every one of the 73 projects and 35 exhibits resolving by its own name.
+- Chromium `tests/browser/museum.e2e.ts`: 9/9 PASS using system Chrome through the existing `MUSEUM_BROWSER_EXECUTABLE` hook (Playwright's bundled Chromium is not installed on this machine; nothing was downloaded).
+- Live dev-server check: guide panel opened inside the Games wing at E27 answered "What am I looking at?" with the exhibit, its corrected plaque and a working wayfinding action; no console errors.
+
+**Not run this pass (UNVERIFIED at this revision):** the wider Chromium suite beyond `museum.e2e.ts`, `build:standalone`, `verify:standalone`, `test:workshop`, `build:pages`, `verify:pages-dist`. The evidence view of the guide was reached by placing the visitor programmatically, not by walking.
+
+**New invariants:**
+- A stated project or exhibit total in visitor-facing text must equal the living collection; `validate:content` enforces it.
+- The guide answers identity questions before name matching, so "who are you" and "who is Dexter" can never resolve to a project that shares the name. Dexter answers carry no wayfinding action.
+
+**Continuity:** the per-exhibit matrix, ranked queue and blocker split live in `docs/COMPLETION_MATRIX.md`. A ready-to-append Bible entry is in `docs/MUSEUM_BIBLE_APPEND_2026-11-09_COMPLETION_PASS_1.md`; the canonical Bible is a separate repository and was read (HEAD `b462d57`) but not modified.
+
+**Resume here:** run the offline/Workshop/Pages proofs and the full Chromium suite on this branch; then open E17 and E34 in a real browser and decide whether lineage projects that are only named on the lectern need a physical presence in the bay (matrix queue item 3).
