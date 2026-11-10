@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { ResourceScope } from '../assets/ResourceScope';
-import { type WorkshopPrefabId } from './catalog';
 import type { CollisionWorld } from '../world/CollisionWorld';
 import type { InteractionManager } from '../interaction/InteractionManager';
 import { AuthorableSceneRegistry, type AuthorableSceneTransform } from './AuthorableSceneRegistry';
@@ -31,7 +30,6 @@ export class MuseumPlacements {
   private readonly interactionDisposers: Array<() => void> = [];
   private interaction: InteractionManager | null = null;
   private onAnnounce: ((message: string) => void) | null = null;
-  private activeWorld: 'exterior' | 'interior' = 'exterior';
 
   constructor(rawManifest: unknown, registry: AuthorableSceneRegistry | null = null) {
     this.group.name = 'museum-authored-placements';
@@ -54,7 +52,6 @@ export class MuseumPlacements {
 
   /** Invoked by the existing App loop; no second frame loop or engine. */
   syncWorld(world: 'exterior' | 'interior', exterior: CollisionWorld, interior?: CollisionWorld): void {
-    this.activeWorld = world;
     for (const record of this.manifest.objects) {
       const root = this.roots.get(record.id);
       if (root) root.visible = !record.worldId || record.worldId === 'shared' || record.worldId === world;
