@@ -2,6 +2,7 @@
 // Gate (plan Phase 9): no visitor-facing placeholder prose survives.
 import { readFileSync } from 'node:fs';
 import { walk, report } from './_lib.mjs';
+import { countClaims } from './content-count-lib.mjs';
 
 const BANNED = [
   /\bTODO\b/i,
@@ -58,39 +59,26 @@ for (const m of collection.matchAll(/"(summary|brief|plaque|problem|made|interac
 
 // A count the visitor can read must be the count the building actually holds.
 // The collection grew from 64 to 73 identities while two sentences still said
-// "sixty-four projects"; this keeps any stated total tied to the living data.
-const UNITS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
-  'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
-const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
-function spokenNumber(text) {
-  if (/^\d+$/.test(text)) return Number(text);
-  const [tens, unit] = text.toLowerCase().split(/[- ]/);
-  const t = TENS.indexOf(tens);
-  if (t >= 2) return t * 10 + (unit ? Math.max(0, UNITS.indexOf(unit)) : 0);
-  const u = UNITS.indexOf(tens);
-  return u >= 0 ? u : null;
-}
-const projectTotal = walk('data/projects', ['.json']).reduce((n, f) => n + JSON.parse(readFileSync(f, 'utf8')).length, 0);
-const exhibitTotal = (collection.match(/"id":\s*"E\d+"/g) ?? []).length;
-const NUMBER = String.raw`(\d+|(?:twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[- ](?:one|two|three|four|five|six|seven|eight|nine))?)`;
-const COUNT_CLAIM = new RegExp(String.raw`\b${NUMBER}\s+(?:current\s+)?(projects?|project identities|exhibits?)\b`, 'gi');
-let countClaims = 0;
+// "sixty-four projects"; this keeps any stated current total tied to the living
+// data while leaving explicitly historical sentences alone.
+const totals = {
+  projects: walk('data/projects', ['.json']).reduce((n, f) => n + JSON.parse(readFileSync(f, 'utf8')).length, 0),
+  exhibits: (collection.match(/"id":\s*"E\d+"/g) ?? []).length,
+};
+let countClaimTotal = 0;
+let historicalClaims = 0;
 for (const f of ['src/content/collection.generated.ts', ...sourceFiles, ...walk('src/world', ['.ts']), ...walk('src/guide', ['.ts'])]) {
   const text = readFileSync(f, 'utf8');
   text.split('\n').forEach((line, i) => {
     if (/^\s*(\/\/|\*)/.test(line)) return;
-    for (const m of line.matchAll(COUNT_CLAIM)) {
-      const stated = spokenNumber(m[1]);
-      if (stated === null || stated < 20) continue; // small numbers describe a single exhibit's contents
-      countClaims++;
-      const actual = /^project/i.test(m[2]) ? projectTotal : exhibitTotal;
-      if (stated !== actual) {
-        errors.push(`${f}:${i + 1} states "${m[0]}" but the current collection holds ${actual}`);
-      }
+    for (const claim of countClaims(line, totals)) {
+      countClaimTotal++;
+      if (claim.historical && claim.stated !== claim.actual) historicalClaims++;
+      if (!claim.ok) errors.push(`${f}:${i + 1} states "${claim.text}" but the current collection holds ${claim.actual}`);
     }
   });
 }
-notes.push(`${countClaims} stated collection totals agree with ${projectTotal} projects / ${exhibitTotal} exhibits`);
+notes.push(`${countClaimTotal} stated collection totals checked against ${totals.projects} projects / ${totals.exhibits} exhibits (${historicalClaims} explicitly historical)`);
 
 notes.push(`${dataFiles.length} data files, ${sourceFiles.length} source files, ${literalCount} visitor-facing literals scanned`);
 
