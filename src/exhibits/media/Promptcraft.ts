@@ -79,6 +79,11 @@ export class Promptcraft extends ExhibitBase {
     body.position.set(-1.2, 0.75, -4.2);
     this.group.add(body);
 
+    const registryLabel = buildLabel(scope, 'VISUAL PROMPT SYSTEMS REGISTRY · TEMPLATE RACK', 2.3);
+    registryLabel.position.set(-1.2, 2.35, -4.0);
+    this.group.add(registryLabel);
+    scope.track(registryLabel.geometry);
+
     BLOCKS.forEach((block, i) => {
       const x = -2.2 + i * 0.5;
       const slot = new THREE.Vector3(x, 1.56, -4.0);
@@ -134,6 +139,11 @@ export class Promptcraft extends ExhibitBase {
     const glassFrame = new THREE.Mesh(scope.track(new THREE.BoxGeometry(2.8, 2.0, 0.08)), brass);
     glassFrame.position.set(2.0, 1.8, -5.4);
     this.group.add(glassFrame);
+
+    const vibeLabel = buildLabel(scope, 'VIBE CODING NEXUS · LIVE STAGE', 2.2);
+    vibeLabel.position.set(2.0, 2.95, -5.4);
+    this.group.add(vibeLabel);
+    scope.track(vibeLabel.geometry);
 
     this.scene = new THREE.Group();
     this.scene.position.set(2.0, 1.3, -5.8);

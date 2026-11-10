@@ -99,8 +99,8 @@ function findPlinthIntersections(host: ExhibitHost): IntersectingMeshInfo[] {
 }
 
 describe('exhibit bay plinth clearance', () => {
-  it('verifies repaired exhibits E02, E07, E08, E11 have zero plinth intersections', async () => {
-    const targets = ['E02', 'E07', 'E08', 'E11'];
+  it('verifies exhibits E02, E07, E08, E11, E14, E15, E16, E23, E26 have zero plinth intersections', async () => {
+    const targets = ['E02', 'E07', 'E08', 'E11', 'E14', 'E15', 'E16', 'E23', 'E26'];
     for (const id of targets) {
       const { host } = await live(id);
       const hits = findPlinthIntersections(host);

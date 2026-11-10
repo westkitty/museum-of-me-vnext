@@ -38,19 +38,19 @@ person still has to look at. Nothing here is a human PASS.
 | E11 | west | Selfsame: Continuity & Authority Systems | KinDex Handoff; ChatGPT Bible Repo; Project Forge; He-Maker; Selfsame; Project Sentinel | revision 2 | PASS | VERIFIED BY BROWSER (pass 3); human acceptance pending | 3 of 6 lineage projects not named in the bay source; REPAIRED (pass 3): TRY OPERATION console moved to (0, 0, 2.1) clear of bay plinth; 0 intersections measured |
 | E12 | west | Rhetorical InDEX | Rhetorical InDEX | revision 2 | PASS | UNVERIFIED | — |
 | E13 | media | Suno Studio | Suno AI Lyrics and Manual | base | PASS | UNVERIFIED | — |
-| E14 | media | Promptcraft & Vibe Coding | Visual Prompt Systems Registry; Vibe Coding Nexus / DexGate Academy; DexEnhance | revision 2 | PASS | UNVERIFIED | 2 of 3 projects not named in the bay source |
-| E15 | media | Agent Control & Capability Laboratory | Code Harness; Opencode Harness; RepoForge | revision 2 | PASS | UNVERIFIED | RepoForge named only through copy; predecessors on wall label |
-| E16 | media | Performance Capture & Media Transformation | Guy_Cast; Gay_Cast; Media Getter; Character Performance Capture; ClearCut Local | revision 2 | PASS | UNVERIFIED | P069/P070 drive the mechanism but are not named on a label |
+| E14 | media | Promptcraft & Vibe Coding | Visual Prompt Systems Registry; Vibe Coding Nexus / DexGate Academy; DexEnhance | revision 2 | PASS | VERIFIED BY BROWSER (pass 4); human acceptance pending | Repaired in pass 4: all three projects physically represented and named in the bay (Visual Prompt Systems Registry on template rack, Vibe Coding Nexus on live stage, DexEnhance on Shadow DOM isolation frame); before/after screenshots in docs/evidence/lead-exhibits-pass4-20261110/ |
+| E15 | media | Agent Control & Capability Laboratory | Code Harness; Opencode Harness; RepoForge | revision 2 | PASS | VERIFIED BY BROWSER (pass 4); human acceptance pending | Repaired in pass 4: RepoForge named on capability/authority compiler banner; pulse moved to rail start clearing plinth; Code Harness / OpenCode Harness preserved on lineage wall; before/after screenshots in docs/evidence/lead-exhibits-pass4-20261110/ |
+| E16 | media | Performance Capture & Media Transformation | Guy_Cast; Gay_Cast; Media Getter; Character Performance Capture; ClearCut Local | revision 2 | PASS | VERIFIED BY BROWSER (pass 4); human acceptance pending | Repaired in pass 4: all five projects named in bay (Character Performance Capture on motion fixture, ClearCut Local on soft alpha/verify export section, Guy_Cast/Gay_Cast/Media Getter on lineage wall); pulse moved to rail start; before/after screenshots in docs/evidence/lead-exhibits-pass4-20261110/ |
 | E17 | east | Dex Voice Lab | DexDictate macOS; DexDictate Android; DexSpeak; DexTalk; BigMac Voice Tools | base | PASS | VERIFIED BY BROWSER (pass 2); human acceptance pending | Repaired in pass 2: station screens now show each stage’s output; every station names its projects; ring turned off the bay plinth; sign no longer clipped |
 | E18 | east | Dex Companion & Agent Systems | DexGPT / DnDex Operating Project; DexClawdBot / Clawdbot; DexKeeper Bot | base | PASS | UNVERIFIED | — |
 | E19 | east | DexTilt | DexTilt | revision 2 | PASS | UNVERIFIED | — |
 | E20 | east | Utility & Privacy Bench | DexCleaner; DexSort; SpaceWise | base | PASS | UNVERIFIED | none of the 3 projects named in the bay source |
 | E21 | east | Civic Support Studio | DexAid | revision 2 | PASS | UNVERIFIED | — |
 | E22 | east | Creative Tools Studio | DexCraft; DexGen; DexDraw; 2D Game Factory | revision 2 | PASS | UNVERIFIED | — |
-| E23 | east | Sensemaking Lab | DexEarth; Dexterpreter | base | PASS | UNVERIFIED | neither project named in the bay source |
+| E23 | east | Sensemaking Lab | DexEarth; Dexterpreter | base | PASS | VERIFIED BY BROWSER (pass 4); human acceptance pending | Repaired in pass 4: both projects physically represented and named (DexEarth on multi-layer sensemaking globe, Dexterpreter on offline translation wall); before/after screenshots in docs/evidence/lead-exhibits-pass4-20261110/ |
 | E24 | south | Era of Invincible Magic | Era of Invincible Magic: Lands Unknown | base | PASS | UNVERIFIED | — |
 | E25 | south | DnDex / DM Hub | DnDex / DM_Hub | base | PASS | UNVERIFIED | — |
-| E26 | south | WestCat Systems | WESTCAT Overlay; WestCat Goes East | base | PASS | UNVERIFIED | WESTCAT Overlay not named in the bay source |
+| E26 | south | WestCat Systems | WESTCAT Overlay; WestCat Goes East | base | PASS | VERIFIED BY BROWSER (pass 4); human acceptance pending | Repaired in pass 4: both projects physically represented and named (WESTCAT Overlay on operations table, WestCat Goes East on platformer strip, lineage board preserved); before/after screenshots in docs/evidence/lead-exhibits-pass4-20261110/ |
 | E27 | south | The Full Weasel | The Full Weasel | base | PASS | UNVERIFIED | Real shipped build opens locally from the cabinet; stale “sixty-four” plaque corrected this session |
 | E28 | south | Against the Void | Against the Void | base | PASS | UNVERIFIED | — |
 | E29 | south | Arkship Civilization | Arkship Civilization | base | PASS | UNVERIFIED | — |
@@ -93,7 +93,7 @@ Ranked by visitor impact, release relevance, evidence strength and risk.
    with `?qa=1`, from scratch. Still the largest gap. The installation move in pass 2 changes what every
    one of the 13 host bays looks like on entry, so earlier impressions of those bays do not carry over.
 2. **Bay plinth conflicts in E02, E07, E08 and E11.** **REPAIRED (pass 3)** — measured intersections in all four bays resolved; 0 intersections verified in `tests/exhibit-plinth.test.ts`. Before and after visual evidence captured in `docs/evidence/plinth-repairs-20261109/`.
-3. **Look at the remaining seven "Lead" exhibits** (E14, E15, E16, E20, E23, E26, E35) for projects that are named only on the lectern. E20 and E35 inspected in pass 3: 0 plinth intersections; both confirm the pattern where projects are represented conceptually and on the lectern rather than with dedicated physical in-bay nameplates.
+3. **Lead exhibits physical representation** (E02, E11, E14, E15, E16, E17, E20, E23, E26, E34, E35). **REPAIRED / RESOLVED (passes 2, 3, 4)** — all lead exhibits inspected and brought to clear physical and conceptual representation. Pass 4 repaired E14, E15, E16, E23, E26; plinth clearance verified across all exhibits (including pulse starting points in E15 and E16). Before and after visual evidence captured in `docs/evidence/lead-exhibits-pass4-20261110/`. Full 53/53 Chromium browser suite verified clean (32.2m).
 4. **Second look at long captions museum-wide.** The clipping repair is global, but only E17 and E34
    were viewed after it. Some captions may now be set small; a strip aspect may suit them better.
 5. **Front corners of the 13 host bays.** Installations now stand there. Checked by measurement against
@@ -103,12 +103,11 @@ Ranked by visitor impact, release relevance, evidence strength and risk.
 7. **Repository hygiene (owner).** Ten draft exterior PRs (#27–#37) predate the merged V3 work; `main`
    is unprotected.
 
-Closed in pass 2 & 3: offline standalone, Workshop and Pages proofs and the full Chromium suite were run at
-this revision (see `OPERATIONAL_STATE.md`); all 4 plinth conflicts (E02, E07, E08, E11) repaired and visually verified.
+Closed in pass 2, 3 & 4: offline standalone, Workshop and Pages proofs, all 4 plinth conflicts, all lead exhibits physical representation, and the full Chromium suite (53/53 cases in 32.2m) were run and passed at this revision (see `OPERATIONAL_STATE.md`).
 
 ## Release blockers
 
-**Machine-verifiable, still open:** queue items 3–5; exact-head CI for this branch (not pushed).
+**Machine-verifiable, still open:** queue items 4–5; exact-head CI for this branch (not pushed).
 
 **Owner-dependent:** human walkthrough and its nine judgments; audio, pointer-lock and device FPS
 checks; whether to merge this branch; any Pages publication; any 1.0 declaration; queue items 6 and 7;

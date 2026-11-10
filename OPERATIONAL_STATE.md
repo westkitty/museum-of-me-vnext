@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 95,
+  "state_revision": 96,
   "last_updated": "2026-11-10",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -890,3 +890,43 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 **Continuity:** `docs/COMPLETION_MATRIX.md` updated (queue item 2 marked repaired; queue item 3 updated with E20/E35 findings).
 
 **Resume here:** continue lead-exhibit review on remaining lead bays (E14, E15, E16, E23, E26) for in-bay project representation.
+
+
+### Completion pass 4 — Lead exhibit comprehension & full browser suite closure (2026-11-10)
+
+**State:** IMPLEMENTED AND LOCALLY VERIFIED ON THE SAME LOCAL BRANCH. NOT PUSHED, NOT MERGED, NOT DEPLOYED.
+**Branch:** `feat/completion-guide-and-drift-20261109`; pass 4 started from local commit `c723ed17b5fbe4ef667a4214589d9893fb2dd0cf`; `origin/main` still `a96d2f7`.
+**Product status unchanged:** ACTIVE DEVELOPMENT / PRE-1.0. Verdict: PARTIAL.
+
+**Verification closed (all on the final pass-4 working tree, system Chrome via `MUSEUM_BROWSER_EXECUTABLE`):**
+- `npm run test:e2e`: PASS — 53/53 Chromium cases in 18 files in 32.2 minutes. Complete suite execution cleanly demonstrated on final stable source without harness interference or timeouts.
+- `npm run gate`: PASS — 776 unit tests / 60 files, all validators (mapping, content, privacy, frameloop, hotpaths, assets, exhibits, source parity), QA report runner, production build, budgets, `verify:dist`.
+- `npm run typecheck` & `npm run lint`: PASS — 0 errors, 0 warnings.
+- `npx vitest run tests/exhibit-plinth.test.ts`: PASS — 1 test, 0 plinth intersections verified across all 9 exhibits (`E02`, `E07`, `E08`, `E11`, `E14`, `E15`, `E16`, `E23`, `E26`).
+- `npm run build:standalone` + `npm run verify:standalone`: PASS — static checks sha256 `3c721dd7...`, offline browser (cold exterior start, 2 round trips, 17 visitors, 6 requests), `runtime-source-qa` 14/14 installations and 17/17 visitors, 0 remote requests.
+- `tests/browser/lead-evidence.capture.ts`: Captured paired before and after screenshots for all five lead exhibits using real Chrome.
+
+**Confirmed defects repaired:**
+- **E14 (Promptcraft & Vibe Coding):** Added physical architectural header `'VISUAL PROMPT SYSTEMS REGISTRY · TEMPLATE RACK'` at `(-1.2, 2.35, -4.0)` identifying P011 on the prompt assembly machine; added `'VIBE CODING NEXUS · LIVE STAGE'` at `(2.0, 2.95, -5.4)` identifying P013 on the glass output viewport; P029 remains identified on the DexEnhance Shadow DOM isolation frame. All three constituent projects are now physically named and visually clear.
+- **E15 (Agent Control & Capability Laboratory):** Added `'REPOFORGE · CAPABILITY & AUTHORITY COMPILER'` at `(0, 3.85, -5.3)` identifying P068 as the governing capability compiler; repositioned `pulse.mesh` to the start of the flow rail at `(-3.2, 3.15, -5.3)`, eliminating a hidden plinth collision at `(0, 0, 0)`; preserved predecessor lineage label for Code Harness (P017) and OpenCode Harness (P019).
+- **E16 (Performance Capture & Media Transformation):** Updated motion fixture label to `'CHARACTER PERFORMANCE CAPTURE · MOTION FIXTURE'` at `(-2.05, 2.7, -2.65)` directly identifying P069; updated verification label to `'CLEARCUT LOCAL · SOFT ALPHA & VERIFIED EXPORT'` at `(1.65, 0.62, -2.5)` identifying P070; repositioned `pulse.mesh` to the start of the rail at `(-3.1, 3.0, -4.35)` clearing the plinth center; preserved Guy_Cast (P058), Gay_Cast (P059), and Media Getter (P064) on the lineage wall.
+- **E23 (Sensemaking Lab):** Added `'DEXEARTH · MULTI-LAYER SENSEMAKING GLOBE'` at `(-1.6, 4.0, -4.0)` identifying P027; added `'DEXTERPRETER · OFFLINE TRANSLATION'` at `(2.6, 3.05, -5.5)` identifying P031. Both projects now have dedicated physical title signage in the bay.
+- **E26 (WestCat Systems):** Added `'WESTCAT OVERLAY · OPERATIONS MAP'` at `(-1.6, 2.7, -4.2)` identifying P037 above the operations table; preserved `'WestCat Goes East — real geography, 16-bit idiom'` for P038 and the lineage board for the five repository variants.
+
+**Visual and automated evidence captured:**
+- Separate before and after screenshots in `docs/evidence/lead-exhibits-pass4-20261110/`:
+  - `E14-before.png` vs `E14-after.png`: Visual Prompt Systems Registry and Vibe Coding Nexus labels mounted above template rack and live stage.
+  - `E15-before.png` vs `E15-after.png`: RepoForge compiler banner mounted above capability rail; plinth intersection resolved.
+  - `E16-before.png` vs `E16-after.png`: Character Performance Capture and ClearCut Local prominently titled; plinth intersection resolved.
+  - `E23-before.png` vs `E23-after.png`: DexEarth and Dexterpreter headers mounted above globe and translation wall.
+  - `E26-before.png` vs `E26-after.png`: WESTCAT Overlay header mounted above operations table.
+- Automated plinth regression test extended to all 9 exhibits in `tests/exhibit-plinth.test.ts` (0 intersections).
+
+**Invariants preserved:**
+- All 35 exhibits, 73 projects, 6 wings, Rotunda flight pad, separate Dexter Sanctuary, single frame loop, and 14 source installations intact.
+- Plinth geometry and colliders uncompromised.
+- Sanctuary guide routing remains PROPOSED, not implemented.
+
+**Continuity:** `docs/COMPLETION_MATRIX.md` updated (queue item 3 marked repaired/resolved; queue items 4–5 remain open).
+
+**Resume here:** queue item 4 (second look at long captions museum-wide) and queue item 5 (front corners wing furnishings survey).

@@ -57,7 +57,9 @@ export class MediaLineage extends ExhibitBase {
       }
     });
     const rail = new Filament(scope, this.scaled(26), 0.018, metal); rail.follow(new THREE.CatmullRomCurve3(railPoints)); this.group.add(rail.group);
-    this.pulse = new Pulse(scope, 0.09, this.emissive(0xffffff, 1.8)); this.group.add(this.pulse.mesh);
+    this.pulse = new Pulse(scope, 0.09, this.emissive(0xffffff, 1.8));
+    this.pulse.mesh.position.copy(railPoints[0]);
+    this.group.add(this.pulse.mesh);
 
     // A physical source fixture makes "performance" visible before it becomes data.
     this.sourceRig = new THREE.Group();
@@ -75,7 +77,7 @@ export class MediaLineage extends ExhibitBase {
     this.sourceRightArm = new THREE.Mesh(scope.track(new THREE.BoxGeometry(0.12, 0.72, 0.12)), sourceMat);
     this.sourceRightArm.position.set(0.33, 0.74, 0); this.sourceRightArm.rotation.z = -0.35; this.sourceRig.add(this.sourceRightArm);
 
-    const sourceLabel = buildLabel(scope, 'SOURCE MOTION · SAFE FIXTURE', 1.75);
+    const sourceLabel = buildLabel(scope, 'CHARACTER PERFORMANCE CAPTURE · MOTION FIXTURE', 2.5);
     sourceLabel.position.set(-2.05, 2.7, -2.65); this.group.add(sourceLabel); scope.track(sourceLabel.geometry);
 
     // PerformanceFrame markers are deliberately abstract. They are the portable
@@ -158,7 +160,7 @@ export class MediaLineage extends ExhibitBase {
       lamp.name = `E16 verification lamp ${i + 1}`;
       lamp.position.set(0.92 + i * 0.48, 0.88, -2.48); this.group.add(lamp); this.verificationLamps.push(lamp);
     }
-    const verifyLabel = buildLabel(scope, 'FRAMES · DURATION · AUDIO · ALPHA', 2.05);
+    const verifyLabel = buildLabel(scope, 'CLEARCUT LOCAL · SOFT ALPHA & VERIFIED EXPORT', 2.5);
     verifyLabel.position.set(1.65, 0.62, -2.5); this.group.add(verifyLabel); scope.track(verifyLabel.geometry);
 
     const advance = buildConsole(scope, 0.72, 0.48, 1.0, metal); advance.position.set(0, 0, -2.2); this.group.add(advance);

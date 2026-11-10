@@ -89,6 +89,11 @@ export class SensemakingLab extends ExhibitBase {
     );
     this.globe.add(graticule);
 
+    const dexEarthLabel = buildLabel(scope, 'DEXEARTH · MULTI-LAYER SENSEMAKING GLOBE', 2.8);
+    dexEarthLabel.position.set(-1.6, 4.0, -4.0);
+    this.group.add(dexEarthLabel);
+    scope.track(dexEarthLabel.geometry);
+
     // ── the layers ──
     const random = rng(23023);
     LAYERS.forEach((layer, i) => {
@@ -175,6 +180,11 @@ export class SensemakingLab extends ExhibitBase {
     );
     wall.position.set(2.6, 1.7, -5.6);
     this.group.add(wall);
+
+    const dexterpreterLabel = buildLabel(scope, 'DEXTERPRETER · OFFLINE TRANSLATION', 2.6);
+    dexterpreterLabel.position.set(2.6, 3.05, -5.5);
+    this.group.add(dexterpreterLabel);
+    scope.track(dexterpreterLabel.geometry);
 
     this.esLabel = buildLabel(scope, PHRASES[0].es, 2.6);
     this.esLabel.position.set(2.6, 2.3, -5.5);

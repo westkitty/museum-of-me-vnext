@@ -78,6 +78,11 @@ export class WestCatSystems extends ExhibitBase {
     base.position.set(-1.6, 0.97, -4.2);
     this.group.add(base);
 
+    const overlayLabel = buildLabel(scope, 'WESTCAT OVERLAY · OPERATIONS MAP', 2.6);
+    overlayLabel.position.set(-1.6, 2.7, -4.2);
+    this.group.add(overlayLabel);
+    scope.track(overlayLabel.geometry);
+
     // ── overlay panels, stacked above the map ──
     OVERLAYS.forEach((overlay, i) => {
       const panel = new THREE.Mesh(
