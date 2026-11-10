@@ -2,6 +2,8 @@ import { DeterministicMuseumGuide, type GuideReply } from '../guide/Deterministi
 import { Panel } from './Panel';
 import { el } from './dom';
 
+const SUGGESTED_QUESTIONS = ['What is this museum?', 'What am I looking at?', 'Show me something I missed', 'Show me games', 'What is finished?', 'Who is Dexter?', 'Controls'] as const;
+
 /** Semantic, local-only surface for DexGPT’s deterministic museum guidance. */
 export class MuseumGuidePanel extends Panel {
   private query = '';
@@ -17,7 +19,7 @@ export class MuseumGuidePanel extends Panel {
   protected render(): void {
     const input = el('input', {
       id: 'dexgpt-guide-query', type: 'search', value: this.query,
-      placeholder: 'Ask about a project, exhibit, wing, controls…',
+      placeholder: 'Ask about a project, a subject, a wing, where you are…',
       oninput: (event: Event) => { this.query = (event.target as HTMLInputElement).value; },
       onkeydown: (event: Event) => {
         if ((event as KeyboardEvent).key === 'Enter') {
@@ -42,6 +44,16 @@ export class MuseumGuidePanel extends Panel {
         })),
       )
       : el('p', { class: 'panel__note', text: 'I use the local collection and your visit journal. I can guide you, but I do not teleport you.' });
-    this.setContent(el('label', { for: 'dexgpt-guide-query', text: 'Ask DexGPT' }), input, ask, answer);
+    // Starting points for a visitor who does not yet know what can be asked.
+    const suggestions = el('div', { class: 'guide-suggestions', role: 'group', 'aria-label': 'Example questions' },
+      ...SUGGESTED_QUESTIONS.map((question) => el('button', {
+        type: 'button', class: 'guide-suggestions__item', text: question, onclick: () => {
+          this.query = question;
+          this.reply = this.guide.answer(question);
+          this.render();
+        },
+      })),
+    );
+    this.setContent(el('label', { for: 'dexgpt-guide-query', text: 'Ask DexGPT' }), input, ask, suggestions, answer);
   }
 }
