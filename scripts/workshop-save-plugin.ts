@@ -16,6 +16,8 @@ import {
 
 const ENDPOINT = '/__museum-workshop/save';
 const MEDIA_ENDPOINT = '/__museum-workshop/media';
+const MODEL_ENDPOINT = '/__museum-workshop/model';
+const MAX_MODEL_BYTES = 8 * 1024 * 1024;
 const MAX_MEDIA_BYTES = 3 * 1024 * 1024;
 
 /** Shallow container check, not an image decoder. Refuse obvious malformed uploads. */
@@ -33,13 +35,68 @@ export function hasValidWebPContainer(bytes: Buffer): boolean {
  * Root is fixed to the project-relative public/ tree; user data only supplies
  * a validated hash basename, never arbitrary filesystem paths.
  */
+export function hasValidLocalGLB(bytes: Buffer): boolean {
+  if (bytes.length < 32 || bytes.length > MAX_MODEL_BYTES) return false;
+  if (bytes.readUInt32LE(0) !== 0x46546c67 || bytes.readUInt32LE(4) !== 2
+    || bytes.readUInt32LE(8) !== bytes.length) return false;
+  const jsonLength = bytes.readUInt32LE(12);
+  if (jsonLength < 12 || jsonLength > bytes.length - 20
+    || bytes.toString('ascii', 16, 20) !== 'JSON') return false;
+  try {
+    const doc = JSON.parse(bytes.toString('utf8', 20, 20 + jsonLength)) as {
+      asset?: { version?: string };
+      buffers?: { uri?: unknown }[];
+      images?: { uri?: unknown }[];
+    };
+    if (doc.asset?.version !== '2.0') return false;
+    // GLBs must be self-contained. No HTTP, file, path or external image fetch.
+    const refs = [...(doc.buffers ?? []), ...(doc.images ?? [])];
+    return refs.every((entry) => entry.uri === undefined
+      || (typeof entry.uri === 'string' && entry.uri.startsWith('data:')
+        && entry.uri.length <= MAX_MODEL_BYTES));
+  } catch {
+    return false;
+  }
+}
+
+export async function validateLocalWorkshopModels(
+  manifest: WorkshopPlacementManifest,
+  manifestFile: string,
+): Promise<readonly string[]> {
+  const errors: string[] = [];
+  const directory = resolve(dirname(manifestFile), '../public/workshop-models');
+  const paths = new Set(manifest.objects
+    .map((object) => object.assetId)
+    .filter((id): id is string => Boolean(id?.startsWith('workshop-models/'))));
+  for (const path of paths) {
+    const hash = path.slice('workshop-models/'.length, -'.glb'.length);
+    try {
+      const file = resolve(directory, hash + '.glb');
+      const stat = await lstat(file);
+      if (!stat.isFile() || stat.size > MAX_MODEL_BYTES) throw new Error('invalid model file');
+      const bytes = await readFile(file);
+      if (!hasValidLocalGLB(bytes) || createHash('sha256').update(bytes).digest('hex') !== hash) {
+        throw new Error('invalid GLB hash');
+      }
+    } catch {
+      errors.push('Imported model ' + path + ' is missing, invalid or has been changed');
+    }
+  }
+  return errors;
+}
+
 export async function validateLocalWorkshopMedia(
   manifest: WorkshopPlacementManifest,
   manifestFile: string,
 ): Promise<readonly string[]> {
   const errors: string[] = [];
   const mediaRoot = resolve(dirname(manifestFile), '../public/workshop-media');
-  const referenced = new Set(manifest.objects.map((record) => record.image).filter((value): value is string => Boolean(value)));
+  const referenced = new Set([
+    ...manifest.objects.map((record) => record.image),
+    ...manifest.objects.map((record) => record.texture?.startsWith('workshop-media/') ? record.texture : undefined),
+    ...(manifest.surfaceOverrides ?? []).map((record) =>
+      record.texture?.startsWith('workshop-media/') ? record.texture : undefined),
+  ].filter((value): value is string => Boolean(value)));
   for (const image of referenced) {
     const hash = image.slice('workshop-media/'.length, -'.webp'.length);
     const file = resolve(mediaRoot, `${hash}.webp`);
@@ -70,13 +127,25 @@ function isLoopback(address: string | undefined): boolean {
  * server as a write primitive. Non-browser tools without Origin remain subject
  * to the loopback, method, content-type, schema, size, and fixed-path gates.
  */
+/**
+ * Even when the peer address is loopback, reject arbitrary Host headers.
+ * DNS rebinding can otherwise make an attacker's origin equal the Host header
+ * while its DNS record points to a local development server.
+ */
+export function isLocalWorkshopHost(host: string | undefined): boolean {
+  return typeof host === 'string'
+    && /^(?:localhost|127\.0\.0\.1|\[::1\])(?::[0-9]{1,5})?$/i.test(host);
+}
+
 function isSameOriginRequest(req: IncomingMessage): boolean {
+  const host = req.headers.host;
+  if (!isLocalWorkshopHost(host)) return false;
   const origin = req.headers.origin;
   if (!origin) return true;
-  const host = req.headers.host;
-  if (!host) return false;
   try {
-    return new URL(origin).host === host;
+    const parsed = new URL(origin);
+    return (parsed.protocol === 'http:' || parsed.protocol === 'https:')
+      && parsed.host.toLowerCase() === host!.toLowerCase();
   } catch {
     return false;
   }
@@ -98,6 +167,24 @@ async function readBody(req: IncomingMessage): Promise<string> {
     });
     req.on('end', () => resolveBody(body));
     req.on('error', reject);
+  });
+}
+
+async function readModel(req: IncomingMessage): Promise<Buffer> {
+  return await new Promise<Buffer>((done, fail) => {
+    const chunks: Buffer[] = [];
+    let total = 0;
+    req.on('data', (chunk: Buffer) => {
+      total += chunk.length;
+      if (total > MAX_MODEL_BYTES) {
+        fail(new Error('Model import limit is 8 MB'));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on('end', () => done(Buffer.concat(chunks)));
+    req.on('error', fail);
   });
 }
 
@@ -151,6 +238,8 @@ export async function writeWorkshopManifest(raw: unknown, target: string): Promi
   }
   const mediaErrors = await validateLocalWorkshopMedia(parsed.value, target);
   if (mediaErrors.length) return { ok: false, status: 400, errors: mediaErrors };
+  const modelErrors = await validateLocalWorkshopModels(parsed.value, target);
+  if (modelErrors.length) return { ok: false, status: 400, errors: modelErrors };
   const temp = `${target}.tmp-${process.pid}`;
   await mkdir(dirname(target), { recursive: true });
   await writeFile(temp, serializeWorkshopManifest(parsed.value), 'utf8');
@@ -165,6 +254,33 @@ export function museumWorkshopSavePlugin(): Plugin {
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const url = req.url?.split('?')[0] ?? '';
+        if (url === MODEL_ENDPOINT) {
+          if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'POST required' });
+          if (!isLoopback(req.socket.remoteAddress) || !isSameOriginRequest(req)) {
+            return json(res, 403, { ok: false, error: 'Local, same-origin authoring only' });
+          }
+          if (req.headers['content-type'] !== 'model/gltf-binary'
+            && req.headers['content-type'] !== 'application/octet-stream') {
+            return json(res, 415, { ok: false, error: 'GLB model required' });
+          }
+          try {
+            const bytes = await readModel(req);
+            if (!hasValidLocalGLB(bytes)) return json(res, 400, { ok: false, error: 'Invalid or externally-linked GLB' });
+            const hash = createHash('sha256').update(bytes).digest('hex');
+            const directory = resolve(process.cwd(), 'public/workshop-models');
+            await mkdir(directory, { recursive: true });
+            const target = resolve(directory, hash + '.glb');
+            const temp = target + '.tmp-' + process.pid;
+            await writeFile(temp, bytes);
+            await rename(temp, target);
+            return json(res, 200, { ok: true, assetId: 'workshop-models/' + hash + '.glb',
+              note: 'Imported only to local public/; verify rights before publishing' });
+          } catch (error) {
+            if (!req.destroyed) json(res, 400, { ok: false,
+              error: error instanceof Error ? error.message : 'Import failed' });
+            return;
+          }
+        }
         if (url === MEDIA_ENDPOINT) {
           if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'POST required' });
           if (!isLoopback(req.socket.remoteAddress) || !isSameOriginRequest(req)) {

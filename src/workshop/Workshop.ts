@@ -5,6 +5,7 @@ import type { MuseumPlacements } from './MuseumPlacements';
 import { BuilderCamera, type BuilderView } from './BuilderCamera';
 import type { AuthorableSceneEntry, AuthorableSceneTransform } from './AuthorableSceneRegistry';
 import { WORKSHOP_PREFABS, type WorkshopPrefabId } from './catalog';
+import { BUILDER_MODELS, BUILDER_FINISHES, searchBuilderLibrary, builderModel } from './builderAssetCatalog';
 import { conservationErrors, validateWorkshopConservation } from './conservation';
 import { WorkshopHistory } from './history';
 import {
@@ -18,6 +19,7 @@ const RAD = Math.PI / 180;
 const DEG = 180 / Math.PI;
 const SAVE_ENDPOINT = '/__museum-workshop/save';
 const MEDIA_ENDPOINT = '/__museum-workshop/media';
+const MODEL_ENDPOINT = '/__museum-workshop/model';
 const GRID_SNAP = [0, 0.05, 0.1, 0.25, 0.5, 1] as const;
 const INPUT_KEYS = ['px', 'py', 'pz', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz'] as const;
 type InputKey = (typeof INPUT_KEYS)[number];
@@ -30,6 +32,12 @@ export class Workshop {
   private readonly transform: TransformControls;
   private readonly camera: BuilderCamera;
   private readonly paintInput: HTMLInputElement;
+  private readonly textureInput: HTMLSelectElement;
+  private readonly modelInput: HTMLInputElement;
+  private readonly finishFileInput: HTMLInputElement;
+  private readonly searchInput: HTMLInputElement;
+  private readonly categoryInput: HTMLSelectElement;
+  private readonly assetResults: HTMLElement;
   private readonly imageInput: HTMLInputElement;
   private readonly depthInput: HTMLInputElement;
   private readonly collisionInput: HTMLSelectElement;
@@ -54,6 +62,7 @@ export class Workshop {
   private readonly redoButton: HTMLButtonElement;
   private selectionBox: THREE.BoxHelper | null = null;
   private selectedId: string | null = null;
+  private selectedSurfaceId: string | null = null;
   private dragBefore: WorkshopPlacementManifest | null = null;
   private openState = false;
 
@@ -73,6 +82,12 @@ export class Workshop {
     this.undoButton = this.el<HTMLButtonElement>('undo');
     this.redoButton = this.el<HTMLButtonElement>('redo');
     this.paintInput = this.el<HTMLInputElement>('paint');
+    this.textureInput = this.el<HTMLSelectElement>('texture');
+    this.modelInput = this.el<HTMLInputElement>('model-import');
+    this.finishFileInput = this.el<HTMLInputElement>('finish-import');
+    this.searchInput = this.el<HTMLInputElement>('asset-search');
+    this.categoryInput = this.el<HTMLSelectElement>('asset-category');
+    this.assetResults = this.el('asset-results');
     this.imageInput = this.el<HTMLInputElement>('image');
     this.depthInput = this.el<HTMLInputElement>('depth');
     this.collisionInput = this.el<HTMLSelectElement>('collision');
@@ -112,7 +127,10 @@ export class Workshop {
       this.note('Close the current museum panel before opening Workshop.', 'warn');
       return;
     }
-    if (targetId) this.select(targetId);
+    if (targetId) {
+      if (targetId.startsWith('exterior:') || targetId.startsWith('interior:')) this.selectSurface(targetId);
+      else this.select(targetId);
+    }
     this.openState = true;
     this.savedVisitorPosition = this.app.player.position.clone();
     this.savedVisitorYaw = this.app.player.yaw;
@@ -208,6 +226,14 @@ export class Workshop {
       input.addEventListener('change', () => this.commitTransform(key as InputKey));
     }
     this.paintInput.addEventListener('change', () => this.commitAppearance());
+    this.textureInput.addEventListener('change', () => {
+      if (this.textureInput.value !== 'none') this.paintInput.value = '#ffffff';
+      this.commitAppearance();
+    });
+    this.modelInput.addEventListener('change', () => void this.importModel());
+    this.finishFileInput.addEventListener('change', () => void this.importFinish());
+    this.searchInput.addEventListener('input', () => this.refreshAssetLibrary());
+    this.categoryInput.addEventListener('change', () => this.refreshAssetLibrary());
     this.depthInput.addEventListener('change', () => this.commitAppearance());
     this.collisionInput.addEventListener('change', () => this.commitAppearance());
     this.eventInput.addEventListener('change', () => this.commitAppearance());
@@ -219,14 +245,31 @@ export class Workshop {
     this.el<HTMLButtonElement>('view-top').addEventListener('click', () => this.setView('top'));
     this.el<HTMLButtonElement>('focus').addEventListener('click', () => {
       const object = this.object();
-      if (object) this.camera.focus(object);
+      const selectedSurface = this.selectedSurfaceId
+        ? this.placements.surfaces.resolve(this.selectedSurfaceId) : null;
+      if (object || selectedSurface) this.camera.focus(object ?? selectedSurface!.mesh);
     });
     this.el<HTMLButtonElement>('world-exterior').addEventListener('click', () => void this.switchWorld('exterior'));
     this.el<HTMLButtonElement>('world-interior').addEventListener('click', () => void this.switchWorld('interior'));
     this.el<HTMLButtonElement>('compare').addEventListener('click', () => this.toggleComparison());
 
     const palette = this.el('palette');
+    for (const finish of BUILDER_FINISHES) {
+      const option = document.createElement('option');
+      option.value = finish.id;
+      option.textContent = finish.label;
+      option.title = finish.source + ' · ' + finish.license;
+      this.textureInput.append(option);
+    }
+    for (const category of ['All', ...new Set(BUILDER_MODELS.map((item) => item.category))]) {
+      const option = document.createElement('option');
+      option.value = category;
+      option.textContent = category;
+      this.categoryInput.append(option);
+    }
+    this.refreshAssetLibrary();
     for (const prefab of WORKSHOP_PREFABS) {
+      if (prefab.id === 'catalog-model') continue;
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = prefab.label;
@@ -294,7 +337,136 @@ export class Workshop {
     // Keep editing the real active world, never simultaneously render both.
     this.camera.close();
     this.camera.open();
+    this.select(null);
     this.refresh();
+  }
+
+  private refreshAssetLibrary(): void {
+    this.assetResults.replaceChildren();
+    const matched = searchBuilderLibrary(this.searchInput.value, this.categoryInput.value || 'All');
+    this.el('asset-count').textContent = matched.length + ' locally verified 3D assets';
+    for (const item of matched) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'workshop-asset';
+      button.dataset.assetId = item.id;
+      button.disabled = this.placements.isComparingOriginal;
+      const title = document.createElement('strong');
+      title.textContent = item.label;
+      const detail = document.createElement('small');
+      detail.textContent = item.category + ' · ' + item.source + ' · ' + item.license;
+      button.append(title, detail);
+      button.title = item.tags.join(', ') + ' · ' + item.bytes + ' bytes';
+      button.addEventListener('click', () => this.addModel(item.id, item.label));
+      this.assetResults.append(button);
+    }
+    if (!matched.length) {
+      const empty = document.createElement('p');
+      empty.className = 'workshop-muted';
+      empty.textContent = 'No matching assets. Search another category or import a local GLB.';
+      this.assetResults.append(empty);
+    }
+  }
+
+  private addModel(assetId: string, label: string): void {
+    if (this.placements.isComparingOriginal) return;
+    const before = this.placements.captureManifest();
+    if (before.objects.length >= 256) return this.note('Museum object limit (256) reached.', 'error');
+    const direction = this.app.camera.getWorldDirection(new THREE.Vector3());
+    const x = this.app.camera.position.x + direction.x * 5;
+    const z = this.app.camera.position.z + direction.z * 5;
+    const collision = this.app.player.collisionWorld;
+    const y = collision.supportHeight(x, z, this.app.player.position.y, 2) ?? this.app.player.position.y;
+    const model = builderModel(assetId);
+    const record: WorkshopPlacementRecord = {
+      id: this.uniqueId('catalog-model'),
+      label: label.slice(0, 80),
+      prefab: 'catalog-model',
+      assetId,
+      anchor: 'floor',
+      position: [x, y, z],
+      rotation: [0, Math.atan2(-direction.x, -direction.z), 0],
+      scale: [1, 1, 1],
+      worldId: this.app.activeWorld,
+      collision: 'none',
+    };
+    try {
+      const after = this.placements.setRecord(record);
+      this.history.push('Summon ' + label, before, after);
+      this.select(record.id);
+      this.note(label + ' summoned from ' + (model?.source ?? 'local import') + '. Move, scale, paint or save it.', 'ok');
+      this.refresh();
+    } catch (error) {
+      this.note(error instanceof Error ? error.message : 'Placement was rejected by conservation.', 'error');
+    }
+  }
+
+  private async importModel(): Promise<void> {
+    const file = this.modelInput.files?.[0];
+    if (!file) return;
+    this.modelInput.value = '';
+    if (!file.name.toLowerCase().endsWith('.glb') || file.size > 8 * 1024 * 1024) {
+      return this.note('Only self-contained GLB files under 8 MB can be imported.', 'error');
+    }
+    try {
+      this.note('Importing local 3D model…', 'ok');
+      const response = await fetch(MODEL_ENDPOINT, {
+        method: 'POST', headers: { 'Content-Type': 'model/gltf-binary' }, body: file,
+      });
+      const result = await response.json() as { ok?: boolean; assetId?: string; error?: string };
+      if (!response.ok || !result.ok || !result.assetId) throw new Error(result.error ?? 'GLB import failed');
+      this.addModel(result.assetId, file.name.replace(/\.glb$/i, ''));
+    } catch (error) {
+      this.note(error instanceof Error ? error.message : 'GLB import failed.', 'error');
+    }
+  }
+
+  private ensureFinishOption(value: string): void {
+    if (!value || value === 'none') return;
+    if ([...this.textureInput.options].some((option) => option.value === value)) return;
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = 'Imported texture · ' + value.slice(0, 20) + '…';
+    this.textureInput.append(option);
+  }
+
+  private async importFinish(): Promise<void> {
+    const file = this.finishFileInput.files?.[0];
+    if (!file) return;
+    this.finishFileInput.value = '';
+    const selectedId = this.selectedId;
+    const surfaceId = this.selectedSurfaceId;
+    if ((!selectedId && !surfaceId) || !file.type.startsWith('image/') || file.size > 15 * 1024 * 1024) {
+      return this.note('Select a surface or object, then an image smaller than 15 MB.', 'warn');
+    }
+    try {
+      this.note('Converting texture into local WebP…', 'ok');
+      const bitmap = await createImageBitmap(file);
+      const factor = Math.min(1, 2048 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(bitmap.width * factor));
+      canvas.height = Math.max(1, Math.round(bitmap.height * factor));
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Image canvas is unavailable');
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      const blob = await new Promise<Blob | null>((resolveBlob) => canvas.toBlob(resolveBlob, 'image/webp', 0.85));
+      if (!blob || blob.size > 3 * 1024 * 1024) throw new Error('Converted texture exceeds 3 MB');
+      const response = await fetch(MEDIA_ENDPOINT, {
+        method: 'POST', headers: { 'Content-Type': 'image/webp' }, body: blob,
+      });
+      const result = await response.json() as { ok?: boolean; image?: string; error?: string };
+      if (!response.ok || !result.ok || !result.image) throw new Error(result.error ?? 'Texture import failed');
+      if (selectedId !== this.selectedId || surfaceId !== this.selectedSurfaceId) {
+        this.note('Image imported. Selection changed; re-select the target to apply it.', 'warn');
+        return;
+      }
+      this.ensureFinishOption(result.image);
+      this.textureInput.value = result.image;
+      this.commitAppearance();
+    } catch (error) {
+      this.note(error instanceof Error ? error.message : 'Texture import failed.', 'error');
+    }
   }
 
   private add(prefab: WorkshopPrefabId): void {
@@ -344,6 +516,20 @@ export class Workshop {
   }
 
   private remove(): void {
+    if (this.selectedSurfaceId) {
+      const id = this.selectedSurfaceId;
+      const before = this.placements.captureManifest();
+      try {
+        const after = this.placements.removeSurfaceOverride(id);
+        this.history.push('Clear scene finish', before, after);
+        this.selectSurface(id);
+        this.note('Original surface material restored.', 'ok');
+        this.refresh();
+      } catch (error) {
+        this.note(error instanceof Error ? error.message : 'Could not restore finish', 'error');
+      }
+      return;
+    }
     const record = this.record();
     if (!record) return;
     const before = this.placements.captureManifest();
@@ -425,12 +611,36 @@ export class Workshop {
       return;
     }
     this.history.push(`Transform ${label}`, before, after);
+    if (record?.collision === 'solid') this.placements.invalidateCollisions();
     this.selectionBox?.update();
     this.refresh();
   }
 
   private commitAppearance(): void {
+    if (this.placements.isComparingOriginal) return;
     const record = this.record();
+    const surfaceId = this.selectedSurfaceId;
+    const texture = this.textureInput.value;
+    if (surfaceId && !record) {
+      const selected = this.placements.surfaces.resolve(surfaceId);
+      if (!selected) return this.note('Scene surface is no longer available.', 'warn');
+      const color = this.paintInput.value;
+      if (!/^#[0-9a-f]{6}$/i.test(color)) return this.note('Choose a valid color.', 'error');
+      const before = this.placements.captureManifest();
+      try {
+        const after = this.placements.setSurfaceOverride({
+          id: selected.id, worldId: selected.worldId,
+          color, ...(texture !== 'none' ? { texture } : {}),
+        });
+        this.history.push('Paint ' + selected.label, before, after);
+        this.selectSurface(surfaceId);
+        this.note('Surface finish applied without modifying structural geometry.', 'ok');
+        this.refresh();
+      } catch (error) {
+        this.note(error instanceof Error ? error.message : 'Surface finish rejected.', 'error');
+      }
+      return;
+    }
     if (!record) return;
     const depth = Number(this.depthInput.value);
     const color = this.paintInput.value;
@@ -441,6 +651,7 @@ export class Workshop {
     try {
       const after = this.placements.setRecord({
         ...record, color, depth,
+        texture: texture === 'none' ? undefined : texture,
         collision: this.collisionInput.value as 'none' | 'solid',
         event: this.eventInput.value as 'none' | 'announce',
       });
@@ -554,8 +765,10 @@ export class Workshop {
   private applyHistory(result: { label: string; manifest: WorkshopPlacementManifest } | null, verb: string): void {
     if (!result) return;
     const id = this.selectedId;
+    const surfaceId = this.selectedSurfaceId;
     this.placements.replaceManifest(result.manifest);
-    this.select(id && this.placements.getObject(id) ? id : null);
+    if (surfaceId) this.selectSurface(surfaceId);
+    else this.select(id && this.placements.getObject(id) ? id : null);
     this.note(`${verb}: ${result.label}`, 'ok');
     this.refresh();
   }
@@ -586,6 +799,7 @@ export class Workshop {
   }
 
   private select(id: string | null): void {
+    this.selectedSurfaceId = null;
     this.selectedId = id;
     this.transform.detach();
     this.helper.visible = false;
@@ -601,6 +815,21 @@ export class Workshop {
     this.selectionBox = new THREE.BoxHelper(object, 0x39c9ff);
     this.selectionBox.visible = this.openState;
     this.app.scene.add(this.selectionBox);
+    this.refreshInspector();
+  }
+
+  private selectSurface(id: string): void {
+    const surface = this.placements.surfaces.resolve(id);
+    this.selectedId = null;
+    this.selectedSurfaceId = surface?.id ?? null;
+    this.transform.detach();
+    this.helper.visible = false;
+    this.clearSelectionBox();
+    if (surface) {
+      this.selectionBox = new THREE.BoxHelper(surface.mesh, 0xffcc66);
+      this.selectionBox.visible = this.openState;
+      this.app.scene.add(this.selectionBox);
+    }
     this.refreshInspector();
   }
 
@@ -623,14 +852,24 @@ export class Workshop {
     };
   }
 
-  private authorableHit(centre: boolean): { id: string; entry: AuthorableSceneEntry | null } | null {
+  private authorableHit(centre: boolean, preferSurface = false): { id: string; entry: AuthorableSceneEntry | null; isSurface: boolean } | null {
     if (centre) this.pointer.set(0, 0);
     this.raycaster.setFromCamera(this.pointer, this.app.camera);
-    const hit = this.raycaster.intersectObjects([...this.placements.selectableObjects()], true)[0];
-    if (!hit) return null;
-    const entry = this.placements.authorableEntryForObject(hit.object);
-    const id = entry?.id ?? hit.object.userData.workshopId;
-    return typeof id === 'string' ? { id, entry } : null;
+    const world = this.app.activeWorld;
+    const worldRoot = world === 'exterior' ? this.app.exteriorWorld.root : this.app.museum?.root;
+    const candidates = [...this.placements.selectableObjects(), ...(worldRoot ? [worldRoot] : [])];
+    const hits = this.raycaster.intersectObjects(candidates, true);
+    for (const hit of hits) {
+      if (typeof hit.object.userData.workshopId === 'string') {
+        return { id: hit.object.userData.workshopId, entry: null, isSurface: false };
+      }
+      const entry = this.placements.authorableEntryForObject(hit.object);
+      const surface = this.placements.surfaceAt(hit.object, world);
+      if (preferSurface && surface) return { id: surface.id, entry, isSurface: true };
+      if (entry) return { id: entry.id, entry, isSurface: false };
+      if (surface) return { id: surface.id, entry: null, isSurface: true };
+    }
+    return null;
   }
 
   private readonly onCanvasPointerDown = (event: PointerEvent): void => {
@@ -647,9 +886,10 @@ export class Workshop {
       this.mountOnWall();
       return;
     }
-    const hit = this.authorableHit(false);
-    this.select(hit?.id ?? null);
-    if (!hit) this.note('Protected scene geometry. Only registered dressing objects can be edited.', 'warn');
+    const hit = this.authorableHit(false, event.altKey);
+    if (hit?.isSurface) this.selectSurface(hit.id);
+    else this.select(hit?.id ?? null);
+    if (!hit) this.note('No editable mesh here. Instanced and skeletal assets are protected.', 'warn');
     this.refresh();
   };
 
@@ -682,6 +922,7 @@ export class Workshop {
           ? this.placements.setSceneOverride(sceneEntry.id, this.captureTransform(this.object()!))
           : this.placements.captureManifest();
         this.history.push(`Transform ${record?.label ?? sceneEntry?.label ?? 'object'}`, before, after);
+        if (record?.collision === 'solid') this.placements.invalidateCollisions();
       } catch (error) {
         this.placements.replaceManifest(before);
         this.note(error instanceof Error ? error.message : 'Transform rejected by Museum conservation.', 'error');
@@ -705,8 +946,9 @@ export class Workshop {
         event.preventDefault(); event.stopPropagation(); this.open(hit.id); return;
       }
       event.preventDefault(); event.stopPropagation();
-      if (hit) this.select(hit.id);
-      else this.note('Protected scene geometry. Only registered dressing objects can be edited.', 'warn');
+      if (hit?.isSurface) this.selectSurface(hit.id);
+      else if (hit) this.select(hit.id);
+      else this.note('No individually selectable mesh at crosshair.', 'warn');
       this.refresh();
       return;
     }
@@ -757,10 +999,12 @@ export class Workshop {
     this.root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((button) => { button.disabled = comparing; });
     this.el<HTMLButtonElement>('floor').disabled = comparing || !placementSelected;
     this.el<HTMLButtonElement>('duplicate').disabled = comparing || !placementSelected;
-    this.el<HTMLButtonElement>('delete').disabled = comparing || !placementSelected;
+    this.el<HTMLButtonElement>('delete').disabled = comparing || (!placementSelected && !this.selectedSurfaceId);
     this.el<HTMLElement>('palette').querySelectorAll<HTMLButtonElement>('button').forEach((button) => { button.disabled = comparing; });
+    this.assetResults.querySelectorAll<HTMLButtonElement>('button').forEach((button) => { button.disabled = comparing; });
+    this.modelInput.disabled = comparing;
     this.el<HTMLButtonElement>('place-wall').disabled = placement?.prefab !== 'wall-art' && placement?.prefab !== 'wall-panel';
-    this.el<HTMLButtonElement>('focus').disabled = !this.object();
+    this.el<HTMLButtonElement>('focus').disabled = !this.object() && !this.selectedSurfaceId;
     this.el<HTMLButtonElement>('compare').dataset.active = String(this.placements.isComparingOriginal);
     this.el<HTMLButtonElement>('compare').textContent = this.placements.isComparingOriginal
       ? 'Return to authored view' : 'Reveal original';
@@ -777,22 +1021,43 @@ export class Workshop {
     const record = this.record();
     const sceneEntry = this.sceneEntry();
     const object = this.object();
-    const disabled = (!record && !sceneEntry) || !object;
-    this.labelInput.disabled = disabled || sceneEntry !== null || this.placements.isComparingOriginal;
-    this.anchorInput.disabled = disabled || sceneEntry !== null || this.placements.isComparingOriginal;
-    for (const input of Object.values(this.inputs)) input.disabled = disabled || this.placements.isComparingOriginal;
+    const surface = this.selectedSurfaceId ? this.placements.surfaces.resolve(this.selectedSurfaceId) : null;
+    const disabled = (!record && !sceneEntry && !surface) || (!object && !surface);
+    this.labelInput.disabled = disabled || sceneEntry !== null || surface !== null || this.placements.isComparingOriginal;
+    this.anchorInput.disabled = disabled || sceneEntry !== null || surface !== null || this.placements.isComparingOriginal;
+    for (const input of Object.values(this.inputs)) input.disabled = disabled || surface !== null || this.placements.isComparingOriginal;
     const locked = this.placements.isComparingOriginal;
-    this.uniformScaleInput.disabled = disabled || locked;
-    this.paintInput.disabled = !record || locked;
+    this.uniformScaleInput.disabled = disabled || surface !== null || locked;
+    this.paintInput.disabled = (!record && !surface) || locked;
+    this.textureInput.disabled = (!record && !surface) || locked;
+    this.finishFileInput.disabled = (!record && !surface) || locked;
     this.depthInput.disabled = (record?.prefab !== 'wall-art' && record?.prefab !== 'wall-panel') || locked;
     this.collisionInput.disabled = !record || locked;
     this.eventInput.disabled = !record || locked;
     this.imageInput.disabled = record?.prefab !== 'wall-art' || locked;
+    if (surface) {
+      const finish = this.placements.getSurfaceOverride(surface.id);
+      this.title.textContent = surface.label;
+      this.meta.textContent = surface.id + ' · ' + surface.worldId
+        + ' · paint-only original mesh (geometry and collision stay protected)';
+      this.labelInput.value = surface.label;
+      this.anchorInput.value = 'wall';
+      this.paintInput.value = finish?.color ?? '#ffffff';
+      const texture = finish?.texture ?? 'none';
+      this.ensureFinishOption(texture);
+      this.textureInput.value = texture;
+      this.depthInput.value = '0.055';
+      this.collisionInput.value = 'none';
+      this.eventInput.value = 'none';
+      for (const input of Object.values(this.inputs)) input.value = '';
+      return;
+    }
     if ((!record && !sceneEntry) || !object) {
       this.title.textContent = 'Nothing selected';
       this.meta.textContent = 'Click an authored object or choose one below.';
       this.labelInput.value = '';
       this.paintInput.value = '#a3b5bd';
+      this.textureInput.value = 'none';
       this.depthInput.value = '0.055';
       this.collisionInput.value = 'none';
       this.eventInput.value = 'none';
@@ -806,6 +1071,9 @@ export class Workshop {
     this.labelInput.value = record?.label ?? sceneEntry!.label;
     this.anchorInput.value = record?.anchor ?? 'free';
     this.paintInput.value = record?.color ?? '#a3b5bd';
+    const finish = record?.texture ?? 'none';
+    this.ensureFinishOption(finish);
+    this.textureInput.value = finish;
     this.depthInput.value = String(record?.depth ?? 0.055);
     this.collisionInput.value = record?.collision ?? 'none';
     this.eventInput.value = record?.event ?? 'none';
@@ -821,8 +1089,18 @@ export class Workshop {
     this.outliner.replaceChildren();
     const objects = this.placements.captureManifest().objects;
     const sceneEntries = this.placements.sceneEntries();
-    if (!objects.length && !sceneEntries.length) {
+    const finishedSurfaces = this.placements.captureManifest().surfaceOverrides
+      ?.filter((item) => item.worldId === this.app.activeWorld) ?? [];
+    if (!objects.length && !sceneEntries.length && !finishedSurfaces.length) {
       const empty = document.createElement('p'); empty.className = 'workshop-muted'; empty.textContent = 'No authored objects yet.'; this.outliner.append(empty); return;
+    }
+    for (const finish of finishedSurfaces) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.selected = String(finish.id === this.selectedSurfaceId);
+      button.textContent = 'Painted mesh · ' + finish.id;
+      button.addEventListener('click', () => { this.selectSurface(finish.id); this.refresh(); });
+      this.outliner.append(button);
     }
     for (const entry of sceneEntries) {
       const button = document.createElement('button');
@@ -886,7 +1164,7 @@ const WORKSHOP_HTML = `
   <button type="button" data-workshop="save">Save to build</button><button type="button" data-workshop="exit">Exit F8</button>
 </div>
 <nav class="workshop-keymap" data-workshop="keymap" aria-label="Museum Workshop keyboard commands">
-  <span><kbd>F</kbd>Select/Edit object</span><span><kbd>F8</kbd>toggle</span><span><kbd>Esc</kbd>exit</span><span><kbd>W</kbd>move</span><span><kbd>E</kbd>rotate</span><span><kbd>R</kbd>scale</span><span><kbd>G</kbd>floor</span>
+  <span><kbd>F</kbd>Select/Edit object</span><span>Alt + click: paint child mesh</span><span><kbd>F8</kbd>toggle</span><span><kbd>Esc</kbd>exit</span><span><kbd>W</kbd>move</span><span><kbd>E</kbd>rotate</span><span><kbd>R</kbd>scale</span><span><kbd>G</kbd>floor</span>
   <span><kbd>⌘/Ctrl+D</kbd>duplicate</span><span><kbd>Delete</kbd>remove</span><span><kbd>⌘/Ctrl+Z</kbd>undo</span><span><kbd>⇧⌘/Ctrl+Z</kbd>redo</span><span><kbd>⌘/Ctrl+S</kbd>save</span>
 </nav>
 <aside class="workshop-panel" data-workshop="panel" tabindex="-1" aria-label="Museum Builder development editor">
@@ -906,6 +1184,9 @@ const WORKSHOP_HTML = `
   </section>
   <section><h3>Surface, finish &amp; behavior</h3>
     <label>Paint<input data-workshop="paint" type="color" value="#a3b5bd"></label>
+    <label>Texture<select data-workshop="texture" aria-label="Surface texture"><option value="none">None — solid paint</option></select></label>
+    <label>Import finish<input data-workshop="finish-import" type="file" accept="image/*" aria-label="Import custom texture image"></label>
+    <p class="workshop-muted">Click a wall or object mesh to paint it. Alt-click a known scene object to paint its individual surface. Painting preserves structural geometry and collision.</p>
     <label>Depth (m)<input data-workshop="depth" type="number" min=".01" max="2" step=".01" value=".055"></label>
     <button type="button" data-workshop="place-wall">Attach selected to wall</button>
     <label>Artwork image<input data-workshop="image" type="file" accept="image/*"></label>
@@ -914,7 +1195,16 @@ const WORKSHOP_HTML = `
     <label>On interact<select data-workshop="event"><option value="none">No action</option><option value="announce">Announce object name</option></select></label>
     <p class="workshop-muted">Protected geometry and routes remain locked. No arbitrary scripts are executed.</p>
   </section>
-  <section><h3>Add object</h3><div class="workshop-palette" data-workshop="palette"></div></section>
+  <section><h3>Asset library</h3>
+    <p class="workshop-muted">Models copied from verified project sources. Search, inspect provenance, then summon into this world.</p>
+    <label>Search<input data-workshop="asset-search" type="search" placeholder="statue, nature, chair…" aria-label="Search models"></label>
+    <label>Category<select data-workshop="asset-category" aria-label="Asset category"></select></label>
+    <p class="workshop-muted" data-workshop="asset-count">Loading catalog…</p>
+    <div class="workshop-asset-results" data-workshop="asset-results" role="group" aria-label="Searchable asset models"></div>
+    <label>Import GLB<input data-workshop="model-import" type="file" accept=".glb,model/gltf-binary" aria-label="Import local GLB model"></label>
+    <p class="workshop-muted">Self-contained GLB, up to 8 MB. Local-only import; review rights and assets before publication.</p>
+  </section>
+  <section><h3>Primitive objects & fixtures</h3><div class="workshop-palette" data-workshop="palette"></div></section>
   <section><h3>Placed objects</h3><div class="workshop-outliner" data-workshop="outliner"></div></section>
   <p data-workshop="world-indicator" class="workshop-muted">Editing: Island</p>
   <div class="workshop-status" data-workshop="status" role="status" aria-live="polite"></div>

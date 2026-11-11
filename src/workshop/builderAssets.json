@@ -1,0 +1,527 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/westkitty/Life_Sim",
+  "revision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+  "license": "MIT",
+  "licenseFile": "https://github.com/westkitty/Life_Sim/blob/2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b/LICENSE",
+  "notice": "Generated procedural models authored in source project. Files copied byte-for-byte with Git blob SHA verification. Museum-specific use and appearance are user-authored.",
+  "models": [
+    {
+      "id": "openlife:alchemy_station",
+      "label": "Alchemy Station",
+      "category": "Objects",
+      "tags": [
+        "supernatural",
+        "alchemy",
+        "magic"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/alchemy_station.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "92ec4b2c8cb223d4f1f16a8d92be301b541dc2cefdc1e5bec88e15974df620cd",
+      "bytes": 17556,
+      "nominalSize": [
+        1.9,
+        1.7,
+        1.1
+      ],
+      "path": "builder-assets/openlife/alchemy_station.glb"
+    },
+    {
+      "id": "openlife:arcade_machine",
+      "label": "Arcade Machine",
+      "category": "Objects",
+      "tags": [
+        "electronics",
+        "arcade",
+        "fun"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/arcade_machine.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "189b8fdfafef45a59c033bf09297faa8889e1bd2795820129e6ebd597b2fcfd8",
+      "bytes": 2656,
+      "nominalSize": [
+        1,
+        1.8,
+        0.8
+      ],
+      "path": "builder-assets/openlife/arcade_machine.glb"
+    },
+    {
+      "id": "openlife:bookshelf_basic",
+      "label": "Bookshelf",
+      "category": "Furniture",
+      "tags": [
+        "storage"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/bookshelf_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "46b12ccccd2e560d3118176dc24b7fcca51e5002598667e1445b54329c7fb1c0",
+      "bytes": 7108,
+      "nominalSize": [
+        1.05,
+        1.85,
+        0.4
+      ],
+      "path": "builder-assets/openlife/bookshelf_basic.glb"
+    },
+    {
+      "id": "openlife:cat_tree",
+      "label": "Cat Tree",
+      "category": "Objects",
+      "tags": [
+        "pets",
+        "cat",
+        "fun"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/cat_tree.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "f02c0b72213dd156f4a17c1ca827df4d0cd6367a9b6f8582ca85a6f28f59cf63",
+      "bytes": 4924,
+      "nominalSize": [
+        1.2,
+        1.9,
+        1.2
+      ],
+      "path": "builder-assets/openlife/cat_tree.glb"
+    },
+    {
+      "id": "openlife:chess_table",
+      "label": "Chess Table",
+      "category": "Furniture",
+      "tags": [
+        "table"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/chess_table.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "7c5744b1ec48b7ee37147d8a9c7844c663a35561a8b112e1e65dcb7065ecac23",
+      "bytes": 3428,
+      "nominalSize": [
+        0.75,
+        0.72,
+        0.75
+      ],
+      "path": "builder-assets/openlife/chess_table.glb"
+    },
+    {
+      "id": "openlife:dog_bed",
+      "label": "Dog Bed",
+      "category": "Objects",
+      "tags": [
+        "pets",
+        "dog",
+        "comfort"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/dog_bed.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "ef2d2464ab698d9b5cc0731b4042d0e710f0005a510c6c5c56f7aa9dcdf54b36",
+      "bytes": 4428,
+      "nominalSize": [
+        1.4,
+        0.4,
+        1.4
+      ],
+      "path": "builder-assets/openlife/dog_bed.glb"
+    },
+    {
+      "id": "openlife:easel_basic",
+      "label": "Artist Easel",
+      "category": "Objects",
+      "tags": [
+        "art"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/easel_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "840fafec915f631a6a4ba665da10fee963c76235fd37455098204e2f842c6638",
+      "bytes": 3484,
+      "nominalSize": [
+        1,
+        1.5,
+        0.5
+      ],
+      "path": "builder-assets/openlife/easel_basic.glb"
+    },
+    {
+      "id": "openlife:fence_panel",
+      "label": "Fence Panel",
+      "category": "Outdoor",
+      "tags": [
+        "fence"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/fence_panel.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "a054fefc9d8a2bbfc935eaaabfb761d7fe43e116d87f818fa49b6f7a0cbec86b",
+      "bytes": 5420,
+      "nominalSize": [
+        2.1,
+        1.1,
+        0.15
+      ],
+      "path": "builder-assets/openlife/fence_panel.glb"
+    },
+    {
+      "id": "openlife:flower_bed",
+      "label": "Flower Bed",
+      "category": "Nature",
+      "tags": [
+        "flower"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/flower_bed.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "8148e2c0c7e523f53f04dfa3c542891301723955196a06dba32a4e251d878fa8",
+      "bytes": 4792,
+      "nominalSize": [
+        0.2,
+        0.4,
+        0.2
+      ],
+      "path": "builder-assets/openlife/flower_bed.glb"
+    },
+    {
+      "id": "openlife:garden_planter",
+      "label": "Garden Planter",
+      "category": "Nature",
+      "tags": [
+        "decor",
+        "plant"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/garden_planter.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "0791b5d56acc95abcc8381ec871260ed908447d3da211fa80243b0867fef9486",
+      "bytes": 5516,
+      "nominalSize": [
+        0.55,
+        0.95,
+        0.55
+      ],
+      "path": "builder-assets/openlife/garden_planter.glb"
+    },
+    {
+      "id": "openlife:gem_display",
+      "label": "Gem Display",
+      "category": "Objects",
+      "tags": [
+        "collecting",
+        "gems",
+        "display"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/gem_display.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "05fbf2a72958961a6b7198ee3119b7f767dd11a030f64ae4dc8759a41f5c7ec5",
+      "bytes": 9580,
+      "nominalSize": [
+        1.5,
+        1.4,
+        0.8
+      ],
+      "path": "builder-assets/openlife/gem_display.glb"
+    },
+    {
+      "id": "openlife:movie_prop_statue",
+      "label": "Sculpture Statue",
+      "category": "Objects",
+      "tags": [
+        "stuff_pack",
+        "sp09",
+        "cinema",
+        "decor"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/movie_prop_statue.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "2d6d406247251acc8d307eca3ef28950586b99e207a54a8296b6a442b11a3d65",
+      "bytes": 12700,
+      "nominalSize": [
+        1.2,
+        2.4,
+        1.2
+      ],
+      "path": "builder-assets/openlife/movie_prop_statue.glb"
+    },
+    {
+      "id": "openlife:park_bench",
+      "label": "Park Bench",
+      "category": "Outdoor",
+      "tags": [
+        "seat"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/park_bench.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "b3f1754eff9dd00510d9c4060bf7bdbcad58f38eefbcc981924a986dbf53f4e2",
+      "bytes": 3000,
+      "nominalSize": [
+        1.5,
+        0.95,
+        0.5
+      ],
+      "path": "builder-assets/openlife/park_bench.glb"
+    },
+    {
+      "id": "openlife:performance_stage",
+      "label": "Performance Stage",
+      "category": "Objects",
+      "tags": [
+        "showtime",
+        "performance",
+        "stage"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/performance_stage.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "e3657eef603933eb9f8fc0e295e8c77f5b1e59ba2fafb53d9d79fa17773c3d2c",
+      "bytes": 8460,
+      "nominalSize": [
+        4.8,
+        3,
+        3.8
+      ],
+      "path": "builder-assets/openlife/performance_stage.glb"
+    },
+    {
+      "id": "openlife:piano_upright",
+      "label": "Upright Piano",
+      "category": "Objects",
+      "tags": [
+        "music",
+        "piano",
+        "performance"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/piano_upright.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "ca61b4fc0724b65744929ff60638046ecce094afda54e3e379e4c7c1f98b1451",
+      "bytes": 7720,
+      "nominalSize": [
+        1.8,
+        1.5,
+        0.8
+      ],
+      "path": "builder-assets/openlife/piano_upright.glb"
+    },
+    {
+      "id": "openlife:potted_plant",
+      "label": "Potted Plant",
+      "category": "Nature",
+      "tags": [
+        "decor",
+        "plant"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/potted_plant.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "0791b5d56acc95abcc8381ec871260ed908447d3da211fa80243b0867fef9486",
+      "bytes": 5516,
+      "nominalSize": [
+        0.55,
+        0.95,
+        0.55
+      ],
+      "path": "builder-assets/openlife/potted_plant.glb"
+    },
+    {
+      "id": "openlife:rock_cluster",
+      "label": "Rock Cluster",
+      "category": "Nature",
+      "tags": [
+        "rock"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/rock_cluster.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "4e32099f7af90f304c3c1991fe973cc06bfd1f262ed93df3923a79c1cfaedad1",
+      "bytes": 4316,
+      "nominalSize": [
+        1.6,
+        0.9,
+        1.3
+      ],
+      "path": "builder-assets/openlife/rock_cluster.glb"
+    },
+    {
+      "id": "openlife:sculpting_station",
+      "label": "Sculpting Station",
+      "category": "Objects",
+      "tags": [
+        "hobby",
+        "sculpting",
+        "ambitions"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sculpting_station.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "1ecb681426fdcf520fdaeee72e36f52b8712b4120f203b944d0a7d755bf621ff",
+      "bytes": 3440,
+      "nominalSize": [
+        1.4,
+        2,
+        1.2
+      ],
+      "path": "builder-assets/openlife/sculpting_station.glb"
+    },
+    {
+      "id": "openlife:streetlight",
+      "label": "Streetlight",
+      "category": "Outdoor",
+      "tags": [
+        "lighting"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/streetlight.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "f51d1a20de5ca11b2e05c3b4525c420ee250280ec36853e0a1e228cfa49eb8d1",
+      "bytes": 4592,
+      "nominalSize": [
+        1,
+        3.5,
+        0.3
+      ],
+      "path": "builder-assets/openlife/streetlight.glb"
+    },
+    {
+      "id": "openlife:telescope_basic",
+      "label": "Telescope",
+      "category": "Objects",
+      "tags": [
+        "hobbies",
+        "science"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/telescope_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "fb4ac1c4e8ca0ba4ae16b353d3390b2250534b3637c424b7602b330e31152bd9",
+      "bytes": 4212,
+      "nominalSize": [
+        0.9,
+        2.2,
+        0.9
+      ],
+      "path": "builder-assets/openlife/telescope_basic.glb"
+    },
+    {
+      "id": "openlife:tree_pine",
+      "label": "Pine Tree",
+      "category": "Nature",
+      "tags": [
+        "tree",
+        "pine"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/tree_pine.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "b125424f20851908de3b76d330414f208dbf47907a077d9676c48ef1b07aaf03",
+      "bytes": 4552,
+      "nominalSize": [
+        3.2,
+        5.8,
+        3.2
+      ],
+      "path": "builder-assets/openlife/tree_pine.glb"
+    },
+    {
+      "id": "openlife:future_workbench",
+      "label": "Futurist Workbench",
+      "category": "Objects",
+      "tags": [
+        "future",
+        "workbench",
+        "technology"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/future_workbench.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "a1fe3a4c29d0b352273ee85ae9979d716d18eb5521a7d010e11fd3a19673c801",
+      "bytes": 15612,
+      "nominalSize": [
+        2.2,
+        1.9,
+        1.25
+      ],
+      "path": "builder-assets/openlife/future_workbench.glb"
+    },
+    {
+      "id": "openlife:house_blue",
+      "label": "Blue House",
+      "category": "Buildings",
+      "tags": [
+        "residential",
+        "suburban",
+        "v2"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/house_blue.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "8f02402bcf30053980d82c19e0a0e37f80b5f5420428a36527c1055bd51c250e",
+      "bytes": 43616,
+      "nominalSize": [
+        12,
+        8,
+        12
+      ],
+      "path": "builder-assets/openlife/house_blue.glb"
+    }
+  ],
+  "textures": [
+    {
+      "id": "wallpaper-blue",
+      "label": "Blue wallpaper",
+      "path": "builder-assets/openlife/wallpaper_blue.png",
+      "source": "OpenLife",
+      "license": "MIT"
+    },
+    {
+      "id": "wallpaper-cream",
+      "label": "Cream wallpaper",
+      "path": "builder-assets/openlife/wallpaper_cream.png",
+      "source": "OpenLife",
+      "license": "MIT"
+    },
+    {
+      "id": "floor-wood",
+      "label": "Wood floor",
+      "path": "builder-assets/openlife/floor_wood.png",
+      "source": "OpenLife",
+      "license": "MIT"
+    },
+    {
+      "id": "stone-paver",
+      "label": "Stone paver",
+      "path": "builder-assets/openlife/stone_paver.png",
+      "source": "OpenLife",
+      "license": "MIT"
+    }
+  ]
+}

@@ -14,3 +14,23 @@
  .museum-workshop .workshop-keymap{display:none}
  .museum-workshop .workshop-panel{right:8px;top:119px;bottom:8px;width:min(340px,calc(100vw - 16px));}
 }
+
+/* Searchable self-hosted model shelf: inventory is visible, keyboard operable
+   and intentionally bounded on the MacBook's single active renderer. */
+.museum-workshop .workshop-asset-results{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;
+  max-height:265px;overflow:auto;overscroll-behavior:contain;
+  padding:5px;border:1px solid #334651;border-radius:6px;
+  background:rgba(8,15,19,.8);
+}
+.museum-workshop .workshop-asset-results .workshop-asset{
+  display:flex;flex-direction:column;gap:4px;align-items:flex-start;
+  background:#182731;color:#e7f5f9;padding:10px;min-height:74px;
+  border:1px solid #385260;border-radius:6px;text-align:left;line-height:1.3;
+}
+.museum-workshop .workshop-asset strong{font-size:12px}
+.museum-workshop .workshop-asset small{font-size:10px;color:#b0bdc5;line-height:1.3}
+.museum-workshop .workshop-asset:hover{border-color:#6bd2f7;background:#193644}
+.museum-workshop .workshop-asset:focus-visible{outline:2px solid #f5c86c;outline-offset:1px}
+.museum-workshop .workshop-asset:disabled{opacity:.4}
+@media(max-width:450px){.museum-workshop .workshop-asset-results{grid-template-columns:1fr}}

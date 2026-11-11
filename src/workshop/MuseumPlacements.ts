@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { ResourceScope } from '../assets/ResourceScope';
+import { WorkshopSurfaces, type WorkshopSurfaceSelection } from './WorkshopSurfaces';
+import { resolveBuilderResourceUrl } from './builderAssetCatalog';
 import type { CollisionWorld } from '../world/CollisionWorld';
 import type { InteractionManager } from '../interaction/InteractionManager';
 import { AuthorableSceneRegistry, type AuthorableSceneTransform } from './AuthorableSceneRegistry';
@@ -10,6 +12,7 @@ import {
   type WorkshopPlacementManifest,
   type WorkshopPlacementRecord,
   type WorkshopSceneOverride,
+  type WorkshopSurfaceOverride,
 } from './schema';
 
 interface PlacementMaterials {
@@ -21,6 +24,7 @@ interface PlacementMaterials {
 
 export class MuseumPlacements {
   readonly group = new THREE.Group();
+  readonly surfaces = new WorkshopSurfaces();
 
   private readonly roots = new Map<string, THREE.Group>();
   private readonly scope = new ResourceScope('museum-placements');
@@ -32,6 +36,7 @@ export class MuseumPlacements {
   private onAnnounce: ((message: string) => void) | null = null;
   private comparingOriginal = false;
   private readonly comparisonSceneTransforms = new Map<string, AuthorableSceneTransform>();
+  private rebuildRevision = 0;
 
   constructor(rawManifest: unknown, registry: AuthorableSceneRegistry | null = null) {
     this.group.name = 'museum-authored-placements';
@@ -69,6 +74,7 @@ export class MuseumPlacements {
       this.group.visible = true;
     }
     this.comparingOriginal = active;
+    this.surfaces.setRevealOriginal(active);
   }
 
   bindInteractions(manager: InteractionManager, announce: (message: string) => void): void {
@@ -78,13 +84,34 @@ export class MuseumPlacements {
   }
 
   /** Invoked by the existing App loop; no second frame loop or engine. */
-  syncWorld(world: 'exterior' | 'interior', exterior: CollisionWorld, interior?: CollisionWorld): void {
+  syncWorld(
+    world: 'exterior' | 'interior',
+    exterior: CollisionWorld,
+    interior?: CollisionWorld,
+    exteriorRoot?: THREE.Object3D,
+    interiorRoot?: THREE.Object3D,
+  ): void {
+    if (exteriorRoot) this.surfaces.bind('exterior', exteriorRoot);
+    if (interiorRoot) this.surfaces.bind('interior', interiorRoot);
     for (const record of this.manifest.objects) {
       const root = this.roots.get(record.id);
       if (root) root.visible = !record.worldId || record.worldId === 'shared' || record.worldId === world;
     }
     this.syncCollision(exterior, 'exterior');
     if (interior) this.syncCollision(interior, 'interior');
+  }
+
+  /**
+   * Editing a live solid object through TransformControls mutates the THREE root
+   * without rebuilding the declarative manifest. Invalidate the cached dynamic
+   * walls so the next existing App tick recomputes their new world-space AABBs.
+   * Never touch the museum's static architecture collision geometry.
+   */
+  invalidateCollisions(): void {
+    for (const [world, ids] of this.boundCollisions) {
+      for (const id of ids) world.setDynamicWall(id, null);
+    }
+    this.boundCollisions.clear();
   }
 
   private syncCollision(target: CollisionWorld, world: 'exterior' | 'interior'): void {
@@ -123,6 +150,27 @@ export class MuseumPlacements {
     return [...this.roots.values(), ...(this.registry?.selectableObjects() ?? [])];
   }
 
+  surfaceAt(object: THREE.Object3D, world: 'exterior' | 'interior'): WorkshopSurfaceSelection | null {
+    return this.surfaces.selectionFor(object, world);
+  }
+
+  getSurfaceOverride(id: string): WorkshopSurfaceOverride | null {
+    return this.manifest.surfaceOverrides?.find((item) => item.id === id) ?? null;
+  }
+
+  setSurfaceOverride(override: WorkshopSurfaceOverride): WorkshopPlacementManifest {
+    const current = this.captureManifest();
+    const surfaceOverrides = [...(current.surfaceOverrides ?? []).filter((item) => item.id !== override.id), override];
+    return this.replaceManifest({ ...current, surfaceOverrides });
+  }
+
+  removeSurfaceOverride(id: string): WorkshopPlacementManifest {
+    const current = this.captureManifest();
+    return this.replaceManifest({
+      ...current, surfaceOverrides: (current.surfaceOverrides ?? []).filter((entry) => entry.id !== id),
+    });
+  }
+
   authorableEntryForObject(object: THREE.Object3D | null) {
     return this.registry?.entryForObject(object) ?? null;
   }
@@ -149,7 +197,10 @@ export class MuseumPlacements {
         sceneOverrides.push({ id: entry.id, ...transform });
       }
     }
-    return canonicalizeWorkshopManifest({ schemaVersion: WORKSHOP_SCHEMA_VERSION, objects, sceneOverrides });
+    return canonicalizeWorkshopManifest({
+      schemaVersion: WORKSHOP_SCHEMA_VERSION, objects, sceneOverrides,
+      surfaceOverrides: this.manifest.surfaceOverrides,
+    });
   }
 
   replaceManifest(rawManifest: unknown): WorkshopPlacementManifest {
@@ -171,6 +222,7 @@ export class MuseumPlacements {
       schemaVersion: WORKSHOP_SCHEMA_VERSION,
       objects,
       sceneOverrides: current.sceneOverrides,
+      surfaceOverrides: current.surfaceOverrides,
     });
   }
 
@@ -180,7 +232,10 @@ export class MuseumPlacements {
     const current = this.captureManifest();
     const sceneOverrides = current.sceneOverrides?.filter((item) => item.id !== id) ?? [];
     sceneOverrides.push({ id, ...transform });
-    return this.replaceManifest({ schemaVersion: WORKSHOP_SCHEMA_VERSION, objects: current.objects, sceneOverrides });
+    return this.replaceManifest({
+      schemaVersion: WORKSHOP_SCHEMA_VERSION, objects: current.objects,
+      sceneOverrides, surfaceOverrides: current.surfaceOverrides,
+    });
   }
 
   removeRecord(id: string): WorkshopPlacementManifest {
@@ -189,11 +244,14 @@ export class MuseumPlacements {
       schemaVersion: WORKSHOP_SCHEMA_VERSION,
       objects: current.objects.filter((record) => record.id !== id),
       sceneOverrides: current.sceneOverrides,
+      surfaceOverrides: current.surfaceOverrides,
     });
   }
 
   dispose(): void {
     this.setOriginalComparison(false);
+    this.rebuildRevision++;
+    this.surfaces.dispose();
     for (const release of this.interactionDisposers.splice(0)) release();
     for (const [target, ids] of this.boundCollisions) {
       for (const id of ids) target.setDynamicWall(id, null);
@@ -206,6 +264,7 @@ export class MuseumPlacements {
   }
 
   private rebuild(): void {
+    const revision = ++this.rebuildRevision;
     for (const release of this.interactionDisposers.splice(0)) release();
     for (const [target, ids] of this.boundCollisions) {
       for (const id of ids) target.setDynamicWall(id, null);
@@ -252,6 +311,11 @@ export class MuseumPlacements {
         });
         this.interactionDisposers.push(release);
       }
+      if (record.prefab === 'catalog-model' && record.assetId) {
+        void this.loadCatalogModel(root, record, revision);
+      } else if (record.texture) {
+        this.applyRecordFinish(root, record);
+      }
       if (record.prefab === 'wall-art' && record.image) {
         const surface = root.getObjectByName('workshop-art-surface') as THREE.Mesh | undefined;
         if (surface) {
@@ -263,6 +327,58 @@ export class MuseumPlacements {
           surface.material = this.scope.track(new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
         }
       }
+    }
+    this.surfaces.apply(this.manifest.surfaceOverrides ?? []);
+  }
+
+  private applyRecordFinish(root: THREE.Object3D, record: WorkshopPlacementRecord): void {
+    const url = record.texture ? resolveBuilderResourceUrl(record.texture) : null;
+    root.traverse((node) => {
+      const mesh = node as THREE.Mesh;
+      if (!mesh.isMesh || mesh.userData.workshopImageSurface) return;
+      const incoming = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      const cloned = incoming.map((material) => {
+        const mat = this.scope.track(material.clone()) as THREE.MeshStandardMaterial;
+        if ('color' in mat && mat.color?.isColor) mat.color.set(record.color ?? '#ffffff');
+        if (url && 'map' in mat) {
+          const texture = this.scope.track(new THREE.TextureLoader().load(url, undefined, undefined,
+            (error) => console.warn('[Museum Builder] model finish failed', record.texture, error)));
+          texture.colorSpace = THREE.SRGBColorSpace;
+          texture.wrapS = THREE.RepeatWrapping;
+          texture.wrapT = THREE.RepeatWrapping;
+          mat.map = texture;
+        }
+        mat.needsUpdate = true;
+        return mat;
+      });
+      mesh.material = Array.isArray(mesh.material) ? cloned : cloned[0];
+    });
+  }
+
+  private async loadCatalogModel(root: THREE.Group, record: WorkshopPlacementRecord, revision: number): Promise<void> {
+    try {
+      const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+      const url = resolveBuilderResourceUrl(record.assetId!);
+      const gltf = await new GLTFLoader().loadAsync(url);
+      if (revision !== this.rebuildRevision || this.scope.isDisposed) {
+        const stale = new ResourceScope('stale-builder-model');
+        stale.trackObject(gltf.scene);
+        stale.dispose();
+        return;
+      }
+      root.clear();
+      gltf.scene.traverse((node) => { node.userData.workshopId = record.id; });
+      root.add(gltf.scene);
+      this.scope.trackObject(gltf.scene);
+      if (record.color || record.texture) this.applyRecordFinish(gltf.scene, record);
+      // The true model bounds become available only after the asynchronous
+      // load; invalidate old dynamic boxes and let the normal App tick rebind.
+      for (const [world, ids] of this.boundCollisions) {
+        for (const id of ids) world.setDynamicWall(id, null);
+      }
+      this.boundCollisions.clear();
+    } catch (error) {
+      console.warn('[Museum Builder] model could not be loaded:', record.assetId, error);
     }
   }
 
@@ -302,6 +418,11 @@ export class MuseumPlacements {
         root.add(this.mesh(new THREE.CylinderGeometry(0.36, 0.44, 0.08, 12), materials.stone, [0, 0.04, 0]));
         root.add(this.mesh(new THREE.BoxGeometry(0.09, 1.45, 0.09), materials.dark, [0, 0.76, 0]));
         root.add(this.mesh(new THREE.BoxGeometry(1.25, 0.48, 0.08), materials.accent, [0, 1.54, 0]));
+        break;
+      }
+      case 'catalog-model': {
+        // Visible loading proxy is replaced once the self-hosted GLB resolves.
+        root.add(this.mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), materials.stone, [0, 0.35, 0]));
         break;
       }
       case 'sculpture-sphere': {

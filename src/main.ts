@@ -62,7 +62,10 @@ if (new URLSearchParams(window.location.search).has('qa')) {
   }));
 }
 placements.bindInteractions(app.interaction, (message) => app.ui.hud.announce(message));
-const syncBuilderPlacements = () => placements.syncWorld(app.activeWorld, app.exteriorWorld.collision, app.museum?.collision);
+const syncBuilderPlacements = () => placements.syncWorld(
+  app.activeWorld, app.exteriorWorld.collision, app.museum?.collision,
+  app.exteriorWorld.root, app.museum?.root,
+);
 app.setWorkshopUpdate(syncBuilderPlacements);
 app.start();
 mountCinematicArrival(app);

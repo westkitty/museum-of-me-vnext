@@ -68,6 +68,32 @@ describe('Unified Museum Builder', () => {
     placements.dispose();
   });
 
+  it('updates solid authored collision at the new position after a gizmo transform', () => {
+    const record = {
+      ...base, id: 'sphere-collider', label: 'Moveable solid sphere',
+      prefab: 'sculpture-sphere', anchor: 'free', image: undefined,
+      position: [30, 1, 42], scale: [1, 1, 1],
+      worldId: 'exterior', collision: 'solid', event: 'none',
+    };
+    const placements = new MuseumPlacements({ schemaVersion: 1, objects: [record] });
+    const world = new CollisionWorld();
+    placements.syncWorld('exterior', world);
+    expect(world.size).toBe(1);
+    expect(world.resolveHorizontal({ x: 30, y: 0, z: 42 }, 0.35, 1.78)).toBe(true);
+
+    // The transform gizmo modifies the live THREE root without a rebuild.
+    placements.getObject('sphere-collider')!.position.x = 40;
+    placements.invalidateCollisions();
+    expect(world.size).toBe(0);
+    placements.syncWorld('exterior', world);
+    expect(world.size).toBe(1);
+    expect(world.resolveHorizontal({ x: 30, y: 0, z: 42 }, 0.35, 1.78)).toBe(false);
+    expect(world.resolveHorizontal({ x: 40, y: 0, z: 42 }, 0.35, 1.78)).toBe(true);
+
+    placements.dispose();
+    expect(world.size).toBe(0);
+  });
+
   it('toggles authored dynamic wall collisions without modifying static architecture', () => {
     const world = new CollisionWorld();
     world.addBox([0, 1, 0], [1, 1, 1]);
