@@ -1162,7 +1162,7 @@ const WORKSHOP_HTML = `
   <button type="button" data-workshop="save">Save to build</button><button type="button" data-workshop="exit">Exit F8</button>
 </div>
 <nav class="workshop-keymap" data-workshop="keymap" aria-label="Museum Workshop keyboard commands">
-  <span><kbd>F</kbd>Select/Edit object</span><span><kbd>F8</kbd>toggle</span><span><kbd>Esc</kbd>exit</span><span><kbd>W</kbd>move</span><span><kbd>E</kbd>rotate</span><span><kbd>R</kbd>scale</span><span><kbd>G</kbd>floor</span>
+  <span><kbd>F</kbd>Select/Edit object</span><span><kbd>Alt + click</kbd>paint child mesh</span><span><kbd>F8</kbd>toggle</span><span><kbd>Esc</kbd>exit</span><span><kbd>W</kbd>move</span><span><kbd>E</kbd>rotate</span><span><kbd>R</kbd>scale</span><span><kbd>G</kbd>floor</span>
   <span><kbd>⌘/Ctrl+D</kbd>duplicate</span><span><kbd>Delete</kbd>remove</span><span><kbd>⌘/Ctrl+Z</kbd>undo</span><span><kbd>⇧⌘/Ctrl+Z</kbd>redo</span><span><kbd>⌘/Ctrl+S</kbd>save</span>
 </nav>
 <aside class="workshop-panel" data-workshop="panel" tabindex="-1" aria-label="Museum Builder development editor">
@@ -1182,6 +1182,9 @@ const WORKSHOP_HTML = `
   </section>
   <section><h3>Surface, finish &amp; behavior</h3>
     <label>Paint<input data-workshop="paint" type="color" value="#a3b5bd"></label>
+    <label>Texture<select data-workshop="texture" aria-label="Surface texture"><option value="none">None — solid paint</option></select></label>
+    <label>Import finish<input data-workshop="finish-import" type="file" accept="image/*" aria-label="Import custom texture image"></label>
+    <p class="workshop-muted">Click a wall or object mesh to paint it. Alt-click a known scene object to paint its individual surface. Painting preserves structural geometry and collision.</p>
     <label>Depth (m)<input data-workshop="depth" type="number" min=".01" max="2" step=".01" value=".055"></label>
     <button type="button" data-workshop="place-wall">Attach selected to wall</button>
     <label>Artwork image<input data-workshop="image" type="file" accept="image/*"></label>
@@ -1190,7 +1193,16 @@ const WORKSHOP_HTML = `
     <label>On interact<select data-workshop="event"><option value="none">No action</option><option value="announce">Announce object name</option></select></label>
     <p class="workshop-muted">Protected geometry and routes remain locked. No arbitrary scripts are executed.</p>
   </section>
-  <section><h3>Add object</h3><div class="workshop-palette" data-workshop="palette"></div></section>
+  <section><h3>Asset library</h3>
+    <p class="workshop-muted">Models copied from verified project sources. Search, inspect provenance, then summon into this world.</p>
+    <label>Search<input data-workshop="asset-search" type="search" placeholder="statue, nature, chair…" aria-label="Search models"></label>
+    <label>Category<select data-workshop="asset-category" aria-label="Asset category"></select></label>
+    <p class="workshop-muted" data-workshop="asset-count">Loading catalog…</p>
+    <div class="workshop-asset-results" data-workshop="asset-results" role="group" aria-label="Searchable asset models"></div>
+    <label>Import GLB<input data-workshop="model-import" type="file" accept=".glb,model/gltf-binary" aria-label="Import local GLB model"></label>
+    <p class="workshop-muted">Self-contained GLB, up to 8 MB. Local-only import; review rights and assets before publication.</p>
+  </section>
+  <section><h3>Primitive objects & fixtures</h3><div class="workshop-palette" data-workshop="palette"></div></section>
   <section><h3>Placed objects</h3><div class="workshop-outliner" data-workshop="outliner"></div></section>
   <p data-workshop="world-indicator" class="workshop-muted">Editing: Island</p>
   <div class="workshop-status" data-workshop="status" role="status" aria-live="polite"></div>
