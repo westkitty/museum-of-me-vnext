@@ -30,6 +30,8 @@ export class MuseumPlacements {
   private readonly interactionDisposers: Array<() => void> = [];
   private interaction: InteractionManager | null = null;
   private onAnnounce: ((message: string) => void) | null = null;
+  private comparingOriginal = false;
+  private readonly comparisonSceneTransforms = new Map<string, AuthorableSceneTransform>();
 
   constructor(rawManifest: unknown, registry: AuthorableSceneRegistry | null = null) {
     this.group.name = 'museum-authored-placements';
@@ -43,6 +45,31 @@ export class MuseumPlacements {
   }
 
   get objectCount(): number { return this.roots.size; }
+  get isComparingOriginal(): boolean { return this.comparingOriginal; }
+
+  /**
+   * Reversible, data-preserving visual comparison. The authored manifest is
+   * never changed, and there is no second scene or render loop.
+   */
+  setOriginalComparison(active: boolean): void {
+    if (this.comparingOriginal === active) return;
+    if (active) {
+      this.comparisonSceneTransforms.clear();
+      for (const entry of this.registry?.entries() ?? []) {
+        const current = this.registry?.capture(entry.id);
+        if (current) this.comparisonSceneTransforms.set(entry.id, current);
+        this.registry?.apply(entry.id, entry.baseline);
+      }
+      this.group.visible = false;
+    } else {
+      for (const [id, transform] of this.comparisonSceneTransforms) {
+        this.registry?.apply(id, transform);
+      }
+      this.comparisonSceneTransforms.clear();
+      this.group.visible = true;
+    }
+    this.comparingOriginal = active;
+  }
 
   bindInteractions(manager: InteractionManager, announce: (message: string) => void): void {
     this.interaction = manager;
@@ -114,7 +141,9 @@ export class MuseumPlacements {
     const sceneOverrides: WorkshopSceneOverride[] = [];
     const saved = new Map((this.manifest.sceneOverrides ?? []).map((override) => [override.id, override]));
     for (const entry of this.registry?.entries() ?? []) {
-      const transform = this.registry?.capture(entry.id);
+      const transform = this.comparingOriginal
+        ? this.comparisonSceneTransforms.get(entry.id)
+        : this.registry?.capture(entry.id);
       if (!transform) continue;
       if (saved.has(entry.id) || !transformsEqual(transform, entry.baseline)) {
         sceneOverrides.push({ id: entry.id, ...transform });
@@ -124,6 +153,7 @@ export class MuseumPlacements {
   }
 
   replaceManifest(rawManifest: unknown): WorkshopPlacementManifest {
+    this.setOriginalComparison(false);
     const parsed = validateWorkshopManifestForMuseum(rawManifest, this.registry?.entries() ?? []);
     if (!parsed.ok || !parsed.value) {
       throw new Error(`Museum Workshop placement manifest is invalid: ${parsed.errors.join('; ')}`);
@@ -163,6 +193,7 @@ export class MuseumPlacements {
   }
 
   dispose(): void {
+    this.setOriginalComparison(false);
     for (const release of this.interactionDisposers.splice(0)) release();
     for (const [target, ids] of this.boundCollisions) {
       for (const id of ids) target.setDynamicWall(id, null);
