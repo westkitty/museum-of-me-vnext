@@ -23,7 +23,7 @@ export function measureWall(start: WallPoint, end: WallPoint): WallSegment | nul
   if (length < 0.25 || length > 100) return null;
   return {
     position: [(start[0] + end[0]) / 2, start[1], (start[2] + end[2]) / 2],
-    rotation: [0, Math.atan2(-dz, dx), 0],
+    rotation: [0, dz === 0 && dx >= 0 ? 0 : Math.atan2(-dz, dx), 0],
     scale: [length, 1, 1],
   };
 }
