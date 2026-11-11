@@ -752,6 +752,7 @@ export class Workshop {
   }
 
   private select(id: string | null): void {
+    this.selectedSurfaceId = null;
     this.selectedId = id;
     this.transform.detach();
     this.helper.visible = false;
@@ -767,6 +768,21 @@ export class Workshop {
     this.selectionBox = new THREE.BoxHelper(object, 0x39c9ff);
     this.selectionBox.visible = this.openState;
     this.app.scene.add(this.selectionBox);
+    this.refreshInspector();
+  }
+
+  private selectSurface(id: string): void {
+    const surface = this.placements.surfaces.resolve(id);
+    this.selectedId = null;
+    this.selectedSurfaceId = surface?.id ?? null;
+    this.transform.detach();
+    this.helper.visible = false;
+    this.clearSelectionBox();
+    if (surface) {
+      this.selectionBox = new THREE.BoxHelper(surface.mesh, 0xffcc66);
+      this.selectionBox.visible = this.openState;
+      this.app.scene.add(this.selectionBox);
+    }
     this.refreshInspector();
   }
 
@@ -789,14 +805,24 @@ export class Workshop {
     };
   }
 
-  private authorableHit(centre: boolean): { id: string; entry: AuthorableSceneEntry | null } | null {
+  private authorableHit(centre: boolean, preferSurface = false): { id: string; entry: AuthorableSceneEntry | null; isSurface: boolean } | null {
     if (centre) this.pointer.set(0, 0);
     this.raycaster.setFromCamera(this.pointer, this.app.camera);
-    const hit = this.raycaster.intersectObjects([...this.placements.selectableObjects()], true)[0];
-    if (!hit) return null;
-    const entry = this.placements.authorableEntryForObject(hit.object);
-    const id = entry?.id ?? hit.object.userData.workshopId;
-    return typeof id === 'string' ? { id, entry } : null;
+    const world = this.app.activeWorld;
+    const worldRoot = world === 'exterior' ? this.app.exteriorWorld.root : this.app.museum?.root;
+    const candidates = [...this.placements.selectableObjects(), ...(worldRoot ? [worldRoot] : [])];
+    const hits = this.raycaster.intersectObjects(candidates, true);
+    for (const hit of hits) {
+      if (typeof hit.object.userData.workshopId === 'string') {
+        return { id: hit.object.userData.workshopId, entry: null, isSurface: false };
+      }
+      const entry = this.placements.authorableEntryForObject(hit.object);
+      const surface = this.placements.surfaceAt(hit.object, world);
+      if (preferSurface && surface) return { id: surface.id, entry, isSurface: true };
+      if (entry) return { id: entry.id, entry, isSurface: false };
+      if (surface) return { id: surface.id, entry: null, isSurface: true };
+    }
+    return null;
   }
 
   private readonly onCanvasPointerDown = (event: PointerEvent): void => {
@@ -813,9 +839,10 @@ export class Workshop {
       this.mountOnWall();
       return;
     }
-    const hit = this.authorableHit(false);
-    this.select(hit?.id ?? null);
-    if (!hit) this.note('Protected scene geometry. Only registered dressing objects can be edited.', 'warn');
+    const hit = this.authorableHit(false, event.altKey);
+    if (hit?.isSurface) this.selectSurface(hit.id);
+    else this.select(hit?.id ?? null);
+    if (!hit) this.note('No editable mesh here. Instanced and skeletal assets are protected.', 'warn');
     this.refresh();
   };
 
@@ -871,8 +898,9 @@ export class Workshop {
         event.preventDefault(); event.stopPropagation(); this.open(hit.id); return;
       }
       event.preventDefault(); event.stopPropagation();
-      if (hit) this.select(hit.id);
-      else this.note('Protected scene geometry. Only registered dressing objects can be edited.', 'warn');
+      if (hit?.isSurface) this.selectSurface(hit.id);
+      else if (hit) this.select(hit.id);
+      else this.note('No individually selectable mesh at crosshair.', 'warn');
       this.refresh();
       return;
     }
