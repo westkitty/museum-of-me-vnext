@@ -10,7 +10,7 @@ import {
 } from '../src/workshop/builderAssetCatalog';
 import { WorkshopSurfaces } from '../src/workshop/WorkshopSurfaces';
 import { validateWorkshopManifest } from '../src/workshop/schema';
-import { hasValidLocalGLB, validateLocalWorkshopModels, writeWorkshopManifest } from '../scripts/workshop-save-plugin';
+import { hasValidLocalGLB, isLocalWorkshopHost, validateLocalWorkshopModels, writeWorkshopManifest } from '../scripts/workshop-save-plugin';
 
 const base = {
   id: 'art-asset-1',
@@ -23,6 +23,18 @@ const base = {
 };
 
 describe('Museum Builder owned asset library and finish persistence', () => {
+  it('rejects DNS-rebound Host headers even when requests reach loopback', () => {
+    for (const host of ['127.0.0.1:5173', 'localhost:5173', '[::1]:5173', 'localhost']) {
+      expect(isLocalWorkshopHost(host), host).toBe(true);
+    }
+    for (const host of ['evil.test', 'evil.test:5173', 'localhost.evil.test:5173',
+      '127.0.0.1.evil.test', '0.0.0.0:5173', '127x0x0x1:5173',
+      '127.0.0.1:5173@evil.test', 'http://localhost:5173', '', undefined]) {
+      expect(isLocalWorkshopHost(host), String(host)).toBe(false);
+    }
+  });
+
+
   it('has 23 searchable, source-pinned first-party GLBs and 4 local finishes', async () => {
     expect(BUILDER_MODELS).toHaveLength(23);
     expect(BUILDER_FINISHES).toHaveLength(4);
