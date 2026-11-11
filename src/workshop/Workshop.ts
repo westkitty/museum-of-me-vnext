@@ -486,9 +486,10 @@ export class Workshop {
       label: def?.label ?? prefab,
       prefab,
       anchor: 'floor',
-      position: [x, y, z],
+      position: [x, prefab === 'roof-panel' ? y + 3.2 : y, z],
       rotation: [0, Math.atan2(-direction.x, -direction.z), 0],
-      scale: [1, 1, 1],
+      scale: prefab === 'partition-wall' ? [3, 1, 1] : [1, 1, 1],
+      collision: prefab === 'partition-wall' || prefab === 'floor-slab' ? 'solid' : 'none',
       worldId: this.app.activeWorld,
     };
     const after = this.placements.setRecord(record);
@@ -592,7 +593,11 @@ export class Workshop {
       THREE.MathUtils.clamp(v.py, -150, 150),
       THREE.MathUtils.clamp(v.pz, -500, 500),
     );
-    object.rotation.set(v.rx * RAD, v.ry * RAD, v.rz * RAD);
+    object.rotation.set(
+      record?.prefab === 'floor-slab' ? 0 : v.rx * RAD,
+      v.ry * RAD,
+      record?.prefab === 'floor-slab' ? 0 : v.rz * RAD,
+    );
     object.scale.set(
       THREE.MathUtils.clamp(v.sx, 0.05, 100),
       THREE.MathUtils.clamp(v.sy, 0.05, 100),
@@ -907,6 +912,10 @@ export class Workshop {
         THREE.MathUtils.clamp(object.scale.y, 0.05, 100),
         THREE.MathUtils.clamp(object.scale.z, 0.05, 100),
       );
+      if (this.record()?.prefab === 'floor-slab') {
+        object.rotation.x = 0;
+        object.rotation.z = 0;
+      }
     }
     this.selectionBox?.update();
     this.refreshInspector();
