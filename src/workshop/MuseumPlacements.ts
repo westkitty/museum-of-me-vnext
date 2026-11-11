@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { ResourceScope } from '../assets/ResourceScope';
 import { WorkshopSurfaces, type WorkshopSurfaceSelection } from './WorkshopSurfaces';
-import { builderModelUrl, builderFinishUrl } from './builderAssetCatalog';
+import { resolveBuilderResourceUrl } from './builderAssetCatalog';
 import type { CollisionWorld } from '../world/CollisionWorld';
 import type { InteractionManager } from '../interaction/InteractionManager';
 import { AuthorableSceneRegistry, type AuthorableSceneTransform } from './AuthorableSceneRegistry';
@@ -319,11 +319,7 @@ export class MuseumPlacements {
   }
 
   private applyRecordFinish(root: THREE.Object3D, record: WorkshopPlacementRecord): void {
-    const url = record.texture
-      ? record.texture.startsWith('workshop-media/')
-        ? resolveWorkshopMediaUrl(record.texture)
-        : builderFinishUrl(record.texture)
-      : null;
+    const url = record.texture ? resolveBuilderResourceUrl(record.texture) : null;
     root.traverse((node) => {
       const mesh = node as THREE.Mesh;
       if (!mesh.isMesh || mesh.userData.workshopImageSurface) return;
@@ -349,9 +345,7 @@ export class MuseumPlacements {
   private async loadCatalogModel(root: THREE.Group, record: WorkshopPlacementRecord, revision: number): Promise<void> {
     try {
       const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
-      const url = record.assetId!.startsWith('workshop-models/')
-        ? resolveWorkshopMediaUrl(record.assetId!)
-        : builderModelUrl(record.assetId!);
+      const url = resolveBuilderResourceUrl(record.assetId!);
       const gltf = await new GLTFLoader().loadAsync(url);
       if (revision !== this.rebuildRevision || this.scope.isDisposed) {
         const stale = new ResourceScope('stale-builder-model');
