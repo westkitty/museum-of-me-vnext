@@ -255,7 +255,7 @@ export class MuseumPlacements {
       if (record.prefab === 'wall-art' && record.image) {
         const surface = root.getObjectByName('workshop-art-surface') as THREE.Mesh | undefined;
         if (surface) {
-          const url = `${import.meta.env.BASE_URL}${record.image}`;
+          const url = resolveWorkshopMediaUrl(record.image);
           const texture = this.scope.track(new THREE.TextureLoader().load(url, undefined, undefined, () => {
             console.warn('[Museum Builder] artwork missing:', record.image);
           }));
@@ -345,6 +345,34 @@ export class MuseumPlacements {
     mesh.receiveShadow = true;
     return mesh;
   }
+}
+
+let cachedEmbeddedWorkshopMedia: Record<string, string> | null = null;
+
+/**
+ * Hosted Pages uses its own local static assets. A generated offline HTML
+ * contains its authored WebP bytes in a bounded, hash-verified JSON script.
+ */
+function resolveWorkshopMediaUrl(image: string): string {
+  if (cachedEmbeddedWorkshopMedia === null) {
+    cachedEmbeddedWorkshopMedia = {};
+    const script = document.getElementById('museum-workshop-media');
+    if (script?.textContent) {
+      try {
+        const parsed: unknown = JSON.parse(script.textContent);
+        if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+          for (const [key, value] of Object.entries(parsed)) {
+            if (/^workshop-media\/[0-9a-f]{64}\.webp$/.test(key)
+              && typeof value === 'string'
+              && value.startsWith('data:image/webp;base64,')) cachedEmbeddedWorkshopMedia[key] = value;
+          }
+        }
+      } catch (error) {
+        console.error('[Museum Builder] embedded artwork manifest is invalid', error);
+      }
+    }
+  }
+  return cachedEmbeddedWorkshopMedia[image] ?? `${import.meta.env.BASE_URL}${image}`;
 }
 
 function transformsEqual(a: AuthorableSceneTransform, b: AuthorableSceneTransform): boolean {
