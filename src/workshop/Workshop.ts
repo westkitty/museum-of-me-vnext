@@ -226,7 +226,10 @@ export class Workshop {
       input.addEventListener('change', () => this.commitTransform(key as InputKey));
     }
     this.paintInput.addEventListener('change', () => this.commitAppearance());
-    this.textureInput.addEventListener('change', () => this.commitAppearance());
+    this.textureInput.addEventListener('change', () => {
+      if (this.textureInput.value !== 'none') this.paintInput.value = '#ffffff';
+      this.commitAppearance();
+    });
     this.modelInput.addEventListener('change', () => void this.importModel());
     this.finishFileInput.addEventListener('change', () => void this.importFinish());
     this.searchInput.addEventListener('input', () => this.refreshAssetLibrary());
@@ -332,6 +335,7 @@ export class Workshop {
     // Keep editing the real active world, never simultaneously render both.
     this.camera.close();
     this.camera.open();
+    this.select(null);
     this.refresh();
   }
 
@@ -510,6 +514,20 @@ export class Workshop {
   }
 
   private remove(): void {
+    if (this.selectedSurfaceId) {
+      const id = this.selectedSurfaceId;
+      const before = this.placements.captureManifest();
+      try {
+        const after = this.placements.removeSurfaceOverride(id);
+        this.history.push('Clear scene finish', before, after);
+        this.selectSurface(id);
+        this.note('Original surface material restored.', 'ok');
+        this.refresh();
+      } catch (error) {
+        this.note(error instanceof Error ? error.message : 'Could not restore finish', 'error');
+      }
+      return;
+    }
     const record = this.record();
     if (!record) return;
     const before = this.placements.captureManifest();
@@ -596,7 +614,30 @@ export class Workshop {
   }
 
   private commitAppearance(): void {
+    if (this.placements.isComparingOriginal) return;
     const record = this.record();
+    const surfaceId = this.selectedSurfaceId;
+    const texture = this.textureInput.value;
+    if (surfaceId && !record) {
+      const selected = this.placements.surfaces.resolve(surfaceId);
+      if (!selected) return this.note('Scene surface is no longer available.', 'warn');
+      const color = this.paintInput.value;
+      if (!/^#[0-9a-f]{6}$/i.test(color)) return this.note('Choose a valid color.', 'error');
+      const before = this.placements.captureManifest();
+      try {
+        const after = this.placements.setSurfaceOverride({
+          id: selected.id, worldId: selected.worldId,
+          color, ...(texture !== 'none' ? { texture } : {}),
+        });
+        this.history.push('Paint ' + selected.label, before, after);
+        this.selectSurface(surfaceId);
+        this.note('Surface finish applied without modifying structural geometry.', 'ok');
+        this.refresh();
+      } catch (error) {
+        this.note(error instanceof Error ? error.message : 'Surface finish rejected.', 'error');
+      }
+      return;
+    }
     if (!record) return;
     const depth = Number(this.depthInput.value);
     const color = this.paintInput.value;
@@ -607,6 +648,7 @@ export class Workshop {
     try {
       const after = this.placements.setRecord({
         ...record, color, depth,
+        texture: texture === 'none' ? undefined : texture,
         collision: this.collisionInput.value as 'none' | 'solid',
         event: this.eventInput.value as 'none' | 'announce',
       });
@@ -720,8 +762,10 @@ export class Workshop {
   private applyHistory(result: { label: string; manifest: WorkshopPlacementManifest } | null, verb: string): void {
     if (!result) return;
     const id = this.selectedId;
+    const surfaceId = this.selectedSurfaceId;
     this.placements.replaceManifest(result.manifest);
-    this.select(id && this.placements.getObject(id) ? id : null);
+    if (surfaceId) this.selectSurface(surfaceId);
+    else this.select(id && this.placements.getObject(id) ? id : null);
     this.note(`${verb}: ${result.label}`, 'ok');
     this.refresh();
   }
