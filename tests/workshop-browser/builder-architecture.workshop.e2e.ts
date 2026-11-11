@@ -73,6 +73,24 @@ test('Sims-style wall drawing creates a selectable, paintable wall with undo and
   await panel.locator('[data-workshop="redo"]').click();
   await expect(panel.locator('[data-workshop="outliner"]')).toContainText('Partition wall');
 
+  // A newly drawn wall can be given a true door or window void without
+  // rebuilding or cutting the original museum architecture.
+  const opening = panel.locator('[data-workshop="opening"]');
+  await opening.selectOption('door');
+  await expect(opening).toHaveValue('door');
+  const doorParts = await page.evaluate(() =>
+    window.__museum?.scene.getObjectByName('workshop:partition-wall-01')?.children.length);
+  expect(doorParts).toBe(3);
+  await opening.selectOption('window');
+  await expect(opening).toHaveValue('window');
+  const windowParts = await page.evaluate(() =>
+    window.__museum?.scene.getObjectByName('workshop:partition-wall-01')?.children.length);
+  expect(windowParts).toBe(4);
+  await opening.selectOption('none');
+  const solidParts = await page.evaluate(() =>
+    window.__museum?.scene.getObjectByName('workshop:partition-wall-01')?.children.length);
+  expect(solidParts).toBe(1);
+
   // The floor and roof are equally real selectable meshes, not fake palette entries.
   await panel.locator('[data-workshop="palette"]').getByRole('button', { name: 'Floor slab' }).click();
   await expect(panel.locator('[data-workshop="selection-title"]')).toHaveText('Floor slab');
