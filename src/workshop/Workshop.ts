@@ -135,6 +135,7 @@ export class Workshop {
     this.openState = false;
     this.root.hidden = true;
     this.camera.close();
+    this.placements.setOriginalComparison(false);
     this.wallPlacementActive = false;
     this.transform.enabled = false;
     this.helper.visible = false;
@@ -222,6 +223,7 @@ export class Workshop {
     });
     this.el<HTMLButtonElement>('world-exterior').addEventListener('click', () => void this.switchWorld('exterior'));
     this.el<HTMLButtonElement>('world-interior').addEventListener('click', () => void this.switchWorld('interior'));
+    this.el<HTMLButtonElement>('compare').addEventListener('click', () => this.toggleComparison());
 
     const palette = this.el('palette');
     for (const prefab of WORKSHOP_PREFABS) {
@@ -257,6 +259,20 @@ export class Workshop {
     this.note(value ? `Grid snap: ${value} m` : 'Free placement enabled', 'ok');
   }
 
+  private toggleComparison(): void {
+    this.wallPlacementActive = false;
+    this.placements.setOriginalComparison(!this.placements.isComparingOriginal);
+    this.helper.visible = this.openState && !this.placements.isComparingOriginal && this.selectedId !== null;
+    if (this.selectionBox) this.selectionBox.visible = this.helper.visible;
+    this.note(
+      this.placements.isComparingOriginal
+        ? 'ORIGINAL VIEW — authored objects are hidden; no placement data was changed.'
+        : 'AUTHORED VIEW — your saved and unsaved work is restored.',
+      'ok',
+    );
+    this.refresh();
+  }
+
   private setView(view: BuilderView): void {
     this.camera.setView(view);
     this.refresh();
@@ -282,6 +298,7 @@ export class Workshop {
   }
 
   private add(prefab: WorkshopPrefabId): void {
+    if (this.placements.isComparingOriginal) return;
     const before = this.placements.captureManifest();
     if (before.objects.length >= 256) return this.note('Workshop object limit reached.', 'error');
     const direction = new THREE.Vector3();
@@ -617,6 +634,7 @@ export class Workshop {
   }
 
   private readonly onCanvasPointerDown = (event: PointerEvent): void => {
+    if (this.placements.isComparingOriginal) return;
     if (!this.openState || event.button !== 0 || this.transform.dragging || this.transform.axis !== null) return;
     const rect = this.app.renderer.canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
@@ -693,6 +711,11 @@ export class Workshop {
       return;
     }
     if (!this.openState) return;
+    if (this.placements.isComparingOriginal) {
+      if (event.code === 'Escape') this.toggleComparison();
+      event.stopPropagation();
+      return;
+    }
     if (event.code === 'Escape' && this.wallPlacementActive) {
       this.wallPlacementActive = false;
       this.note('Wall attachment cancelled.', 'warn');
@@ -727,15 +750,24 @@ export class Workshop {
     this.redoButton.disabled = !this.history.canRedo;
     const placement = this.record();
     const placementSelected = placement !== null;
+    const comparing = this.placements.isComparingOriginal;
+    // A comparison is a read-only lens; no edits can be made until the user
+    // explicitly returns to the authored scene.
+    this.saveButton.disabled = comparing;
+    this.root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((button) => { button.disabled = comparing; });
+    this.el<HTMLButtonElement>('floor').disabled = comparing || !placementSelected;
+    this.el<HTMLButtonElement>('duplicate').disabled = comparing || !placementSelected;
+    this.el<HTMLButtonElement>('delete').disabled = comparing || !placementSelected;
+    this.el<HTMLElement>('palette').querySelectorAll<HTMLButtonElement>('button').forEach((button) => { button.disabled = comparing; });
     this.el<HTMLButtonElement>('place-wall').disabled = placement?.prefab !== 'wall-art' && placement?.prefab !== 'wall-panel';
     this.el<HTMLButtonElement>('focus').disabled = !this.object();
+    this.el<HTMLButtonElement>('compare').dataset.active = String(this.placements.isComparingOriginal);
+    this.el<HTMLButtonElement>('compare').textContent = this.placements.isComparingOriginal
+      ? 'Return to authored view' : 'Reveal original';
     this.root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach((button) => {
       button.dataset.active = String(button.dataset.view === this.camera.currentView);
     });
     this.el<HTMLElement>('world-indicator').textContent = `Editing: ${this.app.activeWorld === 'exterior' ? 'Island' : 'Museum'}`;
-    this.el<HTMLButtonElement>('duplicate').disabled = !placementSelected;
-    this.el<HTMLButtonElement>('delete').disabled = !placementSelected;
-    this.el<HTMLButtonElement>('floor').disabled = !placementSelected;
     this.root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((button) => {
       button.dataset.active = String(button.dataset.mode === this.transform.mode);
     });
@@ -746,15 +778,16 @@ export class Workshop {
     const sceneEntry = this.sceneEntry();
     const object = this.object();
     const disabled = (!record && !sceneEntry) || !object;
-    this.labelInput.disabled = disabled || sceneEntry !== null;
-    this.anchorInput.disabled = disabled || sceneEntry !== null;
-    for (const input of Object.values(this.inputs)) input.disabled = disabled;
-    this.uniformScaleInput.disabled = disabled;
-    this.paintInput.disabled = !record;
-    this.depthInput.disabled = record?.prefab !== 'wall-art' && record?.prefab !== 'wall-panel';
-    this.collisionInput.disabled = !record;
-    this.eventInput.disabled = !record;
-    this.imageInput.disabled = record?.prefab !== 'wall-art';
+    this.labelInput.disabled = disabled || sceneEntry !== null || this.placements.isComparingOriginal;
+    this.anchorInput.disabled = disabled || sceneEntry !== null || this.placements.isComparingOriginal;
+    for (const input of Object.values(this.inputs)) input.disabled = disabled || this.placements.isComparingOriginal;
+    const locked = this.placements.isComparingOriginal;
+    this.uniformScaleInput.disabled = disabled || locked;
+    this.paintInput.disabled = !record || locked;
+    this.depthInput.disabled = (record?.prefab !== 'wall-art' && record?.prefab !== 'wall-panel') || locked;
+    this.collisionInput.disabled = !record || locked;
+    this.eventInput.disabled = !record || locked;
+    this.imageInput.disabled = record?.prefab !== 'wall-art' || locked;
     if ((!record && !sceneEntry) || !object) {
       this.title.textContent = 'Nothing selected';
       this.meta.textContent = 'Click an authored object or choose one below.';
@@ -847,6 +880,7 @@ const WORKSHOP_HTML = `
   <button type="button" data-view="orbit" data-workshop="view-orbit">Orbit</button>
   <button type="button" data-view="top" data-workshop="view-top">Top</button>
   <button type="button" data-workshop="world-exterior">Island</button><button type="button" data-workshop="world-interior">Museum</button>
+  <button type="button" data-workshop="compare" title="Temporarily reveal the original museum without losing authored work">Reveal original</button>
   <button type="button" data-workshop="space">World</button><button type="button" data-workshop="floor">Snap floor</button>
   <button type="button" data-workshop="undo">Undo</button><button type="button" data-workshop="redo">Redo</button>
   <button type="button" data-workshop="save">Save to build</button><button type="button" data-workshop="exit">Exit F8</button>
