@@ -70,3 +70,34 @@ export function searchBuilderLibrary(query: string, category = 'All'): readonly 
     && (!term || [item.label, item.id, item.category, item.source, ...item.tags]
       .some((value) => value.toLowerCase().includes(term))));
 }
+
+let embeddedBuilderResources: Record<string, string> | null = null;
+
+/** Same id resolves to local public/ in Pages and bundled data in standalone. */
+export function resolveBuilderResourceUrl(id: string): string {
+  if (embeddedBuilderResources === null) {
+    embeddedBuilderResources = {};
+    const script = document.getElementById('museum-workshop-media');
+    if (script?.textContent) {
+      try {
+        const raw: unknown = JSON.parse(script.textContent);
+        if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) {
+          for (const [key, value] of Object.entries(raw)) {
+            if (typeof value === 'string' && /^data:(?:image\/webp|image\/png|application\/octet-stream);base64,/.test(value)
+              && (builderModelAllowed(key) || builderFinishAllowed(key)
+                || BUILDER_IMAGE_PATTERN.test(key))) embeddedBuilderResources[key] = value;
+          }
+        }
+      } catch (error) {
+        console.warn('[Museum Builder] malformed offline asset map', error);
+      }
+    }
+  }
+  const embedded = embeddedBuilderResources[id];
+  if (embedded) return embedded;
+  if (builderModelAllowed(id)) return builderModelUrl(id);
+  const finish = builderFinishUrl(id);
+  if (finish) return finish;
+  if (BUILDER_IMAGE_PATTERN.test(id)) return builderAssetUrl(id);
+  throw new Error('Unknown local Builder resource');
+}
