@@ -335,6 +335,134 @@ export class Workshop {
     this.refresh();
   }
 
+  private refreshAssetLibrary(): void {
+    this.assetResults.replaceChildren();
+    const matched = searchBuilderLibrary(this.searchInput.value, this.categoryInput.value || 'All');
+    this.el('asset-count').textContent = matched.length + ' locally verified 3D assets';
+    for (const item of matched) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'workshop-asset';
+      button.dataset.assetId = item.id;
+      button.disabled = this.placements.isComparingOriginal;
+      const title = document.createElement('strong');
+      title.textContent = item.label;
+      const detail = document.createElement('small');
+      detail.textContent = item.category + ' · ' + item.source + ' · ' + item.license;
+      button.append(title, detail);
+      button.title = item.tags.join(', ') + ' · ' + item.bytes + ' bytes';
+      button.addEventListener('click', () => this.addModel(item.id, item.label));
+      this.assetResults.append(button);
+    }
+    if (!matched.length) {
+      const empty = document.createElement('p');
+      empty.className = 'workshop-muted';
+      empty.textContent = 'No matching assets. Search another category or import a local GLB.';
+      this.assetResults.append(empty);
+    }
+  }
+
+  private addModel(assetId: string, label: string): void {
+    if (this.placements.isComparingOriginal) return;
+    const before = this.placements.captureManifest();
+    if (before.objects.length >= 256) return this.note('Museum object limit (256) reached.', 'error');
+    const direction = this.app.camera.getWorldDirection(new THREE.Vector3());
+    const x = this.app.camera.position.x + direction.x * 5;
+    const z = this.app.camera.position.z + direction.z * 5;
+    const collision = this.app.player.collisionWorld;
+    const y = collision.supportHeight(x, z, this.app.player.position.y, 2) ?? this.app.player.position.y;
+    const model = builderModel(assetId);
+    const record: WorkshopPlacementRecord = {
+      id: this.uniqueId('catalog-model'),
+      label: label.slice(0, 80),
+      prefab: 'catalog-model',
+      assetId,
+      anchor: 'floor',
+      position: [x, y, z],
+      rotation: [0, Math.atan2(-direction.x, -direction.z), 0],
+      scale: [1, 1, 1],
+      worldId: this.app.activeWorld,
+      collision: 'none',
+    };
+    try {
+      const after = this.placements.setRecord(record);
+      this.history.push('Summon ' + label, before, after);
+      this.select(record.id);
+      this.note(label + ' summoned from ' + (model?.source ?? 'local import') + '. Move, scale, paint or save it.', 'ok');
+      this.refresh();
+    } catch (error) {
+      this.note(error instanceof Error ? error.message : 'Placement was rejected by conservation.', 'error');
+    }
+  }
+
+  private async importModel(): Promise<void> {
+    const file = this.modelInput.files?.[0];
+    if (!file) return;
+    this.modelInput.value = '';
+    if (!file.name.toLowerCase().endsWith('.glb') || file.size > 8 * 1024 * 1024) {
+      return this.note('Only self-contained GLB files under 8 MB can be imported.', 'error');
+    }
+    try {
+      this.note('Importing local 3D model…', 'ok');
+      const response = await fetch(MODEL_ENDPOINT, {
+        method: 'POST', headers: { 'Content-Type': 'model/gltf-binary' }, body: file,
+      });
+      const result = await response.json() as { ok?: boolean; assetId?: string; error?: string };
+      if (!response.ok || !result.ok || !result.assetId) throw new Error(result.error ?? 'GLB import failed');
+      this.addModel(result.assetId, file.name.replace(/\.glb$/i, ''));
+    } catch (error) {
+      this.note(error instanceof Error ? error.message : 'GLB import failed.', 'error');
+    }
+  }
+
+  private ensureFinishOption(value: string): void {
+    if (!value || value === 'none') return;
+    if ([...this.textureInput.options].some((option) => option.value === value)) return;
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = 'Imported texture · ' + value.slice(0, 20) + '…';
+    this.textureInput.append(option);
+  }
+
+  private async importFinish(): Promise<void> {
+    const file = this.finishFileInput.files?.[0];
+    if (!file) return;
+    this.finishFileInput.value = '';
+    const selectedId = this.selectedId;
+    const surfaceId = this.selectedSurfaceId;
+    if ((!selectedId && !surfaceId) || !file.type.startsWith('image/') || file.size > 15 * 1024 * 1024) {
+      return this.note('Select a surface or object, then an image smaller than 15 MB.', 'warn');
+    }
+    try {
+      this.note('Converting texture into local WebP…', 'ok');
+      const bitmap = await createImageBitmap(file);
+      const factor = Math.min(1, 2048 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(bitmap.width * factor));
+      canvas.height = Math.max(1, Math.round(bitmap.height * factor));
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Image canvas is unavailable');
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      const blob = await new Promise<Blob | null>((resolveBlob) => canvas.toBlob(resolveBlob, 'image/webp', 0.85));
+      if (!blob || blob.size > 3 * 1024 * 1024) throw new Error('Converted texture exceeds 3 MB');
+      const response = await fetch(MEDIA_ENDPOINT, {
+        method: 'POST', headers: { 'Content-Type': 'image/webp' }, body: blob,
+      });
+      const result = await response.json() as { ok?: boolean; image?: string; error?: string };
+      if (!response.ok || !result.ok || !result.image) throw new Error(result.error ?? 'Texture import failed');
+      if (selectedId !== this.selectedId || surfaceId !== this.selectedSurfaceId) {
+        this.note('Image imported. Selection changed; re-select the target to apply it.', 'warn');
+        return;
+      }
+      this.ensureFinishOption(result.image);
+      this.textureInput.value = result.image;
+      this.commitAppearance();
+    } catch (error) {
+      this.note(error instanceof Error ? error.message : 'Texture import failed.', 'error');
+    }
+  }
+
   private add(prefab: WorkshopPrefabId): void {
     if (this.placements.isComparingOriginal) return;
     const before = this.placements.captureManifest();
