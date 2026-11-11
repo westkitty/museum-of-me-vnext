@@ -34,6 +34,11 @@ export const WORKSHOP_PREFABS = [
     label: 'Artifact table',
     description: 'Non-colliding display table for small objects and exhibit dressing.',
   },
+  {
+    id: 'catalog-model',
+    label: 'Imported 3D model',
+    description: 'Reusable project GLB or a locally imported model with scale, color and interaction controls.',
+  },
 ] as const;
 
 export type WorkshopPrefabId = (typeof WORKSHOP_PREFABS)[number]['id'];
