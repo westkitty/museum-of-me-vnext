@@ -15,6 +15,21 @@ export const WORKSHOP_PREFABS = [
     description: 'Freestanding museum sign for wayfinding or temporary interpretation.',
   },
   {
+    id: 'sculpture-sphere',
+    label: 'Sculpture sphere',
+    description: 'A resizable sphere: small display piece or monumental outdoor sculpture.',
+  },
+  {
+    id: 'wall-art',
+    label: 'Wall artwork',
+    description: 'Frame with editable size, depth, color and locally imported image.',
+  },
+  {
+    id: 'wall-panel',
+    label: 'Paintable wall panel',
+    description: 'Thin wall finish overlay that can be colored, sized and surface-mounted.',
+  },
+  {
     id: 'artifact-table',
     label: 'Artifact table',
     description: 'Non-colliding display table for small objects and exhibit dressing.',

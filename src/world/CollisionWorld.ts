@@ -48,6 +48,8 @@ const CELL = 12;
 
 export class CollisionWorld {
   private readonly colliders: Collider[] = [];
+  /** Small authored objects are dynamic, so edits never mutate static architecture. */
+  private readonly dynamicWalls = new Map<string, Wall>();
   private readonly grid = new Map<string, number[]>();
   private readonly nearby: Collider[] = [];
   private seen = new Uint32Array(1024);
@@ -58,7 +60,12 @@ export class CollisionWorld {
   }
 
   get size(): number {
-    return this.colliders.length;
+    return this.colliders.length + this.dynamicWalls.size;
+  }
+
+  setDynamicWall(id: string, wall: Wall | null): void {
+    if (wall) this.dynamicWalls.set(id, wall);
+    else this.dynamicWalls.delete(id);
   }
 
   add(c: Collider): void {
@@ -99,6 +106,7 @@ export class CollisionWorld {
 
   clear(): void {
     this.colliders.length = 0;
+    this.dynamicWalls.clear();
     this.grid.clear();
     this.nearby.length = 0;
     this.seen.fill(0);
@@ -130,6 +138,10 @@ export class CollisionWorld {
           out.push(this.colliders[i]);
         }
       }
+    }
+    for (const wall of this.dynamicWalls.values()) {
+      if (wall.minX <= x + radius && wall.maxX >= x - radius
+        && wall.minZ <= z + radius && wall.maxZ >= z - radius) out.push(wall);
     }
     return out;
   }

@@ -51,6 +51,35 @@ for (const file of assets) {
   encoded.set(rel, `data:${mimeFor(file)};base64,${bytes.toString('base64')}`);
 }
 
+// Offline authored artwork stays inside the portable HTML document.
+// Refuse missing or tampered files before producing a release.
+const authoredSource = JSON.parse(readFileSync(join(root, 'data/workshop-placements.json'), 'utf8'));
+const embeddedWorkshopMedia = {};
+for (const item of authoredSource.objects ?? []) {
+  const image = item.image;
+  if (!image) continue;
+  if (!/^workshop-media\/[0-9a-f]{64}\.webp$/.test(image)) {
+    throw new Error(`standalone: unsupported authored media reference: ${image}`);
+  }
+  if (embeddedWorkshopMedia[image]) continue;
+  const bytes = readFileSync(join(dist, image));
+  const hash = createHash('sha256').update(bytes).digest('hex');
+  if (bytes.length < 20 || bytes.length > 3 * 1024 * 1024
+    || bytes.toString('ascii', 0, 4) !== 'RIFF'
+    || bytes.toString('ascii', 8, 12) !== 'WEBP'
+    || bytes.readUInt32LE(4) !== bytes.length - 8
+    || !['VP8 ', 'VP8L', 'VP8X'].includes(bytes.toString('ascii', 12, 16))
+    || hash !== image.slice('workshop-media/'.length, -'.webp'.length)) {
+    throw new Error(`standalone: invalid, oversized or tampered authored image: ${image}`);
+  }
+  embeddedWorkshopMedia[image] = `data:image/webp;base64,${bytes.toString('base64')}`;
+}
+if (Object.keys(embeddedWorkshopMedia).length) {
+  const payload = `<script type="application/json" id="museum-workshop-media">${JSON.stringify(embeddedWorkshopMedia)}</script>`;
+  if (!html.includes('</head>')) throw new Error('standalone: HTML head not found for inline artwork');
+  html = html.replace('</head>', `${payload}</head>`);
+}
+
 html = html.replace(/(?:src|href)="(\.\/assets\/[^"]+)"/g, (all, spec) => {
   const key = spec.replace(/^\.\//, '');
   const data = encoded.get(key);

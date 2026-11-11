@@ -3,7 +3,10 @@ import { isWorkshopPrefabId, type WorkshopPrefabId } from './catalog';
 export const WORKSHOP_SCHEMA_VERSION = 1 as const;
 export const WORKSHOP_MAX_OBJECTS = 256;
 
-export type WorkshopAnchor = 'floor' | 'free';
+export type WorkshopAnchor = 'floor' | 'free' | 'wall';
+export type WorkshopCollisionMode = 'none' | 'solid';
+export type WorkshopEventMode = 'none' | 'announce';
+export type WorkshopWorldId = 'exterior' | 'interior' | 'shared';
 export type WorkshopVec3 = [number, number, number];
 
 export interface WorkshopSceneOverride {
@@ -21,6 +24,15 @@ export interface WorkshopPlacementRecord {
   readonly position: WorkshopVec3;
   readonly rotation: WorkshopVec3;
   readonly scale: WorkshopVec3;
+  /** Individual paint. Materials are not shared with unrelated objects. */
+  readonly color?: string;
+  /** Content-addressed, locally bundled image. */
+  readonly image?: string;
+  /** Wall fixture thickness in metres. */
+  readonly depth?: number;
+  readonly collision?: WorkshopCollisionMode;
+  readonly event?: WorkshopEventMode;
+  readonly worldId?: WorkshopWorldId;
 }
 
 export interface WorkshopPlacementManifest {
@@ -45,7 +57,9 @@ export const EMPTY_WORKSHOP_MANIFEST: WorkshopPlacementManifest = {
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const POSITION_LIMITS: readonly [number, number, number] = [500, 150, 500];
 const SCALE_MIN = 0.05;
-const SCALE_MAX = 20;
+const SCALE_MAX = 100;
+const COLOR = /^#[0-9a-fA-F]{6}$/;
+const WORKSHOP_IMAGE = /^workshop-media\/[0-9a-f]{64}\.webp$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -75,10 +89,25 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
   if (!isWorkshopPrefabId(prefab)) errors.push(`objects[${index}].prefab is not a supported Workshop prefab`);
 
   const anchor = value.anchor;
-  if (anchor !== 'floor' && anchor !== 'free') {
-    errors.push(`objects[${index}].anchor must be "floor" or "free"`);
+  if (anchor !== 'floor' && anchor !== 'free' && anchor !== 'wall') {
+    errors.push(`objects[${index}].anchor must be "floor", "free", or "wall"`);
   }
 
+  const color = value.color === undefined ? undefined : typeof value.color === 'string' && COLOR.test(value.color) ? value.color.toLowerCase() : null;
+  const image = value.image === undefined ? undefined : typeof value.image === 'string' && WORKSHOP_IMAGE.test(value.image) ? value.image : null;
+  const depth = value.depth === undefined ? undefined : typeof value.depth === 'number' && Number.isFinite(value.depth) && value.depth >= 0.01 && value.depth <= 2 ? value.depth : null;
+  const collision = value.collision === undefined ? undefined : value.collision === 'none' || value.collision === 'solid' ? value.collision : null;
+  const event = value.event === undefined ? undefined : value.event === 'none' || value.event === 'announce' ? value.event : null;
+  const worldId = value.worldId === undefined ? undefined
+    : value.worldId === 'exterior' || value.worldId === 'interior' || value.worldId === 'shared' ? value.worldId : null;
+  if (color === null) errors.push(`objects[${index}].color must be a six-digit hex color`);
+  if (image === null) errors.push(`objects[${index}].image must be a locally stored WebP`);
+  if (depth === null) errors.push(`objects[${index}].depth must be between 0.01 and 2 metres`);
+  if (collision === null) errors.push(`objects[${index}].collision is invalid`);
+  if (event === null) errors.push(`objects[${index}].event is invalid`);
+  if (worldId === null) errors.push(`objects[${index}].worldId is invalid`);
+  if (image && prefab !== 'wall-art') errors.push(`objects[${index}].image requires a wall-art prefab`);
+  if (anchor === 'wall' && prefab !== 'wall-art' && prefab !== 'wall-panel') errors.push(`objects[${index}].wall anchor requires wall-art or wall-panel`);
   const position = finiteVec3(value.position);
   const rotation = finiteVec3(value.rotation);
   const scale = finiteVec3(value.scale);
@@ -103,7 +132,7 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
     || label.length < 1
     || label.length > 80
     || !isWorkshopPrefabId(prefab)
-    || (anchor !== 'floor' && anchor !== 'free')
+    || (anchor !== 'floor' && anchor !== 'free' && anchor !== 'wall')
     || !position
     || !rotation
     || !scale
@@ -119,6 +148,12 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
     position,
     rotation,
     scale,
+    ...(color ? { color } : {}),
+    ...(image ? { image } : {}),
+    ...(depth === undefined || depth === null ? {} : { depth }),
+    ...(collision ? { collision: collision as WorkshopCollisionMode } : {}),
+    ...(event ? { event: event as WorkshopEventMode } : {}),
+    ...(worldId ? { worldId: worldId as WorkshopWorldId } : {}),
   };
 }
 
@@ -227,6 +262,12 @@ export function canonicalizeWorkshopManifest(manifest: WorkshopPlacementManifest
         position: canonicalVec3(record.position),
         rotation: canonicalVec3(record.rotation),
         scale: canonicalVec3(record.scale),
+        ...(record.color ? { color: record.color.toLowerCase() } : {}),
+        ...(record.image ? { image: record.image } : {}),
+        ...(record.depth === undefined ? {} : { depth: roundNumber(record.depth) }),
+        ...(record.collision ? { collision: record.collision } : {}),
+        ...(record.event ? { event: record.event } : {}),
+        ...(record.worldId ? { worldId: record.worldId } : {}),
       }))
       .sort((a, b) => a.id.localeCompare(b.id)),
     sceneOverrides: [...(manifest.sceneOverrides ?? [])]

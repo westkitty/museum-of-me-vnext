@@ -102,6 +102,25 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   await expect(workshop).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole('button', { name: 'Exit Build Mode' })).toBeVisible();
   await expect(lockPrompt).toBeHidden();
+  // Original reveal is a read-only lens. It must preserve transforms and
+  // enable the authored scene again without a second load or data mutation.
+  const savedX = await page.evaluate(() =>
+    window.__museum?.scene.getObjectByName('authorable:arrival-garden-shrub-01')?.position.x);
+  const compare = workshop.locator('[data-workshop="compare"]');
+  await expect(compare).toHaveText('Reveal original');
+  await compare.click();
+  await expect(compare).toHaveText('Return to authored view');
+  await expect(workshop.locator('[data-workshop="save"]')).toBeDisabled();
+  await expect(workshop.locator('[data-workshop="px"]')).toBeDisabled();
+  expect(await page.evaluate(() =>
+    window.__museum?.scene.getObjectByName('authorable:arrival-garden-shrub-01')?.position.x))
+    .not.toBe(savedX);
+  await compare.click();
+  await expect(compare).toHaveText('Reveal original');
+  expect(await page.evaluate(() =>
+    window.__museum?.scene.getObjectByName('authorable:arrival-garden-shrub-01')?.position.x))
+    .toBe(savedX);
+  await expect(workshop.locator('[data-workshop="save"]')).toBeEnabled();
   await expect(workshop.getByRole('heading', { name: 'Museum Workshop' })).toBeVisible();
   await expect(workshop.getByText('DEVELOPMENT ONLY')).toBeVisible();
 

@@ -76,6 +76,9 @@ const PREFAB_BOUNDS: Record<WorkshopPrefabId, PrefabBounds> = {
   'museum-bench': { halfX: 1.1, halfY: 0.385, halfZ: 0.36, minY: 0, maxY: 0.77 },
   'sign-post': { halfX: 0.625, halfY: 0.89, halfZ: 0.26, minY: 0, maxY: 1.78 },
   'artifact-table': { halfX: 0.825, halfY: 0.5, halfZ: 0.5, minY: 0, maxY: 1 },
+  'sculpture-sphere': { halfX: 0.5, halfY: 0.5, halfZ: 0.5, minY: -0.5, maxY: 0.5 },
+  'wall-art': { halfX: 0.5, halfY: 0.5, halfZ: 0.05, minY: -0.5, maxY: 0.5 },
+  'wall-panel': { halfX: 0.5, halfY: 0.5, halfZ: 0.05, minY: -0.5, maxY: 0.5 },
 };
 
 const SCENE_BOUNDS = new Map(AUTHORABLE_SCENE_DEFINITIONS.map((entry) => [entry.id, entry.bounds]));
@@ -239,8 +242,8 @@ function placementRadius(record: WorkshopPlacementRecord): number {
 
 function overlapsVertical(record: WorkshopPlacementRecord, area: ProtectedArea): boolean {
   const bounds = PREFAB_BOUNDS[record.prefab];
-  const minY = record.position[1] + bounds.minY;
-  const maxY = record.position[1] + bounds.maxY;
+  const minY = record.position[1] + bounds.minY * record.scale[1];
+  const maxY = record.position[1] + bounds.maxY * record.scale[1];
   return minY <= area.yMax && maxY >= area.yMin;
 }
 
