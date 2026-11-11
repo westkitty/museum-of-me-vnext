@@ -508,7 +508,7 @@ export class Workshop {
     // fine-tuned later in the ordinary inspector.
     this.wallDrawHeight = this.app.player.position.y;
     this.select(null);
-    this.camera.setView('top');
+    this.camera.focusGround(this.app.player.position);
     this.note('Wall tool: click a floor starting point, then click the endpoint. Escape cancels.', 'ok');
     this.refresh();
   }
