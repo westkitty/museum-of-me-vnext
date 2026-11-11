@@ -611,6 +611,7 @@ export class Workshop {
       return;
     }
     this.history.push(`Transform ${label}`, before, after);
+    if (record?.collision === 'solid') this.placements.invalidateCollisions();
     this.selectionBox?.update();
     this.refresh();
   }
@@ -921,6 +922,7 @@ export class Workshop {
           ? this.placements.setSceneOverride(sceneEntry.id, this.captureTransform(this.object()!))
           : this.placements.captureManifest();
         this.history.push(`Transform ${record?.label ?? sceneEntry?.label ?? 'object'}`, before, after);
+        if (record?.collision === 'solid') this.placements.invalidateCollisions();
       } catch (error) {
         this.placements.replaceManifest(before);
         this.note(error instanceof Error ? error.message : 'Transform rejected by Museum conservation.', 'error');
