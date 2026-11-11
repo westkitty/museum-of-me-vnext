@@ -5,6 +5,7 @@ import type { MuseumPlacements } from './MuseumPlacements';
 import { BuilderCamera, type BuilderView } from './BuilderCamera';
 import type { AuthorableSceneEntry, AuthorableSceneTransform } from './AuthorableSceneRegistry';
 import { WORKSHOP_PREFABS, type WorkshopPrefabId } from './catalog';
+import { measureWall, snapWallPoint, type WallPoint } from './WallSketch';
 import { BUILDER_MODELS, BUILDER_FINISHES, searchBuilderLibrary, builderModel } from './builderAssetCatalog';
 import { conservationErrors, validateWorkshopConservation } from './conservation';
 import { WorkshopHistory } from './history';
@@ -45,6 +46,10 @@ export class Workshop {
   private readonly snapInput: HTMLSelectElement;
   private readonly uniformScaleInput: HTMLInputElement;
   private wallPlacementActive = false;
+  private wallDrawing = false;
+  private wallDrawStart: WallPoint | null = null;
+  private wallDrawHeight = 0;
+  private readonly wallPreview: THREE.Line;
   private savedVisitorPosition: THREE.Vector3 | null = null;
   private savedVisitorYaw = 0;
   private savedVisitorWorld: 'interior' | 'exterior' = 'exterior';
@@ -107,6 +112,17 @@ export class Workshop {
     this.transform.setScaleSnap(0.05);
     this.transform.setSize(0.82);
     app.scene.add(this.helper);
+    const wallGuideGeometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(), new THREE.Vector3(),
+    ]);
+    this.wallPreview = new THREE.Line(
+      wallGuideGeometry,
+      new THREE.LineBasicMaterial({ color: 0x72e5f4, depthTest: false }),
+    );
+    this.wallPreview.name = 'museum-builder-wall-guide';
+    this.wallPreview.visible = false;
+    this.wallPreview.frustumCulled = false;
+    app.scene.add(this.wallPreview);
 
     this.bindUi();
     this.transform.addEventListener('mouseDown', this.onTransformStart);
@@ -115,6 +131,7 @@ export class Workshop {
     this.transform.addEventListener('mouseUp', this.onTransformEnd);
     this.transform.addEventListener('objectChange', this.onTransformChange);
     app.renderer.canvas.addEventListener('pointerdown', this.onCanvasPointerDown);
+    app.renderer.canvas.addEventListener('pointermove', this.onWallPointerMove);
     document.addEventListener('keydown', this.onKeyDown, true);
     this.refresh();
   }
@@ -153,6 +170,7 @@ export class Workshop {
     this.openState = false;
     this.root.hidden = true;
     this.camera.close();
+    this.cancelWallDrawing();
     this.placements.setOriginalComparison(false);
     this.wallPlacementActive = false;
     this.transform.enabled = false;
@@ -194,6 +212,7 @@ export class Workshop {
   dispose(): void {
     this.close();
     this.app.renderer.canvas.removeEventListener('pointerdown', this.onCanvasPointerDown);
+    this.app.renderer.canvas.removeEventListener('pointermove', this.onWallPointerMove);
     document.removeEventListener('keydown', this.onKeyDown, true);
     this.transform.removeEventListener('mouseDown', this.onTransformStart);
     this.transform.removeEventListener('mouseDown', this.onDragCameraDisable);
@@ -203,6 +222,9 @@ export class Workshop {
     this.transform.detach();
     this.transform.disconnect();
     this.helper.removeFromParent();
+    this.wallPreview.removeFromParent();
+    this.wallPreview.geometry.dispose();
+    (this.wallPreview.material as THREE.Material).dispose();
     this.camera.dispose();
     this.clearSelectionBox();
     this.root.remove();
@@ -239,6 +261,7 @@ export class Workshop {
     this.eventInput.addEventListener('change', () => this.commitAppearance());
     this.imageInput.addEventListener('change', () => void this.importArtwork());
     this.el<HTMLButtonElement>('place-wall').addEventListener('click', () => this.beginWallPlacement());
+    this.el<HTMLButtonElement>('draw-wall').addEventListener('click', () => this.toggleWallDrawing());
     this.snapInput.addEventListener('change', () => this.configureSnap());
     this.el<HTMLButtonElement>('view-dollhouse').addEventListener('click', () => this.setView('dollhouse'));
     this.el<HTMLButtonElement>('view-orbit').addEventListener('click', () => this.setView('orbit'));
@@ -303,6 +326,7 @@ export class Workshop {
   }
 
   private toggleComparison(): void {
+    this.cancelWallDrawing();
     this.wallPlacementActive = false;
     this.placements.setOriginalComparison(!this.placements.isComparingOriginal);
     this.helper.visible = this.openState && !this.placements.isComparingOriginal && this.selectedId !== null;
@@ -323,6 +347,7 @@ export class Workshop {
 
   private async switchWorld(world: 'interior' | 'exterior'): Promise<void> {
     if (world === this.app.activeWorld) return;
+    this.cancelWallDrawing();
     if (world === 'interior') {
       this.note('Preparing museum interior…', 'ok');
       const ready = await this.app.worldDirector.switchToInterior();
@@ -1002,6 +1027,9 @@ export class Workshop {
     const placement = this.record();
     const placementSelected = placement !== null;
     const comparing = this.placements.isComparingOriginal;
+    this.el<HTMLButtonElement>('draw-wall').dataset.active = String(this.wallDrawing);
+    this.el<HTMLButtonElement>('draw-wall').textContent = this.wallDrawing ? 'Cancel wall draw' : 'Draw wall';
+    this.el<HTMLButtonElement>('draw-wall').disabled = comparing;
     // A comparison is a read-only lens; no edits can be made until the user
     // explicitly returns to the authored scene.
     this.saveButton.disabled = comparing;
@@ -1167,6 +1195,7 @@ const WORKSHOP_HTML = `
   <button type="button" data-view="orbit" data-workshop="view-orbit">Orbit</button>
   <button type="button" data-view="top" data-workshop="view-top">Top</button>
   <button type="button" data-workshop="world-exterior">Island</button><button type="button" data-workshop="world-interior">Museum</button>
+  <button type="button" data-workshop="draw-wall" title="Two clicks on the floor to draw a solid, editable partition">Draw wall</button>
   <button type="button" data-workshop="compare" title="Temporarily reveal the original museum without losing authored work">Reveal original</button>
   <button type="button" data-workshop="space">World</button><button type="button" data-workshop="floor">Snap floor</button>
   <button type="button" data-workshop="undo">Undo</button><button type="button" data-workshop="redo">Redo</button>
