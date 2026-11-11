@@ -1,4 +1,4 @@
-import raw from './builderAssets.json';
+import raw from './builderAssets.json' with { type: 'json' };
 
 export interface BuilderLibraryModel {
   readonly id: string;
