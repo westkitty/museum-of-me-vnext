@@ -6,6 +6,7 @@ import { BuilderCamera, type BuilderView } from './BuilderCamera';
 import type { AuthorableSceneEntry, AuthorableSceneTransform } from './AuthorableSceneRegistry';
 import { WORKSHOP_PREFABS, type WorkshopPrefabId } from './catalog';
 import { measureWall, snapWallPoint, type WallPoint } from './WallSketch';
+import { defaultOpening } from './WallOpenings';
 import { BUILDER_MODELS, BUILDER_FINISHES, searchBuilderLibrary, builderModel } from './builderAssetCatalog';
 import { conservationErrors, validateWorkshopConservation } from './conservation';
 import { WorkshopHistory } from './history';
@@ -41,6 +42,10 @@ export class Workshop {
   private readonly assetResults: HTMLElement;
   private readonly imageInput: HTMLInputElement;
   private readonly depthInput: HTMLInputElement;
+  private readonly openingInput: HTMLSelectElement;
+  private readonly openingWidthInput: HTMLInputElement;
+  private readonly openingHeightInput: HTMLInputElement;
+  private readonly openingSillInput: HTMLInputElement;
   private readonly collisionInput: HTMLSelectElement;
   private readonly eventInput: HTMLSelectElement;
   private readonly snapInput: HTMLSelectElement;
@@ -95,6 +100,10 @@ export class Workshop {
     this.assetResults = this.el('asset-results');
     this.imageInput = this.el<HTMLInputElement>('image');
     this.depthInput = this.el<HTMLInputElement>('depth');
+    this.openingInput = this.el<HTMLSelectElement>('opening');
+    this.openingWidthInput = this.el<HTMLInputElement>('opening-width');
+    this.openingHeightInput = this.el<HTMLInputElement>('opening-height');
+    this.openingSillInput = this.el<HTMLInputElement>('opening-sill');
     this.collisionInput = this.el<HTMLSelectElement>('collision');
     this.eventInput = this.el<HTMLSelectElement>('event');
     this.snapInput = this.el<HTMLSelectElement>('grid-snap');
@@ -257,6 +266,19 @@ export class Workshop {
     this.searchInput.addEventListener('input', () => this.refreshAssetLibrary());
     this.categoryInput.addEventListener('change', () => this.refreshAssetLibrary());
     this.depthInput.addEventListener('change', () => this.commitAppearance());
+    this.openingInput.addEventListener('change', () => {
+      const kind = this.openingInput.value;
+      if (kind === 'door' || kind === 'window') {
+        const fallback = defaultOpening(kind);
+        this.openingWidthInput.value = String(Math.round(fallback.width * 100));
+        this.openingHeightInput.value = String(Math.round(fallback.height * 100));
+        this.openingSillInput.value = String(Math.round(fallback.sill * 100));
+      }
+      this.commitAppearance();
+    });
+    for (const input of [this.openingWidthInput, this.openingHeightInput, this.openingSillInput]) {
+      input.addEventListener('change', () => this.commitAppearance());
+    }
     this.collisionInput.addEventListener('change', () => this.commitAppearance());
     this.eventInput.addEventListener('change', () => this.commitAppearance());
     this.imageInput.addEventListener('change', () => void this.importArtwork());
@@ -714,9 +736,9 @@ export class Workshop {
       THREE.MathUtils.clamp(v.pz, -500, 500),
     );
     object.rotation.set(
-      record?.prefab === 'floor-slab' ? 0 : v.rx * RAD,
+      (record?.prefab === 'floor-slab' || record?.prefab === 'partition-wall') ? 0 : v.rx * RAD,
       v.ry * RAD,
-      record?.prefab === 'floor-slab' ? 0 : v.rz * RAD,
+      (record?.prefab === 'floor-slab' || record?.prefab === 'partition-wall') ? 0 : v.rz * RAD,
     );
     object.scale.set(
       THREE.MathUtils.clamp(v.sx, 0.05, 100),
@@ -772,11 +794,19 @@ export class Workshop {
     if (!/^#[0-9a-f]{6}$/i.test(color) || !Number.isFinite(depth) || depth < 0.01 || depth > 2) {
       return this.note('Color or wall thickness is invalid.', 'error');
     }
+    const opening = record.prefab === 'partition-wall'
+      && (this.openingInput.value === 'door' || this.openingInput.value === 'window')
+      ? this.openingInput.value as 'door' | 'window' : undefined;
+    const width = opening ? Number(this.openingWidthInput.value) / 100 : undefined;
+    const height = opening ? Number(this.openingHeightInput.value) / 100 : undefined;
+    const sill = opening ? Number(this.openingSillInput.value) / 100 : undefined;
     const before = this.placements.captureManifest();
     try {
       const after = this.placements.setRecord({
         ...record, color, depth,
         texture: texture === 'none' ? undefined : texture,
+        opening,
+        openingWidth: width, openingHeight: height, openingSill: sill,
         collision: this.collisionInput.value as 'none' | 'solid',
         event: this.eventInput.value as 'none' | 'announce',
       });
@@ -805,10 +835,13 @@ export class Workshop {
     const root = this.app.activeWorld === 'exterior' ? this.app.exteriorWorld.root : this.app.museum?.root;
     if (!root) return this.note('Active world geometry is unavailable.', 'warn');
     this.raycaster.setFromCamera(this.pointer, this.app.camera);
-    const hits = this.raycaster.intersectObject(root, true);
+    // New Builder walls are real wall surfaces too. An artwork cannot raycast
+    // itself as the mounting target; skip the selected object below.
+    const hits = this.raycaster.intersectObjects([root, this.placements.group], true);
+    const selectedRoot = this.placements.getObject(record.id);
     const normalMatrix = new THREE.Matrix3();
     for (const hit of hits) {
-      if (!hit.face) continue;
+      if (!hit.face || (selectedRoot && selectedRoot.getObjectById(hit.object.id))) continue;
       hit.object.updateWorldMatrix(true, false);
       normalMatrix.getNormalMatrix(hit.object.matrixWorld);
       const normal = hit.face.normal.clone().applyMatrix3(normalMatrix).normalize();
@@ -1038,7 +1071,7 @@ export class Workshop {
         THREE.MathUtils.clamp(object.scale.y, 0.05, 100),
         THREE.MathUtils.clamp(object.scale.z, 0.05, 100),
       );
-      if (this.record()?.prefab === 'floor-slab') {
+      if (this.record()?.prefab === 'floor-slab' || this.record()?.prefab === 'partition-wall') {
         object.rotation.x = 0;
         object.rotation.z = 0;
       }
@@ -1177,6 +1210,11 @@ export class Workshop {
     this.textureInput.disabled = (!record && !surface) || locked;
     this.finishFileInput.disabled = (!record && !surface) || locked;
     this.depthInput.disabled = (record?.prefab !== 'wall-art' && record?.prefab !== 'wall-panel') || locked;
+    const notWall = record?.prefab !== 'partition-wall';
+    this.openingInput.disabled = notWall || locked;
+    this.openingWidthInput.disabled = notWall || locked || !record?.opening;
+    this.openingHeightInput.disabled = notWall || locked || !record?.opening;
+    this.openingSillInput.disabled = notWall || locked || record?.opening !== 'window';
     this.collisionInput.disabled = !record || locked;
     this.eventInput.disabled = !record || locked;
     this.imageInput.disabled = record?.prefab !== 'wall-art' || locked;
@@ -1192,6 +1230,7 @@ export class Workshop {
       this.ensureFinishOption(texture);
       this.textureInput.value = texture;
       this.depthInput.value = '0.055';
+      this.openingInput.value = 'none';
       this.collisionInput.value = 'none';
       this.eventInput.value = 'none';
       for (const input of Object.values(this.inputs)) input.value = '';
@@ -1204,6 +1243,7 @@ export class Workshop {
       this.paintInput.value = '#a3b5bd';
       this.textureInput.value = 'none';
       this.depthInput.value = '0.055';
+      this.openingInput.value = 'none';
       this.collisionInput.value = 'none';
       this.eventInput.value = 'none';
       for (const input of Object.values(this.inputs)) input.value = '';
@@ -1220,6 +1260,12 @@ export class Workshop {
     this.ensureFinishOption(finish);
     this.textureInput.value = finish;
     this.depthInput.value = String(record?.depth ?? 0.055);
+    const opening = record?.opening ?? 'none';
+    const fallback = defaultOpening(opening);
+    this.openingInput.value = opening;
+    this.openingWidthInput.value = String(Math.round((record?.openingWidth ?? fallback.width) * 100));
+    this.openingHeightInput.value = String(Math.round((record?.openingHeight ?? fallback.height) * 100));
+    this.openingSillInput.value = String(Math.round((record?.openingSill ?? fallback.sill) * 100));
     this.collisionInput.value = record?.collision ?? 'none';
     this.eventInput.value = record?.event ?? 'none';
     const values: Record<InputKey, number> = {
@@ -1334,6 +1380,12 @@ const WORKSHOP_HTML = `
     <label>Import finish<input data-workshop="finish-import" type="file" accept="image/*" aria-label="Import custom texture image"></label>
     <p class="workshop-muted">Click a wall or object mesh to paint it. Alt-click a known scene object to paint its individual surface. Painting preserves structural geometry and collision.</p>
     <label>Depth (m)<input data-workshop="depth" type="number" min=".01" max="2" step=".01" value=".055"></label>
+    <h4>Partition wall openings</h4>
+    <label>Opening<select data-workshop="opening"><option value="none">Solid wall</option><option value="door">Doorway</option><option value="window">Window opening</option></select></label>
+    <label>Opening width %<input data-workshop="opening-width" type="number" min="20" max="80" step="1" value="42"></label>
+    <label>Opening height %<input data-workshop="opening-height" type="number" min="20" max="90" step="1" value="73"></label>
+    <label>Window sill %<input data-workshop="opening-sill" type="number" min="0" max="65" step="1" value="0"></label>
+    <p class="workshop-muted">New authored walls only. Doorways retain accurate physical clearance; museum structural walls are not cut.</p>
     <button type="button" data-workshop="place-wall">Attach selected to wall</button>
     <label>Artwork image<input data-workshop="image" type="file" accept="image/*"></label>
     <p class="workshop-muted">Images become local WebP files in public/workshop-media. Review before committing or publishing.</p>
