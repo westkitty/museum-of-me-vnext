@@ -26,8 +26,33 @@ test('Sims-style wall drawing creates a selectable, paintable wall with undo and
   await expect(draw).toHaveText('Cancel wall draw');
 
   // The same canvas is the authoring surface. No second 3D viewport is made.
+  const diagnostic = async (phase: string) => {
+    const state = await page.evaluate(() => {
+      const editor = window.__museumWorkshop as unknown as {
+        wallDrawStart: number[] | null; wallDrawing: boolean;
+        status: HTMLElement; wallDrawHeight: number;
+        pointer: { x: number; y: number }; root: HTMLElement;
+        camera: { currentView: string };
+      };
+      const app = window.__museum!;
+      return {
+        start: editor.wallDrawStart, active: editor.wallDrawing,
+        status: editor.status.textContent, height: editor.wallDrawHeight,
+        pointer: [editor.pointer.x, editor.pointer.y],
+        camera: app.camera.position.toArray(),
+        view: editor.camera.currentView,
+        world: app.activeWorld,
+        hitAt560: document.elementFromPoint(560, 360)?.tagName,
+        hitAt700: document.elementFromPoint(700, 360)?.tagName,
+      };
+    });
+    console.log('BUILDER_WALL_DEBUG ' + phase + ': ' + JSON.stringify(state));
+  };
+  await diagnostic('before');
   await page.mouse.click(560, 360);
+  await diagnostic('first');
   await page.mouse.click(700, 360);
+  await diagnostic('second');
   await expect(draw).toHaveText('Draw wall');
   await expect(panel.locator('[data-workshop="selection-title"]')).toHaveText('Partition wall');
   await expect(panel.locator('[data-workshop="outliner"]')).toContainText('Partition wall');
