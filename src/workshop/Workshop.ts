@@ -5,6 +5,7 @@ import type { MuseumPlacements } from './MuseumPlacements';
 import { BuilderCamera, type BuilderView } from './BuilderCamera';
 import type { AuthorableSceneEntry, AuthorableSceneTransform } from './AuthorableSceneRegistry';
 import { WORKSHOP_PREFABS, type WorkshopPrefabId } from './catalog';
+import { BUILDER_MODELS, BUILDER_FINISHES, searchBuilderLibrary, builderModel } from './builderAssetCatalog';
 import { conservationErrors, validateWorkshopConservation } from './conservation';
 import { WorkshopHistory } from './history';
 import {
@@ -18,6 +19,7 @@ const RAD = Math.PI / 180;
 const DEG = 180 / Math.PI;
 const SAVE_ENDPOINT = '/__museum-workshop/save';
 const MEDIA_ENDPOINT = '/__museum-workshop/media';
+const MODEL_ENDPOINT = '/__museum-workshop/model';
 const GRID_SNAP = [0, 0.05, 0.1, 0.25, 0.5, 1] as const;
 const INPUT_KEYS = ['px', 'py', 'pz', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz'] as const;
 type InputKey = (typeof INPUT_KEYS)[number];
@@ -30,6 +32,12 @@ export class Workshop {
   private readonly transform: TransformControls;
   private readonly camera: BuilderCamera;
   private readonly paintInput: HTMLInputElement;
+  private readonly textureInput: HTMLSelectElement;
+  private readonly modelInput: HTMLInputElement;
+  private readonly finishFileInput: HTMLInputElement;
+  private readonly searchInput: HTMLInputElement;
+  private readonly categoryInput: HTMLSelectElement;
+  private readonly assetResults: HTMLElement;
   private readonly imageInput: HTMLInputElement;
   private readonly depthInput: HTMLInputElement;
   private readonly collisionInput: HTMLSelectElement;
@@ -54,6 +62,7 @@ export class Workshop {
   private readonly redoButton: HTMLButtonElement;
   private selectionBox: THREE.BoxHelper | null = null;
   private selectedId: string | null = null;
+  private selectedSurfaceId: string | null = null;
   private dragBefore: WorkshopPlacementManifest | null = null;
   private openState = false;
 
@@ -73,6 +82,12 @@ export class Workshop {
     this.undoButton = this.el<HTMLButtonElement>('undo');
     this.redoButton = this.el<HTMLButtonElement>('redo');
     this.paintInput = this.el<HTMLInputElement>('paint');
+    this.textureInput = this.el<HTMLSelectElement>('texture');
+    this.modelInput = this.el<HTMLInputElement>('model-import');
+    this.finishFileInput = this.el<HTMLInputElement>('finish-import');
+    this.searchInput = this.el<HTMLInputElement>('asset-search');
+    this.categoryInput = this.el<HTMLSelectElement>('asset-category');
+    this.assetResults = this.el('asset-results');
     this.imageInput = this.el<HTMLInputElement>('image');
     this.depthInput = this.el<HTMLInputElement>('depth');
     this.collisionInput = this.el<HTMLSelectElement>('collision');
@@ -112,7 +127,10 @@ export class Workshop {
       this.note('Close the current museum panel before opening Workshop.', 'warn');
       return;
     }
-    if (targetId) this.select(targetId);
+    if (targetId) {
+      if (targetId.startsWith('exterior:') || targetId.startsWith('interior:')) this.selectSurface(targetId);
+      else this.select(targetId);
+    }
     this.openState = true;
     this.savedVisitorPosition = this.app.player.position.clone();
     this.savedVisitorYaw = this.app.player.yaw;
@@ -208,6 +226,11 @@ export class Workshop {
       input.addEventListener('change', () => this.commitTransform(key as InputKey));
     }
     this.paintInput.addEventListener('change', () => this.commitAppearance());
+    this.textureInput.addEventListener('change', () => this.commitAppearance());
+    this.modelInput.addEventListener('change', () => void this.importModel());
+    this.finishFileInput.addEventListener('change', () => void this.importFinish());
+    this.searchInput.addEventListener('input', () => this.refreshAssetLibrary());
+    this.categoryInput.addEventListener('change', () => this.refreshAssetLibrary());
     this.depthInput.addEventListener('change', () => this.commitAppearance());
     this.collisionInput.addEventListener('change', () => this.commitAppearance());
     this.eventInput.addEventListener('change', () => this.commitAppearance());
@@ -226,7 +249,22 @@ export class Workshop {
     this.el<HTMLButtonElement>('compare').addEventListener('click', () => this.toggleComparison());
 
     const palette = this.el('palette');
+    for (const finish of BUILDER_FINISHES) {
+      const option = document.createElement('option');
+      option.value = finish.id;
+      option.textContent = finish.label;
+      option.title = finish.source + ' · ' + finish.license;
+      this.textureInput.append(option);
+    }
+    for (const category of ['All', ...new Set(BUILDER_MODELS.map((item) => item.category))]) {
+      const option = document.createElement('option');
+      option.value = category;
+      option.textContent = category;
+      this.categoryInput.append(option);
+    }
+    this.refreshAssetLibrary();
     for (const prefab of WORKSHOP_PREFABS) {
+      if (prefab.id === 'catalog-model') continue;
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = prefab.label;
