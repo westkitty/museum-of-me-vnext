@@ -1,4 +1,5 @@
 import { isWorkshopPrefabId, type WorkshopPrefabId } from './catalog';
+import { builderModelAllowed, builderFinishAllowed } from './builderAssetCatalog';
 
 export const WORKSHOP_SCHEMA_VERSION = 1 as const;
 export const WORKSHOP_MAX_OBJECTS = 256;
@@ -16,6 +17,13 @@ export interface WorkshopSceneOverride {
   readonly scale: WorkshopVec3;
 }
 
+export interface WorkshopSurfaceOverride {
+  readonly id: string;
+  readonly worldId: 'exterior' | 'interior';
+  readonly color?: string;
+  readonly texture?: string;
+}
+
 export interface WorkshopPlacementRecord {
   readonly id: string;
   readonly label: string;
@@ -26,6 +34,8 @@ export interface WorkshopPlacementRecord {
   readonly scale: WorkshopVec3;
   /** Individual paint. Materials are not shared with unrelated objects. */
   readonly color?: string;
+  readonly assetId?: string;
+  readonly texture?: string;
   /** Content-addressed, locally bundled image. */
   readonly image?: string;
   /** Wall fixture thickness in metres. */
@@ -40,6 +50,7 @@ export interface WorkshopPlacementManifest {
   readonly objects: readonly WorkshopPlacementRecord[];
   /** Existing-scene dressing transforms. Optional for schema-version-1 files. */
   readonly sceneOverrides?: readonly WorkshopSceneOverride[];
+  readonly surfaceOverrides?: readonly WorkshopSurfaceOverride[];
 }
 
 export interface WorkshopManifestValidation {
@@ -52,6 +63,7 @@ export const EMPTY_WORKSHOP_MANIFEST: WorkshopPlacementManifest = {
   schemaVersion: WORKSHOP_SCHEMA_VERSION,
   objects: [],
   sceneOverrides: [],
+  surfaceOverrides: [],
 };
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
@@ -60,6 +72,8 @@ const SCALE_MIN = 0.05;
 const SCALE_MAX = 100;
 const COLOR = /^#[0-9a-fA-F]{6}$/;
 const WORKSHOP_IMAGE = /^workshop-media\/[0-9a-f]{64}\.webp$/;
+
+const SURFACE_PATH = /^(?:exterior|interior):(?:[0-9]{1,5}\/){0,12}[0-9]{1,5}$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -94,6 +108,8 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
   }
 
   const color = value.color === undefined ? undefined : typeof value.color === 'string' && COLOR.test(value.color) ? value.color.toLowerCase() : null;
+  const assetId = value.assetId === undefined ? undefined : builderModelAllowed(value.assetId) ? value.assetId : null;
+  const texture = value.texture === undefined ? undefined : builderFinishAllowed(value.texture) ? value.texture : null;
   const image = value.image === undefined ? undefined : typeof value.image === 'string' && WORKSHOP_IMAGE.test(value.image) ? value.image : null;
   const depth = value.depth === undefined ? undefined : typeof value.depth === 'number' && Number.isFinite(value.depth) && value.depth >= 0.01 && value.depth <= 2 ? value.depth : null;
   const collision = value.collision === undefined ? undefined : value.collision === 'none' || value.collision === 'solid' ? value.collision : null;
@@ -101,6 +117,10 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
   const worldId = value.worldId === undefined ? undefined
     : value.worldId === 'exterior' || value.worldId === 'interior' || value.worldId === 'shared' ? value.worldId : null;
   if (color === null) errors.push(`objects[${index}].color must be a six-digit hex color`);
+  if (assetId === null) errors.push('Invalid locally registered model asset');
+  if (texture === null) errors.push('Invalid local finish');
+  if (prefab === 'catalog-model' && !assetId) errors.push('Catalog model requires an assetId');
+  if (assetId && prefab !== 'catalog-model') errors.push('assetId requires catalog-model prefab');
   if (image === null) errors.push(`objects[${index}].image must be a locally stored WebP`);
   if (depth === null) errors.push(`objects[${index}].depth must be between 0.01 and 2 metres`);
   if (collision === null) errors.push(`objects[${index}].collision is invalid`);
@@ -149,6 +169,8 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
     rotation,
     scale,
     ...(color ? { color } : {}),
+    ...(assetId ? { assetId } : {}),
+    ...(texture && texture !== 'none' ? { texture } : {}),
     ...(image ? { image } : {}),
     ...(depth === undefined || depth === null ? {} : { depth }),
     ...(collision ? { collision: collision as WorkshopCollisionMode } : {}),
