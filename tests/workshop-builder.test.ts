@@ -1,4 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { createHash } from 'node:crypto';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { hasValidWebPContainer, writeWorkshopManifest } from '../scripts/workshop-save-plugin';
+import { AuthorableSceneRegistry } from '../src/workshop/AuthorableSceneRegistry';
 import * as THREE from 'three';
 import { validateWorkshopManifest } from '../src/workshop/schema';
 import { validateWorkshopManifestForMuseum } from '../src/workshop/conservation';
@@ -74,5 +80,66 @@ describe('Unified Museum Builder', () => {
     world.setDynamicWall('art-1', null);
     expect(world.size).toBe(staticCount);
     expect(world.resolveHorizontal({ x: 9, y: 0, z: 9 }, 0.35, 1.78)).toBe(false);
+  });
+
+  it('reveals the original scene without mutating authored transforms or placement source', () => {
+    const shrub = new THREE.Group();
+    const registry = new AuthorableSceneRegistry([{ id: 'arrival-garden-shrub-01', root: shrub }]);
+    const manifest = {
+      schemaVersion: 1,
+      objects: [{ ...base, id: 'panel-01', prefab: 'wall-panel', image: undefined }],
+      sceneOverrides: [{
+        id: 'arrival-garden-shrub-01',
+        position: [30, 0, 42], rotation: [0, 0, 0], scale: [1, 1, 1],
+      }],
+    };
+    const placements = new MuseumPlacements(manifest, registry);
+    const before = JSON.stringify(placements.captureManifest());
+    expect(shrub.position.x).toBe(30);
+    placements.setOriginalComparison(true);
+    expect(shrub.position.x).toBe(0);
+    expect(placements.group.visible).toBe(false);
+    expect(placements.isComparingOriginal).toBe(true);
+    expect(JSON.stringify(placements.captureManifest())).toBe(before);
+    placements.setOriginalComparison(false);
+    expect(shrub.position.x).toBe(30);
+    expect(placements.group.visible).toBe(true);
+    expect(JSON.stringify(placements.captureManifest())).toBe(before);
+    placements.dispose();
+  });
+
+  it('refuses orphaned or tampered artwork on save; accepts hash-verified local WebP bytes', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'museum-builder-media-'));
+    const target = join(directory, 'data', 'workshop-placements.json');
+    const mediaDir = join(directory, 'public', 'workshop-media');
+    const bytes = Buffer.alloc(20);
+    bytes.write('RIFF', 0);
+    bytes.writeUInt32LE(12, 4);
+    bytes.write('WEBP', 8);
+    bytes.write('VP8 ', 12);
+    expect(hasValidWebPContainer(bytes)).toBe(true);
+    const hash = createHash('sha256').update(bytes).digest('hex');
+    const file = join(mediaDir, `${hash}.webp`);
+    const manifest = { schemaVersion: 1, objects: [{
+      ...base, position: [300, 2.5, 300],
+      image: `workshop-media/${hash}.webp`,
+    }] };
+    try {
+      await mkdir(mediaDir, { recursive: true });
+      expect((await writeWorkshopManifest(manifest, target)).ok).toBe(false);
+      await writeFile(file, bytes);
+      expect((await writeWorkshopManifest(manifest, target)).ok).toBe(true);
+      const persisted = await readFile(target, 'utf8');
+      expect(JSON.parse(persisted).objects[0].image).toBe(`workshop-media/${hash}.webp`);
+      const corrupt = Buffer.from(bytes);
+      corrupt[19] = 1;
+      await writeFile(file, corrupt);
+      const rejected = await writeWorkshopManifest(manifest, target);
+      expect(rejected.ok).toBe(false);
+      expect(rejected.errors?.join(' ')).toMatch(/missing|invalid|replaced/);
+      expect(await readFile(target, 'utf8')).toBe(persisted);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 });
