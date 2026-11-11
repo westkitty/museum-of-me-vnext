@@ -23,7 +23,10 @@ export interface BuilderFinish {
   readonly license: string;
 }
 
-export const BUILDER_MODELS: readonly BuilderLibraryModel[] = raw.models as BuilderLibraryModel[];
+export const BUILDER_MODELS: readonly BuilderLibraryModel[] = raw.models.map((item) => ({
+  ...item,
+  nominalSize: [item.nominalSize[0], item.nominalSize[1], item.nominalSize[2]],
+}));
 export const BUILDER_FINISHES: readonly BuilderFinish[] = raw.textures as BuilderFinish[];
 export const BUILDER_MODEL_PATTERN = /^workshop-models\/[0-9a-f]{64}\.glb$/;
 export const BUILDER_IMAGE_PATTERN = /^workshop-media\/[0-9a-f]{64}\.webp$/;
