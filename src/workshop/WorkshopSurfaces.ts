@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { ResourceScope } from '../assets/ResourceScope';
 import type { WorkshopSurfaceOverride } from './schema';
-import { builderFinishUrl } from './builderAssetCatalog';
+import { resolveBuilderResourceUrl } from './builderAssetCatalog';
 
 type World = 'exterior' | 'interior';
 type PaintMesh = THREE.Mesh<THREE.BufferGeometry, THREE.Material | THREE.Material[]>;
@@ -87,7 +87,7 @@ export class WorkshopSurfaces {
           else if (override.texture) paint.color.set('#ffffff');
         }
         if (override.texture && 'map' in paint) {
-          const url = builderFinishUrl(override.texture);
+          const url = resolveBuilderResourceUrl(override.texture);
           if (url) {
             const image = this.resources.track(new THREE.TextureLoader().load(url, undefined, undefined, (error) => {
               console.warn('[Museum Builder] missing surface finish', override.texture, error);
