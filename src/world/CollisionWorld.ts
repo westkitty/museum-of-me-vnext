@@ -18,6 +18,12 @@ export interface Wall {
   readonly minX: number; readonly maxX: number;
   readonly minY: number; readonly maxY: number;
   readonly minZ: number; readonly maxZ: number;
+  /** Exact rotated authored partition segment, broad-phase remains min/max. */
+  readonly oriented?: {
+    readonly centerX: number; readonly centerZ: number;
+    readonly halfX: number; readonly halfZ: number;
+    readonly yaw: number;
+  };
 }
 
 export interface Floor {
@@ -194,6 +200,40 @@ export class CollisionWorld {
       for (const c of this.near(pos.x, pos.z, radius + 1)) {
         if (c.kind !== 'wall') continue;
         if (top() <= c.minY || pos.y >= c.maxY) continue;
+        if (c.oriented) {
+          const wall = c.oriented;
+          const cos = Math.cos(wall.yaw), sin = Math.sin(wall.yaw);
+          const dx = pos.x - wall.centerX, dz = pos.z - wall.centerZ;
+          const localX = cos * dx - sin * dz;
+          const localZ = sin * dx + cos * dz;
+          const closestX = Math.max(-wall.halfX, Math.min(localX, wall.halfX));
+          const closestZ = Math.max(-wall.halfZ, Math.min(localZ, wall.halfZ));
+          const awayX = localX - closestX, awayZ = localZ - closestZ;
+          const sq = awayX * awayX + awayZ * awayZ;
+          if (sq > radius * radius) continue;
+          let pushX = 0, pushZ = 0;
+          if (sq > 1e-8) {
+            const distance = Math.sqrt(sq);
+            pushX = awayX * (radius - distance) / distance;
+            pushZ = awayZ * (radius - distance) / distance;
+          } else {
+            const left = localX + wall.halfX + radius;
+            const right = wall.halfX - localX + radius;
+            const near = localZ + wall.halfZ + radius;
+            const far = wall.halfZ - localZ + radius;
+            const shallow = Math.min(left, right, near, far);
+            if (shallow === left) pushX = -left;
+            else if (shallow === right) pushX = right;
+            else if (shallow === near) pushZ = -near;
+            else pushZ = far;
+          }
+          if (Math.abs(pushX) < 1e-8 && Math.abs(pushZ) < 1e-8) continue;
+          pos.x += cos * pushX + sin * pushZ;
+          pos.z += -sin * pushX + cos * pushZ;
+          moved = true;
+          touched = true;
+          continue;
+        }
 
         const cx = Math.max(c.minX, Math.min(pos.x, c.maxX));
         const cz = Math.max(c.minZ, Math.min(pos.z, c.maxZ));
@@ -234,6 +274,13 @@ export class CollisionWorld {
     for (const c of this.near(x, z, 0.6)) {
       if (c.kind !== 'wall') continue;
       if (x < c.minX || x > c.maxX || z < c.minZ || z > c.maxZ) continue;
+      if (c.oriented) {
+        const w = c.oriented;
+        const cos = Math.cos(w.yaw), sin = Math.sin(w.yaw);
+        const dx = x - w.centerX, dz = z - w.centerZ;
+        if (Math.abs(cos * dx - sin * dz) > w.halfX
+          || Math.abs(sin * dx + cos * dz) > w.halfZ) continue;
+      }
       if (c.minY >= headY && c.minY < best) best = c.minY;
     }
     return best;
