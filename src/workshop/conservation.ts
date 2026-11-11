@@ -30,6 +30,7 @@ import {
   type WorkshopPlacementRecord,
 } from './schema';
 import type { WorkshopPrefabId } from './catalog';
+import { builderModel } from './builderAssetCatalog';
 import {
   AUTHORABLE_SCENE_DEFINITIONS,
   type AuthorableSceneEntry,
@@ -79,6 +80,7 @@ const PREFAB_BOUNDS: Record<WorkshopPrefabId, PrefabBounds> = {
   'sculpture-sphere': { halfX: 0.5, halfY: 0.5, halfZ: 0.5, minY: -0.5, maxY: 0.5 },
   'wall-art': { halfX: 0.5, halfY: 0.5, halfZ: 0.05, minY: -0.5, maxY: 0.5 },
   'wall-panel': { halfX: 0.5, halfY: 0.5, halfZ: 0.05, minY: -0.5, maxY: 0.5 },
+  'catalog-model': { halfX: 2.5, halfY: 2.5, halfZ: 2.5, minY: 0, maxY: 5 },
 };
 
 const SCENE_BOUNDS = new Map(AUTHORABLE_SCENE_DEFINITIONS.map((entry) => [entry.id, entry.bounds]));
@@ -229,8 +231,15 @@ function protectedAreas(): readonly ProtectedArea[] {
 
 const PROTECTED_AREAS = protectedAreas();
 
+function placementBounds(record: WorkshopPlacementRecord): PrefabBounds {
+  if (record.prefab !== 'catalog-model') return PREFAB_BOUNDS[record.prefab];
+  const size = record.assetId ? builderModel(record.assetId)?.nominalSize : null;
+  if (!size) return PREFAB_BOUNDS['catalog-model']; // safe upper envelope for unknown imports
+  return { halfX: size[0] / 2, halfY: size[1] / 2, halfZ: size[2] / 2, minY: 0, maxY: size[1] };
+}
+
 function placementRadius(record: WorkshopPlacementRecord): number {
-  const bounds = PREFAB_BOUNDS[record.prefab];
+  const bounds = placementBounds(record);
   // A sphere is intentionally conservative for arbitrary Euler rotation. The
   // validator protects visitor experience, not a new collision representation.
   return Math.hypot(
@@ -241,7 +250,7 @@ function placementRadius(record: WorkshopPlacementRecord): number {
 }
 
 function overlapsVertical(record: WorkshopPlacementRecord, area: ProtectedArea): boolean {
-  const bounds = PREFAB_BOUNDS[record.prefab];
+  const bounds = placementBounds(record);
   const minY = record.position[1] + bounds.minY * record.scale[1];
   const maxY = record.position[1] + bounds.maxY * record.scale[1];
   return minY <= area.yMax && maxY >= area.yMin;
