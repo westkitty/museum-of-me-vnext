@@ -231,6 +231,7 @@ export class MuseumPlacements {
       schemaVersion: WORKSHOP_SCHEMA_VERSION,
       objects: current.objects.filter((record) => record.id !== id),
       sceneOverrides: current.sceneOverrides,
+      surfaceOverrides: current.surfaceOverrides,
     });
   }
 
@@ -250,6 +251,7 @@ export class MuseumPlacements {
   }
 
   private rebuild(): void {
+    const revision = ++this.rebuildRevision;
     for (const release of this.interactionDisposers.splice(0)) release();
     for (const [target, ids] of this.boundCollisions) {
       for (const id of ids) target.setDynamicWall(id, null);
@@ -296,6 +298,11 @@ export class MuseumPlacements {
         });
         this.interactionDisposers.push(release);
       }
+      if (record.prefab === 'catalog-model' && record.assetId) {
+        void this.loadCatalogModel(root, record, revision);
+      } else if (record.texture) {
+        this.applyRecordFinish(root, record);
+      }
       if (record.prefab === 'wall-art' && record.image) {
         const surface = root.getObjectByName('workshop-art-surface') as THREE.Mesh | undefined;
         if (surface) {
@@ -307,6 +314,64 @@ export class MuseumPlacements {
           surface.material = this.scope.track(new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
         }
       }
+    }
+    this.surfaces.apply(this.manifest.surfaceOverrides ?? []);
+  }
+
+  private applyRecordFinish(root: THREE.Object3D, record: WorkshopPlacementRecord): void {
+    const url = record.texture
+      ? record.texture.startsWith('workshop-media/')
+        ? resolveWorkshopMediaUrl(record.texture)
+        : builderFinishUrl(record.texture)
+      : null;
+    root.traverse((node) => {
+      const mesh = node as THREE.Mesh;
+      if (!mesh.isMesh || mesh.userData.workshopImageSurface) return;
+      const incoming = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      const cloned = incoming.map((material) => {
+        const mat = this.scope.track(material.clone()) as THREE.MeshStandardMaterial;
+        if ('color' in mat && mat.color?.isColor) mat.color.set(record.color ?? '#ffffff');
+        if (url && 'map' in mat) {
+          const texture = this.scope.track(new THREE.TextureLoader().load(url, undefined, undefined,
+            (error) => console.warn('[Museum Builder] model finish failed', record.texture, error)));
+          texture.colorSpace = THREE.SRGBColorSpace;
+          texture.wrapS = THREE.RepeatWrapping;
+          texture.wrapT = THREE.RepeatWrapping;
+          mat.map = texture;
+        }
+        mat.needsUpdate = true;
+        return mat;
+      });
+      mesh.material = Array.isArray(mesh.material) ? cloned : cloned[0];
+    });
+  }
+
+  private async loadCatalogModel(root: THREE.Group, record: WorkshopPlacementRecord, revision: number): Promise<void> {
+    try {
+      const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+      const url = record.assetId!.startsWith('workshop-models/')
+        ? resolveWorkshopMediaUrl(record.assetId!)
+        : builderModelUrl(record.assetId!);
+      const gltf = await new GLTFLoader().loadAsync(url);
+      if (revision !== this.rebuildRevision || this.scope.isDisposed) {
+        const stale = new ResourceScope('stale-builder-model');
+        stale.trackObject(gltf.scene);
+        stale.dispose();
+        return;
+      }
+      root.clear();
+      gltf.scene.traverse((node) => { node.userData.workshopId = record.id; });
+      root.add(gltf.scene);
+      this.scope.trackObject(gltf.scene);
+      if (record.color || record.texture) this.applyRecordFinish(gltf.scene, record);
+      // The true model bounds become available only after the asynchronous
+      // load; invalidate old dynamic boxes and let the normal App tick rebind.
+      for (const [world, ids] of this.boundCollisions) {
+        for (const id of ids) world.setDynamicWall(id, null);
+      }
+      this.boundCollisions.clear();
+    } catch (error) {
+      console.warn('[Museum Builder] model could not be loaded:', record.assetId, error);
     }
   }
 
@@ -346,6 +411,11 @@ export class MuseumPlacements {
         root.add(this.mesh(new THREE.CylinderGeometry(0.36, 0.44, 0.08, 12), materials.stone, [0, 0.04, 0]));
         root.add(this.mesh(new THREE.BoxGeometry(0.09, 1.45, 0.09), materials.dark, [0, 0.76, 0]));
         root.add(this.mesh(new THREE.BoxGeometry(1.25, 0.48, 0.08), materials.accent, [0, 1.54, 0]));
+        break;
+      }
+      case 'catalog-model': {
+        // Visible loading proxy is replaced once the self-hosted GLB resolves.
+        root.add(this.mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), materials.stone, [0, 0.35, 0]));
         break;
       }
       case 'sculpture-sphere': {
