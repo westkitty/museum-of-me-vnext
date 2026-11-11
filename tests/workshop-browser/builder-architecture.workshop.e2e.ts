@@ -11,6 +11,11 @@ test('Sims-style wall drawing creates a selectable, paintable wall with undo and
     app.stop();
     // Draw outside the protected museum footprint so conservation passes.
     app.player.teleport([250, 0, 250]);
+    // Keep the frozen test camera aligned with its teleported visitor.
+    // In normal gameplay the App frame loop performs this synchronization.
+    app.camera.position.set(250, 12, 260);
+    app.camera.lookAt(250, 0, 250);
+    app.camera.updateMatrixWorld(true);
   });
   const panel = page.locator('.museum-workshop');
   await expect(panel).toBeAttached({ timeout: 60_000 });
