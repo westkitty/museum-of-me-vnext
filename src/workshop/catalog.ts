@@ -35,6 +35,21 @@ export const WORKSHOP_PREFABS = [
     description: 'Non-colliding display table for small objects and exhibit dressing.',
   },
   {
+    id: 'partition-wall',
+    label: 'Partition wall',
+    description: 'Resizable paintable 3m-high construction wall; solid visitor collision by default.',
+  },
+  {
+    id: 'floor-slab',
+    label: 'Floor slab',
+    description: 'Resizable 2m floor module with walkable top and adjustable height.',
+  },
+  {
+    id: 'roof-panel',
+    label: 'Roof panel',
+    description: 'Resizable paintable roof module; place and rotate above your authored walls.',
+  },
+  {
     id: 'catalog-model',
     label: 'Imported 3D model',
     description: 'Reusable project GLB or a locally imported model with scale, color and interaction controls.',
