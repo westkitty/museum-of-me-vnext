@@ -494,8 +494,103 @@ export class Workshop {
     }
   }
 
+  private toggleWallDrawing(): void {
+    if (this.wallDrawing) {
+      this.cancelWallDrawing();
+      this.note('Wall drawing cancelled.', 'warn');
+      return;
+    }
+    if (this.placements.isComparingOriginal) return;
+    this.wallPlacementActive = false;
+    this.wallDrawing = true;
+    this.wallDrawStart = null;
+    // The visitor feet height defines the drawing plane; elevation can be
+    // fine-tuned later in the ordinary inspector.
+    this.wallDrawHeight = this.app.player.position.y;
+    this.select(null);
+    this.camera.setView('top');
+    this.note('Wall tool: click a floor starting point, then click the endpoint. Escape cancels.', 'ok');
+    this.refresh();
+  }
+
+  private cancelWallDrawing(): void {
+    this.wallDrawing = false;
+    this.wallDrawStart = null;
+    this.wallPreview.visible = false;
+    this.refresh();
+  }
+
+  private pointerOnDrawingPlane(): WallPoint | null {
+    this.raycaster.setFromCamera(this.pointer, this.app.camera);
+    const ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), -this.wallDrawHeight);
+    const intersection = this.raycaster.ray.intersectPlane(ground, new THREE.Vector3());
+    if (!intersection || !Number.isFinite(intersection.x) || !Number.isFinite(intersection.z)) return null;
+    if (Math.abs(intersection.x) > 500 || Math.abs(intersection.z) > 500) return null;
+    return snapWallPoint(
+      [intersection.x, this.wallDrawHeight, intersection.z],
+      Number(this.snapInput.value),
+    );
+  }
+
+  private updateWallGuide(end: WallPoint): void {
+    const start = this.wallDrawStart;
+    if (!start) return;
+    const position = this.wallPreview.geometry.getAttribute('position') as THREE.BufferAttribute;
+    position.setXYZ(0, start[0], start[1] + 0.08, start[2]);
+    position.setXYZ(1, end[0], end[1] + 0.08, end[2]);
+    position.needsUpdate = true;
+    this.wallPreview.geometry.computeBoundingSphere();
+    this.wallPreview.visible = true;
+  }
+
+  private drawWallClick(): void {
+    const point = this.pointerOnDrawingPlane();
+    if (!point) return this.note('Aim at the ground plane in top view.', 'warn');
+    if (!this.wallDrawStart) {
+      this.wallDrawStart = point;
+      this.updateWallGuide(point);
+      return this.note('Wall start fixed. Click its endpoint to construct.', 'ok');
+    }
+    const shape = measureWall(this.wallDrawStart, point);
+    if (!shape) return this.note('Wall must be between 0.25 and 100 metres, level, and nonzero.', 'warn');
+    const before = this.placements.captureManifest();
+    if (before.objects.length >= 256) return this.note('Builder object limit reached.', 'error');
+    const record: WorkshopPlacementRecord = {
+      id: this.uniqueId('partition-wall'),
+      label: 'Partition wall',
+      prefab: 'partition-wall',
+      anchor: 'floor',
+      position: shape.position, rotation: shape.rotation, scale: shape.scale,
+      worldId: this.app.activeWorld, collision: 'solid',
+    };
+    try {
+      const after = this.placements.setRecord(record);
+      this.history.push('Draw partition wall', before, after);
+      this.cancelWallDrawing();
+      this.select(record.id);
+      this.note('Wall constructed. Select to resize, rotate, paint, texture, duplicate or save.', 'ok');
+      this.refresh();
+    } catch (error) {
+      // The start remains selected so a blocked endpoint can be corrected.
+      this.note(error instanceof Error ? error.message : 'Wall intersects a protected route.', 'error');
+    }
+  }
+
+  private readonly onWallPointerMove = (event: PointerEvent): void => {
+    if (!this.openState || !this.wallDrawing || !this.wallDrawStart) return;
+    const rect = this.app.renderer.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    this.pointer.set(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    const endpoint = this.pointerOnDrawingPlane();
+    if (endpoint) this.updateWallGuide(endpoint);
+  };
+
   private add(prefab: WorkshopPrefabId): void {
     if (this.placements.isComparingOriginal) return;
+    if (this.wallDrawing) this.cancelWallDrawing();
     const before = this.placements.captureManifest();
     if (before.objects.length >= 256) return this.note('Workshop object limit reached.', 'error');
     const direction = new THREE.Vector3();
@@ -904,13 +999,19 @@ export class Workshop {
 
   private readonly onCanvasPointerDown = (event: PointerEvent): void => {
     if (this.placements.isComparingOriginal) return;
-    if (!this.openState || event.button !== 0 || this.transform.dragging || this.transform.axis !== null) return;
+    if (!this.openState || event.button !== 0 || this.transform.dragging
+      || (!this.wallDrawing && this.transform.axis !== null)) return;
     const rect = this.app.renderer.canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     this.pointer.set(
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
+    if (this.wallDrawing) {
+      event.preventDefault();
+      this.drawWallClick();
+      return;
+    }
     if (this.wallPlacementActive) {
       event.preventDefault();
       this.mountOnWall();
@@ -989,6 +1090,13 @@ export class Workshop {
     if (!this.openState) return;
     if (this.placements.isComparingOriginal) {
       if (event.code === 'Escape') this.toggleComparison();
+      event.stopPropagation();
+      return;
+    }
+    if (event.code === 'Escape' && this.wallDrawing) {
+      this.cancelWallDrawing();
+      this.note('Wall drawing cancelled.', 'warn');
+      event.preventDefault();
       event.stopPropagation();
       return;
     }
