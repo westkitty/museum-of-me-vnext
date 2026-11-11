@@ -51,6 +51,8 @@ export class BuilderCamera {
   }
 
   close(): void {
+    // Restore normal world-up before returning the camera to visitor control.
+    this.app.camera.up.set(0, 1, 0);
     this.active = false;
     this.orbit.enabled = false;
     this.grid.visible = false;
@@ -65,12 +67,27 @@ export class BuilderCamera {
     this.view = view;
     const target = this.orbit.target;
     const distance = Math.max(15, this.app.camera.position.distanceTo(target));
-    if (view === 'top') this.app.camera.position.set(target.x, target.y + distance, target.z + 0.001);
-    else if (view === 'dollhouse') this.app.camera.position.set(target.x + distance * 0.58, target.y + distance * 0.62, target.z + distance * 0.53);
-    else this.app.camera.position.set(target.x + distance * 0.7, target.y + distance * 0.28, target.z + distance * 0.65);
-    this.app.camera.up.set(0, 1, 0);
+    if (view === 'top') {
+      // World Y is parallel to a true overhead sightline and cannot be the
+      // camera's screen-up vector. Use -Z as up, so rays hit the ground near
+      // their visible cursor rather than thousands of metres off-axis.
+      this.app.camera.up.set(0, 0, -1);
+      this.app.camera.position.set(target.x, target.y + distance, target.z);
+    } else {
+      this.app.camera.up.set(0, 1, 0);
+      if (view === 'dollhouse') this.app.camera.position.set(target.x + distance * 0.58, target.y + distance * 0.62, target.z + distance * 0.53);
+      else this.app.camera.position.set(target.x + distance * 0.7, target.y + distance * 0.28, target.z + distance * 0.65);
+    }
+    this.app.camera.lookAt(target);
+    this.app.camera.updateMatrixWorld(true);
     this.orbit.update();
     this.onChange();
+  }
+
+  /** Draw on a useful nearby floor, not the last visitor gaze target. */
+  focusGround(point: THREE.Vector3): void {
+    this.orbit.target.set(point.x, point.y, point.z);
+    this.setView('top');
   }
 
   focus(object: THREE.Object3D): void {
