@@ -332,8 +332,19 @@ describe('museum environment coherence', () => {
     // shader-only ellipse was removed because it detached from the coast.
     expect(waterMaterial.fragmentShader).not.toContain('shoreFoam');
     expect(waterMaterial.fragmentShader).toContain('crest');
-    expect((gardenRoot.getObjectByName('night-island-tidal-fringe') as THREE.Mesh).userData.visualRole)
-      .toBe('site-aligned-surf');
+    // Reconcile the final unmerged regression from PR #25 to CURRENT
+    // geometry. The ocean is an annular water mesh (inner radius 164),
+    // NOT the obsolete zero-inner-radius ring in the 2026-11-03 branch.
+    const waterRing = waterMesh.geometry as THREE.RingGeometry;
+    expect(waterRing).toBeInstanceOf(THREE.RingGeometry);
+    expect(waterRing.parameters.innerRadius).toBe(164);
+    expect(waterRing.parameters.outerRadius).toBe(330);
+    const coastalSkirt = gardenRoot.getObjectByName('night-island-coastal-skirt') as THREE.Mesh;
+    expect(coastalSkirt).toBeInstanceOf(THREE.Mesh);
+    expect(coastalSkirt.userData.visualRole).toBe('coast-edge-seal');
+    const tidalFringe = gardenRoot.getObjectByName('night-island-tidal-fringe') as THREE.Mesh;
+    expect(tidalFringe).toBeInstanceOf(THREE.Mesh);
+    expect(tidalFringe.userData.visualRole).toBe('site-aligned-surf');
     expect(waterMaterial.fragmentShader).not.toContain('fbm');
     expect(waterMaterial.fragmentShader).not.toContain('hash(');
     const initialWaterTime = waterMaterial.uniforms.time.value as number;
