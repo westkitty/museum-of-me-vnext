@@ -1,4 +1,4 @@
-import { mkdir, rename, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -17,6 +17,45 @@ import {
 const ENDPOINT = '/__museum-workshop/save';
 const MEDIA_ENDPOINT = '/__museum-workshop/media';
 const MAX_MEDIA_BYTES = 3 * 1024 * 1024;
+
+/** Shallow container check, not an image decoder. Refuse obvious malformed uploads. */
+export function hasValidWebPContainer(bytes: Buffer): boolean {
+  if (bytes.length < 20 || bytes.length > MAX_MEDIA_BYTES) return false;
+  if (bytes.toString('ascii', 0, 4) !== 'RIFF'
+    || bytes.toString('ascii', 8, 12) !== 'WEBP'
+    || bytes.readUInt32LE(4) !== bytes.length - 8) return false;
+  const encoding = bytes.toString('ascii', 12, 16);
+  return encoding === 'VP8 ' || encoding === 'VP8L' || encoding === 'VP8X';
+}
+
+/**
+ * A manifest must not successfully save a missing, replaced or corrupted image.
+ * Root is fixed to the project-relative public/ tree; user data only supplies
+ * a validated hash basename, never arbitrary filesystem paths.
+ */
+export async function validateLocalWorkshopMedia(
+  manifest: WorkshopPlacementManifest,
+  manifestFile: string,
+): Promise<readonly string[]> {
+  const errors: string[] = [];
+  const mediaRoot = resolve(dirname(manifestFile), '../public/workshop-media');
+  const referenced = new Set(manifest.objects.map((record) => record.image).filter((value): value is string => Boolean(value)));
+  for (const image of referenced) {
+    const hash = image.slice('workshop-media/'.length, -'.webp'.length);
+    const file = resolve(mediaRoot, `${hash}.webp`);
+    try {
+      const stat = await lstat(file);
+      if (!stat.isFile() || stat.size > MAX_MEDIA_BYTES) throw new Error('not a bounded regular file');
+      const bytes = await readFile(file);
+      if (!hasValidWebPContainer(bytes) || createHash('sha256').update(bytes).digest('hex') !== hash) {
+        throw new Error('content hash or image container mismatch');
+      }
+    } catch {
+      errors.push(`Authored image ${image} is missing, invalid or has been replaced`);
+    }
+  }
+  return errors;
+}
 const MAX_BODY_BYTES = 256 * 1024;
 
 function isLoopback(address: string | undefined): boolean {
@@ -110,6 +149,8 @@ export async function writeWorkshopManifest(raw: unknown, target: string): Promi
       violations: conservation.violations,
     };
   }
+  const mediaErrors = await validateLocalWorkshopMedia(parsed.value, target);
+  if (mediaErrors.length) return { ok: false, status: 400, errors: mediaErrors };
   const temp = `${target}.tmp-${process.pid}`;
   await mkdir(dirname(target), { recursive: true });
   await writeFile(temp, serializeWorkshopManifest(parsed.value), 'utf8');
@@ -134,8 +175,7 @@ export function museumWorkshopSavePlugin(): Plugin {
           }
           try {
             const bytes = await readMedia(req);
-            if (bytes.length < 16 || bytes.toString('ascii', 0, 4) !== 'RIFF'
-              || bytes.toString('ascii', 8, 12) !== 'WEBP') {
+            if (!hasValidWebPContainer(bytes)) {
               return json(res, 400, { ok: false, error: 'Invalid WebP image header' });
             }
             const hash = createHash('sha256').update(bytes).digest('hex');
