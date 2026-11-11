@@ -1162,7 +1162,7 @@ const WORKSHOP_HTML = `
   <button type="button" data-workshop="save">Save to build</button><button type="button" data-workshop="exit">Exit F8</button>
 </div>
 <nav class="workshop-keymap" data-workshop="keymap" aria-label="Museum Workshop keyboard commands">
-  <span><kbd>F</kbd>Select/Edit object</span><span><kbd>Alt + click</kbd>paint child mesh</span><span><kbd>F8</kbd>toggle</span><span><kbd>Esc</kbd>exit</span><span><kbd>W</kbd>move</span><span><kbd>E</kbd>rotate</span><span><kbd>R</kbd>scale</span><span><kbd>G</kbd>floor</span>
+  <span><kbd>F</kbd>Select/Edit object</span><span>Alt + click: paint child mesh</span><span><kbd>F8</kbd>toggle</span><span><kbd>Esc</kbd>exit</span><span><kbd>W</kbd>move</span><span><kbd>E</kbd>rotate</span><span><kbd>R</kbd>scale</span><span><kbd>G</kbd>floor</span>
   <span><kbd>⌘/Ctrl+D</kbd>duplicate</span><span><kbd>Delete</kbd>remove</span><span><kbd>⌘/Ctrl+Z</kbd>undo</span><span><kbd>⇧⌘/Ctrl+Z</kbd>redo</span><span><kbd>⌘/Ctrl+S</kbd>save</span>
 </nav>
 <aside class="workshop-panel" data-workshop="panel" tabindex="-1" aria-label="Museum Builder development editor">
