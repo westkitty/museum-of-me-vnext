@@ -109,7 +109,10 @@ export class MuseumPlacements {
    */
   invalidateCollisions(): void {
     for (const [world, ids] of this.boundCollisions) {
-      for (const id of ids) world.setDynamicWall(id, null);
+      for (const id of ids) {
+        world.setDynamicWall(id, null);
+        world.setDynamicFloor(id, null);
+      }
     }
     this.boundCollisions.clear();
   }
@@ -127,10 +130,23 @@ export class MuseumPlacements {
       const box = new THREE.Box3().setFromObject(root);
       if (box.isEmpty()) continue;
       ids.add(record.id);
-      target.setDynamicWall(record.id, {
-        kind: 'wall', minX: box.min.x, maxX: box.max.x, minY: box.min.y,
-        maxY: box.max.y, minZ: box.min.z, maxZ: box.max.z,
-      });
+      if (record.prefab === 'floor-slab') {
+        const inverse = root.matrixWorld.clone().invert();
+        const point = new THREE.Vector3();
+        target.setDynamicFloor(record.id, {
+          kind: 'floor', minX: box.min.x, maxX: box.max.x,
+          minZ: box.min.z, maxZ: box.max.z, y: box.max.y,
+          contains: (x, z) => {
+            point.set(x, box.max.y, z).applyMatrix4(inverse);
+            return Math.abs(point.x) <= 1.0001 && Math.abs(point.z) <= 1.0001;
+          },
+        });
+      } else {
+        target.setDynamicWall(record.id, {
+          kind: 'wall', minX: box.min.x, maxX: box.max.x, minY: box.min.y,
+          maxY: box.max.y, minZ: box.min.z, maxZ: box.max.z,
+        });
+      }
     }
   }
 
@@ -254,7 +270,10 @@ export class MuseumPlacements {
     this.surfaces.dispose();
     for (const release of this.interactionDisposers.splice(0)) release();
     for (const [target, ids] of this.boundCollisions) {
-      for (const id of ids) target.setDynamicWall(id, null);
+      for (const id of ids) {
+        target.setDynamicWall(id, null);
+        target.setDynamicFloor(id, null);
+      }
     }
     this.boundCollisions.clear();
     this.group.removeFromParent();
@@ -267,7 +286,10 @@ export class MuseumPlacements {
     const revision = ++this.rebuildRevision;
     for (const release of this.interactionDisposers.splice(0)) release();
     for (const [target, ids] of this.boundCollisions) {
-      for (const id of ids) target.setDynamicWall(id, null);
+      for (const id of ids) {
+        target.setDynamicWall(id, null);
+        target.setDynamicFloor(id, null);
+      }
     }
     this.boundCollisions.clear();
     this.group.clear();
@@ -374,7 +396,10 @@ export class MuseumPlacements {
       // The true model bounds become available only after the asynchronous
       // load; invalidate old dynamic boxes and let the normal App tick rebind.
       for (const [world, ids] of this.boundCollisions) {
-        for (const id of ids) world.setDynamicWall(id, null);
+        for (const id of ids) {
+          world.setDynamicWall(id, null);
+          world.setDynamicFloor(id, null);
+        }
       }
       this.boundCollisions.clear();
     } catch (error) {
@@ -427,6 +452,18 @@ export class MuseumPlacements {
       }
       case 'sculpture-sphere': {
         root.add(this.mesh(new THREE.SphereGeometry(0.5, 24, 16), materials.accent, [0, 0, 0]));
+        break;
+      }
+      case 'partition-wall': {
+        root.add(this.mesh(new THREE.BoxGeometry(1, 3, 0.15), materials.stone, [0, 1.5, 0]));
+        break;
+      }
+      case 'floor-slab': {
+        root.add(this.mesh(new THREE.BoxGeometry(2, 0.16, 2), materials.stone, [0, -0.08, 0]));
+        break;
+      }
+      case 'roof-panel': {
+        root.add(this.mesh(new THREE.BoxGeometry(2, 0.18, 2), materials.wood, [0, 0, 0]));
         break;
       }
       case 'wall-art': {

@@ -81,6 +81,9 @@ const PREFAB_BOUNDS: Record<WorkshopPrefabId, PrefabBounds> = {
   'wall-art': { halfX: 0.5, halfY: 0.5, halfZ: 0.05, minY: -0.5, maxY: 0.5 },
   'wall-panel': { halfX: 0.5, halfY: 0.5, halfZ: 0.05, minY: -0.5, maxY: 0.5 },
   'catalog-model': { halfX: 2.5, halfY: 2.5, halfZ: 2.5, minY: 0, maxY: 5 },
+  'partition-wall': { halfX: 0.5, halfY: 1.5, halfZ: 0.075, minY: 0, maxY: 3 },
+  'floor-slab': { halfX: 1, halfY: 0.08, halfZ: 1, minY: -0.16, maxY: 0 },
+  'roof-panel': { halfX: 1, halfY: 0.09, halfZ: 1, minY: -0.09, maxY: 0.09 },
 };
 
 const SCENE_BOUNDS = new Map(AUTHORABLE_SCENE_DEFINITIONS.map((entry) => [entry.id, entry.bounds]));

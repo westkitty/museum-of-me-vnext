@@ -10,6 +10,7 @@ import { validateWorkshopManifest } from '../src/workshop/schema';
 import { validateWorkshopManifestForMuseum } from '../src/workshop/conservation';
 import { MuseumPlacements } from '../src/workshop/MuseumPlacements';
 import { CollisionWorld } from '../src/world/CollisionWorld';
+import { measureWall, snapWallPoint } from '../src/workshop/WallSketch';
 
 const base = {
   id: 'wall-art-01', label: 'Gallery portrait', prefab: 'wall-art',
@@ -167,5 +168,65 @@ describe('Unified Museum Builder', () => {
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
+  });
+
+  it('snaps a two-click wall to the grid with exact position, yaw and length', () => {
+    const start = snapWallPoint([0.14, 0, 0.12], 0.5);
+    const end = snapWallPoint([3.24, 0, 0.2], 0.5);
+    expect(start).toEqual([0, 0, 0]);
+    expect(end).toEqual([3, 0, 0]);
+    expect(measureWall(start, end)).toEqual({
+      position: [1.5, 0, 0], rotation: [0, 0, 0], scale: [3, 1, 1],
+    });
+    const north = measureWall([0, 2, 0], [0, 2, 4]);
+    expect(north?.rotation[1]).toBeCloseTo(-Math.PI / 2);
+    expect(measureWall([0, 0, 0], [0.1, 0, 0])).toBeNull();
+    expect(measureWall([0, 0, 0], [101, 0, 0])).toBeNull();
+  });
+
+  it('adds independently paintable wall, walkable floor and roof geometry', () => {
+    const base = {
+      anchor: 'floor', worldId: 'exterior', collision: 'solid', event: 'none',
+      rotation: [0, 0, 0], scale: [1, 1, 1],
+    };
+    const placements = new MuseumPlacements({ schemaVersion: 1, objects: [
+      { ...base, id: 'wall-1', label: 'Partition wall', prefab: 'partition-wall',
+        position: [240, 0, 240], scale: [3, 1, 1], color: '#cc5533' },
+      { ...base, id: 'floor-1', label: 'Floor slab', prefab: 'floor-slab',
+        position: [250, 2, 250], rotation: [0, Math.PI / 4, 0], scale: [2, 1, 1] },
+      { ...base, id: 'roof-1', label: 'Roof panel', prefab: 'roof-panel',
+        position: [260, 3, 260], collision: 'none' },
+    ] });
+    const wall = placements.getObject('wall-1')!;
+    const wallMesh = wall.children[0] as THREE.Mesh;
+    expect(wall.scale.x).toBe(3);
+    expect(wallMesh.geometry).toBeInstanceOf(THREE.BoxGeometry);
+    expect((wallMesh.material as THREE.MeshStandardMaterial).color.getHexString()).toBe('cc5533');
+    expect(placements.getObject('roof-1')?.position.y).toBe(3);
+    const world = new CollisionWorld();
+    placements.syncWorld('exterior', world);
+    expect(world.size).toBe(2);
+    expect(world.supportHeight(250, 250, 1.6, 0.5)).toBeCloseTo(2);
+    // The point lies within the rotated floor's world-space bounding box but
+    // OUTSIDE its real rectangle; it must not receive invisible support.
+    expect(world.supportHeight(252, 250, 1.6, 0.5)).toBeNull();
+    expect(world.resolveHorizontal({ x: 240, y: 0, z: 240 }, 0.35, 1.78)).toBe(true);
+    placements.dispose();
+    expect(world.size).toBe(0);
+    expect(world.supportHeight(250, 250, 1.6, 0.5)).toBeNull();
+  });
+
+  it('rejects tilted walkable floors but permits yaw rotation and roof pitch', () => {
+    const floor = {
+      id: 'floor-test', label: 'Floor', prefab: 'floor-slab', anchor: 'floor',
+      position: [250, 0, 250], rotation: [Math.PI / 6, 0, 0], scale: [1, 1, 1],
+    };
+    expect(validateWorkshopManifest({ schemaVersion: 1, objects: [floor] }).ok).toBe(false);
+    expect(validateWorkshopManifest({ schemaVersion: 1, objects: [
+      { ...floor, rotation: [0, Math.PI / 4, 0] },
+    ] }).ok).toBe(true);
+    expect(validateWorkshopManifest({ schemaVersion: 1, objects: [
+      { ...floor, prefab: 'roof-panel' },
+    ] }).ok).toBe(true);
   });
 });

@@ -50,6 +50,8 @@ export class CollisionWorld {
   private readonly colliders: Collider[] = [];
   /** Small authored objects are dynamic, so edits never mutate static architecture. */
   private readonly dynamicWalls = new Map<string, Wall>();
+  /** Authored floors support walking without changing static museum floors. */
+  private readonly dynamicFloors = new Map<string, Floor>();
   private readonly grid = new Map<string, number[]>();
   private readonly nearby: Collider[] = [];
   private seen = new Uint32Array(1024);
@@ -60,12 +62,17 @@ export class CollisionWorld {
   }
 
   get size(): number {
-    return this.colliders.length + this.dynamicWalls.size;
+    return this.colliders.length + this.dynamicWalls.size + this.dynamicFloors.size;
   }
 
   setDynamicWall(id: string, wall: Wall | null): void {
     if (wall) this.dynamicWalls.set(id, wall);
     else this.dynamicWalls.delete(id);
+  }
+
+  setDynamicFloor(id: string, floor: Floor | null): void {
+    if (floor) this.dynamicFloors.set(id, floor);
+    else this.dynamicFloors.delete(id);
   }
 
   add(c: Collider): void {
@@ -107,6 +114,7 @@ export class CollisionWorld {
   clear(): void {
     this.colliders.length = 0;
     this.dynamicWalls.clear();
+    this.dynamicFloors.clear();
     this.grid.clear();
     this.nearby.length = 0;
     this.seen.fill(0);
@@ -142,6 +150,10 @@ export class CollisionWorld {
     for (const wall of this.dynamicWalls.values()) {
       if (wall.minX <= x + radius && wall.maxX >= x - radius
         && wall.minZ <= z + radius && wall.maxZ >= z - radius) out.push(wall);
+    }
+    for (const floor of this.dynamicFloors.values()) {
+      if (floor.minX <= x + radius && floor.maxX >= x - radius
+        && floor.minZ <= z + radius && floor.maxZ >= z - radius) out.push(floor);
     }
     return out;
   }
