@@ -72,6 +72,10 @@ test('Sims-style wall drawing creates a selectable, paintable wall with undo and
   await expect(panel.locator('[data-workshop="outliner"]')).not.toContainText('Partition wall');
   await panel.locator('[data-workshop="redo"]').click();
   await expect(panel.locator('[data-workshop="outliner"]')).toContainText('Partition wall');
+  // Redo restores the wall but intentionally does not auto-select an object
+  // that was deleted by Undo. Select it explicitly as a human would.
+  await panel.locator('[data-workshop="outliner"]').getByRole('button', { name: /Partition wall/ }).click();
+  await expect(panel.locator('[data-workshop="selection-title"]')).toHaveText('Partition wall');
 
   // A newly drawn wall can be given a true door or window void without
   // rebuilding or cutting the original museum architecture.
