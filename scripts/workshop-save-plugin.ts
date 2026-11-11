@@ -127,13 +127,25 @@ function isLoopback(address: string | undefined): boolean {
  * server as a write primitive. Non-browser tools without Origin remain subject
  * to the loopback, method, content-type, schema, size, and fixed-path gates.
  */
+/**
+ * Even when the peer address is loopback, reject arbitrary Host headers.
+ * DNS rebinding can otherwise make an attacker's origin equal the Host header
+ * while its DNS record points to a local development server.
+ */
+export function isLocalWorkshopHost(host: string | undefined): boolean {
+  return typeof host === 'string'
+    && /^(?:localhost|127\\.0\\.0\\.1|\\[::1\\])(?::[0-9]{1,5})?$/i.test(host);
+}
+
 function isSameOriginRequest(req: IncomingMessage): boolean {
+  const host = req.headers.host;
+  if (!isLocalWorkshopHost(host)) return false;
   const origin = req.headers.origin;
   if (!origin) return true;
-  const host = req.headers.host;
-  if (!host) return false;
   try {
-    return new URL(origin).host === host;
+    const parsed = new URL(origin);
+    return (parsed.protocol === 'http:' || parsed.protocol === 'https:')
+      && parsed.host.toLowerCase() === host!.toLowerCase();
   } catch {
     return false;
   }
