@@ -133,6 +133,9 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
   const scale = finiteVec3(value.scale);
   if (!position) errors.push(`objects[${index}].position must be three finite numbers`);
   if (!rotation) errors.push(`objects[${index}].rotation must be three finite numbers`);
+  if (prefab === 'floor-slab' && rotation && (Math.abs(rotation[0]) > 0.0001 || Math.abs(rotation[2]) > 0.0001)) {
+    errors.push(`objects[${index}].floor-slab must remain horizontal (rotate around Y only)`);
+  }
   if (!scale) errors.push(`objects[${index}].scale must be three finite numbers`);
 
   if (position) {
