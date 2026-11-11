@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { ResourceScope } from '../assets/ResourceScope';
 import { WorkshopSurfaces, type WorkshopSurfaceSelection } from './WorkshopSurfaces';
 import { resolveBuilderResourceUrl } from './builderAssetCatalog';
+import { defaultOpening, wallOpeningSegments } from './WallOpenings';
 import type { CollisionWorld } from '../world/CollisionWorld';
 import type { InteractionManager } from '../interaction/InteractionManager';
 import { AuthorableSceneRegistry, type AuthorableSceneTransform } from './AuthorableSceneRegistry';
@@ -129,8 +130,8 @@ export class MuseumPlacements {
       root.updateWorldMatrix(true, true);
       const box = new THREE.Box3().setFromObject(root);
       if (box.isEmpty()) continue;
-      ids.add(record.id);
       if (record.prefab === 'floor-slab') {
+        ids.add(record.id);
         const inverse = root.matrixWorld.clone().invert();
         const point = new THREE.Vector3();
         target.setDynamicFloor(record.id, {
@@ -141,7 +142,31 @@ export class MuseumPlacements {
             return Math.abs(point.x) <= 1.0001 && Math.abs(point.z) <= 1.0001;
           },
         });
+      } else if (record.prefab === 'partition-wall') {
+        // Each visible solid segment receives its own oriented collider.
+        // A doorway is not silently blocked by the old full-wall AABB.
+        for (const [index, node] of root.children.entries()) {
+          if (!(node instanceof THREE.Mesh) || !(node.geometry instanceof THREE.BoxGeometry)) continue;
+          node.updateWorldMatrix(true, false);
+          const bounds = new THREE.Box3().setFromObject(node);
+          const center = node.getWorldPosition(new THREE.Vector3());
+          const params = node.geometry.parameters;
+          const id = `${record.id}:segment-${index}`;
+          ids.add(id);
+          target.setDynamicWall(id, {
+            kind: 'wall',
+            minX: bounds.min.x, maxX: bounds.max.x, minY: bounds.min.y, maxY: bounds.max.y,
+            minZ: bounds.min.z, maxZ: bounds.max.z,
+            oriented: {
+              centerX: center.x, centerZ: center.z,
+              halfX: Math.abs(params.width * root.scale.x * node.scale.x) / 2,
+              halfZ: Math.abs(params.depth * root.scale.z * node.scale.z) / 2,
+              yaw: root.rotation.y,
+            },
+          });
+        }
       } else {
+        ids.add(record.id);
         target.setDynamicWall(record.id, {
           kind: 'wall', minX: box.min.x, maxX: box.max.x, minY: box.min.y,
           maxY: box.max.y, minZ: box.min.z, maxZ: box.max.z,
@@ -455,7 +480,19 @@ export class MuseumPlacements {
         break;
       }
       case 'partition-wall': {
-        root.add(this.mesh(new THREE.BoxGeometry(1, 3, 0.15), materials.stone, [0, 1.5, 0]));
+        const kind = record.opening ?? 'none';
+        const fallback = defaultOpening(kind);
+        const parts = wallOpeningSegments(kind, {
+          width: record.openingWidth ?? fallback.width,
+          height: record.openingHeight ?? fallback.height,
+          sill: record.openingSill ?? fallback.sill,
+        });
+        for (const part of parts) {
+          root.add(this.mesh(
+            new THREE.BoxGeometry(part.width, part.height, 0.15),
+            materials.stone, [part.centerX, part.centerY, 0],
+          ));
+        }
         break;
       }
       case 'floor-slab': {
