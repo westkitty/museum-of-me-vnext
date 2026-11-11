@@ -101,6 +101,19 @@ export class MuseumPlacements {
     if (interior) this.syncCollision(interior, 'interior');
   }
 
+  /**
+   * Editing a live solid object through TransformControls mutates the THREE root
+   * without rebuilding the declarative manifest. Invalidate the cached dynamic
+   * walls so the next existing App tick recomputes their new world-space AABBs.
+   * Never touch the museum's static architecture collision geometry.
+   */
+  invalidateCollisions(): void {
+    for (const [world, ids] of this.boundCollisions) {
+      for (const id of ids) world.setDynamicWall(id, null);
+    }
+    this.boundCollisions.clear();
+  }
+
   private syncCollision(target: CollisionWorld, world: 'exterior' | 'interior'): void {
     if (this.boundCollisions.has(target)) return;
     const ids = new Set<string>();
