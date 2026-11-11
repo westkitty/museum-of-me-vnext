@@ -17,6 +17,7 @@ import {
   PLAZA_DEPTH,
   PLAZA_HALF_WIDTH,
   PORTAL_WIDTH,
+  PORTAL_VESTIBULE_DEPTH,
   type Vec3,
   type ZoneId,
 } from '../layout';
@@ -116,7 +117,7 @@ export class ExteriorWorld {
    */
   private buildThresholdVestibule(): void {
     const hw = SOUTH.hallHalfWidth; // 9
-    const fromZ = VESTIBULE_TO - 6; // 122
+    const fromZ = VESTIBULE_TO - PORTAL_VESTIBULE_DEPTH; // 122
     const toZ = VESTIBULE_TO; // 128
     const depth = toZ - fromZ;
     const midZ = (fromZ + toZ) / 2;

@@ -1,6 +1,49 @@
 import type * as THREE from 'three';
 import type { App } from './App';
-import { ENTRANCE_PORTAL_Z, THRESHOLD_PREPARE_Z, GROUND_Y } from '../world/layout';
+import {
+  ENTRANCE_PORTAL_Z,
+  THRESHOLD_PREPARE_Z,
+  GROUND_Y,
+  PORTAL_WIDTH,
+  PORTAL_HEIGHT,
+  PORTAL_VESTIBULE_DEPTH,
+} from '../world/layout';
+import { PLAYER_RADIUS, PLAYER_HEIGHT } from '../player/PlayerController';
+
+/** Portal geometry is authored in layout.ts; the entire island is NOT a door. */
+type PortalPosition = Pick<THREE.Vector3, 'x' | 'y' | 'z'>;
+const PORTAL_SEAM_TOLERANCE = 0.1;
+const APPROACH_HALF_WIDTH = PORTAL_WIDTH / 2 + 6;
+const APPROACH_START_Z = 154;
+
+function insideDoorwayOpening(pos: PortalPosition): boolean {
+  return Math.abs(pos.x) <= PORTAL_WIDTH / 2 - PLAYER_RADIUS
+    && pos.y >= GROUND_Y - 0.5
+    && pos.y + PLAYER_HEIGHT <= GROUND_Y + PORTAL_HEIGHT + 0.1;
+}
+
+/** A visitor may enter only inside the physical foyer, not anywhere at z=128. */
+export function isAtEntrancePortal(pos: PortalPosition): boolean {
+  return insideDoorwayOpening(pos)
+    && pos.z >= ENTRANCE_PORTAL_Z - PORTAL_VESTIBULE_DEPTH
+    && pos.z <= ENTRANCE_PORTAL_Z + PORTAL_SEAM_TOLERANCE;
+}
+
+/** Invisible prewarm is allowed only in the south entrance's approach corridor. */
+export function isApproachingEntrance(pos: PortalPosition): boolean {
+  return Math.abs(pos.x) <= APPROACH_HALF_WIDTH
+    && pos.y >= GROUND_Y - 0.5
+    && pos.y + PLAYER_HEIGHT <= GROUND_Y + PORTAL_HEIGHT + 0.1
+    && pos.z >= ENTRANCE_PORTAL_Z - 1
+    && pos.z <= APPROACH_START_Z;
+}
+
+/** Return must also cross the doorway; a side path is not an exit portal. */
+export function isExitingEntrance(pos: PortalPosition): boolean {
+  return insideDoorwayOpening(pos)
+    && pos.z > ENTRANCE_PORTAL_Z
+    && pos.z <= THRESHOLD_PREPARE_Z;
+}
 
 export type WorldId = 'exterior' | 'interior';
 
@@ -58,8 +101,9 @@ export class WorldDirector {
         this.phase = this.activeWorld === 'interior' ? 'INTERIOR_ACTIVE'
           : this.entranceIsReady() ? 'AT_THRESHOLD' : 'PREPARING_RENDER_RESOURCES';
 
-        // If player is waiting at the threshold seam when load completes, commit transition immediately
-        if (this.activeWorld === 'exterior' && this.app.player.position.z <= ENTRANCE_PORTAL_Z + 0.1) {
+        // Preparation can finish while the visitor walks around the island.
+        // Only the physical doorway is allowed to trigger a world switch.
+        if (this.activeWorld === 'exterior' && isAtEntrancePortal(this.app.player.position)) {
           this.commitToInterior();
         }
       } catch (err) {
@@ -161,8 +205,7 @@ export class WorldDirector {
   update(playerPosition: THREE.Vector3): void {
     if (this.isCommitting || this.app.renderer.isContextLost) return;
 
-    const inApproach = Math.abs(playerPosition.x) <= 22
-      && playerPosition.z <= 154 && playerPosition.z >= ENTRANCE_PORTAL_Z - 1;
+    const inApproach = isApproachingEntrance(playerPosition);
     if (!inApproach) this.thresholdPromptDismissed = false;
     const rawEntranceReady = Boolean(this.app.interiorWorld?.streaming.telemetry.prewarmReady);
     if (rawEntranceReady && this.app.interiorLoadTelemetry.entranceReadyAtMs === null) {
@@ -188,29 +231,27 @@ export class WorldDirector {
       this.app.ui?.hud.setThresholdStatus(false, '');
     }
 
-    // 1. Predictive interior load on approach toward south entrance doorway (z <= 134)
-    if (this.activeWorld === 'exterior' && !this.interiorImportStarted && playerPosition.z <= THRESHOLD_PREPARE_Z) {
+    // 1. Prepare invisibly only when approaching the actual south doorway.
+    // The previous Z-only condition loaded the museum from anywhere on the island.
+    if (this.activeWorld === 'exterior' && !this.interiorImportStarted
+      && inApproach && playerPosition.z <= THRESHOLD_PREPARE_Z) {
       // prepareInterior records and displays the failure, and remains rejecting
       // for explicit callers. This predictive request has no awaiting caller.
       void this.prepareInterior().catch(() => undefined);
     }
 
-    // 2. World boundary handoff across doorway portal plane (z = 128):
+    // 2. This is a doorway aperture, not an infinite plane across the island.
     if (this.activeWorld === 'exterior') {
-      if (playerPosition.z <= ENTRANCE_PORTAL_Z) {
+      if (playerPosition.z <= ENTRANCE_PORTAL_Z && isAtEntrancePortal(playerPosition)) {
         if (this.interiorConstructed && this.app.interiorWorld) {
           this.commitToInterior();
         } else {
-          // If arrival at threshold happens before load finishes, hold player at doorway seam
-          // so player does not walk into void while waiting.
+          // Hold only inside the doorway until the destination is ready.
           playerPosition.z = Math.max(ENTRANCE_PORTAL_Z + 0.05, playerPosition.z);
         }
       }
     } else if (this.activeWorld === 'interior') {
-      // Stepping back out through south vestibule doorway into exterior
-      if (playerPosition.z > ENTRANCE_PORTAL_Z) {
-        this.switchToExterior();
-      }
+      if (isExitingEntrance(playerPosition)) this.switchToExterior();
     }
   }
 }
