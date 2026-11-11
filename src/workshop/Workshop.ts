@@ -245,7 +245,9 @@ export class Workshop {
     this.el<HTMLButtonElement>('view-top').addEventListener('click', () => this.setView('top'));
     this.el<HTMLButtonElement>('focus').addEventListener('click', () => {
       const object = this.object();
-      if (object) this.camera.focus(object);
+      const selectedSurface = this.selectedSurfaceId
+        ? this.placements.surfaces.resolve(this.selectedSurfaceId) : null;
+      if (object || selectedSurface) this.camera.focus(object ?? selectedSurface!.mesh);
     });
     this.el<HTMLButtonElement>('world-exterior').addEventListener('click', () => void this.switchWorld('exterior'));
     this.el<HTMLButtonElement>('world-interior').addEventListener('click', () => void this.switchWorld('interior'));
@@ -995,10 +997,12 @@ export class Workshop {
     this.root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((button) => { button.disabled = comparing; });
     this.el<HTMLButtonElement>('floor').disabled = comparing || !placementSelected;
     this.el<HTMLButtonElement>('duplicate').disabled = comparing || !placementSelected;
-    this.el<HTMLButtonElement>('delete').disabled = comparing || !placementSelected;
+    this.el<HTMLButtonElement>('delete').disabled = comparing || (!placementSelected && !this.selectedSurfaceId);
     this.el<HTMLElement>('palette').querySelectorAll<HTMLButtonElement>('button').forEach((button) => { button.disabled = comparing; });
+    this.assetResults.querySelectorAll<HTMLButtonElement>('button').forEach((button) => { button.disabled = comparing; });
+    this.modelInput.disabled = comparing;
     this.el<HTMLButtonElement>('place-wall').disabled = placement?.prefab !== 'wall-art' && placement?.prefab !== 'wall-panel';
-    this.el<HTMLButtonElement>('focus').disabled = !this.object();
+    this.el<HTMLButtonElement>('focus').disabled = !this.object() && !this.selectedSurfaceId;
     this.el<HTMLButtonElement>('compare').dataset.active = String(this.placements.isComparingOriginal);
     this.el<HTMLButtonElement>('compare').textContent = this.placements.isComparingOriginal
       ? 'Return to authored view' : 'Reveal original';
@@ -1015,22 +1019,43 @@ export class Workshop {
     const record = this.record();
     const sceneEntry = this.sceneEntry();
     const object = this.object();
-    const disabled = (!record && !sceneEntry) || !object;
-    this.labelInput.disabled = disabled || sceneEntry !== null || this.placements.isComparingOriginal;
-    this.anchorInput.disabled = disabled || sceneEntry !== null || this.placements.isComparingOriginal;
-    for (const input of Object.values(this.inputs)) input.disabled = disabled || this.placements.isComparingOriginal;
+    const surface = this.selectedSurfaceId ? this.placements.surfaces.resolve(this.selectedSurfaceId) : null;
+    const disabled = (!record && !sceneEntry && !surface) || (!object && !surface);
+    this.labelInput.disabled = disabled || sceneEntry !== null || surface !== null || this.placements.isComparingOriginal;
+    this.anchorInput.disabled = disabled || sceneEntry !== null || surface !== null || this.placements.isComparingOriginal;
+    for (const input of Object.values(this.inputs)) input.disabled = disabled || surface !== null || this.placements.isComparingOriginal;
     const locked = this.placements.isComparingOriginal;
-    this.uniformScaleInput.disabled = disabled || locked;
-    this.paintInput.disabled = !record || locked;
+    this.uniformScaleInput.disabled = disabled || surface !== null || locked;
+    this.paintInput.disabled = (!record && !surface) || locked;
+    this.textureInput.disabled = (!record && !surface) || locked;
+    this.finishFileInput.disabled = (!record && !surface) || locked;
     this.depthInput.disabled = (record?.prefab !== 'wall-art' && record?.prefab !== 'wall-panel') || locked;
     this.collisionInput.disabled = !record || locked;
     this.eventInput.disabled = !record || locked;
     this.imageInput.disabled = record?.prefab !== 'wall-art' || locked;
+    if (surface) {
+      const finish = this.placements.getSurfaceOverride(surface.id);
+      this.title.textContent = surface.label;
+      this.meta.textContent = surface.id + ' · ' + surface.worldId
+        + ' · paint-only original mesh (geometry and collision stay protected)';
+      this.labelInput.value = surface.label;
+      this.anchorInput.value = 'wall';
+      this.paintInput.value = finish?.color ?? '#ffffff';
+      const texture = finish?.texture ?? 'none';
+      this.ensureFinishOption(texture);
+      this.textureInput.value = texture;
+      this.depthInput.value = '0.055';
+      this.collisionInput.value = 'none';
+      this.eventInput.value = 'none';
+      for (const input of Object.values(this.inputs)) input.value = '';
+      return;
+    }
     if ((!record && !sceneEntry) || !object) {
       this.title.textContent = 'Nothing selected';
       this.meta.textContent = 'Click an authored object or choose one below.';
       this.labelInput.value = '';
       this.paintInput.value = '#a3b5bd';
+      this.textureInput.value = 'none';
       this.depthInput.value = '0.055';
       this.collisionInput.value = 'none';
       this.eventInput.value = 'none';
@@ -1044,6 +1069,9 @@ export class Workshop {
     this.labelInput.value = record?.label ?? sceneEntry!.label;
     this.anchorInput.value = record?.anchor ?? 'free';
     this.paintInput.value = record?.color ?? '#a3b5bd';
+    const finish = record?.texture ?? 'none';
+    this.ensureFinishOption(finish);
+    this.textureInput.value = finish;
     this.depthInput.value = String(record?.depth ?? 0.055);
     this.collisionInput.value = record?.collision ?? 'none';
     this.eventInput.value = record?.event ?? 'none';
@@ -1059,8 +1087,18 @@ export class Workshop {
     this.outliner.replaceChildren();
     const objects = this.placements.captureManifest().objects;
     const sceneEntries = this.placements.sceneEntries();
-    if (!objects.length && !sceneEntries.length) {
+    const finishedSurfaces = this.placements.captureManifest().surfaceOverrides
+      ?.filter((item) => item.worldId === this.app.activeWorld) ?? [];
+    if (!objects.length && !sceneEntries.length && !finishedSurfaces.length) {
       const empty = document.createElement('p'); empty.className = 'workshop-muted'; empty.textContent = 'No authored objects yet.'; this.outliner.append(empty); return;
+    }
+    for (const finish of finishedSurfaces) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.selected = String(finish.id === this.selectedSurfaceId);
+      button.textContent = 'Painted mesh · ' + finish.id;
+      button.addEventListener('click', () => { this.selectSurface(finish.id); this.refresh(); });
+      this.outliner.append(button);
     }
     for (const entry of sceneEntries) {
       const button = document.createElement('button');
