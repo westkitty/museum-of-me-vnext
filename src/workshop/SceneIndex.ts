@@ -4,6 +4,7 @@ import {
 } from '../world/layout';
 import { INSTALLATION_PLACEMENTS } from '../world/installationPlacement';
 import { canonicalRoute } from '../world/route';
+import type { ColliderSnapshot, CollisionWorld } from '../world/CollisionWorld';
 import type { WorkshopPlacementManifest } from './schema';
 
 /** Read-only snapshot derived from the same spatial sources as the museum runtime. */
@@ -19,11 +20,13 @@ export interface MuseumSceneIndex {
   readonly route: readonly { id: string; label: string; position: Vec3; exhibitId?: string }[];
   readonly installations: readonly { id: string; host: string; position: Vec3; interactionPoint: Vec3; footprint: readonly [number, number] }[];
   readonly authored: readonly { id: string; label: string; prefab: string; world: string; position: Vec3; assetId?: string; collision: string }[];
+  readonly collisions: { readonly exterior: readonly ColliderSnapshot[] | null; readonly interior: readonly ColliderSnapshot[] | null };
   /** These are explicitly absent until independently derived from their runtime owners. */
   readonly unavailable: readonly string[];
 }
 
-export function buildMuseumSceneIndex(manifest: WorkshopPlacementManifest): MuseumSceneIndex {
+export function buildMuseumSceneIndex(manifest: WorkshopPlacementManifest,
+  worlds: { exterior?: CollisionWorld; interior?: CollisionWorld } = {}): MuseumSceneIndex {
   return structuredClone({
     schemaVersion: 1, source: 'museum-layout',
     wings: WINGS.map((wing) => ({ id: wing.id, level: wing.level, floorY: wing.floorY, exhibits: [...wing.exhibits] })),
@@ -42,7 +45,9 @@ export function buildMuseumSceneIndex(manifest: WorkshopPlacementManifest): Muse
       id: item.id, label: item.label, prefab: item.prefab, world: item.worldId ?? 'shared', position: item.position,
       ...(item.assetId ? { assetId: item.assetId } : {}), collision: item.collision ?? 'none',
     })),
-    unavailable: ['runtime mesh and surface inventory', 'static collider geometry', 'live residency',
+    collisions: { exterior: worlds.exterior?.snapshot() ?? null, interior: worlds.interior?.snapshot() ?? null },
+    unavailable: ['runtime mesh and surface inventory', ...(!worlds.exterior ? ['exterior collision world'] : []),
+      ...(!worlds.interior ? ['interior collision world'] : []), 'masked-floor exact geometry', 'static collider ownership attribution', 'live residency',
       'original scene overrides', 'deliberate negative space', 'spatial clearance evaluation'],
   });
 }

@@ -466,7 +466,9 @@ export class Workshop {
   }
 
   private refreshSceneIndex(): void {
-    const index = buildMuseumSceneIndex(this.placements.captureManifest());
+    const index = buildMuseumSceneIndex(this.placements.captureManifest(), {
+      exterior: this.app.exteriorWorld.collision, interior: this.app.museum?.collision,
+    });
     const select = this.el<HTMLSelectElement>('scene-index-exhibit');
     const selected = select.value;
     select.replaceChildren();
@@ -476,7 +478,7 @@ export class Workshop {
       select.append(option);
     }
     if (index.exhibits.some((item) => item.id === selected)) select.value = selected;
-    this.el('scene-index-summary').textContent = `${index.wings.length} wings · ${index.exhibits.length} exhibits · ${index.stairs.length} stairs · ${index.installations.length} source installations · ${index.authored.length} authored objects. Snapshot derived from layout and saved/editor data.`;
+    this.el('scene-index-summary').textContent = `${index.wings.length} wings · ${index.exhibits.length} exhibits · ${index.stairs.length} stairs · ${index.installations.length} source installations · ${index.authored.length} authored objects · ${index.collisions.exterior?.length ?? 'unknown'} exterior and ${index.collisions.interior?.length ?? 'unknown'} interior colliders. Snapshot derived from layout and live collision worlds.`;
     this.el('scene-index-unavailable').textContent = `Not indexed: ${index.unavailable.join(', ')}.`;
     this.describeSceneExhibit();
   }

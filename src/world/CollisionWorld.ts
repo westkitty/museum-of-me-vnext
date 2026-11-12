@@ -49,6 +49,20 @@ export interface Ramp {
 }
 
 export type Collider = Wall | Floor | Ramp;
+export type ColliderSnapshot =
+  | (Wall & { readonly id: string; readonly ownership: 'static' | 'dynamic' })
+  | (Omit<Floor, 'contains'> & { readonly id: string; readonly ownership: 'static' | 'dynamic'; readonly hasMask: boolean })
+  | (Ramp & { readonly id: string; readonly ownership: 'static' | 'dynamic' });
+
+function snapshotCollider(id: string, ownership: 'static' | 'dynamic', collider: Collider): ColliderSnapshot {
+  if (collider.kind === 'floor') {
+    return { id, ownership, kind: 'floor', minX: collider.minX, maxX: collider.maxX,
+      minZ: collider.minZ, maxZ: collider.maxZ, y: collider.y, hasMask: Boolean(collider.contains) };
+  }
+  if (collider.kind === 'wall') return { ...collider, id, ownership,
+    ...(collider.oriented ? { oriented: { ...collider.oriented } } : {}) };
+  return { ...collider, id, ownership };
+}
 
 const CELL = 12;
 
@@ -61,6 +75,11 @@ class DynamicColliderIndex<T extends Wall | Floor> {
   private nextOrder = 0;
 
   get size(): number { return this.entries.size; }
+
+  snapshot(): readonly { id: string; collider: T }[] {
+    return [...this.entries].map(([id, entry]) => ({ id, collider: entry.collider }))
+      .sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  }
 
   set(id: string, collider: T | null): void {
     if (collider && (![collider.minX, collider.maxX, collider.minZ, collider.maxZ].every(Number.isFinite)
@@ -132,6 +151,15 @@ export class CollisionWorld {
 
   get size(): number {
     return this.colliders.length + this.dynamicWalls.size + this.dynamicFloors.size;
+  }
+
+  /** Detached diagnostic snapshot. Static ordinals are local to this built world. */
+  snapshot(): readonly ColliderSnapshot[] {
+    return [
+      ...this.colliders.map((collider, index) => snapshotCollider(`static:${index}`, 'static', collider)),
+      ...this.dynamicWalls.snapshot().map(({ id, collider }) => snapshotCollider(`wall:${id}`, 'dynamic', collider)),
+      ...this.dynamicFloors.snapshot().map(({ id, collider }) => snapshotCollider(`floor:${id}`, 'dynamic', collider)),
+    ];
   }
 
   setDynamicWall(id: string, wall: Wall | null): void {
