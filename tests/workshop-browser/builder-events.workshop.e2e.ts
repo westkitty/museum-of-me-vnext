@@ -6,7 +6,11 @@ test('authored sculpture interaction toggles its own emissive material in the re
   page.on('pageerror', (error) => errors.push(error.message));
 
   await page.goto('/?edit=1', { waitUntil: 'commit', timeout: 120_000 });
-  await page.waitForFunction(() => Boolean(window.__museum && window.__museumWorkshop), null, { timeout: 60_000 });
+  await page.waitForFunction(() => Boolean(window.__museum), null, { timeout: 60_000 });
+  // Stop software rendering after the real app has booted, so the async
+  // Workshop module can finish without competing with continuous WebGL.
+  await page.evaluate(() => window.__museum?.stop());
+  await page.waitForFunction(() => Boolean(window.__museumWorkshop), null, { timeout: 60_000 });
   await page.evaluate(() => {
     const app = window.__museum!;
     app.stop();

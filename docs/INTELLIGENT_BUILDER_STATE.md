@@ -2,7 +2,7 @@
 
 Mission: MUSEUM-INTELLIGENT-BUILDER. Status: NOT COMPLETE; Phase 0 in progress.
 
-- Draft integration candidate [PR #50](https://github.com/westkitty/museum-of-me-vnext/pull/50) is open against main; do not merge while mission requirements remain incomplete. Exact-head CI [run 43282465379](https://github.com/westkitty/museum-of-me-vnext/actions/runs/43282465379) targets `e0d3f27057e0bbd06cb871af914697fc942b5bb6`; consult its current jobs for results. Subsequent commits require new exact-head checks.
+- Draft integration candidate [PR #50](https://github.com/westkitty/museum-of-me-vnext/pull/50) is open against main; do not merge while mission requirements remain incomplete. Exact-head CI [run 43282465379](https://github.com/westkitty/museum-of-me-vnext/actions/runs/43282465379) targets `e0d3f27057e0bbd06cb871af914697fc942b5bb6`: gate and standalone passed, Workshop failed waiting for the editor while software rendering continued, and visitor browser was still running at this update. The affected test now pauses rendering after real app boot before waiting for the editor; its focused local Chromium rerun passed. Subsequent commits require new exact-head checks.
 
 - Implementation repository: `westkitty/museum-of-me-vnext`. Isolated worktree: `/Users/andrew/Developer/museum-intelligent-builder`, branch `feat/intelligent-builder-20261111`, based on `ce1f33e09e0c89245f9cf17a00a332c1025b49da`.
 - On 2026-11-11 local time, remote `main`, `pages-preview`, and hosted `build-info.json` reported the base SHA above. Historical main CI run 43134575462 and Pages run 43134601183 reported success. This is baseline evidence, not proof of new features or physical-device acceptance.
