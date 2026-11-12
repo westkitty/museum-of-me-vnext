@@ -241,6 +241,27 @@ describe('Museum Workshop conservation', () => {
       await rm(directory, { recursive: true, force: true });
     }
   });
+
+  it('accepts one editor revision and refuses a second stale save', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'museum-workshop-revision-'));
+    const target = join(directory, 'workshop-placements.json');
+    try {
+      await writeFile(target, '{"schemaVersion":1,"objects":[]}\n');
+      const baseline = serializeWorkshopManifest(EMPTY_WORKSHOP_MANIFEST);
+      const revision = createHash('sha256').update(baseline).digest('hex');
+      const first = at([30, 0, 42]);
+      const second = at([31, 0, 42]);
+      const [accepted, rejected] = await Promise.all([
+        writeWorkshopManifest(first, target, revision), writeWorkshopManifest(second, target, revision),
+      ]);
+      expect(accepted.ok).toBe(true);
+      expect(rejected.status).toBe(409);
+      expect(rejected.errors?.join(' ')).toMatch(/changed since/);
+      expect(await readFile(target, 'utf8')).toBe(serializeWorkshopManifest(first));
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('MuseumPlacements', () => {

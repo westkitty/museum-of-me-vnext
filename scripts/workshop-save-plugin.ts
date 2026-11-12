@@ -249,7 +249,7 @@ async function backupWorkshopManifest(target: string): Promise<void> {
 const pendingSaves = new Map<string, Promise<void>>();
 
 /** Serialize same-target saves so each successful replacement has a backup. */
-export async function writeWorkshopManifest(raw: unknown, target: string): Promise<WorkshopSaveResult> {
+export async function writeWorkshopManifest(raw: unknown, target: string, expectedRevision?: string): Promise<WorkshopSaveResult> {
   const key = resolve(target);
   const previous = pendingSaves.get(key) ?? Promise.resolve();
   let release!: () => void;
@@ -257,7 +257,7 @@ export async function writeWorkshopManifest(raw: unknown, target: string): Promi
   pendingSaves.set(key, current);
   await previous;
   try {
-    return await writeWorkshopManifestLocked(raw, key);
+    return await writeWorkshopManifestLocked(raw, key, expectedRevision);
   } finally {
     if (pendingSaves.get(key) === current) pendingSaves.delete(key);
     release();
@@ -265,7 +265,7 @@ export async function writeWorkshopManifest(raw: unknown, target: string): Promi
 }
 
 /** Validate, preserve the old bytes, then atomically replace the target. */
-async function writeWorkshopManifestLocked(raw: unknown, target: string): Promise<WorkshopSaveResult> {
+async function writeWorkshopManifestLocked(raw: unknown, target: string, expectedRevision?: string): Promise<WorkshopSaveResult> {
   const parsed = validateWorkshopManifest(raw);
   if (!parsed.ok || !parsed.value) {
     return { ok: false, status: 400, errors: parsed.errors };
@@ -302,6 +302,14 @@ async function writeWorkshopManifestLocked(raw: unknown, target: string): Promis
     if (!checked.ok) {
       return { ok: false, status: 409, errors: ['Existing Workshop manifest is unsupported or invalid; save refused', ...checked.errors] };
     }
+    if (expectedRevision !== undefined && checked.value) {
+      const revision = createHash('sha256').update(serializeWorkshopManifest(checked.value)).digest('hex');
+      if (revision !== expectedRevision) {
+        return { ok: false, status: 409, errors: ['The Workshop manifest changed since this editor loaded or last saved. Preserve your work and reload before saving.'] };
+      }
+    }
+  } else if (expectedRevision !== undefined) {
+    return { ok: false, status: 409, errors: ['The Workshop manifest was removed since this editor loaded; save refused'] };
   }
   const temp = `${target}.tmp-${randomUUID()}`;
   await mkdir(dirname(target), { recursive: true });
@@ -403,11 +411,16 @@ export function museumWorkshopSavePlugin(): Plugin {
           json(res, 415, { ok: false, error: 'application/json required' });
           return;
         }
+        const expectedRevision = req.headers['x-workshop-revision'];
+        if (typeof expectedRevision !== 'string' || !/^[a-f0-9]{64}$/.test(expectedRevision)) {
+          json(res, 428, { ok: false, error: 'Workshop save requires the revision loaded by the editor.' });
+          return;
+        }
 
         try {
           const raw = JSON.parse(await readBody(req)) as unknown;
           const target = resolve(process.cwd(), 'data/workshop-placements.json');
-          const result = await writeWorkshopManifest(raw, target);
+          const result = await writeWorkshopManifest(raw, target, expectedRevision);
           if (!result.ok || !result.manifest) {
             json(res, result.status, {
               ok: false,

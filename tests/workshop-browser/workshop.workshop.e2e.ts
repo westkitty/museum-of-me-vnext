@@ -185,7 +185,14 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   const saveResponse = page.waitForResponse((response) =>
     response.url().endsWith('/__museum-workshop/save') && response.request().method() === 'POST');
   await workshop.getByRole('button', { name: 'Save to build' }).click();
-  expect((await saveResponse).status()).toBe(200);
+  const saved = await saveResponse;
+  expect(saved.status()).toBe(200);
+  const staleSave = await request.post('/__museum-workshop/save', {
+    headers: { 'Content-Type': 'application/json',
+      'X-Workshop-Revision': saved.request().headers()['x-workshop-revision'] },
+    data: saved.request().postDataJSON(),
+  });
+  expect(staleSave.status()).toBe(409);
 
   // Read the atomically-written source directly. Full-page reload is owned by
   // the standalone verifier below; under SwiftShader it can close the browser

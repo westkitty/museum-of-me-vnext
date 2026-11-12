@@ -12,6 +12,7 @@ import { BUILDER_MODELS, BUILDER_FINISHES, searchBuilderLibrary, builderModel } 
 import { conservationErrors, validateWorkshopConservation } from './conservation';
 import { WorkshopHistory } from './history';
 import {
+  serializeWorkshopManifest,
   type WorkshopAnchor,
   type WorkshopPlacementManifest,
   type WorkshopPlacementRecord,
@@ -29,6 +30,7 @@ type InputKey = (typeof INPUT_KEYS)[number];
 
 /** Development-only authoring UI. Production receives only MuseumPlacements. */
 export class Workshop {
+  private savedBaseline: string;
   private readonly root = document.createElement('div');
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
@@ -84,6 +86,7 @@ export class Workshop {
   private openState = false;
 
   constructor(private readonly app: App, private readonly placements: MuseumPlacements) {
+    this.savedBaseline = serializeWorkshopManifest(placements.captureManifest());
     this.root.className = 'museum-workshop';
     this.root.hidden = true;
     this.root.innerHTML = WORKSHOP_HTML;
@@ -1083,6 +1086,9 @@ export class Workshop {
     this.note('Writing validated placement source…', 'ok');
     try {
       const manifest = this.placements.captureManifest();
+      const encoded = new TextEncoder().encode(this.savedBaseline);
+      const digest = await crypto.subtle.digest('SHA-256', encoded);
+      const revision = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
       const conservation = validateWorkshopConservation(manifest);
       if (!conservation.ok) {
         this.note(conservationErrors(conservation.violations).slice(0, 2).join('; '), 'error');
@@ -1090,11 +1096,12 @@ export class Workshop {
       }
       const response = await fetch(SAVE_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Workshop-Revision': revision },
         body: JSON.stringify(manifest),
       });
       const payload = await response.json() as { ok?: boolean; path?: string; objects?: number; error?: string; details?: string[] };
       if (!response.ok || !payload.ok) throw new Error(payload.details?.join('; ') || payload.error || `HTTP ${response.status}`);
+      this.savedBaseline = serializeWorkshopManifest(manifest);
       this.note(`Saved ${payload.objects ?? 0} objects to ${payload.path ?? 'the build manifest'}.`, 'ok');
     } catch (error) {
       this.note(error instanceof Error ? error.message : 'Workshop save failed.', 'error');
