@@ -340,4 +340,44 @@ describe('WorkshopHistory', () => {
     expect(history.undo()?.manifest.objects[0]?.position[0]).toBeCloseTo(30.2346);
     expect(history.redo()?.manifest.objects[0]?.position[0]).toBe(5);
   });
+
+  it('shares unchanged records across a large edit history and preserves undo isolation', () => {
+    const history = new WorkshopHistory();
+    const initial: WorkshopPlacementManifest = { schemaVersion: 1, objects: Array.from({ length: 2000 }, (_, i) => ({
+      ...sample.objects[0]!, id: `bench-${String(i).padStart(4, '0')}`, position: [30, 0, 42] as [number, number, number],
+    })), sceneOverrides: [{ id: 'arrival-garden-shrub-01', position: [1, 0, 1], rotation: [0, 0, 0], scale: [1, 1, 1] }],
+    surfaceOverrides: [{ id: 'exterior:0', worldId: 'exterior', color: '#123456' }] };
+    let current = initial;
+    for (let i = 1; i <= 20; i++) {
+      const next: WorkshopPlacementManifest = { ...current, objects: current.objects.map((record, index) =>
+        index === 0 ? { ...record, position: [30 + i, 0, 42] } : record) };
+      expect(history.push(`move ${i}`, current, next)).toBe(true);
+      current = next;
+    }
+    expect(history.retainedRecordCount).toBe(2022);
+    let undone: WorkshopPlacementManifest | undefined;
+    for (let i = 0; i < 20; i++) undone = history.undo()?.manifest;
+    expect(undone?.objects[0].position[0]).toBe(30);
+    expect(undone?.surfaceOverrides?.[0].color).toBe('#123456');
+    (undone!.objects[1].position as number[])[0] = 99;
+    let redone: WorkshopPlacementManifest | undefined;
+    for (let i = 0; i < 20; i++) redone = history.redo()?.manifest;
+    expect(redone?.objects[0].position[0]).toBe(50);
+    expect(redone?.objects[1].position[0]).toBe(30);
+    history.clear();
+    expect(history.retainedRecordCount).toBe(0);
+  });
+
+  it('preserves atomic changes and clears redo when editing after undo', () => {
+    const history = new WorkshopHistory();
+    const added: WorkshopPlacementManifest = { ...sample, objects: [sample.objects[0],
+      { ...sample.objects[0], id: 'bench-02' }], surfaceOverrides: [{ id: 'exterior:0', worldId: 'exterior', color: '#abcdef' }] };
+    history.push('add group and finish', sample, added);
+    expect(history.undo()?.manifest.objects).toHaveLength(1);
+    const alternative: WorkshopPlacementManifest = { ...sample, objects: [{ ...sample.objects[0], label: 'Alternate' }] };
+    history.push('alternate', sample, alternative);
+    expect(history.canRedo).toBe(false);
+    expect(history.undo()?.manifest.objects[0].label).toBe('Bench 01');
+    expect(history.redo()?.manifest.objects[0].label).toBe('Alternate');
+  });
 });
