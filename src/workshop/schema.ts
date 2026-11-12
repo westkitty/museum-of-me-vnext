@@ -65,12 +65,47 @@ export interface WorkshopPlacementRecord {
   readonly openingSill?: number;
 }
 
+export type CuratorDecisionKind = 'walkway-move';
+export type CuratorDecisionOutcome = 'approved' | 'rejected' | 'user-override';
+
+/** One curator response to an automated suggestion, kept so repeated runs respect it. */
+export interface CuratorDecision {
+  readonly kind: CuratorDecisionKind;
+  readonly objectId: string;
+  readonly outcome: CuratorDecisionOutcome;
+  /** ISO-8601 time of the decision. */
+  readonly at: string;
+  /** Where the object stood when the decision was made; a later move reopens the question. */
+  readonly position: WorkshopVec3;
+}
+
+/** A floor area the curator deliberately keeps empty; automation must never place into it. */
+export interface CuratorEmptyRegion {
+  readonly id: string;
+  readonly label: string;
+  readonly worldId: WorkshopWorldId;
+  readonly min: readonly [number, number];
+  readonly max: readonly [number, number];
+}
+
+/** Curator's Memory: authoring intent that automated tools must respect across runs. Schema v2 only. */
+export interface CuratorMemory {
+  /** Placements automation must never move or remove. */
+  readonly locks: readonly string[];
+  readonly decisions: readonly CuratorDecision[];
+  readonly emptyRegions: readonly CuratorEmptyRegion[];
+}
+
+export const CURATOR_MAX_DECISIONS = 4096;
+export const CURATOR_MAX_REGIONS = 256;
+
 export interface WorkshopPlacementManifest {
   readonly schemaVersion: typeof WORKSHOP_SCHEMA_VERSION;
   readonly objects: readonly WorkshopPlacementRecord[];
   /** Existing-scene dressing transforms. Optional for schema-version-1 files. */
   readonly sceneOverrides?: readonly WorkshopSceneOverride[];
   readonly surfaceOverrides?: readonly WorkshopSurfaceOverride[];
+  readonly curator?: CuratorMemory;
 }
 
 export interface WorkshopManifestValidation {
@@ -96,7 +131,11 @@ const COLOR = /^#[0-9a-fA-F]{6}$/;
 const WORKSHOP_IMAGE = /^workshop-media\/[0-9a-f]{64}\.webp$/;
 
 const SURFACE_PATH = /^(?:exterior|interior):(?:[0-9]{1,5}\/){0,12}[0-9]{1,5}$/;
-const MANIFEST_KEYS = new Set(['schemaVersion', 'objects', 'sceneOverrides', 'surfaceOverrides']);
+const MANIFEST_KEYS = new Set(['schemaVersion', 'objects', 'sceneOverrides', 'surfaceOverrides', 'curator']);
+const CURATOR_KEYS = new Set(['locks', 'decisions', 'emptyRegions']);
+const DECISION_KEYS = new Set(['kind', 'objectId', 'outcome', 'at', 'position']);
+const REGION_KEYS = new Set(['id', 'label', 'worldId', 'min', 'max']);
+const ISO_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
 const OBJECT_KEYS = new Set(['id', 'label', 'prefab', 'anchor', 'position', 'rotation', 'scale', 'color',
   'assetId', 'texture', 'image', 'depth', 'collision', 'event', 'eventMessage', 'eventColor', 'worldId',
   'opening', 'openingWidth', 'openingHeight', 'openingSill']);
@@ -305,6 +344,61 @@ function validateSceneOverride(value: unknown, index: number, errors: string[]):
   return { id, position, rotation, scale };
 }
 
+function finitePair(value: unknown): value is [number, number] {
+  return Array.isArray(value) && value.length === 2 && value.every((n) => typeof n === 'number' && Number.isFinite(n) && Math.abs(n) <= 500);
+}
+
+function validateCurator(value: unknown, ids: ReadonlySet<string>, errors: string[]): CuratorMemory | null {
+  if (!isRecord(value)) { errors.push('curator must be an object'); return null; }
+  rejectUnknownKeys(value, CURATOR_KEYS, 'curator', errors);
+  const locks: string[] = [];
+  if (!Array.isArray(value.locks)) errors.push('curator.locks must be an array');
+  else for (const id of value.locks) {
+    if (typeof id !== 'string' || !ids.has(id)) errors.push(`curator.locks references unknown object ${JSON.stringify(id)}`);
+    else if (!locks.includes(id)) locks.push(id);
+  }
+  const decisions: CuratorDecision[] = [];
+  if (!Array.isArray(value.decisions)) errors.push('curator.decisions must be an array');
+  else {
+    if (value.decisions.length > CURATOR_MAX_DECISIONS) errors.push(`curator.decisions may contain at most ${CURATOR_MAX_DECISIONS} entries`);
+    value.decisions.forEach((raw, index) => {
+      if (!isRecord(raw)) { errors.push(`curator.decisions[${index}] must be an object`); return; }
+      rejectUnknownKeys(raw, DECISION_KEYS, `curator.decisions[${index}]`, errors);
+      const position = raw.position;
+      if (raw.kind !== 'walkway-move' || typeof raw.objectId !== 'string' || !ID_PATTERN.test(raw.objectId)
+        || (raw.outcome !== 'approved' && raw.outcome !== 'rejected' && raw.outcome !== 'user-override')
+        || typeof raw.at !== 'string' || !ISO_TIME.test(raw.at)
+        || !Array.isArray(position) || position.length !== 3 || !position.every((n) => typeof n === 'number' && Number.isFinite(n))) {
+        errors.push(`curator.decisions[${index}] is invalid`);
+        return;
+      }
+      decisions.push({ kind: raw.kind, objectId: raw.objectId, outcome: raw.outcome, at: raw.at,
+        position: [position[0], position[1], position[2]] as WorkshopVec3 });
+    });
+  }
+  const emptyRegions: CuratorEmptyRegion[] = [];
+  if (!Array.isArray(value.emptyRegions)) errors.push('curator.emptyRegions must be an array');
+  else {
+    if (value.emptyRegions.length > CURATOR_MAX_REGIONS) errors.push(`curator.emptyRegions may contain at most ${CURATOR_MAX_REGIONS} entries`);
+    const regionIds = new Set<string>();
+    value.emptyRegions.forEach((raw, index) => {
+      if (!isRecord(raw)) { errors.push(`curator.emptyRegions[${index}] must be an object`); return; }
+      rejectUnknownKeys(raw, REGION_KEYS, `curator.emptyRegions[${index}]`, errors);
+      if (typeof raw.id !== 'string' || !ID_PATTERN.test(raw.id) || regionIds.has(raw.id)
+        || typeof raw.label !== 'string' || !raw.label.trim() || raw.label.trim().length > 80
+        || (raw.worldId !== 'exterior' && raw.worldId !== 'interior' && raw.worldId !== 'shared')
+        || !finitePair(raw.min) || !finitePair(raw.max) || raw.min[0] >= raw.max[0] || raw.min[1] >= raw.max[1]) {
+        errors.push(`curator.emptyRegions[${index}] is invalid`);
+        return;
+      }
+      regionIds.add(raw.id);
+      emptyRegions.push({ id: raw.id, label: raw.label.trim(), worldId: raw.worldId,
+        min: [raw.min[0], raw.min[1]], max: [raw.max[0], raw.max[1]] });
+    });
+  }
+  return { locks, decisions, emptyRegions };
+}
+
 function validateSurfaceOverride(value: unknown, index: number, errors: string[]): WorkshopSurfaceOverride | null {
   if (!isRecord(value)) { errors.push('surfaceOverrides must contain objects'); return null; }
   rejectUnknownKeys(value, SURFACE_KEYS, `surfaceOverrides[${index}]`, errors);
@@ -391,10 +485,17 @@ export function validateWorkshopManifest(value: unknown): WorkshopManifestValida
     }
   }
 
+  let curator: CuratorMemory | undefined;
+  if (value.curator !== undefined) {
+    if (legacy) errors.push('curator memory requires schema version 2');
+    else curator = validateCurator(value.curator, new Set(objects.map((object) => object.id)), errors) ?? undefined;
+  }
+
   if (errors.length) return { ok: false, value: null, errors };
   return {
     ok: true,
-    value: canonicalizeWorkshopManifest({ schemaVersion: WORKSHOP_SCHEMA_VERSION, objects, sceneOverrides, surfaceOverrides }),
+    value: canonicalizeWorkshopManifest({ schemaVersion: WORKSHOP_SCHEMA_VERSION, objects, sceneOverrides, surfaceOverrides,
+      ...(curator ? { curator } : {}) }),
     errors: [],
     ...(legacy ? { migratedFrom: WORKSHOP_LEGACY_SCHEMA_VERSION } : {}),
   };
@@ -412,6 +513,9 @@ export interface WorkshopV1Downgrade {
  * truncating, when the manifest holds more records than version 1 permits.
  */
 export function downgradeWorkshopManifestToV1(manifest: WorkshopPlacementManifest): WorkshopV1Downgrade {
+  if (manifest.curator && !curatorIsEmpty(manifest.curator)) {
+    return { ok: false, text: null, errors: ['Schema version 1 cannot hold Curator\'s Memory; downgrading would discard locks, decisions and empty regions. Nothing was discarded.'] };
+  }
   if (manifest.objects.length > WORKSHOP_V1_MAX_OBJECTS) {
     return { ok: false, text: null, errors: [
       `Schema version 1 holds at most ${WORKSHOP_V1_MAX_OBJECTS} records; this manifest has ${manifest.objects.length}. Nothing was discarded.`,
@@ -476,7 +580,21 @@ export function canonicalizeWorkshopManifest(manifest: WorkshopPlacementManifest
         ...(override.texture ? { texture: override.texture } : {}),
       }))
       .sort((a, b) => a.id.localeCompare(b.id)),
+    ...(manifest.curator && !curatorIsEmpty(manifest.curator) ? { curator: {
+      locks: [...new Set(manifest.curator.locks)].sort(),
+      // Decisions keep their recorded order: it is the history of curator intent.
+      decisions: manifest.curator.decisions.map((decision) => ({ kind: decision.kind, objectId: decision.objectId,
+        outcome: decision.outcome, at: decision.at, position: canonicalVec3(decision.position) })),
+      emptyRegions: [...manifest.curator.emptyRegions].map((region) => ({ id: region.id, label: region.label.trim(),
+        worldId: region.worldId, min: [roundNumber(region.min[0]), roundNumber(region.min[1])] as const,
+        max: [roundNumber(region.max[0]), roundNumber(region.max[1])] as const }))
+        .sort((a, b) => a.id.localeCompare(b.id)),
+    } } : {}),
   };
+}
+
+function curatorIsEmpty(memory: CuratorMemory): boolean {
+  return memory.locks.length === 0 && memory.decisions.length === 0 && memory.emptyRegions.length === 0;
 }
 
 export function cloneWorkshopManifest(manifest: WorkshopPlacementManifest): WorkshopPlacementManifest {

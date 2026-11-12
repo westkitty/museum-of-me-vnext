@@ -15,10 +15,12 @@ import { WorkshopHistory } from './history';
 import { buildMuseumSceneIndex, querySceneIndex } from './SceneIndex';
 import { scanAuthoredRouteClearance } from './RouteClearance';
 import { applyWalkwayProposals, clearWalkways, type WalkwayProposal } from './ClearWalkways';
+import { addEmptyRegion, isLocked, latestDecision, recordDecision, removeEmptyRegion, setLocked } from './CuratorMemory';
 import {
   type WorkshopAnchor,
   type WorkshopPlacementManifest,
   type WorkshopPlacementRecord,
+  type WorkshopVec3,
 } from './schema';
 import './workshop.css';
 
@@ -75,8 +77,6 @@ export class Workshop {
   private savedVisitorWorld: 'interior' | 'exterior' = 'exterior';
   private readonly helper: THREE.Object3D;
   private readonly history = new WorkshopHistory();
-  /** Walkway suggestions the curator rejected this session; never re-proposed until reload. */
-  private readonly rejectedWalkwayMoves = new Set<string>();
   private walkwayGhost: THREE.Box3Helper | null = null;
   private readonly inputs = {} as Record<InputKey, HTMLInputElement>;
   private readonly labelInput: HTMLInputElement;
@@ -280,6 +280,8 @@ export class Workshop {
     this.el<HTMLButtonElement>('scene-index-refresh').addEventListener('click', () => this.refreshSceneIndex());
     this.el<HTMLButtonElement>('clearance-scan').addEventListener('click', () => this.scanClearance());
     this.el<HTMLButtonElement>('walkways-scan').addEventListener('click', () => this.scanWalkways());
+    this.el<HTMLButtonElement>('curator-lock').addEventListener('click', () => { if (this.selectedId) this.toggleLock(this.selectedId); });
+    this.el<HTMLButtonElement>('curator-empty').addEventListener('click', () => this.keepAreaEmpty());
     this.el<HTMLSelectElement>('scene-index-exhibit').addEventListener('change', () => this.describeSceneExhibit());
     this.el<HTMLButtonElement>('source-load').addEventListener('click', () => void this.loadSourceCatalog());
     this.el<HTMLButtonElement>('source-import').addEventListener('click', () => void this.importSourceCandidate());
@@ -535,7 +537,7 @@ export class Workshop {
     this.setWalkwayGhost(null);
     const manifest = this.placements.captureManifest();
     const report = clearWalkways(buildMuseumSceneIndex(manifest, {}, { placements: this.placements }), manifest);
-    const proposals = report.proposals.filter((proposal) => !this.rejectedWalkwayMoves.has(proposal.objectId));
+    const proposals = report.proposals;
     this.el('walkways-status').textContent = `${report.status}: ${report.findings.length} obstruction(s) across ${report.walkways} protected walkways · ${proposals.length} suggested move(s) · ${report.unresolved.length} unresolved. ${report.limitations.join(' ')}`;
     const results = this.el('walkways-results');
     results.replaceChildren();
@@ -548,8 +550,13 @@ export class Workshop {
       label.addEventListener('click', () => this.focusPlacement(finding.objectId));
       row.append(label);
       const proposal = proposals.find((item) => item.objectId === finding.objectId);
-      const reason = report.unresolved.find((item) => item.objectId === finding.objectId)?.reason
-        ?? (this.rejectedWalkwayMoves.has(finding.objectId) ? 'Suggestion rejected this session.' : null);
+      const reason = report.unresolved.find((item) => item.objectId === finding.objectId)?.reason ?? null;
+      const lock = document.createElement('button');
+      lock.type = 'button';
+      lock.dataset.walkwayAction = 'lock';
+      lock.textContent = finding.locked ? 'Unlock' : 'Lock';
+      lock.addEventListener('click', () => this.toggleLock(finding.objectId));
+      row.append(lock);
       if (proposal) {
         for (const [action, text] of [['preview', `Preview move ${proposal.distance.toFixed(2)} m`], ['approve', 'Approve'], ['reject', 'Reject']] as const) {
           const button = document.createElement('button');
@@ -578,19 +585,84 @@ export class Workshop {
       this.focusPlacement(proposal.objectId);
       return;
     }
+    const before = this.placements.captureManifest();
     if (action === 'reject') {
-      this.rejectedWalkwayMoves.add(proposal.objectId);
-      this.note(`Suggestion for ${proposal.objectId} rejected; the object was not moved.`, 'ok');
+      const after = this.placements.replaceManifest(recordDecision(before, { kind: 'walkway-move', objectId: proposal.objectId,
+        outcome: 'rejected', position: [...proposal.from] as WorkshopVec3 }));
+      this.history.push(`Reject walkway suggestion for ${proposal.objectId}`, before, after);
+      this.note(`Suggestion for ${proposal.objectId} rejected and remembered; the object was not moved.`, 'ok');
+      this.refresh();
       this.scanWalkways();
       return;
     }
-    const before = this.placements.captureManifest();
-    const after = this.placements.replaceManifest(applyWalkwayProposals(before, [proposal], new Set([proposal.objectId])));
+    const moved = applyWalkwayProposals(before, [proposal], new Set([proposal.objectId]));
+    const after = this.placements.replaceManifest(recordDecision(moved, { kind: 'walkway-move', objectId: proposal.objectId,
+      outcome: 'approved', position: [...proposal.to] as WorkshopVec3 }));
     this.history.push(`Clear walkway: move ${proposal.objectId}`, before, after);
     this.placements.invalidateCollisions();
     this.note(`Moved ${proposal.objectId} ${proposal.distance.toFixed(2)} m to clear the walkway. Undo restores it.`, 'ok');
     this.refresh();
     this.scanWalkways();
+  }
+
+  /** A hand move after an automated suggestion becomes the curator's standing decision for that object. */
+  private rememberManualMove(id: string, after: WorkshopPlacementManifest): WorkshopPlacementManifest {
+    const decision = latestDecision(after, 'walkway-move', id);
+    const position = after.objects.find((item) => item.id === id)?.position;
+    if (!decision || !position || decision.position.every((value, index) => Math.abs(value - position[index]) < 1e-4)) return after;
+    return this.placements.replaceManifest(recordDecision(after, { kind: 'walkway-move', objectId: id, outcome: 'user-override', position }));
+  }
+
+  private toggleLock(id: string): void {
+    const before = this.placements.captureManifest();
+    const locked = !isLocked(before, id);
+    const after = this.placements.replaceManifest(setLocked(before, id, locked));
+    this.history.push(`${locked ? 'Lock' : 'Unlock'} ${id}`, before, after);
+    this.note(locked ? `${id} is locked: automated tools will never move it.` : `${id} is unlocked.`, 'ok');
+    this.refresh();
+    this.refreshCuratorMemory();
+    if (this.el('walkways-results').childElementCount) this.scanWalkways();
+  }
+
+  /** Keep the floor area under the selection, plus 0.5 m, free of automated placement. */
+  private keepAreaEmpty(): void {
+    const record = this.record();
+    const bounds = record ? this.placements.placementBounds(record.id) : null;
+    if (!record || !bounds) { this.note('Select a placed object to mark the area around it as deliberately empty.', 'warn'); return; }
+    const before = this.placements.captureManifest();
+    let n = 1;
+    while (before.curator?.emptyRegions.some((region) => region.id === `empty-${n}`)) n++;
+    const round = (v: number) => Math.round(v * 100) / 100;
+    const after = this.placements.replaceManifest(addEmptyRegion(before, { id: `empty-${n}`, label: `Kept empty near ${record.label}`.slice(0, 80),
+      worldId: record.worldId ?? 'shared', min: [round(bounds.min.x - 0.5), round(bounds.min.z - 0.5)], max: [round(bounds.max.x + 0.5), round(bounds.max.z + 0.5)] }));
+    this.history.push(`Keep area empty near ${record.label}`, before, after);
+    this.note(`Area around ${record.label} will be kept empty by automated tools.`, 'ok');
+    this.refreshCuratorMemory();
+  }
+
+  private refreshCuratorMemory(): void {
+    const manifest = this.placements.captureManifest();
+    const memory = manifest.curator;
+    const record = this.record();
+    const lockButton = this.el<HTMLButtonElement>('curator-lock');
+    lockButton.disabled = !record;
+    lockButton.textContent = record && isLocked(manifest, record.id) ? 'Unlock for automation' : 'Lock against automation';
+    this.el('curator-summary').textContent = `${memory?.locks.length ?? 0} locked · ${memory?.decisions.length ?? 0} remembered decision(s) · ${memory?.emptyRegions.length ?? 0} empty region(s). Saved with the placements.`;
+    const list = this.el('curator-regions');
+    list.replaceChildren();
+    for (const region of memory?.emptyRegions ?? []) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.curatorRegion = region.id;
+      button.textContent = `Forget empty region: ${region.label}`;
+      button.addEventListener('click', () => {
+        const before = this.placements.captureManifest();
+        const after = this.placements.replaceManifest(removeEmptyRegion(before, region.id));
+        this.history.push(`Forget empty region ${region.label}`, before, after);
+        this.refreshCuratorMemory();
+      });
+      list.append(button);
+    }
   }
 
   private focusPlacement(id: string): void {
@@ -1179,6 +1251,7 @@ export class Workshop {
       this.refresh();
       return;
     }
+    if (record) after = this.rememberManualMove(record.id, after);
     this.history.push(`Transform ${label}`, before, after);
     if (record?.collision === 'solid') this.placements.invalidateCollisions();
     this.selectionBox?.update();
@@ -1521,9 +1594,10 @@ export class Workshop {
     this.dragBefore = null;
     if (before && (record || sceneEntry)) {
       try {
-        const after = sceneEntry
+        let after = sceneEntry
           ? this.placements.setSceneOverride(sceneEntry.id, this.captureTransform(this.object()!))
           : this.placements.captureManifest();
+        if (record) after = this.rememberManualMove(record.id, after);
         this.history.push(`Transform ${record?.label ?? sceneEntry?.label ?? 'object'}`, before, after);
         if (record?.collision === 'solid') this.placements.invalidateCollisions();
       } catch (error) {
@@ -1642,6 +1716,7 @@ export class Workshop {
   }
 
   private refreshInspector(): void {
+    this.refreshCuratorMemory();
     const record = this.record();
     const sceneEntry = this.sceneEntry();
     const object = this.object();
@@ -1900,6 +1975,12 @@ const WORKSHOP_HTML = `
     <button type="button" data-workshop="walkways-scan">Scan walkways and suggest moves</button>
     <p data-workshop="walkways-status" role="status" class="workshop-muted">Not tested.</p>
     <div data-workshop="walkways-results" class="workshop-outliner"></div>
+  </section>
+  <section><h3>Curator's memory</h3>
+    <button type="button" data-workshop="curator-lock" disabled>Lock against automation</button>
+    <button type="button" data-workshop="curator-empty">Keep area around selection empty</button>
+    <p data-workshop="curator-summary" class="workshop-muted"></p>
+    <div data-workshop="curator-regions" class="workshop-outliner"></div>
   </section>
   <section><h3>Placed objects</h3><div class="workshop-outliner" data-workshop="outliner"></div></section>
   <p data-workshop="world-indicator" class="workshop-muted">Editing: Island</p>

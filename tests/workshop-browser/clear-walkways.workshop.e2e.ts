@@ -76,5 +76,25 @@ test('Clear Walkways detects an obstruction, previews a move, applies it only on
   const restored = await page.evaluate(() => (window.__museumWorkshop as unknown as {
     placements: { getRecord(id: string): { position: Vec } | null } }).placements.getRecord('walkway-blocker')?.position);
   expect(restored).toEqual(point);
+
+  // Curator's Memory: a rejection is remembered in the manifest and suppresses the suggestion.
+  await panel.locator('[data-workshop="walkways-scan"]').click();
+  await row.locator('[data-walkway-action="reject"]').click();
+  await expect(row).toContainText('rejected by the curator');
+  await expect(row.locator('[data-walkway-action="approve"]')).toHaveCount(0);
+  const memory = await page.evaluate(() => (window.__museumWorkshop as unknown as {
+    placements: { captureManifest(): { curator?: { decisions: { objectId: string; outcome: string }[]; locks: string[] } } } })
+    .placements.captureManifest().curator);
+  expect(memory?.decisions).toEqual([expect.objectContaining({ objectId: 'walkway-blocker', outcome: 'rejected' })]);
+  const unmoved = await page.evaluate(() => (window.__museumWorkshop as unknown as {
+    placements: { getRecord(id: string): { position: Vec } | null } }).placements.getRecord('walkway-blocker')?.position);
+  expect(unmoved).toEqual(point);
+
+  // Locking is persisted and reported on the finding.
+  await row.locator('[data-walkway-action="lock"]').click();
+  await expect(row.locator('[data-walkway-action="lock"]')).toHaveText('Unlock');
+  const locks = await page.evaluate(() => (window.__museumWorkshop as unknown as {
+    placements: { captureManifest(): { curator?: { locks: string[] } } } }).placements.captureManifest().curator?.locks);
+  expect(locks).toEqual(['walkway-blocker']);
   expect(errors).toEqual([]);
 });

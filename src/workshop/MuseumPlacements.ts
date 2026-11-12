@@ -347,6 +347,7 @@ export class MuseumPlacements {
     return canonicalizeWorkshopManifest({
       schemaVersion: WORKSHOP_SCHEMA_VERSION, objects, sceneOverrides,
       surfaceOverrides: this.manifest.surfaceOverrides,
+      ...(this.manifest.curator ? { curator: this.manifest.curator } : {}),
     });
   }
 
@@ -416,6 +417,7 @@ export class MuseumPlacements {
       objects,
       sceneOverrides: current.sceneOverrides,
       surfaceOverrides: current.surfaceOverrides,
+      ...(current.curator ? { curator: current.curator } : {}),
     });
   }
 
@@ -428,6 +430,7 @@ export class MuseumPlacements {
     return this.replaceManifest({
       schemaVersion: WORKSHOP_SCHEMA_VERSION, objects: current.objects,
       sceneOverrides, surfaceOverrides: current.surfaceOverrides,
+      ...(current.curator ? { curator: current.curator } : {}),
     });
   }
 
@@ -438,6 +441,8 @@ export class MuseumPlacements {
       objects: current.objects.filter((record) => record.id !== id),
       sceneOverrides: current.sceneOverrides,
       surfaceOverrides: current.surfaceOverrides,
+      // A deleted object can no longer be locked; its past decisions remain as history.
+      ...(current.curator ? { curator: { ...current.curator, locks: current.curator.locks.filter((lock) => lock !== id) } } : {}),
     });
   }
 

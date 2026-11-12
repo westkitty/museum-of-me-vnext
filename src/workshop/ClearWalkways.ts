@@ -1,6 +1,7 @@
 import { PLAYER_HEIGHT } from '../player/PlayerController';
 import type { Vec3 } from '../world/layout';
 import { validateWorkshopManifestForMuseum } from './conservation';
+import { isLocked, overlapsEmptyRegion, suppressionReason } from './CuratorMemory';
 import type { MuseumSceneIndex, SceneBounds } from './SceneIndex';
 import { WORKSHOP_SCHEMA_VERSION, type WorkshopPlacementManifest, type WorkshopPlacementRecord } from './schema';
 
@@ -153,7 +154,8 @@ export function clearWalkways(index: MuseumSceneIndex, manifest: WorkshopPlaceme
   options: { locked?: ReadonlySet<string> } = {}): ClearWalkwaysReport {
   const walkways = protectedWalkways(index);
   const records = new Map(manifest.objects.map((record) => [record.id, record]));
-  const locked = options.locked ?? new Set<string>();
+  // Curator's Memory locks apply in addition to any caller-supplied locks.
+  const locked = new Set([...(options.locked ?? []), ...manifest.objects.filter((record) => isLocked(manifest, record.id)).map((record) => record.id)]);
   const findings: WalkwayFinding[] = [];
   for (const item of index.authored) {
     const record = records.get(item.id);
@@ -184,6 +186,8 @@ export function clearWalkways(index: MuseumSceneIndex, manifest: WorkshopPlaceme
   for (const finding of findings) {
     if (finding.severity === 'UNKNOWN') { unresolved.push({ objectId: finding.objectId, reason: 'Bounds are not yet known; load the model and rescan.' }); continue; }
     if (finding.locked) { unresolved.push({ objectId: finding.objectId, reason: 'Locked by the curator; not moved.' }); continue; }
+    const suppressed = suppressionReason(manifest, 'walkway-move', finding.objectId);
+    if (suppressed) { unresolved.push({ objectId: finding.objectId, reason: suppressed }); continue; }
     const record = records.get(finding.objectId)!;
     const bounds = placed.get(finding.objectId)!;
     const world = record.worldId ?? 'shared';
@@ -199,6 +203,7 @@ export function clearWalkways(index: MuseumSceneIndex, manifest: WorkshopPlaceme
           { min: [moved.min[0] - PROPOSAL_MARGIN, moved.min[1], moved.min[2] - PROPOSAL_MARGIN],
             max: [moved.max[0] + PROPOSAL_MARGIN, moved.max[1], moved.max[2] + PROPOSAL_MARGIN] }) > 0)) continue;
         if (exhibitWorld && (exhibitBoxes.some((box) => overlaps(moved, box)) || installationBoxes.some((box) => overlaps(moved, box)))) continue;
+        if (overlapsEmptyRegion(manifest, world, moved)) continue;
         let blocked = false;
         for (const [id, other] of placed) if (id !== finding.objectId && overlaps(moved, other)) { blocked = true; break; }
         if (blocked) continue;
@@ -223,6 +228,7 @@ export function clearWalkways(index: MuseumSceneIndex, manifest: WorkshopPlaceme
     limitations: [
       `Walkways: canonical route legs, both stair runs, every exhibit approach, installation interaction points and the entrance threshold, each kept ${WALKWAY_CLEAR_WIDTH} m clear (stairs keep their full width).`,
       'Only authored placements are assessed and moved; original architecture and exhibits are treated as fixed.',
+      'Curator locks, standing rejections and deliberately empty regions are respected.',
       'Bounds are axis-aligned; rotated objects may report slightly more intrusion than they occupy.',
       'This is a geometric check, not a traversal simulation; see Visitor Jury for walked routes.',
     ],

@@ -3,6 +3,7 @@ import { buildMuseumSceneIndex, type SceneIndexRuntime } from '../src/workshop/S
 import { applyWalkwayProposals, clearWalkways, protectedWalkways, walkwayIntrusion } from '../src/workshop/ClearWalkways';
 import type { WorkshopPlacementManifest, WorkshopPlacementRecord } from '../src/workshop/schema';
 import { validateWorkshopManifestForMuseum } from '../src/workshop/conservation';
+import { addEmptyRegion, overlapsEmptyRegion, recordDecision, setLocked } from '../src/workshop/CuratorMemory';
 
 type Vec = [number, number, number];
 /** Structural runtime giving each record a box of `half` around its position, from `bottom` to `top`. */
@@ -142,5 +143,55 @@ describe('Clear Walkways', () => {
   it('is deterministic for identical input', () => {
     const m = manifest(object('a', allowedIntrusion, { collision: 'solid' }), object('b', [allowedIntrusion[0] + 0.4, 0, allowedIntrusion[2] - 2]));
     expect(JSON.stringify(scan(m))).toBe(JSON.stringify(scan(m)));
+  });
+});
+
+describe("Clear Walkways with Curator's Memory", () => {
+  const blocker = () => object('blocker', allowedIntrusion, { collision: 'solid' });
+
+  it('never proposes moving a curator-locked object, across repeated runs', () => {
+    const m = setLocked(manifest(blocker()), 'blocker', true);
+    for (let run = 0; run < 3; run++) {
+      const report = scan(m);
+      expect(report.proposals).toEqual([]);
+      expect(report.findings[0]).toMatchObject({ objectId: 'blocker', locked: true });
+    }
+    expect(scan(setLocked(m, 'blocker', false)).proposals).toHaveLength(1);
+  });
+
+  it('keeps a rejected suggestion suppressed until the object is moved', () => {
+    const m = manifest(blocker());
+    const rejected = recordDecision(m, { kind: 'walkway-move', objectId: 'blocker', outcome: 'rejected', position: allowedIntrusion,
+      at: new Date('2026-11-12T12:00:00Z') });
+    for (let run = 0; run < 3; run++) {
+      const report = scan(rejected);
+      expect(report.proposals).toEqual([]);
+      expect(report.unresolved[0].reason).toContain('rejected by the curator on 2026-11-12');
+      // The obstruction itself is still reported; memory never hides a real problem.
+      expect(report.status).toBe('FAIL');
+    }
+    const nudged: Vec = [allowedIntrusion[0] + 0.05, allowedIntrusion[1], allowedIntrusion[2]];
+    const moved = { ...rejected, objects: [object('blocker', nudged, { collision: 'solid' })] };
+    if (scan(moved).findings.length) expect(scan(moved).proposals).toHaveLength(1);
+  });
+
+  it('respects a manual override the same way as a rejection', () => {
+    const m = recordDecision(manifest(blocker()), { kind: 'walkway-move', objectId: 'blocker', outcome: 'user-override',
+      position: allowedIntrusion });
+    expect(scan(m).proposals).toEqual([]);
+    expect(scan(m).unresolved[0].reason).toContain('by hand');
+  });
+
+  it('never moves an object into a deliberately empty region', () => {
+    const plain = scan(manifest(blocker()));
+    const target = plain.proposals[0].to;
+    const kept = addEmptyRegion(manifest(blocker()), { id: 'reading-nook', label: 'Reading nook', worldId: 'interior',
+      min: [target[0] - 0.2, target[2] - 0.2], max: [target[0] + 0.2, target[2] + 0.2] });
+    const report = scan(kept);
+    for (const proposal of report.proposals) {
+      const box = { min: [proposal.to[0] - 0.5, 0, proposal.to[2] - 0.5], max: [proposal.to[0] + 0.5, 1, proposal.to[2] + 0.5] };
+      expect(overlapsEmptyRegion(kept, 'interior', box)).toBeNull();
+      expect(proposal.to).not.toEqual(target);
+    }
   });
 });
