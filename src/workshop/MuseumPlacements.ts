@@ -3,6 +3,7 @@ import { ResourceScope } from '../assets/ResourceScope';
 import { WorkshopSurfaces, type WorkshopSurfaceSelection } from './WorkshopSurfaces';
 import { resolveBuilderResourceUrl } from './builderAssetCatalog';
 import { defaultOpening, wallOpeningSegments } from './WallOpenings';
+import { createWorkshopActivation } from './BuilderEvents';
 import type { CollisionWorld } from '../world/CollisionWorld';
 import type { InteractionManager } from '../interaction/InteractionManager';
 import { AuthorableSceneRegistry, type AuthorableSceneTransform } from './AuthorableSceneRegistry';
@@ -349,12 +350,17 @@ export class MuseumPlacements {
       this.scope.trackObject(root);
       this.group.add(root);
       this.roots.set(record.id, root);
-      if (record.event === 'announce' && this.interaction) {
+      if (record.event && record.event !== 'none' && this.interaction) {
+        const activate = createWorkshopActivation(
+          record, root,
+          (material) => this.scope.track(material),
+          (message) => this.onAnnounce?.(message),
+        );
         const release = this.interaction.register(`workshop:${record.id}`, {
           object: root,
-          label: () => `Inspect ${record.label}`,
-          description: `Inspect authored museum object ${record.label}`,
-          activate: () => this.onAnnounce?.(`Museum object: ${record.label}`),
+          label: () => `${record.event === 'announce' ? 'Inspect' : 'Activate'} ${record.label}`,
+          description: `Interact with authored museum object ${record.label}`,
+          activate,
         });
         this.interactionDisposers.push(release);
       }
