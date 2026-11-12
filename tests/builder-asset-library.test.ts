@@ -53,7 +53,7 @@ describe('Museum Builder owned asset library and finish persistence', () => {
     expect(builderFinishAllowed('file:///private/secret.png')).toBe(false);
     for (const item of BUILDER_MODELS) {
       expect(item.srcRevision).toBe('2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b');
-      expect(item.path).toMatch(/^builder-assets\\/openlife\\/[a-z0-9_]+\\.glb$/);
+      expect(item.path).toMatch(/^builder-assets\/openlife\/[a-z0-9_]+\.glb$/);
       const bytes = await readFile(join(process.cwd(), 'public', item.path));
       expect(bytes.byteLength).toBe(item.bytes);
       expect(createHash('sha256').update(bytes).digest('hex')).toBe(item.sha256);
@@ -62,7 +62,7 @@ describe('Museum Builder owned asset library and finish persistence', () => {
     }
     for (const finish of BUILDER_FINISHES) {
       expect(finish.srcRevision).toBe('2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b');
-      expect(finish.path).toMatch(/^builder-assets\\/openlife\\/[a-z0-9_]+\\.png$/);
+      expect(finish.path).toMatch(/^builder-assets\/openlife\/[a-z0-9_]+\.png$/);
       const bytes = await readFile(join(process.cwd(), 'public', finish.path));
       expect(bytes.byteLength).toBe(finish.bytes);
       expect(createHash('sha256').update(bytes).digest('hex')).toBe(finish.sha256);
