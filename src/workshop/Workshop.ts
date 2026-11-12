@@ -15,7 +15,6 @@ import { WorkshopHistory } from './history';
 import { buildMuseumSceneIndex } from './SceneIndex';
 import { scanAuthoredRouteClearance } from './RouteClearance';
 import {
-  serializeWorkshopManifest,
   type WorkshopAnchor,
   type WorkshopPlacementManifest,
   type WorkshopPlacementRecord,
@@ -33,7 +32,7 @@ type InputKey = (typeof INPUT_KEYS)[number];
 
 /** Development-only authoring UI. Production receives only MuseumPlacements. */
 export class Workshop {
-  private savedBaseline: string;
+  private savedRevision: string;
   private sourceCatalog: typeof import('./catalog-data/tge-index.json').models | null = null;
   private sourceSelection: (typeof import('./catalog-data/tge-index.json').models)[number] | null = null;
   private sourcePage = 0;
@@ -92,7 +91,7 @@ export class Workshop {
   private openState = false;
 
   constructor(private readonly app: App, private readonly placements: MuseumPlacements) {
-    this.savedBaseline = serializeWorkshopManifest(placements.captureManifest());
+    this.savedRevision = document.getElementById('museum-workshop-source')?.dataset.sha256 ?? '';
     this.root.className = 'museum-workshop';
     this.root.hidden = true;
     this.root.innerHTML = WORKSHOP_HTML;
@@ -1259,9 +1258,7 @@ export class Workshop {
     this.note('Writing validated placement source…', 'ok');
     try {
       const manifest = this.placements.captureManifest();
-      const encoded = new TextEncoder().encode(this.savedBaseline);
-      const digest = await crypto.subtle.digest('SHA-256', encoded);
-      const revision = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+      if (!/^[a-f0-9]{64}$/.test(this.savedRevision)) throw new Error('The initial save revision is missing; reload the editor.');
       const conservation = validateWorkshopConservation(manifest);
       if (!conservation.ok) {
         this.note(conservationErrors(conservation.violations).slice(0, 2).join('; '), 'error');
@@ -1269,12 +1266,14 @@ export class Workshop {
       }
       const response = await fetch(SAVE_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Workshop-Revision': revision },
+        headers: { 'Content-Type': 'application/json', 'X-Workshop-Revision': this.savedRevision },
         body: JSON.stringify(manifest),
       });
-      const payload = await response.json() as { ok?: boolean; path?: string; objects?: number; error?: string; details?: string[] };
-      if (!response.ok || !payload.ok) throw new Error(payload.details?.join('; ') || payload.error || `HTTP ${response.status}`);
-      this.savedBaseline = serializeWorkshopManifest(manifest);
+      const payload = await response.json() as { ok?: boolean; path?: string; objects?: number; revision?: string; error?: string; details?: string[] };
+      if (!response.ok || !payload.ok || !payload.revision || !/^[a-f0-9]{64}$/.test(payload.revision)) {
+        throw new Error(payload.details?.join('; ') || payload.error || `HTTP ${response.status}: missing save revision`);
+      }
+      this.savedRevision = payload.revision;
       this.note(`Saved ${payload.objects ?? 0} objects to ${payload.path ?? 'the build manifest'}.`, 'ok');
     } catch (error) {
       this.note(error instanceof Error ? error.message : 'Workshop save failed.', 'error');

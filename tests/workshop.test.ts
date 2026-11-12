@@ -246,8 +246,8 @@ describe('Museum Workshop conservation', () => {
     const directory = await mkdtemp(join(tmpdir(), 'museum-workshop-revision-'));
     const target = join(directory, 'workshop-placements.json');
     try {
-      await writeFile(target, '{"schemaVersion":1,"objects":[]}\n');
-      const baseline = serializeWorkshopManifest(EMPTY_WORKSHOP_MANIFEST);
+      const baseline = '{"schemaVersion":1,"objects":[]}\n';
+      await writeFile(target, baseline);
       const revision = createHash('sha256').update(baseline).digest('hex');
       const first = at([30, 0, 42]);
       const second = at([31, 0, 42]);
@@ -258,9 +258,24 @@ describe('Museum Workshop conservation', () => {
       expect(rejected.status).toBe(409);
       expect(rejected.errors?.join(' ')).toMatch(/changed since/);
       expect(await readFile(target, 'utf8')).toBe(serializeWorkshopManifest(first));
+      expect(accepted.revision).toBe(createHash('sha256').update(await readFile(target)).digest('hex'));
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
+  });
+
+  it('rejects byte changes even when schema normalization would round them equally', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'museum-workshop-byte-revision-'));
+    const target = join(directory, 'workshop-placements.json');
+    try {
+      const first = JSON.stringify(at([30.00001, 0, 42]));
+      const changed = JSON.stringify(at([30.00002, 0, 42]));
+      await writeFile(target, changed);
+      const revision = createHash('sha256').update(first).digest('hex');
+      const result = await writeWorkshopManifest(at([30, 0, 42]), target, revision);
+      expect(result.status).toBe(409);
+      expect(await readFile(target, 'utf8')).toBe(changed);
+    } finally { await rm(directory, { recursive: true, force: true }); }
   });
 });
 

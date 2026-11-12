@@ -40,7 +40,16 @@ try {
   // Museum Workshop writes only this declarative placement source. The normal
   // runtime consumes it in every build; the development editor itself is loaded
   // separately and is stripped from production output.
-  placements = new MuseumPlacements(placementManifest, sceneRegistry);
+  let source: unknown = placementManifest;
+  if (import.meta.env.DEV) {
+    const script = document.getElementById('museum-workshop-source');
+    if (!script?.textContent || !/^[a-f0-9]{64}$/.test(script.dataset.sha256 ?? '')) {
+      throw new Error('The local Workshop source snapshot is missing; refusing to load an unversioned editor.');
+    }
+    const bytes = Uint8Array.from(atob(script.textContent), (character) => character.charCodeAt(0));
+    source = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as unknown;
+  }
+  placements = new MuseumPlacements(source, sceneRegistry);
   app.scene.add(placements.group);
 } catch (err) {
   fail(

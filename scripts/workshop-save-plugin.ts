@@ -224,6 +224,7 @@ export interface WorkshopSaveResult {
   readonly manifest?: WorkshopPlacementManifest;
   readonly errors?: readonly string[];
   readonly violations?: readonly WorkshopConservationViolation[];
+  readonly revision?: string;
 }
 
 /** Preserve the exact previous bytes outside the public tree before replacement. */
@@ -290,16 +291,16 @@ async function writeWorkshopManifestLocked(raw: unknown, target: string, expecte
   if (modelErrors.length) return { ok: false, status: 400, errors: modelErrors };
   // A newer or damaged on-disk file cannot be reconstructed from the editor's
   // older view. Never overwrite it merely because the incoming payload is valid.
-  let current: string | undefined;
+  let current: Buffer | undefined;
   try {
-    current = await readFile(target, 'utf8');
+    current = await readFile(target);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
   }
   if (current !== undefined) {
     let existing: unknown;
     try {
-      existing = JSON.parse(current) as unknown;
+      existing = JSON.parse(current.toString('utf8')) as unknown;
     } catch {
       return { ok: false, status: 409, errors: ['Existing Workshop manifest is corrupt; save refused to preserve its bytes'] };
     }
@@ -308,7 +309,7 @@ async function writeWorkshopManifestLocked(raw: unknown, target: string, expecte
       return { ok: false, status: 409, errors: ['Existing Workshop manifest is unsupported or invalid; save refused', ...checked.errors] };
     }
     if (expectedRevision !== undefined && checked.value) {
-      const revision = createHash('sha256').update(serializeWorkshopManifest(checked.value)).digest('hex');
+      const revision = createHash('sha256').update(current).digest('hex');
       if (revision !== expectedRevision) {
         return { ok: false, status: 409, errors: ['The Workshop manifest changed since this editor loaded or last saved. Preserve your work and reload before saving.'] };
       }
@@ -319,21 +320,29 @@ async function writeWorkshopManifestLocked(raw: unknown, target: string, expecte
   const temp = `${target}.tmp-${randomUUID()}`;
   await mkdir(dirname(target), { recursive: true });
   await backupWorkshopManifest(target);
+  const serialized = serializeWorkshopManifest(parsed.value);
   try {
-    await writeFile(temp, serializeWorkshopManifest(parsed.value), { encoding: 'utf8', flag: 'wx' });
+    await writeFile(temp, serialized, { encoding: 'utf8', flag: 'wx' });
     await rename(temp, target);
   } finally {
     await unlink(temp).catch((error: NodeJS.ErrnoException) => {
       if (error.code !== 'ENOENT') throw error;
     });
   }
-  return { ok: true, status: 200, manifest: parsed.value };
+  return { ok: true, status: 200, manifest: parsed.value,
+    revision: createHash('sha256').update(serialized).digest('hex') };
 }
 
 export function museumWorkshopSavePlugin(): Plugin {
   return {
     name: 'museum-workshop-save',
     apply: 'serve',
+    async transformIndexHtml() {
+      const source = await readFile(resolve(process.cwd(), 'data/workshop-placements.json'));
+      return [{ tag: 'script', attrs: { id: 'museum-workshop-source', type: 'application/json',
+        'data-sha256': createHash('sha256').update(source).digest('hex') },
+      children: source.toString('base64'), injectTo: 'head' }];
+    },
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const url = req.url?.split('?')[0] ?? '';
@@ -489,6 +498,7 @@ export function museumWorkshopSavePlugin(): Plugin {
             ok: true,
             path: 'data/workshop-placements.json',
             objects: result.manifest.objects.length,
+            revision: result.revision,
           });
         } catch (error) {
           json(res, 500, {

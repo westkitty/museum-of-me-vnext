@@ -65,6 +65,7 @@ const workshopRuntimeMarkers = [
   '/__museum-workshop/tge-thumbnail',
   '/__museum-workshop/tge-import',
   '/__museum-workshop/tge-status',
+  'museum-workshop-source',
   'blaster-kit/blaster-a',
   'Museum Workshop development editor',
   'museum-workshop-transform-controls',
