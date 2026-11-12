@@ -622,6 +622,110 @@ export class Workshop {
     }
   }
 
+  private toggleRoomDrawing(): void {
+    if (this.roomDrawing) {
+      this.cancelRoomDrawing();
+      this.note('Room drawing cancelled.', 'warn');
+      return;
+    }
+    if (this.placements.isComparingOriginal) return;
+    if (this.wallDrawing) this.cancelWallDrawing();
+    this.wallPlacementActive = false;
+    this.roomDrawing = true;
+    this.roomDrawStart = null;
+    // Room floor is anchored at the visitor's current floor level.
+    this.wallDrawHeight = this.app.player.position.y;
+    this.select(null);
+    this.camera.focusGround(this.app.player.position);
+    this.note('Room tool: click two opposite floor corners. Escape cancels.', 'ok');
+    this.refresh();
+  }
+
+  private cancelRoomDrawing(): void {
+    this.roomDrawing = false;
+    this.roomDrawStart = null;
+    this.roomPreview.visible = false;
+    this.refresh();
+  }
+
+  private updateRoomGuide(end: WallPoint): void {
+    const start = this.roomDrawStart;
+    if (!start) return;
+    const x0 = Math.min(start[0], end[0]), x1 = Math.max(start[0], end[0]);
+    const z0 = Math.min(start[2], end[2]), z1 = Math.max(start[2], end[2]);
+    const position = this.roomPreview.geometry.getAttribute('position') as THREE.BufferAttribute;
+    const y = start[1] + 0.08;
+    position.setXYZ(0, x0, y, z0);
+    position.setXYZ(1, x1, y, z0);
+    position.setXYZ(2, x1, y, z1);
+    position.setXYZ(3, x0, y, z1);
+    position.needsUpdate = true;
+    this.roomPreview.geometry.computeBoundingSphere();
+    this.roomPreview.visible = true;
+  }
+
+  private drawRoomClick(): void {
+    const point = this.pointerOnDrawingPlane();
+    if (!point) return this.note('Aim at the room floor plane.', 'warn');
+    if (!this.roomDrawStart) {
+      this.roomDrawStart = point;
+      this.updateRoomGuide(point);
+      return this.note('Room first corner fixed. Click the opposite corner.', 'ok');
+    }
+    const shape = measureRoom(this.roomDrawStart, point);
+    if (!shape) return this.note('Room width and depth must each be 1.25–30 metres on one floor.', 'warn');
+
+    const before = this.placements.captureManifest();
+    const includeRoof = this.roomRoofInput.checked;
+    const count = includeRoof ? 6 : 5;
+    if (before.objects.length + count > 256) {
+      return this.note('The Builder has reached its authored object limit.', 'error');
+    }
+
+    const usedIds = new Set(before.objects.map((record) => record.id));
+    const idFor = (prefab: WorkshopPrefabId): string => {
+      let i = 1;
+      while (usedIds.has(`${prefab}-${String(i).padStart(2, '0')}`)) i++;
+      const id = `${prefab}-${String(i).padStart(2, '0')}`;
+      usedIds.add(id);
+      return id;
+    };
+
+    const worldId = this.app.activeWorld;
+    const walls: WorkshopPlacementRecord[] = shape.walls.map((wall, i) => ({
+      id: idFor('partition-wall'), label: `Room wall ${i + 1}`,
+      prefab: 'partition-wall', anchor: 'floor',
+      position: wall.position, rotation: wall.rotation, scale: wall.scale,
+      collision: 'solid', worldId,
+    }));
+    const floor: WorkshopPlacementRecord = {
+      id: idFor('floor-slab'), label: 'Room floor',
+      prefab: 'floor-slab', anchor: 'floor',
+      position: shape.floor.position, rotation: [0, 0, 0], scale: shape.floor.scale,
+      collision: 'solid', worldId,
+    };
+    const roof: WorkshopPlacementRecord[] = includeRoof ? [{
+      id: idFor('roof-panel'), label: 'Room roof',
+      prefab: 'roof-panel', anchor: 'free',
+      position: shape.roof.position, rotation: [0, 0, 0], scale: shape.roof.scale,
+      collision: 'none', worldId,
+    }] : [];
+    try {
+      // Atomic source and history operation: validation can reject the whole
+      // room without leaving orphan walls or a half-constructed floor.
+      const after = this.placements.replaceManifest({
+        ...before, objects: [...before.objects, ...walls, floor, ...roof],
+      });
+      this.history.push('Construct room', before, after);
+      this.cancelRoomDrawing();
+      this.select(floor.id);
+      this.note(`Room ${shape.width.toFixed(1)} × ${shape.depth.toFixed(1)} m created. Walls, floor and roof are individually editable. Save to build to persist.`, 'ok');
+      this.refresh();
+    } catch (error) {
+      this.note(error instanceof Error ? error.message : 'Room would intersect protected museum geometry.', 'error');
+    }
+  }
+
   private readonly onWallPointerMove = (event: PointerEvent): void => {
     if (!this.openState || (!this.wallDrawing && !this.roomDrawing)) return;
     if (this.wallDrawing && !this.wallDrawStart) return;
