@@ -13,6 +13,7 @@ import { BUILDER_MODELS, BUILDER_FINISHES, searchBuilderLibrary, builderModel } 
 import { conservationErrors, validateWorkshopConservation } from './conservation';
 import { WorkshopHistory } from './history';
 import { buildMuseumSceneIndex } from './SceneIndex';
+import { scanAuthoredRouteClearance } from './RouteClearance';
 import {
   serializeWorkshopManifest,
   type WorkshopAnchor,
@@ -274,6 +275,7 @@ export class Workshop {
 
   private bindUi(): void {
     this.el<HTMLButtonElement>('scene-index-refresh').addEventListener('click', () => this.refreshSceneIndex());
+    this.el<HTMLButtonElement>('clearance-scan').addEventListener('click', () => this.scanClearance());
     this.el<HTMLSelectElement>('scene-index-exhibit').addEventListener('change', () => this.describeSceneExhibit());
     this.el<HTMLButtonElement>('source-load').addEventListener('click', () => void this.loadSourceCatalog());
     this.el<HTMLButtonElement>('source-import').addEventListener('click', () => void this.importSourceCandidate());
@@ -489,6 +491,35 @@ export class Workshop {
     if (!exhibit) return;
     const point = (values: readonly number[]) => values.map((value) => value.toFixed(1)).join(', ');
     this.el('scene-index-detail').textContent = `${exhibit.id} · ${exhibit.wing} · anchor (${point(exhibit.anchor)}) · doorway (${point(exhibit.doorway)}) · visitor position (${point(exhibit.visitorSpot)}) · bounds half-extents (${point(exhibit.bounds.h)}) metres.`;
+  }
+
+  private scanClearance(): void {
+    this.placements.invalidateCollisions();
+    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+      this.app.exteriorWorld.root, this.app.museum?.root);
+    const report = scanAuthoredRouteClearance(buildMuseumSceneIndex(this.placements.captureManifest(), {
+      exterior: this.app.exteriorWorld.collision, interior: this.app.museum?.collision,
+    }));
+    this.el('clearance-status').textContent = `${report.status}: ${report.findings.length} potential authored or unknown obstruction(s). ${report.limitations.join(' ')}`;
+    const results = this.el('clearance-results');
+    results.replaceChildren();
+    for (const finding of report.findings) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = `${finding.objectId ?? finding.colliderId} · ${finding.authority} authority · ${finding.world} · ${finding.routeFrom} → ${finding.routeTo}`;
+      button.disabled = !finding.objectId;
+      button.title = finding.explanation;
+      button.addEventListener('click', () => {
+        if (this.app.activeWorld !== finding.world) {
+          this.note(`Switch to ${finding.world} to inspect ${finding.objectId}.`, 'warn');
+          return;
+        }
+        this.select(finding.objectId);
+        const object = finding.objectId ? this.placements.getObject(finding.objectId) : null;
+        if (object) this.camera.focus(object);
+      });
+      results.append(button);
+    }
   }
 
   private async loadSourceCatalog(): Promise<void> {
@@ -1754,6 +1785,11 @@ const WORKSHOP_HTML = `
     <label>Exhibit<select data-workshop="scene-index-exhibit" aria-label="Scene index exhibit"></select></label>
     <p data-workshop="scene-index-detail" class="workshop-muted"></p>
     <p data-workshop="scene-index-unavailable" class="workshop-muted"></p>
+  </section>
+  <section><h3>Route clearance</h3>
+    <button type="button" data-workshop="clearance-scan">Scan authored route obstructions</button>
+    <p data-workshop="clearance-status" role="status" class="workshop-muted">Not tested.</p>
+    <div data-workshop="clearance-results" class="workshop-outliner"></div>
   </section>
   <section><h3>Placed objects</h3><div class="workshop-outliner" data-workshop="outliner"></div></section>
   <p data-workshop="world-indicator" class="workshop-muted">Editing: Island</p>

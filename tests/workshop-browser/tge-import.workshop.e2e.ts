@@ -15,6 +15,15 @@ test('imports a pinned candidate into the actual Builder and inspects bounds', a
   await expect(workshop.locator('[data-workshop="scene-index-detail"]')).toContainText('E03 · north');
   await expect(workshop.locator('[data-workshop="scene-index-summary"]')).toContainText('colliders');
   await expect(workshop.locator('[data-workshop="scene-index-unavailable"]')).toContainText('masked-floor exact geometry');
+  await workshop.getByRole('button', { name: 'Scan authored route obstructions' }).click();
+  await expect(workshop.locator('[data-workshop="clearance-status"]')).toContainText('WARNING');
+  await expect(workshop.locator('[data-workshop="clearance-status"]')).toContainText('real traversal');
+  await page.evaluate(() => window.__museum!.exteriorWorld.collision.setDynamicWall('clearance-fixture', {
+    kind: 'wall', minX: -1, maxX: 1, minY: -1, maxY: 3, minZ: 159, maxZ: 161,
+  }));
+  await workshop.getByRole('button', { name: 'Scan authored route obstructions' }).click();
+  await expect(workshop.locator('[data-workshop="clearance-results"]')).toContainText('clearance-fixture');
+  await page.evaluate(() => window.__museum!.exteriorWorld.collision.setDynamicWall('clearance-fixture', null));
   await workshop.getByRole('button', { name: 'Browse source catalog' }).click();
   await workshop.getByLabel('Search source candidates').fill('blaster-kit/blaster-a');
   const item = workshop.locator('[data-source-id="blaster-kit/blaster-a"]');
