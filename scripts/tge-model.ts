@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { link, lstat, mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
+import { link, lstat, mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import index from '../src/workshop/catalog-data/tge-index.json';
 
@@ -36,11 +36,52 @@ export function safeSourceGlb(bytes: Buffer, validate: (bytes: Buffer) => boolea
   } catch { return false; }
 }
 
+/** A cache entry is installed only if its provenance and bytes still match the pinned source. */
+export async function findCachedTgeModel(id: string, root: string, validate: (bytes: Buffer) => boolean):
+Promise<{ assetId: string; sha256: string } | null> {
+  const model = models.get(id);
+  if (!model || model.bytes <= 0 || model.bytes > limit) throw new Error('Unknown or oversized source model');
+  const directory = resolve(root, 'public/workshop-models');
+  const provenanceDir = resolve(root, '.asset-sources/tge-provenance');
+  const provenanceKey = createHash('sha256').update(id).digest('hex');
+  let entries: string[] = [];
+  try { entries = await readdir(provenanceDir); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+  for (const name of entries) {
+    const match = new RegExp(`^([a-f0-9]{64})-${provenanceKey}\\.json$`).exec(name);
+    if (!match) continue;
+    const sha256 = match[1];
+    try {
+      const provenance = resolve(provenanceDir, name);
+      const target = resolve(directory, `${sha256}.glb`);
+      const [metaStat, modelStat] = await Promise.all([lstat(provenance), lstat(target)]);
+      if (!metaStat.isFile() || metaStat.size > 8192 || !modelStat.isFile() || modelStat.size !== model.bytes) continue;
+      const [raw, bytes] = await Promise.all([readFile(provenance, 'utf8'), readFile(target)]);
+      const saved = JSON.parse(raw) as Record<string, unknown>;
+      const blob = createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
+      if (saved.source !== 'Hidencod/tge-assets' || saved.sourceId !== id || saved.sourceRevision !== index.sourceRevision
+        || saved.sourcePath !== model.file || saved.gitBlob !== model.gitBlob || saved.bytes !== model.bytes
+        || saved.author !== model.author || saved.license !== model.license || saved.sourcePage !== model.sourcePage
+        || saved.sha256 !== sha256 || blob !== model.gitBlob
+        || createHash('sha256').update(bytes).digest('hex') !== sha256 || !safeSourceGlb(bytes, validate)) continue;
+      return { assetId: `workshop-models/${sha256}.glb`, sha256 };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT' && !(error instanceof SyntaxError)) throw error;
+    }
+  }
+  return null;
+}
+
 /** Import a pinned source model into the existing content-addressed local model store. */
 export async function importTgeModel(id: string, root: string, validate: (bytes: Buffer) => boolean,
   request: typeof fetch = fetch): Promise<{ assetId: string; sha256: string }> {
   const model = models.get(id);
   if (!model || model.bytes <= 0 || model.bytes > limit) throw new Error('Unknown or oversized source model');
+  const cached = await findCachedTgeModel(id, root, validate);
+  if (cached) return cached;
+  const directory = resolve(root, 'public/workshop-models');
+  const provenanceDir = resolve(root, '.asset-sources/tge-provenance');
+  const provenanceKey = createHash('sha256').update(id).digest('hex');
   const url = `https://raw.githubusercontent.com/Hidencod/tge-assets/${index.sourceRevision}/${model.file}`;
   const response = await request(url, { redirect: 'error', signal: AbortSignal.timeout(20000) });
   if (!response.ok || !response.body) throw new Error('Source model unavailable');
@@ -60,11 +101,8 @@ export async function importTgeModel(id: string, root: string, validate: (bytes:
   const blob = createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
   if (size !== model.bytes || blob !== model.gitBlob || !safeSourceGlb(bytes, validate)) throw new Error('Source model failed integrity or GLB validation');
   const sha256 = createHash('sha256').update(bytes).digest('hex');
-  const directory = resolve(root, 'public/workshop-models');
-  const provenanceDir = resolve(root, '.asset-sources/tge-provenance');
   await mkdir(directory, { recursive: true });
   await mkdir(provenanceDir, { recursive: true });
-  const provenanceKey = createHash('sha256').update(id).digest('hex');
   const provenance = resolve(provenanceDir, `${sha256}-${provenanceKey}.json`);
   const record = JSON.stringify({ source: 'Hidencod/tge-assets', sourceRevision: index.sourceRevision,
     sourceId: model.id, sourcePath: model.file, gitBlob: model.gitBlob, sha256, bytes: size,

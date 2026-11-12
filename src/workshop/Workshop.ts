@@ -509,7 +509,22 @@ export class Workshop {
       button.addEventListener('click', () => {
         this.sourceSelection = item;
         this.el<HTMLButtonElement>('source-import').disabled = false;
-        this.el('source-inspector').textContent = `${item.name} · ${item.id} · ${item.bytes} bytes · ${item.license} · ${item.author} · source revision ${this.sourceCatalogRevision()} · ${item.featured?.role ?? 'Unassigned candidate'} · Not installed; import and visual review required.`;
+        this.el<HTMLButtonElement>('source-import').textContent = 'Import and place selected model';
+        const details = `${item.name} · ${item.id} · ${item.bytes} bytes · ${item.license} · ${item.author} · source revision ${this.sourceCatalogRevision()} · ${item.featured?.role ?? 'Unassigned candidate'}`;
+        this.el('source-inspector').textContent = `${details} · Checking local installation…`;
+        void fetch(`/__museum-workshop/tge-status?id=${encodeURIComponent(item.id)}`)
+          .then(async (response) => {
+            if (!response.ok) throw new Error('Local status unavailable');
+            return await response.json() as { installed?: boolean };
+          })
+          .then((status) => {
+            if (this.sourceSelection !== item) return;
+            this.el('source-inspector').textContent = `${details} · ${status.installed ? 'Installed locally' : 'Not installed'}; visual review required.`;
+            this.el<HTMLButtonElement>('source-import').textContent = status.installed ? 'Place cached model' : 'Import and place selected model';
+          })
+          .catch(() => {
+            if (this.sourceSelection === item) this.el('source-inspector').textContent = `${details} · Local installation status unavailable.`;
+          });
       });
       results.append(button);
     }

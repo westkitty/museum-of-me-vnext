@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { importTgeModel, safeSourceGlb } from '../scripts/tge-model';
+import { findCachedTgeModel, importTgeModel, safeSourceGlb } from '../scripts/tge-model';
 import { hasValidLocalGLB } from '../scripts/workshop-save-plugin';
 
 describe('pinned model import', () => {
@@ -28,6 +28,7 @@ describe('pinned model import', () => {
       const fixture = await readFile('tests/fixtures/tge/blaster-a.glb');
       const source = (async () => new Response(new Uint8Array(fixture))) as typeof fetch;
       const imported = await importTgeModel('blaster-kit/blaster-a', root, hasValidLocalGLB, source);
+      expect(await findCachedTgeModel('blaster-kit/blaster-a', root, hasValidLocalGLB)).toEqual(imported);
       const hash = createHash('sha256').update(fixture).digest('hex');
       expect(imported.assetId).toBe(`workshop-models/${hash}.glb`);
       expect(await readFile(join(root, 'public', imported.assetId))).toEqual(fixture);
@@ -36,7 +37,14 @@ describe('pinned model import', () => {
       const provenance = JSON.parse(await readFile(join(directory, files[0]), 'utf8')) as Record<string, string>;
       expect(provenance).toMatchObject({ sourceId: 'blaster-kit/blaster-a', sha256: hash,
         gitBlob: '826731460c39648b81ebcdd58532f6f30e21c4b6', license: 'CC0-1.0' });
-      expect(await importTgeModel('blaster-kit/blaster-a', root, hasValidLocalGLB, source)).toEqual(imported);
+      const offline = (async () => { throw new Error('offline'); }) as typeof fetch;
+      expect(await importTgeModel('blaster-kit/blaster-a', root, hasValidLocalGLB, offline)).toEqual(imported);
+      const altered = Buffer.from(fixture);
+      altered[altered.length - 1] ^= 1;
+      await writeFile(join(root, 'public', imported.assetId), altered);
+      expect(await findCachedTgeModel('blaster-kit/blaster-a', root, hasValidLocalGLB)).toBeNull();
+      await expect(importTgeModel('blaster-kit/blaster-a', root, hasValidLocalGLB, offline)).rejects.toThrow('offline');
+      expect(await readFile(join(root, 'public', imported.assetId))).toEqual(altered);
       await expect(importTgeModel('../../other', root, hasValidLocalGLB, source)).rejects.toThrow('Unknown');
     } finally { await rm(root, { recursive: true, force: true }); }
   });

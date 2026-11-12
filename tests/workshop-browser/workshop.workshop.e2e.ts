@@ -92,7 +92,7 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   const candidate = workshop.locator('[data-source-id="blaster-kit/blaster-a"]');
   await expect(candidate).toBeEnabled({ timeout: 30_000 });
   await candidate.click();
-  await expect(workshop.locator('[data-workshop="source-inspector"]')).toContainText('Not installed');
+  await expect(workshop.locator('[data-workshop="source-inspector"]')).toContainText(/Not installed|Installed locally/);
   await workshop.getByLabel('Search source candidates').fill('');
   await workshop.getByLabel('Collection').selectOption('featured');
   await expect(workshop.locator('[data-workshop="source-count"]')).toContainText('200 source candidates');

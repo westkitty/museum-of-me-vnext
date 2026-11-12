@@ -15,7 +15,7 @@ test('imports a pinned candidate into the actual Builder and inspects bounds', a
   await expect(item).toBeEnabled({ timeout: 30_000 });
   await item.click();
   const response = page.waitForResponse((value) => value.url().endsWith('/__museum-workshop/tge-import'));
-  await workshop.getByRole('button', { name: 'Import and place selected model' }).click();
+  await workshop.getByRole('button', { name: /Import and place selected model|Place cached model/ }).click();
   expect((await response).status()).toBe(200);
   await expect(workshop.locator('[data-workshop="source-inspector"]')).toContainText('bounds', { timeout: 60_000 });
   await expect(workshop.locator('[data-workshop="selection-title"]')).toHaveText('Blaster a');
@@ -23,4 +23,7 @@ test('imports a pinned candidate into the actual Builder and inspects bounds', a
     const root = window.__museum?.scene.getObjectByName('workshop:catalog-model-01');
     return Boolean(root?.children.length && root.children[0].type === 'Group');
   }, null, { timeout: 60_000 });
+  await item.click();
+  await expect(workshop.locator('[data-workshop="source-inspector"]')).toContainText('Installed locally');
+  await expect(workshop.getByRole('button', { name: 'Place cached model' })).toBeEnabled();
 });
