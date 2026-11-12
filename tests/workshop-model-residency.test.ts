@@ -74,4 +74,27 @@ describe('Workshop model world residency', () => {
     expect(placements.getObject('inside')?.visible).toBe(true);
     placements.dispose();
   });
+
+  it('keeps existing roots and in-flight model loads when adding an object', async () => {
+    let resolve!: (object: THREE.Object3D) => void;
+    const loader = vi.fn(() => new Promise<THREE.Object3D>((done) => { resolve = done; }));
+    const placements = new MuseumPlacements({ schemaVersion: 1, objects: [model('model-z', 'exterior')] }, null, loader);
+    const world = new CollisionWorld();
+    placements.syncWorld('exterior', world);
+    const priorRoot = placements.getObject('model-z');
+    placements.setRecord({ id: 'object-a', label: 'Sphere', prefab: 'sculpture-sphere', anchor: 'free',
+      position: [250, 0, 250], rotation: [0, 0, 0], scale: [1, 1, 1], worldId: 'exterior', collision: 'solid' });
+    expect(placements.getObject('model-z')).toBe(priorRoot);
+    expect(loader).toHaveBeenCalledTimes(1);
+    expect(placements.group.children.map((root) => root.userData.workshopId)).toEqual(['model-z', 'object-a'].sort());
+    placements.syncWorld('exterior', world);
+    expect(world.resolveHorizontal({ x: 250, y: 0, z: 250 }, 0.35, 1.78)).toBe(true);
+    const loaded = visual();
+    resolve(loaded.root);
+    await tick();
+    expect(priorRoot?.children[0]).toBe(loaded.root);
+    expect(loaded.dispose).not.toHaveBeenCalled();
+    placements.dispose();
+    expect(loaded.dispose).toHaveBeenCalledOnce();
+  });
 });

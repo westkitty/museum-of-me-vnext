@@ -45,6 +45,7 @@ export class MuseumPlacements {
   private readonly roots = new Map<string, THREE.Group>();
   private readonly recordsById = new Map<string, WorkshopPlacementRecord>();
   private readonly scope = new ResourceScope('museum-placements');
+  private materials: PlacementMaterials | null = null;
   private readonly registry: AuthorableSceneRegistry | null;
   private manifest: WorkshopPlacementManifest;
   private readonly boundCollisions = new Map<CollisionWorld, Set<string>>();
@@ -262,17 +263,21 @@ export class MuseumPlacements {
     }
     const previous = this.manifest;
     this.manifest = parsed.value;
-    const sameDefinitions = previous.objects.length === parsed.value.objects.length
-      && previous.objects.every((record, index) => this.roots.has(record.id)
-        && samePlacementDefinition(record, parsed.value!.objects[index]));
+    const oldById = new Map(previous.objects.map((record) => [record.id, record]));
+    const newById = new Map(parsed.value.objects.map((record) => [record.id, record]));
+    const sameDefinitions = previous.objects.every((record) => this.roots.has(record.id)
+      && samePlacementDefinition(record, newById.get(record.id))) && this.materials !== null;
     if (sameDefinitions) {
       // Keep prefab resources when only transforms, surfaces or scene overrides change.
       // Reapply even an unchanged saved transform: a live gizmo may have moved its root.
       let collisionDirty = false;
-      for (const [index, record] of parsed.value.objects.entries()) {
+      for (const record of parsed.value.objects) {
         const root = this.roots.get(record.id);
-        const old = previous.objects[index];
-        if (root) {
+        const old = oldById.get(record.id);
+        if (!old) {
+          this.addPlacement(record, this.materials!, this.rebuildRevision);
+          if (record.collision === 'solid') collisionDirty = true;
+        } else if (root) {
           const current = { position: root.position.toArray(), rotation: [root.rotation.x, root.rotation.y, root.rotation.z],
             scale: root.scale.toArray() };
           if (record.collision === 'solid' && (JSON.stringify(current) !== JSON.stringify({ position: record.position, rotation: record.rotation, scale: record.scale })
@@ -282,14 +287,18 @@ export class MuseumPlacements {
         }
         this.recordsById.set(record.id, record);
       }
+      const order = new Map(parsed.value.objects.map((record, index) => [record.id, index]));
+      this.group.children.sort((a, b) => (order.get(a.userData.workshopId as string) ?? 0)
+        - (order.get(b.userData.workshopId as string) ?? 0));
       if (collisionDirty) this.invalidateCollisions();
-      if (JSON.stringify(previous.sceneOverrides ?? []) !== JSON.stringify(parsed.value.sceneOverrides ?? [])) {
-        for (const entry of this.registry?.entries() ?? []) this.registry?.apply(entry.id, entry.baseline);
-        for (const override of parsed.value.sceneOverrides ?? []) this.registry?.apply(override.id, override);
-      }
+      // Live scene roots may have moved since the saved override, even when
+      // the requested manifest is byte-for-byte identical to the old one.
+      for (const entry of this.registry?.entries() ?? []) this.registry?.apply(entry.id, entry.baseline);
+      for (const override of parsed.value.sceneOverrides ?? []) this.registry?.apply(override.id, override);
       if (JSON.stringify(previous.surfaceOverrides ?? []) !== JSON.stringify(parsed.value.surfaceOverrides ?? [])) {
         this.surfaces.apply(parsed.value.surfaceOverrides ?? []);
       }
+      if (this.activeWorld) this.syncManagedModels(this.activeWorld);
     } else {
       this.rebuild();
     }
@@ -348,6 +357,7 @@ export class MuseumPlacements {
     this.roots.clear();
     this.recordsById.clear();
     this.scope.dispose();
+    this.materials = null;
   }
 
   private rebuild(): void {
@@ -367,9 +377,14 @@ export class MuseumPlacements {
     this.scope.releaseAll();
     for (const entry of this.registry?.entries() ?? []) this.registry?.apply(entry.id, entry.baseline);
     for (const override of this.manifest.sceneOverrides ?? []) this.registry?.apply(override.id, override);
-    const materials = this.createMaterials();
+    const materials = this.materials = this.createMaterials();
 
-    for (const record of this.manifest.objects) {
+    for (const record of this.manifest.objects) this.addPlacement(record, materials, revision);
+    this.surfaces.apply(this.manifest.surfaceOverrides ?? []);
+    if (this.activeWorld) this.syncManagedModels(this.activeWorld);
+  }
+
+  private addPlacement(record: WorkshopPlacementRecord, materials: PlacementMaterials, revision: number): void {
       this.recordsById.set(record.id, record);
       const root = this.buildPrefab(record, materials);
       if (record.color) {
@@ -428,9 +443,6 @@ export class MuseumPlacements {
           surface.material = this.scope.track(new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
         }
       }
-    }
-    this.surfaces.apply(this.manifest.surfaceOverrides ?? []);
-    if (this.activeWorld) this.syncManagedModels(this.activeWorld);
   }
 
   /** Release decoded assets while retaining their lightweight editable roots and saved transforms. */

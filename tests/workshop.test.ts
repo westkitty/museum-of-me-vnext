@@ -325,6 +325,11 @@ describe('MuseumPlacements', () => {
     placements.setSceneOverride('arrival-garden-shrub-01', { position: [31, 0, 42], rotation: [0, 0, 0], scale: [1, 1, 1] });
     expect(placements.getObject('bench-01')).toBe(original);
     expect(shrub.position.x).toBe(31);
+    const saved = placements.captureManifest();
+    shrub.position.x = 40;
+    placements.replaceManifest(saved);
+    expect(shrub.position.x).toBe(31);
+    expect(placements.getObject('bench-01')).toBe(original);
     placements.removeSurfaceOverride('exterior:0');
     expect(mesh.material).toBe(material);
     expect(placements.getObject('bench-01')).toBe(original);
