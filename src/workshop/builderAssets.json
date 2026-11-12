@@ -2613,28 +2613,44 @@
       "label": "Blue wallpaper",
       "path": "builder-assets/openlife/wallpaper_blue.png",
       "source": "OpenLife",
-      "license": "MIT"
+      "license": "MIT",
+      "sha256": "28d7a2c0fe18cd5003901c961b7ead9f2dc8275a201be3c1ab3db8cc3b8ca4ba",
+      "bytes": 855,
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sourcePath": "assets/generated/textures/wallpaper_blue.png"
     },
     {
       "id": "wallpaper-cream",
       "label": "Cream wallpaper",
       "path": "builder-assets/openlife/wallpaper_cream.png",
       "source": "OpenLife",
-      "license": "MIT"
+      "license": "MIT",
+      "sha256": "6cb01231ebc55a5bd4217ed429ae3fdf90d9c128fba7cebafc6fbb39026ed112",
+      "bytes": 857,
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sourcePath": "assets/generated/textures/wallpaper_cream.png"
     },
     {
       "id": "floor-wood",
       "label": "Wood floor",
       "path": "builder-assets/openlife/floor_wood.png",
       "source": "OpenLife",
-      "license": "MIT"
+      "license": "MIT",
+      "sha256": "a2574b9d642d63e5f6e2dbb7f6c9f72a65ab3ec5b33e5a019f14b89a80eedb80",
+      "bytes": 678,
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sourcePath": "assets/generated/textures/floor_wood.png"
     },
     {
       "id": "stone-paver",
       "label": "Stone paver",
       "path": "builder-assets/openlife/stone_paver.png",
       "source": "OpenLife",
-      "license": "MIT"
+      "license": "MIT",
+      "sha256": "507c35e0a3a47c9b728b29e51bd87ffc228683fe1f4f40e9d6230b5a7e149e7c",
+      "bytes": 3575,
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sourcePath": "assets/generated/textures/stone_paver.png"
     },
     {
       "id": "driveway",
