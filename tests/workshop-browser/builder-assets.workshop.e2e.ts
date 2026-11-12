@@ -14,8 +14,14 @@ test('asset search summons a real local GLB and finishes an existing wall withou
   await expect(workshop).toBeVisible();
 
   const search = workshop.locator('[data-workshop="asset-search"]');
-  await search.fill('telescope');
+  const category = workshop.locator('[data-workshop="asset-category"]');
   const items = workshop.locator('[data-workshop="asset-results"] button');
+  await expect(workshop.locator('[data-workshop="asset-count"]')).toHaveText('119 locally verified 3D assets');
+  await category.selectOption('Characters');
+  await search.fill('sim');
+  expect(await items.count()).toBeGreaterThan(10);
+  await category.selectOption('All');
+  await search.fill('telescope');
   await expect(items).toHaveCount(1);
   await expect(items.first()).toContainText('Telescope');
   await items.first().click();
@@ -25,6 +31,19 @@ test('asset search summons a real local GLB and finishes an existing wall withou
   // The placeholder must be replaced by a real parsed GLTF scene.
   await page.waitForFunction(() => {
     const root = window.__museum?.scene.getObjectByName('workshop:catalog-model-01');
+    return Boolean(root?.children.length && root.children[0].type === 'Group');
+  }, null, { timeout: 60_000 });
+
+  // Newly added, individually sourced inventory must also be summonable
+  // using the exact same loader and transform/save path as the original shelf.
+  await category.selectOption('Vehicles');
+  await search.fill('vehicle compact');
+  await expect(items).toHaveCount(1);
+  await expect(items.first()).toContainText('Vehicle Compact');
+  await items.first().click();
+  await expect(workshop.locator('[data-workshop="selection-title"]')).toHaveText('Vehicle Compact');
+  await page.waitForFunction(() => {
+    const root = window.__museum?.scene.getObjectByName('workshop:catalog-model-02');
     return Boolean(root?.children.length && root.children[0].type === 'Group');
   }, null, { timeout: 60_000 });
 
