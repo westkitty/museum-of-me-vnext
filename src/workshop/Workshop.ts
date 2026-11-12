@@ -6,6 +6,7 @@ import { BuilderCamera, type BuilderView } from './BuilderCamera';
 import type { AuthorableSceneEntry, AuthorableSceneTransform } from './AuthorableSceneRegistry';
 import { WORKSHOP_PREFABS, type WorkshopPrefabId } from './catalog';
 import { measureWall, snapWallPoint, type WallPoint } from './WallSketch';
+import { measureRoom } from './RoomSketch';
 import { defaultOpening } from './WallOpenings';
 import { BUILDER_MODELS, BUILDER_FINISHES, searchBuilderLibrary, builderModel } from './builderAssetCatalog';
 import { conservationErrors, validateWorkshopConservation } from './conservation';
@@ -54,6 +55,10 @@ export class Workshop {
   private wallDrawing = false;
   private wallDrawStart: WallPoint | null = null;
   private wallDrawHeight = 0;
+  private roomDrawing = false;
+  private roomDrawStart: WallPoint | null = null;
+  private readonly roomPreview: THREE.LineLoop;
+  private readonly roomRoofInput: HTMLInputElement;
   private readonly wallPreview: THREE.Line;
   private savedVisitorPosition: THREE.Vector3 | null = null;
   private savedVisitorYaw = 0;
@@ -108,6 +113,7 @@ export class Workshop {
     this.eventInput = this.el<HTMLSelectElement>('event');
     this.snapInput = this.el<HTMLSelectElement>('grid-snap');
     this.uniformScaleInput = this.el<HTMLInputElement>('uniform-scale');
+    this.roomRoofInput = this.el<HTMLInputElement>('room-roof');
     for (const key of INPUT_KEYS) this.inputs[key] = this.el<HTMLInputElement>(key);
 
     this.camera = new BuilderCamera(app);
@@ -132,6 +138,17 @@ export class Workshop {
     this.wallPreview.visible = false;
     this.wallPreview.frustumCulled = false;
     app.scene.add(this.wallPreview);
+    const roomOutlineGeometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(),
+    ]);
+    this.roomPreview = new THREE.LineLoop(
+      roomOutlineGeometry,
+      new THREE.LineBasicMaterial({ color: 0xf2d58b, depthTest: false }),
+    );
+    this.roomPreview.name = 'museum-builder-room-outline-guide';
+    this.roomPreview.visible = false;
+    this.roomPreview.frustumCulled = false;
+    app.scene.add(this.roomPreview);
 
     this.bindUi();
     this.transform.addEventListener('mouseDown', this.onTransformStart);
@@ -180,6 +197,7 @@ export class Workshop {
     this.root.hidden = true;
     this.camera.close();
     this.cancelWallDrawing();
+    this.cancelRoomDrawing();
     this.placements.setOriginalComparison(false);
     this.wallPlacementActive = false;
     this.transform.enabled = false;
@@ -234,6 +252,9 @@ export class Workshop {
     this.wallPreview.removeFromParent();
     this.wallPreview.geometry.dispose();
     (this.wallPreview.material as THREE.Material).dispose();
+    this.roomPreview.removeFromParent();
+    this.roomPreview.geometry.dispose();
+    (this.roomPreview.material as THREE.Material).dispose();
     this.camera.dispose();
     this.clearSelectionBox();
     this.root.remove();
@@ -284,6 +305,7 @@ export class Workshop {
     this.imageInput.addEventListener('change', () => void this.importArtwork());
     this.el<HTMLButtonElement>('place-wall').addEventListener('click', () => this.beginWallPlacement());
     this.el<HTMLButtonElement>('draw-wall').addEventListener('click', () => this.toggleWallDrawing());
+    this.el<HTMLButtonElement>('draw-room').addEventListener('click', () => this.toggleRoomDrawing());
     this.snapInput.addEventListener('change', () => this.configureSnap());
     this.el<HTMLButtonElement>('view-dollhouse').addEventListener('click', () => this.setView('dollhouse'));
     this.el<HTMLButtonElement>('view-orbit').addEventListener('click', () => this.setView('orbit'));
@@ -349,6 +371,7 @@ export class Workshop {
 
   private toggleComparison(): void {
     this.cancelWallDrawing();
+    this.cancelRoomDrawing();
     this.wallPlacementActive = false;
     this.placements.setOriginalComparison(!this.placements.isComparingOriginal);
     this.helper.visible = this.openState && !this.placements.isComparingOriginal && this.selectedId !== null;
@@ -524,6 +547,7 @@ export class Workshop {
     }
     if (this.placements.isComparingOriginal) return;
     this.wallPlacementActive = false;
+    if (this.roomDrawing) this.cancelRoomDrawing();
     this.wallDrawing = true;
     this.wallDrawStart = null;
     // The visitor feet height defines the drawing plane; elevation can be
@@ -599,7 +623,9 @@ export class Workshop {
   }
 
   private readonly onWallPointerMove = (event: PointerEvent): void => {
-    if (!this.openState || !this.wallDrawing || !this.wallDrawStart) return;
+    if (!this.openState || (!this.wallDrawing && !this.roomDrawing)) return;
+    if (this.wallDrawing && !this.wallDrawStart) return;
+    if (this.roomDrawing && !this.roomDrawStart) return;
     const rect = this.app.renderer.canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     this.pointer.set(
@@ -607,12 +633,14 @@ export class Workshop {
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
     const endpoint = this.pointerOnDrawingPlane();
-    if (endpoint) this.updateWallGuide(endpoint);
+    if (endpoint && this.wallDrawing) this.updateWallGuide(endpoint);
+    if (endpoint && this.roomDrawing) this.updateRoomGuide(endpoint);
   };
 
   private add(prefab: WorkshopPrefabId): void {
     if (this.placements.isComparingOriginal) return;
     if (this.wallDrawing) this.cancelWallDrawing();
+    if (this.roomDrawing) this.cancelRoomDrawing();
     const before = this.placements.captureManifest();
     if (before.objects.length >= 256) return this.note('Workshop object limit reached.', 'error');
     const direction = new THREE.Vector3();
@@ -1033,7 +1061,7 @@ export class Workshop {
   private readonly onCanvasPointerDown = (event: PointerEvent): void => {
     if (this.placements.isComparingOriginal) return;
     if (!this.openState || event.button !== 0 || this.transform.dragging
-      || (!this.wallDrawing && this.transform.axis !== null)) return;
+      || (!this.wallDrawing && !this.roomDrawing && this.transform.axis !== null)) return;
     const rect = this.app.renderer.canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     this.pointer.set(
@@ -1043,6 +1071,11 @@ export class Workshop {
     if (this.wallDrawing) {
       event.preventDefault();
       this.drawWallClick();
+      return;
+    }
+    if (this.roomDrawing) {
+      event.preventDefault();
+      this.drawRoomClick();
       return;
     }
     if (this.wallPlacementActive) {
@@ -1126,6 +1159,13 @@ export class Workshop {
       event.stopPropagation();
       return;
     }
+    if (event.code === 'Escape' && this.roomDrawing) {
+      this.cancelRoomDrawing();
+      this.note('Room drawing cancelled.', 'warn');
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     if (event.code === 'Escape' && this.wallDrawing) {
       this.cancelWallDrawing();
       this.note('Wall drawing cancelled.', 'warn');
@@ -1168,6 +1208,10 @@ export class Workshop {
     const placement = this.record();
     const placementSelected = placement !== null;
     const comparing = this.placements.isComparingOriginal;
+    this.el<HTMLButtonElement>('draw-room').dataset.active = String(this.roomDrawing);
+    this.el<HTMLButtonElement>('draw-room').textContent = this.roomDrawing ? 'Cancel room draw' : 'Draw room';
+    this.el<HTMLButtonElement>('draw-room').disabled = comparing;
+    this.roomRoofInput.disabled = comparing;
     this.el<HTMLButtonElement>('draw-wall').dataset.active = String(this.wallDrawing);
     this.el<HTMLButtonElement>('draw-wall').textContent = this.wallDrawing ? 'Cancel wall draw' : 'Draw wall';
     this.el<HTMLButtonElement>('draw-wall').disabled = comparing;
@@ -1350,6 +1394,7 @@ const WORKSHOP_HTML = `
   <button type="button" data-view="top" data-workshop="view-top">Top</button>
   <button type="button" data-workshop="world-exterior">Island</button><button type="button" data-workshop="world-interior">Museum</button>
   <button type="button" data-workshop="draw-wall" title="Two clicks on the floor to draw a solid, editable partition">Draw wall</button>
+  <button type="button" data-workshop="draw-room" title="Two opposite corners create four walls and a walkable floor in one undoable step">Draw room</button>
   <button type="button" data-workshop="compare" title="Temporarily reveal the original museum without losing authored work">Reveal original</button>
   <button type="button" data-workshop="space">World</button><button type="button" data-workshop="floor">Snap floor</button>
   <button type="button" data-workshop="undo">Undo</button><button type="button" data-workshop="redo">Redo</button>
@@ -1365,6 +1410,11 @@ const WORKSHOP_HTML = `
     <label>Label<input data-workshop="label" maxlength="80"></label>
     <label>Anchor<select data-workshop="anchor"><option value="floor">Floor anchored</option><option value="free">Free placement</option><option value="wall">Wall mounted</option></select></label>
     <div class="workshop-row"><button type="button" data-workshop="duplicate">Duplicate</button><button type="button" data-workshop="delete">Delete</button></div>
+  </section>
+  <section><h3>Room construction</h3>
+    <p class="workshop-muted">Draw room: click two opposite floor corners. It makes four individual editable walls plus one walkable floor. Size 1.25–30 m per side. One Undo removes the whole room.</p>
+    <label><input type="checkbox" data-workshop="room-roof"> Add roof panel with room</label>
+    <p class="workshop-muted">Each new wall can have a real door or window opening. Original museum structure stays protected.</p>
   </section>
   <section><h3>Transform</h3>
     <div class="workshop-vector"><span>Position</span><input type="number" step=".05" data-workshop="px"><input type="number" step=".05" data-workshop="py"><input type="number" step=".05" data-workshop="pz"></div>
