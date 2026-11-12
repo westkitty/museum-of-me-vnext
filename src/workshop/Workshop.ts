@@ -49,6 +49,8 @@ export class Workshop {
   private readonly openingSillInput: HTMLInputElement;
   private readonly collisionInput: HTMLSelectElement;
   private readonly eventInput: HTMLSelectElement;
+  private readonly eventMessageInput: HTMLInputElement;
+  private readonly eventColorInput: HTMLInputElement;
   private readonly snapInput: HTMLSelectElement;
   private readonly uniformScaleInput: HTMLInputElement;
   private wallPlacementActive = false;
@@ -111,6 +113,8 @@ export class Workshop {
     this.openingSillInput = this.el<HTMLInputElement>('opening-sill');
     this.collisionInput = this.el<HTMLSelectElement>('collision');
     this.eventInput = this.el<HTMLSelectElement>('event');
+    this.eventMessageInput = this.el<HTMLInputElement>('event-message');
+    this.eventColorInput = this.el<HTMLInputElement>('event-color');
     this.snapInput = this.el<HTMLSelectElement>('grid-snap');
     this.uniformScaleInput = this.el<HTMLInputElement>('uniform-scale');
     this.roomRoofInput = this.el<HTMLInputElement>('room-roof');
@@ -301,7 +305,14 @@ export class Workshop {
       input.addEventListener('change', () => this.commitAppearance());
     }
     this.collisionInput.addEventListener('change', () => this.commitAppearance());
-    this.eventInput.addEventListener('change', () => this.commitAppearance());
+    this.eventInput.addEventListener('change', () => {
+      if (this.eventInput.value === 'message' && !this.eventMessageInput.value.trim()) {
+        this.eventMessageInput.value = `Welcome to ${this.record()?.label ?? 'the museum'}`;
+      }
+      this.commitAppearance();
+    });
+    this.eventMessageInput.addEventListener('change', () => this.commitAppearance());
+    this.eventColorInput.addEventListener('change', () => this.commitAppearance());
     this.imageInput.addEventListener('change', () => void this.importArtwork());
     this.el<HTMLButtonElement>('place-wall').addEventListener('click', () => this.beginWallPlacement());
     this.el<HTMLButtonElement>('draw-wall').addEventListener('click', () => this.toggleWallDrawing());
@@ -940,7 +951,11 @@ export class Workshop {
         opening,
         openingWidth: width, openingHeight: height, openingSill: sill,
         collision: this.collisionInput.value as 'none' | 'solid',
-        event: this.eventInput.value as 'none' | 'announce',
+        event: this.eventInput.value as 'none' | 'announce' | 'message' | 'toggle-glow' | 'toggle-tint',
+        eventMessage: ['message', 'toggle-glow', 'toggle-tint'].includes(this.eventInput.value)
+          ? this.eventMessageInput.value.trim() || undefined : undefined,
+        eventColor: ['toggle-glow', 'toggle-tint'].includes(this.eventInput.value)
+          ? this.eventColorInput.value : undefined,
       });
       this.history.push(`Finish ${record.label}`, before, after);
       this.select(record.id);
@@ -1365,6 +1380,11 @@ export class Workshop {
     this.openingSillInput.disabled = notWall || locked || record?.opening !== 'window';
     this.collisionInput.disabled = !record || locked;
     this.eventInput.disabled = !record || locked;
+    const hasAuthoredReaction = record?.event === 'message'
+      || record?.event === 'toggle-glow' || record?.event === 'toggle-tint';
+    this.eventMessageInput.disabled = !record || locked || !hasAuthoredReaction;
+    this.eventColorInput.disabled = !record || locked
+      || (record.event !== 'toggle-glow' && record.event !== 'toggle-tint');
     this.imageInput.disabled = record?.prefab !== 'wall-art' || locked;
     if (surface) {
       const finish = this.placements.getSurfaceOverride(surface.id);
@@ -1381,6 +1401,8 @@ export class Workshop {
       this.openingInput.value = 'none';
       this.collisionInput.value = 'none';
       this.eventInput.value = 'none';
+      this.eventMessageInput.value = '';
+      this.eventColorInput.value = '#ffc96b';
       for (const input of Object.values(this.inputs)) input.value = '';
       return;
     }
@@ -1394,6 +1416,8 @@ export class Workshop {
       this.openingInput.value = 'none';
       this.collisionInput.value = 'none';
       this.eventInput.value = 'none';
+      this.eventMessageInput.value = '';
+      this.eventColorInput.value = '#ffc96b';
       for (const input of Object.values(this.inputs)) input.value = '';
       return;
     }
@@ -1416,6 +1440,8 @@ export class Workshop {
     this.openingSillInput.value = String(Math.round((record?.openingSill ?? fallback.sill) * 100));
     this.collisionInput.value = record?.collision ?? 'none';
     this.eventInput.value = record?.event ?? 'none';
+    this.eventMessageInput.value = record?.eventMessage ?? '';
+    this.eventColorInput.value = record?.eventColor ?? '#ffc96b';
     const values: Record<InputKey, number> = {
       px: object.position.x, py: object.position.y, pz: object.position.z,
       rx: object.rotation.x * DEG, ry: object.rotation.y * DEG, rz: object.rotation.z * DEG,
@@ -1544,7 +1570,10 @@ const WORKSHOP_HTML = `
     <label>Artwork image<input data-workshop="image" type="file" accept="image/*"></label>
     <p class="workshop-muted">Images become local WebP files in public/workshop-media. Review before committing or publishing.</p>
     <label>Collision<select data-workshop="collision"><option value="none">Walk through (none)</option><option value="solid">Solid bounding box</option></select></label>
-    <label>On interact<select data-workshop="event"><option value="none">No action</option><option value="announce">Announce object name</option></select></label>
+    <label>On interact<select data-workshop="event"><option value="none">No action</option><option value="announce">Announce object name</option><option value="message">Show a custom message</option><option value="toggle-glow">Toggle glow</option><option value="toggle-tint">Toggle color tint</option></select></label>
+    <label>Event message<input data-workshop="event-message" type="text" maxlength="160" placeholder="What should visitors see?" aria-label="Interaction message"></label>
+    <label>Reaction color<input data-workshop="event-color" type="color" value="#ffc96b" aria-label="Interaction reaction color"></label>
+    <p class="workshop-muted">Visitor actions are limited to authored text, reversible emissive light or material tint. No user-supplied JavaScript is evaluated.</p>
     <p class="workshop-muted">Protected geometry and routes remain locked. No arbitrary scripts are executed.</p>
   </section>
   <section><h3>Asset library</h3>
