@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import { MAX_RESIDENT_PLACEMENTS, MuseumPlacements, RESIDENT_RADIUS } from '../src/workshop/MuseumPlacements';
 import { CollisionWorld } from '../src/world/CollisionWorld';
+import { zoneAtXYZ } from '../src/world/layout';
+import { validateWorkshopManifestForMuseum } from '../src/workshop/conservation';
 import { canonicalizeWorkshopManifest, type WorkshopPlacementRecord } from '../src/workshop/schema';
 
 const PREFABS = ['museum-bench', 'display-plinth', 'artifact-table', 'sign-post', 'sculpture-sphere'] as const;
@@ -135,6 +137,103 @@ describe('Workshop bounded placement residency', () => {
     const placements = new MuseumPlacements(manifest(distributed(40)));
     placements.syncWorld('exterior', new CollisionWorld(), undefined, undefined, undefined, focusAt(-400, -400));
     expect(placements.residentCount).toBe(40);
+    placements.dispose();
+  });
+});
+
+describe('Workshop zone-aware interior residency', () => {
+  // North holds fewer records than the live cap, so distance alone would spill into other wings.
+  const ZONE_QUOTA = { north: 120, east: 700, south: 600, west: 554, rotunda: 26 } as const;
+
+  /** 2,000 interior records at conservation-valid points, spread over the four ground wings and the rotunda. */
+  function interiorRecords(): WorkshopPlacementRecord[] {
+    const out: WorkshopPlacementRecord[] = [];
+    const taken = new Map<string, number>();
+    for (let x = -100; x <= 100 && out.length < 2000; x += 2) {
+      for (let z = -100; z <= 110 && out.length < 2000; z += 2) {
+        const zone = zoneAtXYZ(x, 0.5, z) as keyof typeof ZONE_QUOTA;
+        if (!(zone in ZONE_QUOTA) || (taken.get(zone) ?? 0) >= ZONE_QUOTA[zone]) continue;
+        const record: WorkshopPlacementRecord = { id: `in-${zone}-${String(taken.get(zone) ?? 0).padStart(3, '0')}`,
+          label: zone, prefab: 'sculpture-sphere', anchor: 'floor', position: [x, 0.5, z],
+          rotation: [0, 0, 0], scale: [0.3, 0.3, 0.3], worldId: 'interior' };
+        if (!validateWorkshopManifestForMuseum({ schemaVersion: 2, objects: [record] }, []).ok) continue;
+        taken.set(zone, (taken.get(zone) ?? 0) + 1);
+        out.push(record);
+      }
+    }
+    return out;
+  }
+  const records = interiorRecords();
+  const zoneOf = (id: string) => id.split('-')[1];
+  const sync = (placements: MuseumPlacements, world: CollisionWorld, focus: THREE.Vector3) =>
+    placements.syncWorld('interior', new CollisionWorld(), world, undefined, undefined, focus);
+
+  it('builds a 2,000-record interior fixture from conservation-valid points', () => {
+    expect(records).toHaveLength(2000);
+  });
+
+  it('loads the current zone first and leaves non-adjacent wings dormant even when they are near', () => {
+    const placements = new MuseumPlacements(manifest(records));
+    const interior = new CollisionWorld();
+    const focus = new THREE.Vector3(0, 1.7, -60);
+    expect(zoneAtXYZ(focus.x, focus.y, focus.z)).toBe('north');
+    sync(placements, interior, focus);
+
+    const live = liveIds(placements);
+    const northIds = records.filter((record) => zoneOf(record.id) === 'north').map((record) => record.id);
+    // Every north record is live; the only other live records are in the adjacent rotunda.
+    expect(new Set(live.filter((id) => zoneOf(id) === 'north'))).toEqual(new Set(northIds));
+    for (const id of live) expect(['north', 'rotunda']).toContain(zoneOf(id));
+    // A non-adjacent east-wing record within RESIDENT_RADIUS of the focus stays dormant.
+    const nearEast = records.find((record) => zoneOf(record.id) === 'east'
+      && Math.hypot(record.position[0] - focus.x, record.position[2] - focus.z) < RESIDENT_RADIUS);
+    expect(nearEast).toBeDefined();
+    expect(live).not.toContain(nearEast!.id);
+    placements.dispose();
+  });
+
+  it('fills from the rotunda and its neighbouring wings when the visitor stands in the rotunda', () => {
+    const placements = new MuseumPlacements(manifest(records));
+    sync(placements, new CollisionWorld(), new THREE.Vector3(0, 1.7, 0));
+    const live = liveIds(placements);
+    const rotunda = records.filter((record) => zoneOf(record.id) === 'rotunda').map((record) => record.id);
+    for (const id of rotunda) expect(live).toContain(id);
+    const expected = records.filter((record) => zoneOf(record.id) !== 'rotunda')
+      .map((record) => ({ id: record.id, d: Math.hypot(record.position[0], record.position[1] - 1.7, record.position[2]) }))
+      .filter((entry) => entry.d <= RESIDENT_RADIUS)
+      .sort((a, b) => a.d - b.d || a.id.localeCompare(b.id))
+      .slice(0, MAX_RESIDENT_PLACEMENTS - rotunda.length).map((entry) => entry.id);
+    expect(new Set(live)).toEqual(new Set([...rotunda, ...expected]));
+    placements.dispose();
+  });
+
+  it('re-evaluates on a zone crossing shorter than the distance step', () => {
+    const placements = new MuseumPlacements(manifest(records));
+    const interior = new CollisionWorld();
+    // Find two points under 4 m apart on the north axis that lie in different zones.
+    let inside = -10;
+    while (zoneAtXYZ(0, 1.7, inside - 1) === 'rotunda') inside -= 1;
+    const before = new THREE.Vector3(0, 1.7, inside + 1);
+    const after = new THREE.Vector3(0, 1.7, inside - 2);
+    expect(zoneAtXYZ(before.x, before.y, before.z)).toBe('rotunda');
+    expect(zoneAtXYZ(after.x, after.y, after.z)).toBe('north');
+    sync(placements, interior, before);
+    expect(new Set(liveIds(placements).map(zoneOf)).size).toBeGreaterThan(1);
+    sync(placements, interior, after);
+    for (const id of liveIds(placements)) expect(['north', 'rotunda']).toContain(zoneOf(id));
+    expect(liveIds(placements).some((id) => ['east', 'west', 'south'].includes(zoneOf(id)))).toBe(false);
+    placements.dispose();
+  });
+
+  it('keeps dormant interior collision for every solid record across zone changes', () => {
+    const solid = records.map((record) => ({ ...record, collision: 'solid' as const }));
+    const placements = new MuseumPlacements(manifest(solid));
+    const interior = new CollisionWorld();
+    sync(placements, interior, new THREE.Vector3(0, 1.7, -60));
+    const count = () => interior.snapshot().filter((entry) => entry.ownership === 'dynamic').length;
+    expect(count()).toBe(2000);
+    sync(placements, interior, new THREE.Vector3(60, 1.7, 0));
+    expect(count()).toBe(2000);
     placements.dispose();
   });
 });

@@ -6,6 +6,7 @@ import { defaultOpening, wallOpeningSegments } from './WallOpenings';
 import { createWorkshopActivation } from './BuilderEvents';
 import { constructionColliders } from './ConstructionCollision';
 import type { CollisionWorld } from '../world/CollisionWorld';
+import { ZONES, zoneAtXYZ, type ZoneId } from '../world/layout';
 import type { InteractionManager } from '../interaction/InteractionManager';
 import { AuthorableSceneRegistry, type AuthorableSceneTransform } from './AuthorableSceneRegistry';
 import { validateWorkshopManifestForMuseum } from './conservation';
@@ -38,6 +39,18 @@ interface LocalBounds { readonly box: THREE.Box3; readonly matrix: THREE.Matrix4
 export const MAX_RESIDENT_PLACEMENTS = 384;
 export const RESIDENT_RADIUS = 60;
 const RESIDENCY_STEP_SQ = 4 * 4;
+const ZONE_NEIGHBOURS = new Map<ZoneId, ReadonlySet<ZoneId>>(
+  ZONES.map((zone) => [zone.id, new Set<ZoneId>(zone.neighbours as readonly ZoneId[])]));
+/** Records are immutable once validated, so each record's zone is computed once. */
+const recordZones = new WeakMap<WorkshopPlacementRecord, ZoneId>();
+function recordZone(record: WorkshopPlacementRecord): ZoneId {
+  let zone = recordZones.get(record);
+  if (!zone) {
+    zone = zoneAtXYZ(record.position[0], record.position[1], record.position[2]);
+    recordZones.set(record, zone);
+  }
+  return zone;
+}
 
 interface ManagedModel {
   readonly root: THREE.Group;
@@ -78,6 +91,7 @@ export class MuseumPlacements {
   private readonly residencyFocus = new THREE.Vector3();
   private hasResidencyFocus = false;
   private pinnedId: string | null = null;
+  private focusZone: ZoneId | null = null;
 
   constructor(rawManifest: unknown, registry: AuthorableSceneRegistry | null = null,
     private readonly modelLoader: (assetId: string) => Promise<THREE.Object3D> = defaultModelLoader) {
@@ -156,7 +170,10 @@ export class MuseumPlacements {
         if (root) root.visible = !record.worldId || record.worldId === 'shared' || record.worldId === world;
       }
     }
-    if (focus && (!this.hasResidencyFocus || changedWorld
+    const zoned = world === 'interior' && this.recordsById.size > MAX_RESIDENT_PLACEMENTS;
+    const zoneChanged = Boolean(focus) && zoned
+      && zoneAtXYZ(focus!.x, focus!.y, focus!.z) !== this.focusZone;
+    if (focus && (!this.hasResidencyFocus || changedWorld || zoneChanged
       || focus.distanceToSquared(this.residencyFocus) >= RESIDENCY_STEP_SQ)) {
       this.residencyFocus.copy(focus);
       this.hasResidencyFocus = true;
@@ -557,6 +574,12 @@ export class MuseumPlacements {
       for (const record of records) keep.add(record.id);
     } else {
       if (this.pinnedId) keep.add(this.pinnedId);
+      // Indoors, walls separate zones: favour the visitor's own zone, then its
+      // neighbours, and leave non-adjacent zones dormant even when nearby.
+      const zoned = this.activeWorld === 'interior' && this.hasResidencyFocus;
+      const here = zoned ? zoneAtXYZ(this.residencyFocus.x, this.residencyFocus.y, this.residencyFocus.z) : null;
+      this.focusZone = here;
+      const near = here ? ZONE_NEIGHBOURS.get(here) : undefined;
       const candidates: { id: string; distanceSq: number }[] = [];
       for (const record of records) {
         const root = this.roots.get(record.id);
@@ -568,6 +591,12 @@ export class MuseumPlacements {
         const dy = record.position[1] - this.residencyFocus.y;
         const dz = record.position[2] - this.residencyFocus.z;
         const distanceSq = dx * dx + dy * dy + dz * dz;
+        if (here) {
+          const zone = recordZone(record);
+          // The whole current zone is eligible and sorts ahead of every neighbour.
+          if (zone === here) { candidates.push({ id: record.id, distanceSq: distanceSq - 1e9 }); continue; }
+          if (!near?.has(zone)) continue;
+        }
         if (distanceSq <= RESIDENT_RADIUS * RESIDENT_RADIUS) candidates.push({ id: record.id, distanceSq });
       }
       candidates.sort((a, b) => a.distanceSq - b.distanceSq || a.id.localeCompare(b.id));
