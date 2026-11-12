@@ -96,6 +96,9 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   await workshop.getByLabel('Search source candidates').fill('');
   await workshop.getByLabel('Collection').selectOption('featured');
   await expect(workshop.locator('[data-workshop="source-count"]')).toContainText('200 source candidates');
+  await workshop.getByLabel('Source pack').selectOption('space-kit');
+  await workshop.getByLabel('Featured target wing').selectOption('north / Starsilk & Drakken');
+  await expect(workshop.locator('[data-workshop="source-count"]')).toContainText('27 source candidates');
   await expect(workshop.locator('[data-workshop="selection-title"]')).toHaveText('Arrival garden shrub 1');
   await expect(workshop.locator('[data-workshop="keymap"]')).toContainText('Select/Edit object');
   await page.mouse.click(640, 360);

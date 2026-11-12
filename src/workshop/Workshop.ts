@@ -280,6 +280,8 @@ export class Workshop {
     this.el<HTMLButtonElement>('source-import').addEventListener('click', () => void this.importSourceCandidate());
     this.el<HTMLInputElement>('source-search').addEventListener('input', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
     this.el<HTMLSelectElement>('source-featured').addEventListener('change', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
+    this.el<HTMLSelectElement>('source-pack').addEventListener('change', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
+    this.el<HTMLSelectElement>('source-wing').addEventListener('change', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
     this.el<HTMLButtonElement>('source-prev').addEventListener('click', () => { this.sourcePage--; this.refreshSourceCatalog(); });
     this.el<HTMLButtonElement>('source-next').addEventListener('click', () => { this.sourcePage++; this.refreshSourceCatalog(); });
     this.root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((button) => {
@@ -526,6 +528,16 @@ export class Workshop {
     button.disabled = true;
     try {
       this.sourceCatalog = (await import('./catalog-data/tge-index.json')).default.models;
+      const packs = new Map(this.sourceCatalog.map((item) => [item.pack, item.packName]));
+      const packSelect = this.el<HTMLSelectElement>('source-pack');
+      for (const [id, label] of [...packs].sort((a, b) => a[1].localeCompare(b[1]))) {
+        const option = document.createElement('option'); option.value = id; option.textContent = label; packSelect.append(option);
+      }
+      const wings = [...new Set(this.sourceCatalog.flatMap((item) => item.featured ? [item.featured.wing] : []))].sort();
+      const wingSelect = this.el<HTMLSelectElement>('source-wing');
+      for (const wing of wings) {
+        const option = document.createElement('option'); option.value = wing; option.textContent = wing; wingSelect.append(option);
+      }
       this.el('source-controls').hidden = false;
       button.hidden = true;
       this.refreshSourceCatalog();
@@ -539,7 +551,10 @@ export class Workshop {
     if (!this.sourceCatalog) return;
     const query = this.el<HTMLInputElement>('source-search').value.trim().toLowerCase();
     const featuredOnly = this.el<HTMLSelectElement>('source-featured').value === 'featured';
+    const pack = this.el<HTMLSelectElement>('source-pack').value;
+    const wing = this.el<HTMLSelectElement>('source-wing').value;
     const matches = this.sourceCatalog.filter((item) => (!featuredOnly || Boolean(item.featured))
+      && (!pack || item.pack === pack) && (!wing || item.featured?.wing === wing)
       && (!query || [item.name, item.id, item.packName, item.featured?.target ?? '',
         item.featured?.wing ?? '', item.featured?.role ?? ''].some((field) => field.toLowerCase().includes(query))));
     const pages = Math.max(1, Math.ceil(matches.length / 24));
@@ -1767,6 +1782,8 @@ const WORKSHOP_HTML = `
     <div data-workshop="source-controls" hidden>
       <label>Search source<input data-workshop="source-search" type="search" aria-label="Search source candidates"></label>
       <label>Collection<select data-workshop="source-featured"><option value="all">All 3D candidates</option><option value="featured">Featured 200</option></select></label>
+      <label>Source pack<select data-workshop="source-pack"><option value="">All packs</option></select></label>
+      <label>Featured target wing<select data-workshop="source-wing"><option value="">All wings</option></select></label>
       <p data-workshop="source-count" role="status"></p>
       <div data-workshop="source-results" class="workshop-asset-results" role="group" aria-label="Source candidates"></div>
       <button type="button" data-workshop="source-prev">Previous candidates</button>
