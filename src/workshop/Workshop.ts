@@ -15,6 +15,7 @@ import { WorkshopHistory } from './history';
 import { buildMuseumSceneIndex, querySceneIndex } from './SceneIndex';
 import { scanAuthoredRouteClearance } from './RouteClearance';
 import { applyWalkwayProposals, clearWalkways, type WalkwayProposal } from './ClearWalkways';
+import { museumHealth } from './MuseumHealth';
 import { addEmptyRegion, isLocked, latestDecision, recordDecision, removeEmptyRegion, setLocked } from './CuratorMemory';
 import {
   type WorkshopAnchor,
@@ -280,6 +281,7 @@ export class Workshop {
     this.el<HTMLButtonElement>('scene-index-refresh').addEventListener('click', () => this.refreshSceneIndex());
     this.el<HTMLButtonElement>('clearance-scan').addEventListener('click', () => this.scanClearance());
     this.el<HTMLButtonElement>('walkways-scan').addEventListener('click', () => this.scanWalkways());
+    this.el<HTMLButtonElement>('health-run').addEventListener('click', () => this.checkHealth());
     this.el<HTMLButtonElement>('curator-lock').addEventListener('click', () => { if (this.selectedId) this.toggleLock(this.selectedId); });
     this.el<HTMLButtonElement>('curator-empty').addEventListener('click', () => this.keepAreaEmpty());
     this.el<HTMLSelectElement>('scene-index-exhibit').addEventListener('change', () => this.describeSceneExhibit());
@@ -529,6 +531,51 @@ export class Workshop {
         if (object) this.camera.focus(object);
       });
       results.append(button);
+    }
+  }
+
+  /** Read-only health report; affected placements link to the object, nothing is changed. */
+  private checkHealth(): void {
+    this.placements.invalidateCollisions();
+    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+      this.app.exteriorWorld.root, this.app.museum?.root);
+    const manifest = this.placements.captureManifest();
+    const index = buildMuseumSceneIndex(manifest, { exterior: this.app.exteriorWorld.collision, interior: this.app.museum?.collision },
+      { placements: this.placements });
+    const report = museumHealth(index, manifest, { sceneEntries: this.placements.sceneEntries(), runtime: true });
+    const counts = (Object.entries(report.counts) as [string, number][]).filter(([, n]) => n).map(([status, n]) => `${n} ${status}`).join(' · ');
+    this.el('health-status').textContent = `${report.status}: ${counts}.`;
+    const results = this.el('health-results');
+    results.replaceChildren();
+    for (const check of report.checks) {
+      const row = document.createElement('div');
+      row.dataset.healthCheck = check.id;
+      row.dataset.healthStatus = check.status;
+      const text = document.createElement('p');
+      text.textContent = `${check.status} · ${check.title}: ${check.detail}`;
+      row.append(text);
+      for (const subject of check.affected.slice(0, 20)) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.healthSubject = subject.id;
+        const where = subject.position ? ` at (${subject.position.map((v) => v.toFixed(1)).join(', ')})` : '';
+        button.textContent = `${subject.label}${subject.world ? ` · ${subject.world}` : ''}${where}`;
+        button.disabled = subject.kind !== 'placement';
+        button.addEventListener('click', () => {
+          if (subject.world && subject.world !== 'shared' && subject.world !== this.app.activeWorld) {
+            this.note(`Switch to ${subject.world} to inspect ${subject.label}.`, 'warn');
+            return;
+          }
+          this.focusPlacement(subject.id);
+        });
+        row.append(button);
+      }
+      if (check.affected.length > 20) {
+        const more = document.createElement('p');
+        more.textContent = `…and ${check.affected.length - 20} more.`;
+        row.append(more);
+      }
+      results.append(row);
     }
   }
 
@@ -1975,6 +2022,11 @@ const WORKSHOP_HTML = `
     <button type="button" data-workshop="walkways-scan">Scan walkways and suggest moves</button>
     <p data-workshop="walkways-status" role="status" class="workshop-muted">Not tested.</p>
     <div data-workshop="walkways-results" class="workshop-outliner"></div>
+  </section>
+  <section><h3>Museum health</h3>
+    <button type="button" data-workshop="health-run">Check museum health</button>
+    <p data-workshop="health-status" role="status" class="workshop-muted">Not tested.</p>
+    <div data-workshop="health-results" class="workshop-outliner"></div>
   </section>
   <section><h3>Curator's memory</h3>
     <button type="button" data-workshop="curator-lock" disabled>Lock against automation</button>
