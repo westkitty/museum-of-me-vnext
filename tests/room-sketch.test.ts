@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { measureRoom } from '../src/workshop/RoomSketch';
-import { validateWorkshopManifest } from '../src/workshop/schema';
+import { validateWorkshopManifest, type WorkshopPlacementRecord, type WorkshopPlacementManifest } from '../src/workshop/schema';
 import { validateWorkshopConservation } from '../src/workshop/conservation';
 
 describe('two-corner Museum Builder room', () => {
@@ -45,8 +45,8 @@ describe('two-corner Museum Builder room', () => {
 
   it('accepts the complete room as a source manifest and applies conservation to every component', () => {
     const room = measureRoom([250, 0, 250], [256, 0, 258])!;
-    const records = [
-      ...room.walls.map((wall, i) => ({
+    const records: WorkshopPlacementRecord[] = [
+      ...room.walls.map((wall, i): WorkshopPlacementRecord => ({
         id: `partition-wall-${i + 1}`, label: `Room wall ${i + 1}`,
         prefab: 'partition-wall', anchor: 'floor',
         position: wall.position, rotation: wall.rotation, scale: wall.scale,
@@ -63,7 +63,7 @@ describe('two-corner Museum Builder room', () => {
         collision: 'none', worldId: 'exterior',
       },
     ];
-    const manifest = { schemaVersion: 1, objects: records };
+    const manifest: WorkshopPlacementManifest = { schemaVersion: 1, objects: records };
     const parsed = validateWorkshopManifest(manifest);
     expect(parsed.ok).toBe(true);
     expect(parsed.value?.objects).toHaveLength(6);
@@ -72,7 +72,7 @@ describe('two-corner Museum Builder room', () => {
 
   it('rejects room construction over existing protected museum circulation', () => {
     const room = measureRoom([-6, 0, -6], [6, 0, 6])!;
-    const records = room.walls.map((wall, i) => ({
+    const records: WorkshopPlacementRecord[] = room.walls.map((wall, i): WorkshopPlacementRecord => ({
       id: `partition-wall-${i + 1}`, label: `Restricted wall ${i + 1}`,
       prefab: 'partition-wall', anchor: 'floor',
       position: wall.position, rotation: wall.rotation, scale: wall.scale,
