@@ -16,6 +16,7 @@ import { buildMuseumSceneIndex, querySceneIndex } from './SceneIndex';
 import { scanAuthoredRouteClearance } from './RouteClearance';
 import { applyWalkwayProposals, clearWalkways, type WalkwayProposal } from './ClearWalkways';
 import { museumHealth } from './MuseumHealth';
+import { MEANINGFUL_ACTIONS, MEANING_MAX_DISTANCE } from './MeaningfulObjects';
 import { applyCurateSuggestions, autoCurate, rejectCurateSuggestion, type CurateDensity, type CurateMode, type CurateSuggestion } from './AutoCurate';
 import { ZONES } from '../world/layout';
 import { KIT_TEMPLATES, duplicateKit, kitFollowMember, kitOf, kitOverrides, placeKit, removeKit, resetKitSlot } from './ExhibitKits';
@@ -24,6 +25,7 @@ import {
   type WorkshopAnchor,
   type WorkshopPlacementManifest,
   type WorkshopPlacementRecord,
+  type MeaningfulActionId,
   type WorkshopKitTemplateId,
   type WorkshopVec3,
 } from './schema';
@@ -286,6 +288,7 @@ export class Workshop {
     this.el<HTMLButtonElement>('clearance-scan').addEventListener('click', () => this.scanClearance());
     this.el<HTMLButtonElement>('walkways-scan').addEventListener('click', () => this.scanWalkways());
     this.el<HTMLButtonElement>('health-run').addEventListener('click', () => this.checkHealth());
+    this.el<HTMLSelectElement>('meaning').addEventListener('change', () => this.commitMeaning());
     this.el<HTMLButtonElement>('curate-run').addEventListener('click', () => this.runCurate());
     this.el<HTMLButtonElement>('curate-approve-all').addEventListener('click', () => this.curateAction(this.curateSuggestions, 'approve'));
     this.el<HTMLButtonElement>('kit-place').addEventListener('click', () => this.placeKitInView());
@@ -1406,6 +1409,24 @@ export class Workshop {
     this.refresh();
   }
 
+  /** Bind or unbind an allowlisted exhibit action; refused (and reported) unless the object stands in that exhibit's bay. */
+  private commitMeaning(): void {
+    const record = this.record();
+    if (!record) return;
+    const value = this.el<HTMLSelectElement>('meaning').value as MeaningfulActionId | '';
+    const { meaning: _previous, ...rest } = record;
+    const before = this.placements.captureManifest();
+    try {
+      const after = this.placements.setRecord(value ? { ...rest, meaning: value } : rest);
+      this.history.push(value ? `Bind ${record.label} to ${MEANINGFUL_ACTIONS[value].exhibit}` : `Unbind ${record.label}`, before, after);
+      this.note(value ? `${record.label} now ${MEANINGFUL_ACTIONS[value].label.toLowerCase()} at ${MEANINGFUL_ACTIONS[value].exhibit}.` : `${record.label} no longer acts on an exhibit.`, 'ok');
+    } catch (error) {
+      this.placements.replaceManifest(before);
+      this.note(error instanceof Error ? error.message : 'Binding refused.', 'error');
+    }
+    this.refresh();
+  }
+
   private commitMetadata(): void {
     const record = this.record();
     if (!record) return;
@@ -1948,6 +1969,7 @@ export class Workshop {
     this.openingSillInput.disabled = notWall || locked || record?.opening !== 'window';
     this.collisionInput.disabled = !record || locked;
     this.eventInput.disabled = !record || locked;
+    this.el<HTMLSelectElement>('meaning').disabled = !record || locked;
     const hasAuthoredReaction = record?.event === 'message'
       || record?.event === 'toggle-glow' || record?.event === 'toggle-tint';
     this.eventMessageInput.disabled = !record || locked || !hasAuthoredReaction;
@@ -2008,6 +2030,7 @@ export class Workshop {
     this.openingSillInput.value = String(Math.round((record?.openingSill ?? fallback.sill) * 100));
     this.collisionInput.value = record?.collision ?? 'none';
     this.eventInput.value = record?.event ?? 'none';
+    this.el<HTMLSelectElement>('meaning').value = record?.meaning ?? '';
     this.eventMessageInput.value = record?.eventMessage ?? '';
     this.eventColorInput.value = record?.eventColor ?? '#ffc96b';
     const values: Record<InputKey, number> = {
@@ -2141,6 +2164,9 @@ const WORKSHOP_HTML = `
     <label>On interact<select data-workshop="event"><option value="none">No action</option><option value="announce">Announce object name</option><option value="message">Show a custom message</option><option value="toggle-glow">Toggle glow</option><option value="toggle-tint">Toggle color tint</option></select></label>
     <label>Event message<input data-workshop="event-message" type="text" maxlength="160" placeholder="What should visitors see?" aria-label="Interaction message"></label>
     <label>Reaction color<input data-workshop="event-color" type="color" value="#ffc96b" aria-label="Interaction reaction color"></label>
+    <label>Exhibit action<select data-workshop="meaning" aria-label="Exhibit action"><option value="">None</option>${Object.values(MEANINGFUL_ACTIONS)
+      .map((action) => `<option value="${action.id}">${action.exhibit}: ${action.label}</option>`).join('')}</select></label>
+    <p class="workshop-muted">Exhibit actions use the exhibit's own controls; the object must stand in that exhibit's bay within ${MEANING_MAX_DISTANCE} m of it.</p>
     <p class="workshop-muted">Visitor actions are limited to authored text, reversible emissive light or material tint. No user-supplied JavaScript is evaluated.</p>
     <p class="workshop-muted">Protected geometry and routes remain locked. No arbitrary scripts are executed.</p>
   </section>

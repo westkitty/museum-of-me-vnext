@@ -31,6 +31,7 @@ import {
 } from './schema';
 import type { WorkshopPrefabId } from './catalog';
 import { builderModel } from './builderAssetCatalog';
+import { meaningProblem } from './MeaningfulObjects';
 import {
   AUTHORABLE_SCENE_DEFINITIONS,
   type AuthorableSceneEntry,
@@ -296,6 +297,9 @@ export function validateWorkshopConservation(
       });
       break;
     }
+    const meaning = meaningProblem(record);
+    if (meaning) violations.push({ placementId: record.id, placementLabel: record.label, protectedArea: 'Meaningful object binding',
+      rule: 'meaning-proximity', reason: meaning });
   }
 
   const entriesById = new Map(sceneEntries.map((entry) => [entry.id, entry]));

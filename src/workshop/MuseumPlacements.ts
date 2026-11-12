@@ -4,6 +4,7 @@ import { WorkshopSurfaces, type WorkshopSurfaceSelection } from './WorkshopSurfa
 import { resolveBuilderResourceUrl } from './builderAssetCatalog';
 import { defaultOpening, wallOpeningSegments } from './WallOpenings';
 import { createWorkshopActivation } from './BuilderEvents';
+import { MEANINGFUL_ACTIONS } from './MeaningfulObjects';
 import { ModelHandleReleasedError, ModelTemplateCache } from './ModelTemplateCache';
 import { constructionColliders } from './ConstructionCollision';
 import type { CollisionWorld } from '../world/CollisionWorld';
@@ -81,6 +82,8 @@ export class MuseumPlacements {
   private readonly interactionDisposers = new Map<string, () => void>();
   private interaction: InteractionManager | null = null;
   private onAnnounce: ((message: string) => void) | null = null;
+  /** Routes an allowlisted Meaningful Object action to the real exhibit control. */
+  private meaningTrigger: ((installation: string, code: string) => boolean) | null = null;
   private comparingOriginal = false;
   private readonly comparisonSceneTransforms = new Map<string, AuthorableSceneTransform>();
   private rebuildRevision = 0;
@@ -147,6 +150,12 @@ export class MuseumPlacements {
     }
     this.comparingOriginal = active;
     this.surfaces.setRevealOriginal(active);
+  }
+
+  /** Connect Meaningful Objects to the exhibits' own control path (SourceInstallations.key). */
+  bindMeaningfulActions(trigger: (installation: string, code: string) => boolean): void {
+    this.meaningTrigger = trigger;
+    this.rebuild();
   }
 
   bindInteractions(manager: InteractionManager, announce: (message: string) => void): void {
@@ -536,22 +545,30 @@ export class MuseumPlacements {
       });
       this.group.add(root);
       this.roots.set(record.id, root);
-      if (record.event && record.event !== 'none' && this.interaction) {
-        const activate = createWorkshopActivation(
+      const hasEvent = Boolean(record.event && record.event !== 'none');
+      if ((hasEvent || record.meaning) && this.interaction) {
+        const reaction = hasEvent ? createWorkshopActivation(
           record, root,
           (material) => recordScope.track(material),
           (message) => this.onAnnounce?.(message),
-        );
+        ) : null;
+        const meaning = record.meaning ? MEANINGFUL_ACTIONS[record.meaning] : null;
+        const activate = () => {
+          reaction?.();
+          if (!meaning) return;
+          // Only the allowlisted control code reaches the exhibit; if the interior is not loaded, say so.
+          if (!this.meaningTrigger?.(meaning.installation, meaning.code)) this.onAnnounce?.(`${record.label}: ${meaning.exhibit} is not responding here.`);
+        };
         const release = this.interaction.register(`workshop:${record.id}`, {
           object: root,
-          label: () => `${record.event === 'announce' ? 'Inspect' : 'Activate'} ${record.label}`,
+          label: () => meaning ? `${meaning.label} (${record.label})` : `${record.event === 'announce' ? 'Inspect' : 'Activate'} ${record.label}`,
           description: `Interact with authored museum object ${record.label}`,
           activate,
         });
         this.interactionDisposers.set(record.id, release);
       }
       if (record.prefab === 'catalog-model' && record.assetId) {
-        if (record.collision === 'solid' || (record.event && record.event !== 'none')) {
+        if (record.collision === 'solid' || (record.event && record.event !== 'none') || record.meaning) {
           void this.loadCatalogModel(root, record, revision, recordScope);
         }
       } else if (record.texture) {

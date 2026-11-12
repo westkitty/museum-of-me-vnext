@@ -18,6 +18,17 @@ export type WorkshopSchemaVersion = typeof WORKSHOP_LEGACY_SCHEMA_VERSION | type
 export type WorkshopAnchor = 'floor' | 'free' | 'wall';
 export type WorkshopCollisionMode = 'none' | 'solid';
 export type WorkshopEventMode = 'none' | 'announce' | 'message' | 'toggle-glow' | 'toggle-tint';
+
+/**
+ * Meaningful Objects: the complete allowlist of real exhibit actions an authored
+ * object may trigger. Each id names one existing source-installation control;
+ * there is no free-form scripting. Pilot: E07 Drakken Terraforming Laboratory.
+ */
+export const MEANINGFUL_ACTION_IDS = [
+  'e07-strain-1', 'e07-strain-2', 'e07-strain-3', 'e07-strain-4', 'e07-strain-5',
+  'e07-advance-assault', 'e07-toggle-report',
+] as const;
+export type MeaningfulActionId = (typeof MEANINGFUL_ACTION_IDS)[number];
 export type WorkshopWorldId = 'exterior' | 'interior' | 'shared';
 export type WorkshopVec3 = [number, number, number];
 
@@ -57,6 +68,8 @@ export interface WorkshopPlacementRecord {
   readonly eventMessage?: string;
   /** Six-digit target tint/emissive color for visual reactions. */
   readonly eventColor?: string;
+  /** Allowlisted binding to a real exhibit action (schema v2). */
+  readonly meaning?: MeaningfulActionId;
   readonly worldId?: WorkshopWorldId;
   /** Apertures only exist in authored partition walls; static museum walls stay protected. */
   readonly opening?: Exclude<WallOpeningKind, 'none'>;
@@ -161,7 +174,7 @@ const DECISION_KEYS = new Set(['kind', 'objectId', 'outcome', 'at', 'position'])
 const REGION_KEYS = new Set(['id', 'label', 'worldId', 'min', 'max']);
 const ISO_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
 const OBJECT_KEYS = new Set(['id', 'label', 'prefab', 'anchor', 'position', 'rotation', 'scale', 'color',
-  'assetId', 'texture', 'image', 'depth', 'collision', 'event', 'eventMessage', 'eventColor', 'worldId',
+  'assetId', 'texture', 'image', 'depth', 'collision', 'event', 'eventMessage', 'eventColor', 'meaning', 'worldId',
   'opening', 'openingWidth', 'openingHeight', 'openingSill']);
 const SCENE_KEYS = new Set(['id', 'position', 'rotation', 'scale']);
 const SURFACE_KEYS = new Set(['id', 'worldId', 'color', 'texture']);
@@ -220,6 +233,9 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
   const eventColor = value.eventColor === undefined ? undefined
     : typeof value.eventColor === 'string' && COLOR.test(value.eventColor)
       ? value.eventColor.toLowerCase() : null;
+  const meaning = value.meaning === undefined ? undefined
+    : MEANINGFUL_ACTION_IDS.includes(value.meaning as MeaningfulActionId) ? value.meaning as MeaningfulActionId : null;
+  if (meaning === null) errors.push(`objects[${index}].meaning is not an allowlisted exhibit action`);
   const worldId = value.worldId === undefined ? undefined
     : value.worldId === 'exterior' || value.worldId === 'interior' || value.worldId === 'shared' ? value.worldId : null;
   if (color === null) errors.push(`objects[${index}].color must be a six-digit hex color`);
@@ -331,6 +347,7 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
     ...(event ? { event: event as WorkshopEventMode } : {}),
     ...(eventMessage ? { eventMessage } : {}),
     ...(eventColor ? { eventColor } : {}),
+    ...(meaning ? { meaning } : {}),
     ...(worldId ? { worldId: worldId as WorkshopWorldId } : {}),
     ...(opening ? { opening } : {}),
     ...(openingWidth === undefined || openingWidth === null ? {} : { openingWidth }),
@@ -560,6 +577,7 @@ export function validateWorkshopManifest(value: unknown): WorkshopManifestValida
     else curator = validateCurator(value.curator, new Set(objects.map((object) => object.id)), errors) ?? undefined;
   }
 
+  if (legacy && objects.some((object) => object.meaning)) errors.push('meaningful object bindings require schema version 2');
   let kits: WorkshopKit[] | undefined;
   if (value.kits !== undefined) {
     if (legacy) errors.push('kits require schema version 2');
@@ -590,6 +608,9 @@ export interface WorkshopV1Downgrade {
 export function downgradeWorkshopManifestToV1(manifest: WorkshopPlacementManifest): WorkshopV1Downgrade {
   if (manifest.curator && !curatorIsEmpty(manifest.curator)) {
     return { ok: false, text: null, errors: ['Schema version 1 cannot hold Curator\'s Memory; downgrading would discard locks, decisions and empty regions. Nothing was discarded.'] };
+  }
+  if (manifest.objects.some((record) => record.meaning)) {
+    return { ok: false, text: null, errors: ['Schema version 1 cannot hold Meaningful Object bindings; downgrading would discard them. Nothing was discarded.'] };
   }
   if (manifest.kits?.length) {
     return { ok: false, text: null, errors: ['Schema version 1 cannot hold Exhibit Kits; downgrading would discard their grouping. Nothing was discarded.'] };
@@ -634,6 +655,7 @@ export function canonicalizeWorkshopManifest(manifest: WorkshopPlacementManifest
         ...(record.event ? { event: record.event } : {}),
         ...(record.eventMessage ? { eventMessage: record.eventMessage.trim() } : {}),
         ...(record.eventColor ? { eventColor: record.eventColor.toLowerCase() } : {}),
+        ...(record.meaning ? { meaning: record.meaning } : {}),
         ...(record.worldId ? { worldId: record.worldId } : {}),
         ...(record.opening ? { opening: record.opening } : {}),
         ...(record.openingWidth === undefined ? {} : { openingWidth: roundNumber(record.openingWidth) }),

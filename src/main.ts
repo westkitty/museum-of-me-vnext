@@ -71,6 +71,8 @@ if (new URLSearchParams(window.location.search).has('qa')) {
   }));
 }
 placements.bindInteractions(app.interaction, (message) => app.ui.hud.announce(message));
+// Meaningful Objects reach exhibits only through their existing visitor control path.
+placements.bindMeaningfulActions((installation, code) => app.sourceInstallations?.key(installation, code) ?? false);
 const syncBuilderPlacements = () => placements.syncWorld(
   app.activeWorld, app.exteriorWorld.collision, app.museum?.collision,
   app.exteriorWorld.root, app.museum?.root, app.camera.position,
