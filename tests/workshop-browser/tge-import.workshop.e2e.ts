@@ -9,6 +9,11 @@ test('imports a pinned candidate into the actual Builder and inspects bounds', a
   await expect(workshop).toBeAttached({ timeout: 60_000 });
   await buildMode.click();
   await expect(workshop).toBeVisible();
+  await workshop.getByRole('button', { name: 'Inspect current scene data' }).click();
+  await expect(workshop.locator('[data-workshop="scene-index-summary"]')).toContainText('35 exhibits');
+  await workshop.getByLabel('Scene index exhibit').selectOption('E03');
+  await expect(workshop.locator('[data-workshop="scene-index-detail"]')).toContainText('E03 · north');
+  await expect(workshop.locator('[data-workshop="scene-index-unavailable"]')).toContainText('static collider geometry');
   await workshop.getByRole('button', { name: 'Browse source catalog' }).click();
   await workshop.getByLabel('Search source candidates').fill('blaster-kit/blaster-a');
   const item = workshop.locator('[data-source-id="blaster-kit/blaster-a"]');

@@ -12,6 +12,7 @@ import { defaultOpening } from './WallOpenings';
 import { BUILDER_MODELS, BUILDER_FINISHES, searchBuilderLibrary, builderModel } from './builderAssetCatalog';
 import { conservationErrors, validateWorkshopConservation } from './conservation';
 import { WorkshopHistory } from './history';
+import { buildMuseumSceneIndex } from './SceneIndex';
 import {
   serializeWorkshopManifest,
   type WorkshopAnchor,
@@ -272,6 +273,8 @@ export class Workshop {
   }
 
   private bindUi(): void {
+    this.el<HTMLButtonElement>('scene-index-refresh').addEventListener('click', () => this.refreshSceneIndex());
+    this.el<HTMLSelectElement>('scene-index-exhibit').addEventListener('change', () => this.describeSceneExhibit());
     this.el<HTMLButtonElement>('source-load').addEventListener('click', () => void this.loadSourceCatalog());
     this.el<HTMLButtonElement>('source-import').addEventListener('click', () => void this.importSourceCandidate());
     this.el<HTMLInputElement>('source-search').addEventListener('input', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
@@ -460,6 +463,30 @@ export class Workshop {
       empty.textContent = 'No matching assets. Search another category or import a local GLB.';
       this.assetResults.append(empty);
     }
+  }
+
+  private refreshSceneIndex(): void {
+    const index = buildMuseumSceneIndex(this.placements.captureManifest());
+    const select = this.el<HTMLSelectElement>('scene-index-exhibit');
+    const selected = select.value;
+    select.replaceChildren();
+    for (const exhibit of index.exhibits) {
+      const option = document.createElement('option');
+      option.value = exhibit.id; option.textContent = `${exhibit.id} · ${exhibit.wing}`;
+      select.append(option);
+    }
+    if (index.exhibits.some((item) => item.id === selected)) select.value = selected;
+    this.el('scene-index-summary').textContent = `${index.wings.length} wings · ${index.exhibits.length} exhibits · ${index.stairs.length} stairs · ${index.installations.length} source installations · ${index.authored.length} authored objects. Snapshot derived from layout and saved/editor data.`;
+    this.el('scene-index-unavailable').textContent = `Not indexed: ${index.unavailable.join(', ')}.`;
+    this.describeSceneExhibit();
+  }
+
+  private describeSceneExhibit(): void {
+    const index = buildMuseumSceneIndex(this.placements.captureManifest());
+    const exhibit = index.exhibits.find((item) => item.id === this.el<HTMLSelectElement>('scene-index-exhibit').value);
+    if (!exhibit) return;
+    const point = (values: readonly number[]) => values.map((value) => value.toFixed(1)).join(', ');
+    this.el('scene-index-detail').textContent = `${exhibit.id} · ${exhibit.wing} · anchor (${point(exhibit.anchor)}) · doorway (${point(exhibit.doorway)}) · visitor position (${point(exhibit.visitorSpot)}) · bounds half-extents (${point(exhibit.bounds.h)}) metres.`;
   }
 
   private async loadSourceCatalog(): Promise<void> {
@@ -1719,6 +1746,13 @@ const WORKSHOP_HTML = `
     </div>
   </section>
   <section><h3>Primitive objects & fixtures</h3><div class="workshop-palette" data-workshop="palette"></div></section>
+  <section><h3>Scene index</h3>
+    <button type="button" data-workshop="scene-index-refresh">Inspect current scene data</button>
+    <p data-workshop="scene-index-summary" class="workshop-muted">Refresh to inspect authoritative layout data.</p>
+    <label>Exhibit<select data-workshop="scene-index-exhibit" aria-label="Scene index exhibit"></select></label>
+    <p data-workshop="scene-index-detail" class="workshop-muted"></p>
+    <p data-workshop="scene-index-unavailable" class="workshop-muted"></p>
+  </section>
   <section><h3>Placed objects</h3><div class="workshop-outliner" data-workshop="outliner"></div></section>
   <p data-workshop="world-indicator" class="workshop-muted">Editing: Island</p>
   <div class="workshop-status" data-workshop="status" role="status" aria-live="polite"></div>
