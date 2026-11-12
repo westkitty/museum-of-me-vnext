@@ -11,6 +11,7 @@ import { validateWorkshopManifestForMuseum } from '../src/workshop/conservation'
 import { MuseumPlacements } from '../src/workshop/MuseumPlacements';
 import { CollisionWorld } from '../src/world/CollisionWorld';
 import { measureWall, snapWallPoint } from '../src/workshop/WallSketch';
+import { wallOpeningSegments } from '../src/workshop/WallOpenings';
 
 const base = {
   id: 'wall-art-01', label: 'Gallery portrait', prefab: 'wall-art',
@@ -228,5 +229,82 @@ describe('Unified Museum Builder', () => {
     expect(validateWorkshopManifest({ schemaVersion: 1, objects: [
       { ...floor, prefab: 'roof-panel' },
     ] }).ok).toBe(true);
+  });
+
+  it('physically cuts a doorway instead of drawing a fake dark doorway texture', () => {
+    const wall = { id: 'door-wall', label: 'Doorway wall', prefab: 'partition-wall',
+      anchor: 'floor', position: [250, 0, 250], rotation: [0, 0, 0],
+      scale: [3, 1, 1], opening: 'door', openingWidth: 0.42, openingHeight: 0.73,
+      openingSill: 0, collision: 'solid', worldId: 'exterior' };
+    const parsed = validateWorkshopManifest({ schemaVersion: 1, objects: [wall] });
+    expect(parsed.ok).toBe(true);
+    const placements = new MuseumPlacements(parsed.value!);
+    const root = placements.getObject('door-wall')!;
+    expect(root.children).toHaveLength(3);
+    const world = new CollisionWorld();
+    placements.syncWorld('exterior', world);
+    expect(world.size).toBe(3);
+    // Centre stays navigable (1.26 m opening) while both jambs are solid.
+    expect(world.resolveHorizontal({ x: 250, y: 0, z: 250 }, 0.35, 1.78)).toBe(false);
+    expect(world.resolveHorizontal({ x: 248.95, y: 0, z: 250 }, 0.35, 1.78)).toBe(true);
+    expect(world.ceilingHeight(250, 250, 2)).toBeCloseTo(3 * 0.73);
+    placements.dispose();
+    expect(world.size).toBe(0);
+  });
+
+  it('keeps the door truly open in a rotated wall; broad AABB does not fill the gap', () => {
+    const angle = Math.PI / 4;
+    const wall = { id: 'angled-door', label: 'Angled doorway', prefab: 'partition-wall',
+      anchor: 'floor', position: [245, 0, 245], rotation: [0, angle, 0],
+      scale: [3, 1, 1], opening: 'door', collision: 'solid', worldId: 'exterior' };
+    const placements = new MuseumPlacements({ schemaVersion: 1, objects: [wall] });
+    const world = new CollisionWorld();
+    placements.syncWorld('exterior', world);
+    expect(world.resolveHorizontal({ x: 245, y: 0, z: 245 }, 0.35, 1.78)).toBe(false);
+    // A visitor standing on the left jamb is pushed out.
+    const x = 245 + Math.cos(angle) * 1.02;
+    const z = 245 - Math.sin(angle) * 1.02;
+    expect(world.resolveHorizontal({ x, y: 0, z }, 0.35, 1.78)).toBe(true);
+    placements.invalidateCollisions();
+    expect(world.size).toBe(0);
+    placements.dispose();
+  });
+
+  it('makes a window a real elevated aperture, with solid sill and upper lintel', () => {
+    const segments = wallOpeningSegments('window', { width: 0.5, height: 0.35, sill: 0.32 });
+    expect(segments).toHaveLength(4);
+    const wall = { id: 'window-wall', label: 'Window wall', prefab: 'partition-wall',
+      anchor: 'floor', position: [255, 0, 255], rotation: [0, 0, 0],
+      scale: [3, 1, 1], opening: 'window', openingWidth: 0.5,
+      openingHeight: 0.35, openingSill: 0.32, collision: 'solid', worldId: 'exterior' };
+    const placements = new MuseumPlacements({ schemaVersion: 1, objects: [wall] });
+    const world = new CollisionWorld();
+    placements.syncWorld('exterior', world);
+    expect(world.resolveHorizontal({ x: 255, y: 0, z: 255 }, 0.35, 1.78)).toBe(true);
+    // A small airborne probe at window height sees the void.
+    expect(world.resolveHorizontal({ x: 255, y: 1.1, z: 255 }, 0.15, 0.25)).toBe(false);
+    placements.dispose();
+  });
+
+  it('rejects unsupported wall holes, too-narrow doors, tilted structural walls, and invalid sill geometry', () => {
+    const wall = { id: 'bad-door', label: 'Door', prefab: 'partition-wall',
+      anchor: 'floor', position: [250, 0, 250], rotation: [0, 0, 0],
+      scale: [3, 1, 1], opening: 'door' };
+    for (const bad of [
+      { ...wall, openingWidth: 0.1 },
+      { ...wall, openingSill: 0.2 },
+      { ...wall, openingHeight: 0.3 },
+      { ...wall, scale: [1, 1, 1] },
+      { ...wall, rotation: [0.1, 0, 0] },
+      { ...wall, prefab: 'museum-bench' },
+      { ...wall, opening: 'window', openingSill: 0.6, openingHeight: 0.4 },
+      { ...wall, opening: 'window', openingSill: 0 },
+    ]) {
+      expect(validateWorkshopManifest({ schemaVersion: 1, objects: [bad] }).ok).toBe(false);
+    }
+    const passed = validateWorkshopManifest({ schemaVersion: 1, objects: [wall] });
+    expect(passed.ok).toBe(true);
+    expect(passed.value?.objects[0].opening).toBe('door');
+    expect(passed.value?.objects[0].openingWidth).toBeUndefined();
   });
 });

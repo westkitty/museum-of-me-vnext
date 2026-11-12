@@ -1,5 +1,6 @@
 import { isWorkshopPrefabId, type WorkshopPrefabId } from './catalog';
 import { builderModelAllowed, builderFinishAllowed } from './builderAssetCatalog';
+import { defaultOpening, wallOpeningSegments, type WallOpeningKind } from './WallOpenings';
 
 export const WORKSHOP_SCHEMA_VERSION = 1 as const;
 export const WORKSHOP_MAX_OBJECTS = 256;
@@ -43,6 +44,11 @@ export interface WorkshopPlacementRecord {
   readonly collision?: WorkshopCollisionMode;
   readonly event?: WorkshopEventMode;
   readonly worldId?: WorkshopWorldId;
+  /** Apertures only exist in authored partition walls; static museum walls stay protected. */
+  readonly opening?: Exclude<WallOpeningKind, 'none'>;
+  readonly openingWidth?: number;
+  readonly openingHeight?: number;
+  readonly openingSill?: number;
 }
 
 export interface WorkshopPlacementManifest {
@@ -128,13 +134,42 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
   if (worldId === null) errors.push(`objects[${index}].worldId is invalid`);
   if (image && prefab !== 'wall-art') errors.push(`objects[${index}].image requires a wall-art prefab`);
   if (anchor === 'wall' && prefab !== 'wall-art' && prefab !== 'wall-panel') errors.push(`objects[${index}].wall anchor requires wall-art or wall-panel`);
+  const opening = value.opening === undefined ? undefined
+    : value.opening === 'door' || value.opening === 'window' ? value.opening : null;
+  const fraction = (value: unknown): number | undefined | null =>
+    value === undefined ? undefined
+      : typeof value === 'number' && Number.isFinite(value) ? value : null;
+  const openingWidth = fraction(value.openingWidth);
+  const openingHeight = fraction(value.openingHeight);
+  const openingSill = fraction(value.openingSill);
+  if (opening === null) errors.push('Invalid wall opening kind');
+  if (opening && prefab !== 'partition-wall') errors.push('Wall openings require a partition-wall');
+  if (!opening && [openingWidth, openingHeight, openingSill].some((v) => v !== undefined)) {
+    errors.push('Wall opening dimensions require an authored door or window');
+  }
+  if ([openingWidth, openingHeight, openingSill].some((v) => v === null)) {
+    errors.push('Wall opening fractions must be finite numbers');
+  }
+  if (opening) {
+    const fallback = defaultOpening(opening);
+    try {
+      wallOpeningSegments(opening, {
+        width: openingWidth ?? fallback.width,
+        height: openingHeight ?? fallback.height,
+        sill: openingSill ?? fallback.sill,
+      });
+    } catch {
+      errors.push('Door/window opening has invalid width, height or sill');
+    }
+  }
   const position = finiteVec3(value.position);
   const rotation = finiteVec3(value.rotation);
   const scale = finiteVec3(value.scale);
   if (!position) errors.push(`objects[${index}].position must be three finite numbers`);
   if (!rotation) errors.push(`objects[${index}].rotation must be three finite numbers`);
-  if (prefab === 'floor-slab' && rotation && (Math.abs(rotation[0]) > 0.0001 || Math.abs(rotation[2]) > 0.0001)) {
-    errors.push(`objects[${index}].floor-slab must remain horizontal (rotate around Y only)`);
+  if ((prefab === 'floor-slab' || prefab === 'partition-wall') && rotation
+    && (Math.abs(rotation[0]) > 0.0001 || Math.abs(rotation[2]) > 0.0001)) {
+    errors.push(`objects[${index}].${prefab} must remain level (rotate around Y only)`);
   }
   if (!scale) errors.push(`objects[${index}].scale must be three finite numbers`);
 
@@ -146,6 +181,13 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
     }
   }
 
+  if (opening === 'door' && scale) {
+    const defaults = defaultOpening('door');
+    if (scale[0] * (openingWidth ?? defaults.width) < 1
+      || scale[1] * 3 * (openingHeight ?? defaults.height) < 2) {
+      errors.push('Doorway clearance must be at least 1 m wide and 2 m tall');
+    }
+  }
   if (scale && scale.some((entry) => entry < SCALE_MIN || entry > SCALE_MAX)) {
     errors.push(`objects[${index}].scale entries must be between ${SCALE_MIN} and ${SCALE_MAX}`);
   }
@@ -179,6 +221,11 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
     ...(collision ? { collision: collision as WorkshopCollisionMode } : {}),
     ...(event ? { event: event as WorkshopEventMode } : {}),
     ...(worldId ? { worldId: worldId as WorkshopWorldId } : {}),
+    ...(opening ? { opening } : {}),
+    ...(openingWidth === undefined || openingWidth === null ? {} : { openingWidth }),
+    ...(openingHeight === undefined || openingHeight === null ? {} : { openingHeight }),
+    ...(openingSill === undefined || openingSill === null ? {} : { openingSill }),
+
   };
 }
 
@@ -328,6 +375,11 @@ export function canonicalizeWorkshopManifest(manifest: WorkshopPlacementManifest
         ...(record.collision ? { collision: record.collision } : {}),
         ...(record.event ? { event: record.event } : {}),
         ...(record.worldId ? { worldId: record.worldId } : {}),
+        ...(record.opening ? { opening: record.opening } : {}),
+        ...(record.openingWidth === undefined ? {} : { openingWidth: roundNumber(record.openingWidth) }),
+        ...(record.openingHeight === undefined ? {} : { openingHeight: roundNumber(record.openingHeight) }),
+        ...(record.openingSill === undefined ? {} : { openingSill: roundNumber(record.openingSill) }),
+
       }))
       .sort((a, b) => a.id.localeCompare(b.id)),
     sceneOverrides: [...(manifest.sceneOverrides ?? [])]
