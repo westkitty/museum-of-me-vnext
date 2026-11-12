@@ -35,20 +35,39 @@ describe('Museum Builder owned asset library and finish persistence', () => {
   });
 
 
-  it('has 23 searchable, source-pinned first-party GLBs and 4 local finishes', async () => {
-    expect(BUILDER_MODELS).toHaveLength(23);
-    expect(BUILDER_FINISHES).toHaveLength(4);
-    expect(searchBuilderLibrary('statue').some((entry) => entry.id === 'openlife:movie_prop_statue')).toBe(true);
+  it('provides the complete 119-model licensed OpenLife library and 13 real finishes', async () => {
+    expect(BUILDER_MODELS).toHaveLength(119);
+    expect(BUILDER_FINISHES).toHaveLength(13);
+    expect(new Set(BUILDER_MODELS.map((item) => item.id)).size).toBe(119);
+    expect(new Set(BUILDER_FINISHES.map((item) => item.id)).size).toBe(13);
+    expect(searchBuilderLibrary('statue').some((item) => item.id === 'openlife:movie_prop_statue')).toBe(true);
     expect(searchBuilderLibrary('plant', 'Nature').length).toBeGreaterThan(0);
+    expect(searchBuilderLibrary('sim', 'Characters').length).toBeGreaterThan(10);
+    expect(searchBuilderLibrary('kitchen', 'Appliances').length).toBeGreaterThan(0);
+    expect(searchBuilderLibrary('horse', 'Animals').length).toBeGreaterThan(0);
     expect(builderModelAllowed('openlife:park_bench')).toBe(true);
+    expect(builderModelAllowed('openlife:vehicle_compact')).toBe(true);
     expect(builderModelAllowed('https://example.com/asset.glb')).toBe(false);
     expect(builderFinishAllowed('wallpaper-cream')).toBe(true);
+    expect(builderFinishAllowed('terrain-grass-lush')).toBe(true);
     expect(builderFinishAllowed('file:///private/secret.png')).toBe(false);
     for (const item of BUILDER_MODELS) {
+      expect(item.srcRevision).toBe('2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b');
+      expect(item.path).toMatch(/^builder-assets\/openlife\/[a-z0-9_]+\.glb$/);
       const bytes = await readFile(join(process.cwd(), 'public', item.path));
+      expect(bytes.byteLength).toBe(item.bytes);
       expect(createHash('sha256').update(bytes).digest('hex')).toBe(item.sha256);
       expect(hasValidLocalGLB(bytes)).toBe(true);
       expect(item.license).toMatch(/MIT/);
+    }
+    for (const finish of BUILDER_FINISHES) {
+      expect(finish.srcRevision).toBe('2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b');
+      expect(finish.path).toMatch(/^builder-assets\/openlife\/[a-z0-9_]+\.png$/);
+      const bytes = await readFile(join(process.cwd(), 'public', finish.path));
+      expect(bytes.byteLength).toBe(finish.bytes);
+      expect(createHash('sha256').update(bytes).digest('hex')).toBe(finish.sha256);
+      expect(bytes.toString('ascii', 1, 4)).toBe('PNG');
+      expect(finish.license).toMatch(/MIT/);
     }
   });
 

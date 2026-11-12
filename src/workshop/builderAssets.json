@@ -492,6 +492,2119 @@
         12
       ],
       "path": "builder-assets/openlife/house_blue.glb"
+    },
+    {
+      "id": "openlife:bathtub_basic",
+      "label": "Bathtub Basic",
+      "category": "Fixtures",
+      "tags": [
+        "fixture",
+        "bathroom"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/bathtub_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "f3a2e71b136ebfc014c2131caf61676eecce58b4c19cc24e39841dbf0dd5d0a5",
+      "bytes": 3548,
+      "nominalSize": [
+        1.7,
+        0.8,
+        0.8
+      ],
+      "path": "builder-assets/openlife/bathtub_basic.glb"
+    },
+    {
+      "id": "openlife:bed_double",
+      "label": "Bed Double",
+      "category": "Furniture",
+      "tags": [
+        "furniture",
+        "bed"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/bed_double.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "4de6cdfa99f28532afc5cfcca04e58dc5ecb46d9ef46659095802ae07a6f1a66",
+      "bytes": 8784,
+      "nominalSize": [
+        2.1,
+        1,
+        1.7
+      ],
+      "path": "builder-assets/openlife/bed_double.glb"
+    },
+    {
+      "id": "openlife:birthday_cake",
+      "label": "Birthday Cake",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "family",
+        "birthday",
+        "food"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/birthday_cake.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "9cc3570d08ad8f3074cf5644860012406e24efc200fd09a2a00f560acf3acf25",
+      "bytes": 7408,
+      "nominalSize": [
+        1,
+        0.8,
+        1
+      ],
+      "path": "builder-assets/openlife/birthday_cake.glb"
+    },
+    {
+      "id": "openlife:bonfire",
+      "label": "Bonfire",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "outdoor",
+        "festival",
+        "fire"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/bonfire.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "8d9a92430ff15b7ba212f2eb2d9cf12e8c052f45b6ab0374697533eaf5782594",
+      "bytes": 4512,
+      "nominalSize": [
+        1.5,
+        1.5,
+        1.5
+      ],
+      "path": "builder-assets/openlife/bonfire.glb"
+    },
+    {
+      "id": "openlife:bot_charging_station",
+      "label": "Bot Charging Station",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "future",
+        "plumbot",
+        "charging"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/bot_charging_station.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "280bbe07ade44cfff55faed40d4bde43c1c73aababfc9a0f90168b7532272cce",
+      "bytes": 6260,
+      "nominalSize": [
+        1.4,
+        1.6,
+        1.4
+      ],
+      "path": "builder-assets/openlife/bot_charging_station.glb"
+    },
+    {
+      "id": "openlife:cafe",
+      "label": "Cafe",
+      "category": "Buildings",
+      "tags": [
+        "building",
+        "community"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/cafe.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "3825a83671cf0bb70a7d603cbeee3cc54b4b41afe56084f87b0a346e29819236",
+      "bytes": 4692,
+      "nominalSize": [
+        11,
+        4,
+        8
+      ],
+      "path": "builder-assets/openlife/cafe.glb"
+    },
+    {
+      "id": "openlife:candy_floor_lamp",
+      "label": "Candy Floor Lamp",
+      "category": "Furniture",
+      "tags": [
+        "furniture",
+        "lighting"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/candy_floor_lamp.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "28da2c3fb719de76c22f9e44af1a662dd2c10b400779a7626a78df7e83867305",
+      "bytes": 6312,
+      "nominalSize": [
+        0.4,
+        1.7,
+        0.4
+      ],
+      "path": "builder-assets/openlife/candy_floor_lamp.glb"
+    },
+    {
+      "id": "openlife:coffee_maker",
+      "label": "Coffee Maker",
+      "category": "Appliances",
+      "tags": [
+        "appliance",
+        "kitchen"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/coffee_maker.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "7f17768925bd98ffa71c69dd18d802278d2a2a188c168a83127d64f6fcc94398",
+      "bytes": 3576,
+      "nominalSize": [
+        0.3,
+        0.6,
+        0.25
+      ],
+      "path": "builder-assets/openlife/coffee_maker.glb"
+    },
+    {
+      "id": "openlife:community_center",
+      "label": "Community Center",
+      "category": "Buildings",
+      "tags": [
+        "building",
+        "community"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/community_center.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "75f2e0a0e55fa8970ba22e68ed3ccdb0ffaa6eed0b2f4b212c552d61964c5a1a",
+      "bytes": 6976,
+      "nominalSize": [
+        14,
+        5,
+        10
+      ],
+      "path": "builder-assets/openlife/community_center.glb"
+    },
+    {
+      "id": "openlife:community_locker",
+      "label": "Community Locker",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "stuff_pack",
+        "sp04",
+        "community"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/community_locker.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "798804dc91fcf85c7dbb68e995478492674f585f84f1f6b5eab1166d2ce3fb8c",
+      "bytes": 8620,
+      "nominalSize": [
+        1.1,
+        2,
+        0.65
+      ],
+      "path": "builder-assets/openlife/community_locker.glb"
+    },
+    {
+      "id": "openlife:computer_basic",
+      "label": "Computer Basic",
+      "category": "Furniture",
+      "tags": [
+        "furniture",
+        "electronics"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/computer_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "082fce20d044b32cc28cf90f5c4c6d875811fabbff506be8dc8af5841c7ce4ba",
+      "bytes": 3496,
+      "nominalSize": [
+        0.6,
+        1.1,
+        0.4
+      ],
+      "path": "builder-assets/openlife/computer_basic.glb"
+    },
+    {
+      "id": "openlife:crib_basic",
+      "label": "Crib Basic",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "nursery",
+        "baby"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/crib_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "8a127d59da1995db205039bfcb7985c871e021531a484b572a04af28047383dd",
+      "bytes": 10080,
+      "nominalSize": [
+        1.2,
+        1.2,
+        1.9
+      ],
+      "path": "builder-assets/openlife/crib_basic.glb"
+    },
+    {
+      "id": "openlife:desk_basic",
+      "label": "Desk Basic",
+      "category": "Furniture",
+      "tags": [
+        "furniture",
+        "table"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/desk_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "b7272311f9313d03642543050c6d663afcf734ca08b97904ce19b422c2b32877",
+      "bytes": 3488,
+      "nominalSize": [
+        1.4,
+        0.74,
+        0.7
+      ],
+      "path": "builder-assets/openlife/desk_basic.glb"
+    },
+    {
+      "id": "openlife:dining_chair",
+      "label": "Dining Chair",
+      "category": "Furniture",
+      "tags": [
+        "furniture",
+        "seat"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/dining_chair.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "b810eff951c58d064413dd7ea689a91285d2dcae89a9f69e430463edf3edd1cd",
+      "bytes": 6496,
+      "nominalSize": [
+        0.55,
+        1.1,
+        0.55
+      ],
+      "path": "builder-assets/openlife/dining_chair.glb"
+    },
+    {
+      "id": "openlife:dining_table",
+      "label": "Dining Table",
+      "category": "Furniture",
+      "tags": [
+        "furniture",
+        "table"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/dining_table.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "89865fe456578536315b9aa65f04d1910545780c2a43e1def63aa8c2f868cf55",
+      "bytes": 3492,
+      "nominalSize": [
+        1.7,
+        0.75,
+        0.95
+      ],
+      "path": "builder-assets/openlife/dining_table.glb"
+    },
+    {
+      "id": "openlife:dishwasher",
+      "label": "Dishwasher",
+      "category": "Appliances",
+      "tags": [
+        "appliance",
+        "kitchen"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/dishwasher.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "e425f0fcfc09b28c73b5b422ff4fbe5a96599303c5e39dd018d3f32a84c3c75f",
+      "bytes": 2644,
+      "nominalSize": [
+        0.7,
+        0.9,
+        0.7
+      ],
+      "path": "builder-assets/openlife/dishwasher.glb"
+    },
+    {
+      "id": "openlife:diving_buoy",
+      "label": "Diving Buoy",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "island_paradise",
+        "diving",
+        "water"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/diving_buoy.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "6648eb9eb0318543dfce9e6c58306a980d3049c3b24287d5a60250375149e7d5",
+      "bytes": 9804,
+      "nominalSize": [
+        1.2,
+        2.1,
+        1.2
+      ],
+      "path": "builder-assets/openlife/diving_buoy.glb"
+    },
+    {
+      "id": "openlife:dream_pod",
+      "label": "Dream Pod",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "future",
+        "sleep",
+        "dream"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/dream_pod.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "c3aa2c8f8295a4591c6aa48c9ebb3db0a9a21e4f29ddbc127b1e1d680bfdc9b6",
+      "bytes": 2672,
+      "nominalSize": [
+        1.5,
+        1.4,
+        2.4
+      ],
+      "path": "builder-assets/openlife/dream_pod.glb"
+    },
+    {
+      "id": "openlife:dresser_basic",
+      "label": "Dresser Basic",
+      "category": "Furniture",
+      "tags": [
+        "furniture",
+        "storage"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/dresser_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "a52b7c7c2ed1b0f922dbf3dfd2c1899c7b9f4a26a34ec3502b89cb77b8f826bb",
+      "bytes": 4712,
+      "nominalSize": [
+        1.25,
+        0.95,
+        0.55
+      ],
+      "path": "builder-assets/openlife/dresser_basic.glb"
+    },
+    {
+      "id": "openlife:drum_set",
+      "label": "Drum Set",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "music",
+        "drums",
+        "performance"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/drum_set.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "b6360ccdc47d3ba6f7c695032803e5e61c0f85b7720ec125b8839a886a42321f",
+      "bytes": 8928,
+      "nominalSize": [
+        2.2,
+        1.5,
+        1.5
+      ],
+      "path": "builder-assets/openlife/drum_set.glb"
+    },
+    {
+      "id": "openlife:festival_booth",
+      "label": "Festival Booth",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "festival",
+        "seasonal",
+        "community"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/festival_booth.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "a25c71a8dd71b6ee21b4939eafaa0aec1633c35cb6f8f5af060ecac7ccf2c4f6",
+      "bytes": 6628,
+      "nominalSize": [
+        3,
+        2.6,
+        1.7
+      ],
+      "path": "builder-assets/openlife/festival_booth.glb"
+    },
+    {
+      "id": "openlife:fishing_sign",
+      "label": "Fishing Sign",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "fishing",
+        "outdoor",
+        "water"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/fishing_sign.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "a7edebdd0369fb92b16ec8b4eda2bbb9730f0e7b78fbdc53215a2f00e39607a7",
+      "bytes": 3932,
+      "nominalSize": [
+        1,
+        1.8,
+        0.3
+      ],
+      "path": "builder-assets/openlife/fishing_sign.glb"
+    },
+    {
+      "id": "openlife:food_truck",
+      "label": "Food Truck",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "food",
+        "vehicle",
+        "community"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/food_truck.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "b2daa599a9a0bd271aca9e51034667ecc018adc9e93157d0ea9c814e69e9751c",
+      "bytes": 7036,
+      "nominalSize": [
+        4.2,
+        2.2,
+        2.1
+      ],
+      "path": "builder-assets/openlife/food_truck.glb"
+    },
+    {
+      "id": "openlife:fridge_basic",
+      "label": "Fridge Basic",
+      "category": "Appliances",
+      "tags": [
+        "appliance",
+        "kitchen"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/fridge_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "e8b43a4e5dd53d5c90d3fe890075b272a05b5438627d29c0196b7fb09bd9ef95",
+      "bytes": 3868,
+      "nominalSize": [
+        0.8,
+        1.85,
+        0.75
+      ],
+      "path": "builder-assets/openlife/fridge_basic.glb"
+    },
+    {
+      "id": "openlife:grill_basic",
+      "label": "Grill Basic",
+      "category": "Outdoor",
+      "tags": [
+        "outdoor",
+        "cooking"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/grill_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "40c9ba58bcdc1a2dc1ce6a3221998facdff876079ea89f355b9290a6baf045f7",
+      "bytes": 6532,
+      "nominalSize": [
+        0.75,
+        1,
+        0.55
+      ],
+      "path": "builder-assets/openlife/grill_basic.glb"
+    },
+    {
+      "id": "openlife:guitar_basic",
+      "label": "Guitar Basic",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "music",
+        "hobby"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/guitar_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "344b8e756203e3fbf95736fe5b430158eae2b099d023df5b16f603518753bcbc",
+      "bytes": 12124,
+      "nominalSize": [
+        0.8,
+        1.7,
+        0.5
+      ],
+      "path": "builder-assets/openlife/guitar_basic.glb"
+    },
+    {
+      "id": "openlife:gym_treadmill",
+      "label": "Gym Treadmill",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "fitness",
+        "athletic"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/gym_treadmill.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "fe6950c586b30a4b36a38d93e4a549ce6b229a64a35bb60f1a8b4dfce05a3de2",
+      "bytes": 4348,
+      "nominalSize": [
+        1.1,
+        1.55,
+        2
+      ],
+      "path": "builder-assets/openlife/gym_treadmill.glb"
+    },
+    {
+      "id": "openlife:highchair",
+      "label": "Highchair",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "nursery",
+        "baby",
+        "family"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/highchair.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "c7eed8b22834334621553b67443602888ee9e8164099410fbc961032a104729e",
+      "bytes": 6456,
+      "nominalSize": [
+        0.9,
+        1.5,
+        0.9
+      ],
+      "path": "builder-assets/openlife/highchair.glb"
+    },
+    {
+      "id": "openlife:horse_trough",
+      "label": "Horse Trough",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "pets",
+        "horse",
+        "feeding"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/horse_trough.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "0077b86f49b39c5633f8073b3f7e0b4ba44fcaf27f5d1def7e2ec0ddd9973804",
+      "bytes": 1980,
+      "nominalSize": [
+        2.4,
+        0.9,
+        1
+      ],
+      "path": "builder-assets/openlife/horse_trough.glb"
+    },
+    {
+      "id": "openlife:hospital_rabbit_hole",
+      "label": "Hospital Rabbit Hole",
+      "category": "Buildings",
+      "tags": [
+        "building",
+        "community"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/hospital_rabbit_hole.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "45c71d068fd44df815173f74146845cf4443a33df2dbd9cc4bad5826982b3e07",
+      "bytes": 4564,
+      "nominalSize": [
+        16,
+        7,
+        10
+      ],
+      "path": "builder-assets/openlife/hospital_rabbit_hole.glb"
+    },
+    {
+      "id": "openlife:hot_tub",
+      "label": "Hot Tub",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "outdoor",
+        "social",
+        "luxury"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/hot_tub.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "a8a42a35a8f67d20fd2526b2553e7aed4c1e890acb98ee195c0cd782b9f9ddb8",
+      "bytes": 5036,
+      "nominalSize": [
+        2.5,
+        1.1,
+        2.5
+      ],
+      "path": "builder-assets/openlife/hot_tub.glb"
+    },
+    {
+      "id": "openlife:house_founders",
+      "label": "House Founders",
+      "category": "Buildings",
+      "tags": [
+        "building",
+        "residential",
+        "suburban",
+        "v2"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/house_founders.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "0a47fc72f270eb11a464bf8cc8e4ef65f9615f165e0ce26c1bdf149330a96edf",
+      "bytes": 41580,
+      "nominalSize": [
+        12,
+        8,
+        12
+      ],
+      "path": "builder-assets/openlife/house_founders.glb"
+    },
+    {
+      "id": "openlife:house_rose",
+      "label": "House Rose",
+      "category": "Buildings",
+      "tags": [
+        "building",
+        "residential",
+        "suburban",
+        "v2"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/house_rose.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "d1147d3b87a56c8e56f9e6a0a2152aeebf059f3e0751200c2f633476438f0c7e",
+      "bytes": 43628,
+      "nominalSize": [
+        12,
+        8,
+        12
+      ],
+      "path": "builder-assets/openlife/house_rose.glb"
+    },
+    {
+      "id": "openlife:industrial_coffee_table",
+      "label": "Industrial Coffee Table",
+      "category": "Furniture",
+      "tags": [
+        "furniture",
+        "table"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/industrial_coffee_table.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "cda13b820933a8a4152092777bb4723636425051bb64408048b890a5020d723b",
+      "bytes": 1884,
+      "nominalSize": [
+        1.05,
+        0.5,
+        0.6
+      ],
+      "path": "builder-assets/openlife/industrial_coffee_table.glb"
+    },
+    {
+      "id": "openlife:inventing_bench",
+      "label": "Inventing Bench",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "ambitions",
+        "inventing",
+        "crafting"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/inventing_bench.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "e62bd0c983564c3815ce56b912d2c33c227378d183cd18f44611d2f154ee0e90",
+      "bytes": 4288,
+      "nominalSize": [
+        2.1,
+        1.7,
+        1.1
+      ],
+      "path": "builder-assets/openlife/inventing_bench.glb"
+    },
+    {
+      "id": "openlife:karaoke_machine",
+      "label": "Karaoke Machine",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "karaoke",
+        "music",
+        "showtime"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/karaoke_machine.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "31642ef8340825b768de0a927ba3805447558395d2eecb019529b21dfc6796f5",
+      "bytes": 9960,
+      "nominalSize": [
+        1.4,
+        1.8,
+        0.7
+      ],
+      "path": "builder-assets/openlife/karaoke_machine.glb"
+    },
+    {
+      "id": "openlife:kitchen_sink",
+      "label": "Kitchen Sink",
+      "category": "Appliances",
+      "tags": [
+        "appliance",
+        "kitchen"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/kitchen_sink.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "909336205610b964620dd31b4c4c6e4b4869726e074a48c53024ecf0aff4352c",
+      "bytes": 4812,
+      "nominalSize": [
+        0.95,
+        1.2,
+        0.65
+      ],
+      "path": "builder-assets/openlife/kitchen_sink.glb"
+    },
+    {
+      "id": "openlife:kitchen_stove",
+      "label": "Kitchen Stove",
+      "category": "Appliances",
+      "tags": [
+        "appliance",
+        "kitchen"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/kitchen_stove.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "e1f6cbe8f962f7ff1b048f0f22007ac7e392b94973da94adaed83cb420525862",
+      "bytes": 7248,
+      "nominalSize": [
+        0.8,
+        1.4,
+        0.75
+      ],
+      "path": "builder-assets/openlife/kitchen_stove.glb"
+    },
+    {
+      "id": "openlife:laundry_washer",
+      "label": "Laundry Washer",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "laundry",
+        "appliance",
+        "ambitions"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/laundry_washer.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "340228b59e30eea911473b0eecdb94438790baa636ab87748f3be3164c36c9cc",
+      "bytes": 4152,
+      "nominalSize": [
+        1.2,
+        1.3,
+        1.1
+      ],
+      "path": "builder-assets/openlife/laundry_washer.glb"
+    },
+    {
+      "id": "openlife:luxury_lounge_chair",
+      "label": "Luxury Lounge Chair",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "stuff_pack",
+        "sp01",
+        "comfort"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/luxury_lounge_chair.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "2eab4fcdc6198d4f37394d0cff45d3b593eb00211691b9d3ce6a5721e8cf5f4c",
+      "bytes": 6484,
+      "nominalSize": [
+        1.1,
+        1.3,
+        1.1
+      ],
+      "path": "builder-assets/openlife/luxury_lounge_chair.glb"
+    },
+    {
+      "id": "openlife:mailbox_basic",
+      "label": "Mailbox Basic",
+      "category": "Outdoor",
+      "tags": [
+        "outdoor",
+        "yard"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/mailbox_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "f9a063f02b7b7749205657231ee8233715ca0c6996eaa470c8799a53878f81ee",
+      "bytes": 4288,
+      "nominalSize": [
+        0.4,
+        1.4,
+        0.25
+      ],
+      "path": "builder-assets/openlife/mailbox_basic.glb"
+    },
+    {
+      "id": "openlife:martial_arts_dummy",
+      "label": "Martial Arts Dummy",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "martial_arts",
+        "training",
+        "world_adventures"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/martial_arts_dummy.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "e42edbd84c3b746797afb350b5e40d728ed3a6b24cd11fc0d5f20242ef90fde5",
+      "bytes": 4568,
+      "nominalSize": [
+        1.2,
+        2,
+        1.2
+      ],
+      "path": "builder-assets/openlife/martial_arts_dummy.glb"
+    },
+    {
+      "id": "openlife:microwave",
+      "label": "Microwave",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "kitchen",
+        "cooking",
+        "appliance"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/microwave.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "ad9c42cf4de310a3e38981afb1f9a31132ad1f18b838162185671fc2216c1abc",
+      "bytes": 4684,
+      "nominalSize": [
+        1.05,
+        1.05,
+        0.65
+      ],
+      "path": "builder-assets/openlife/microwave.glb"
+    },
+    {
+      "id": "openlife:mixology_bar",
+      "label": "Mixology Bar",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "bar",
+        "mixology",
+        "nightlife"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/mixology_bar.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "5094b9b3f2d68b8d270d764b170a1e4a9052eb2b84c9d6ab7741a4bd7fa0ef13",
+      "bytes": 7756,
+      "nominalSize": [
+        2.8,
+        1.7,
+        1.2
+      ],
+      "path": "builder-assets/openlife/mixology_bar.glb"
+    },
+    {
+      "id": "openlife:nectar_maker",
+      "label": "Nectar Maker",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "world_adventures",
+        "nectar",
+        "crafting"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/nectar_maker.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "971e50cc3386ae79ef875b12d83d0399804a5078becd3e1b816363c860b26776",
+      "bytes": 4564,
+      "nominalSize": [
+        1.5,
+        1.8,
+        1.1
+      ],
+      "path": "builder-assets/openlife/nectar_maker.glb"
+    },
+    {
+      "id": "openlife:pet_bowl",
+      "label": "Pet Bowl",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "pets",
+        "feeding"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/pet_bowl.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "4925ecf2d46333337a8660ea987852f4eea2d05549cf20c65cc1138b397e5325",
+      "bytes": 3488,
+      "nominalSize": [
+        0.8,
+        0.25,
+        0.8
+      ],
+      "path": "builder-assets/openlife/pet_bowl.glb"
+    },
+    {
+      "id": "openlife:pet_cat",
+      "label": "Pet Cat",
+      "category": "Animals",
+      "tags": [
+        "pet",
+        "cat"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/pet_cat.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "3ec9d8fa191e67bf456f9ee3970341f92f2cbe31ff664b77d1c364323d62ae98",
+      "bytes": 9564,
+      "nominalSize": [
+        0.5,
+        0.55,
+        0.3
+      ],
+      "path": "builder-assets/openlife/pet_cat.glb"
+    },
+    {
+      "id": "openlife:pet_dog",
+      "label": "Pet Dog",
+      "category": "Animals",
+      "tags": [
+        "pet",
+        "dog"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/pet_dog.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "77e8fb394d7fda5feef9c06d0f15b3d61d0081f01413f57fcd4a1b17b7e5046a",
+      "bytes": 9224,
+      "nominalSize": [
+        0.7,
+        0.55,
+        0.35
+      ],
+      "path": "builder-assets/openlife/pet_dog.glb"
+    },
+    {
+      "id": "openlife:pet_horse",
+      "label": "Pet Horse",
+      "category": "Animals",
+      "tags": [
+        "pet",
+        "horse"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/pet_horse.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "4ae9da307f7aca5f80226bde8ab4efca2d674eca4d3729a041cbe270c9265f28",
+      "bytes": 8884,
+      "nominalSize": [
+        1.5,
+        1.6,
+        0.5
+      ],
+      "path": "builder-assets/openlife/pet_horse.glb"
+    },
+    {
+      "id": "openlife:photo_booth",
+      "label": "Photo Booth",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "photography",
+        "social",
+        "nightlife"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/photo_booth.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "619c6b73fc8b35d6a0bcddc568d3180cc9b2c8549fa79dba73d9759fb608c15d",
+      "bytes": 4836,
+      "nominalSize": [
+        1.5,
+        2.1,
+        1.4
+      ],
+      "path": "builder-assets/openlife/photo_booth.glb"
+    },
+    {
+      "id": "openlife:resort_desk",
+      "label": "Resort Desk",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "resort",
+        "service"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/resort_desk.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "9e90103f1ca0b06c0b0bf84ab2d7bf7ebe851069ba82bb9e0d27f846684fbe0e",
+      "bytes": 2612,
+      "nominalSize": [
+        2.5,
+        1.7,
+        1
+      ],
+      "path": "builder-assets/openlife/resort_desk.glb"
+    },
+    {
+      "id": "openlife:resort_tower",
+      "label": "Resort Tower",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "resort",
+        "tower",
+        "island_paradise"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/resort_tower.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "cfca05bf870247da9fee699fa9c22465dbfc76830d7af44f9210cb6973ac974a",
+      "bytes": 8404,
+      "nominalSize": [
+        4,
+        5.2,
+        4
+      ],
+      "path": "builder-assets/openlife/resort_tower.glb"
+    },
+    {
+      "id": "openlife:retro_dance_console",
+      "label": "Retro Dance Console",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "stuff_pack",
+        "sp08",
+        "retro",
+        "electronics"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/retro_dance_console.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "11a8cd46b4373b3820ae1ae26bc8a738a9b4a2d5ad9e6d64401492d83a8369db",
+      "bytes": 5848,
+      "nominalSize": [
+        1.1,
+        1.5,
+        0.8
+      ],
+      "path": "builder-assets/openlife/retro_dance_console.glb"
+    },
+    {
+      "id": "openlife:road_cross",
+      "label": "Road Cross",
+      "category": "Outdoor",
+      "tags": [
+        "road",
+        "intersection"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/road_cross.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "c14578e8239581f5fe2670db90453a0dcfcba4a5991e0f5ceb8985a3b75d88c2",
+      "bytes": 1664,
+      "nominalSize": [
+        22,
+        0.15,
+        22
+      ],
+      "path": "builder-assets/openlife/road_cross.glb"
+    },
+    {
+      "id": "openlife:road_straight",
+      "label": "Road Straight",
+      "category": "Outdoor",
+      "tags": [
+        "road",
+        "modular"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/road_straight.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "681c50c892f41c36dc3a1791b9c1000345ae0ed680d93a38be70f100fa07b8a2",
+      "bytes": 1880,
+      "nominalSize": [
+        8,
+        0.15,
+        16
+      ],
+      "path": "builder-assets/openlife/road_straight.glb"
+    },
+    {
+      "id": "openlife:shower_basic",
+      "label": "Shower Basic",
+      "category": "Fixtures",
+      "tags": [
+        "fixture",
+        "bathroom"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/shower_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "0a633c3a3f4e9de86d270fa5a93c55a3036e970e7294679ead31bd771ed2d72d",
+      "bytes": 7440,
+      "nominalSize": [
+        1,
+        2.1,
+        1
+      ],
+      "path": "builder-assets/openlife/shower_basic.glb"
+    },
+    {
+      "id": "openlife:shrub",
+      "label": "Shrub",
+      "category": "Nature",
+      "tags": [
+        "nature",
+        "shrub"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/shrub.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "16d8d6c1e3ac3220fe4d2fe8adf41f0387a59ad7b5633dfc0c555eea61f44348",
+      "bytes": 5352,
+      "nominalSize": [
+        1.9,
+        1.5,
+        1.8
+      ],
+      "path": "builder-assets/openlife/shrub.glb"
+    },
+    {
+      "id": "openlife:sim_adult_athletic",
+      "label": "Sim Adult Athletic",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "humanoid"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_adult_athletic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "b54d96cde1b8aa5fd1fa7b2a9e1df06797ebd7f1179be405195253944d45ac8f",
+      "bytes": 15112,
+      "nominalSize": [
+        0.63,
+        1.785,
+        0.42000000000000004
+      ],
+      "path": "builder-assets/openlife/sim_adult_athletic.glb"
+    },
+    {
+      "id": "openlife:sim_adult_average",
+      "label": "Sim Adult Average",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "humanoid"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_adult_average.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "d468967bd508086cee556b2fc5f0da384f0a79050eb80820eae20ba4abc02bd0",
+      "bytes": 14980,
+      "nominalSize": [
+        0.6,
+        1.7,
+        0.4
+      ],
+      "path": "builder-assets/openlife/sim_adult_average.glb"
+    },
+    {
+      "id": "openlife:sim_adult_slender",
+      "label": "Sim Adult Slender",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "humanoid"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_adult_slender.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "ffd4593269b031edb04a50125ecec1b61a4bf4f251127aea2907abeba3fc86c3",
+      "bytes": 16104,
+      "nominalSize": [
+        0.57,
+        1.615,
+        0.38
+      ],
+      "path": "builder-assets/openlife/sim_adult_slender.glb"
+    },
+    {
+      "id": "openlife:sim_adult_soft",
+      "label": "Sim Adult Soft",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "cas",
+        "adult",
+        "soft"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_adult_soft.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "ffd4593269b031edb04a50125ecec1b61a4bf4f251127aea2907abeba3fc86c3",
+      "bytes": 16104,
+      "nominalSize": [
+        1.2,
+        2.4,
+        0.8
+      ],
+      "path": "builder-assets/openlife/sim_adult_soft.glb"
+    },
+    {
+      "id": "openlife:sim_avatar_reference",
+      "label": "Sim Avatar Reference",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "humanoid"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_avatar_reference.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "d468967bd508086cee556b2fc5f0da384f0a79050eb80820eae20ba4abc02bd0",
+      "bytes": 14980,
+      "nominalSize": [
+        0.6,
+        1.7,
+        0.4
+      ],
+      "path": "builder-assets/openlife/sim_avatar_reference.glb"
+    },
+    {
+      "id": "openlife:sim_baby_athletic",
+      "label": "Sim Baby Athletic",
+      "category": "Objects",
+      "tags": [
+        "model"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_baby_athletic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "bytes": 16116,
+      "nominalSize": [
+        1,
+        1,
+        1
+      ],
+      "path": "builder-assets/openlife/sim_baby_athletic.glb"
+    },
+    {
+      "id": "openlife:sim_baby_average",
+      "label": "Sim Baby Average",
+      "category": "Objects",
+      "tags": [
+        "model"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_baby_average.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "bytes": 16116,
+      "nominalSize": [
+        1,
+        1,
+        1
+      ],
+      "path": "builder-assets/openlife/sim_baby_average.glb"
+    },
+    {
+      "id": "openlife:sim_baby_slender",
+      "label": "Sim Baby Slender",
+      "category": "Objects",
+      "tags": [
+        "model"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_baby_slender.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "bytes": 16116,
+      "nominalSize": [
+        1,
+        1,
+        1
+      ],
+      "path": "builder-assets/openlife/sim_baby_slender.glb"
+    },
+    {
+      "id": "openlife:sim_baby_soft",
+      "label": "Sim Baby Soft",
+      "category": "Objects",
+      "tags": [
+        "model"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_baby_soft.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "bytes": 16116,
+      "nominalSize": [
+        1,
+        1,
+        1
+      ],
+      "path": "builder-assets/openlife/sim_baby_soft.glb"
+    },
+    {
+      "id": "openlife:sim_child_athletic",
+      "label": "Sim Child Athletic",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "humanoid"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_child_athletic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "3363df108212f3ce9b109099277ecc36ba876a0c4667c4cdc5deab3d93b4faea",
+      "bytes": 15132,
+      "nominalSize": [
+        0.42,
+        1.19,
+        0.27999999999999997
+      ],
+      "path": "builder-assets/openlife/sim_child_athletic.glb"
+    },
+    {
+      "id": "openlife:sim_child_average",
+      "label": "Sim Child Average",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "cas",
+        "child",
+        "average"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_child_average.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "bytes": 16116,
+      "nominalSize": [
+        0.864,
+        1.728,
+        0.576
+      ],
+      "path": "builder-assets/openlife/sim_child_average.glb"
+    },
+    {
+      "id": "openlife:sim_child_slender",
+      "label": "Sim Child Slender",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "cas",
+        "child",
+        "slender"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_child_slender.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "bytes": 16116,
+      "nominalSize": [
+        0.864,
+        1.728,
+        0.576
+      ],
+      "path": "builder-assets/openlife/sim_child_slender.glb"
+    },
+    {
+      "id": "openlife:sim_child_soft",
+      "label": "Sim Child Soft",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "humanoid"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_child_soft.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "bytes": 16116,
+      "nominalSize": [
+        0.39,
+        1.105,
+        0.26
+      ],
+      "path": "builder-assets/openlife/sim_child_soft.glb"
+    },
+    {
+      "id": "openlife:sim_elder_athletic",
+      "label": "Sim Elder Athletic",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "humanoid"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_elder_athletic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "9c7aeec6854736bcf51ea1f567f3a9a82a871de2bb248f42a1051a735282f228",
+      "bytes": 14980,
+      "nominalSize": [
+        0.6,
+        1.7,
+        0.4
+      ],
+      "path": "builder-assets/openlife/sim_elder_athletic.glb"
+    },
+    {
+      "id": "openlife:sim_elder_average",
+      "label": "Sim Elder Average",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "humanoid"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_elder_average.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "84b6452bb3e15a04f56271fba0967453b50a7896ed916ea60f2085c5a3d33d9c",
+      "bytes": 15752,
+      "nominalSize": [
+        0.57,
+        1.615,
+        0.38
+      ],
+      "path": "builder-assets/openlife/sim_elder_average.glb"
+    },
+    {
+      "id": "openlife:sim_elder_slender",
+      "label": "Sim Elder Slender",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "cas",
+        "elder",
+        "slender"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_elder_slender.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "84b6452bb3e15a04f56271fba0967453b50a7896ed916ea60f2085c5a3d33d9c",
+      "bytes": 15752,
+      "nominalSize": [
+        1.176,
+        2.352,
+        0.784
+      ],
+      "path": "builder-assets/openlife/sim_elder_slender.glb"
+    },
+    {
+      "id": "openlife:sim_elder_soft",
+      "label": "Sim Elder Soft",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "cas",
+        "elder",
+        "soft"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_elder_soft.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "84b6452bb3e15a04f56271fba0967453b50a7896ed916ea60f2085c5a3d33d9c",
+      "bytes": 15752,
+      "nominalSize": [
+        1.176,
+        2.352,
+        0.784
+      ],
+      "path": "builder-assets/openlife/sim_elder_soft.glb"
+    },
+    {
+      "id": "openlife:sim_teen_athletic",
+      "label": "Sim Teen Athletic",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "cas",
+        "teen",
+        "athletic"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_teen_athletic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "b54d96cde1b8aa5fd1fa7b2a9e1df06797ebd7f1179be405195253944d45ac8f",
+      "bytes": 15112,
+      "nominalSize": [
+        1.08,
+        2.16,
+        0.7200000000000001
+      ],
+      "path": "builder-assets/openlife/sim_teen_athletic.glb"
+    },
+    {
+      "id": "openlife:sim_teen_average",
+      "label": "Sim Teen Average",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "cas",
+        "teen",
+        "average"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_teen_average.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "681fd67ffe078c144ec435477dec06342d2c5a5198bb336adb2268d10b60f524",
+      "bytes": 15676,
+      "nominalSize": [
+        1.08,
+        2.16,
+        0.7200000000000001
+      ],
+      "path": "builder-assets/openlife/sim_teen_average.glb"
+    },
+    {
+      "id": "openlife:sim_teen_slender",
+      "label": "Sim Teen Slender",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "cas",
+        "teen",
+        "slender"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_teen_slender.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "681fd67ffe078c144ec435477dec06342d2c5a5198bb336adb2268d10b60f524",
+      "bytes": 15676,
+      "nominalSize": [
+        1.08,
+        2.16,
+        0.7200000000000001
+      ],
+      "path": "builder-assets/openlife/sim_teen_slender.glb"
+    },
+    {
+      "id": "openlife:sim_teen_soft",
+      "label": "Sim Teen Soft",
+      "category": "Characters",
+      "tags": [
+        "character",
+        "sim",
+        "humanoid"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_teen_soft.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "681fd67ffe078c144ec435477dec06342d2c5a5198bb336adb2268d10b60f524",
+      "bytes": 15676,
+      "nominalSize": [
+        0.54,
+        1.53,
+        0.36000000000000004
+      ],
+      "path": "builder-assets/openlife/sim_teen_soft.glb"
+    },
+    {
+      "id": "openlife:sim_toddler_athletic",
+      "label": "Sim Toddler Athletic",
+      "category": "Objects",
+      "tags": [
+        "model"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_toddler_athletic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "3363df108212f3ce9b109099277ecc36ba876a0c4667c4cdc5deab3d93b4faea",
+      "bytes": 15132,
+      "nominalSize": [
+        1,
+        1,
+        1
+      ],
+      "path": "builder-assets/openlife/sim_toddler_athletic.glb"
+    },
+    {
+      "id": "openlife:sim_toddler_average",
+      "label": "Sim Toddler Average",
+      "category": "Objects",
+      "tags": [
+        "model"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_toddler_average.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "bytes": 16116,
+      "nominalSize": [
+        1,
+        1,
+        1
+      ],
+      "path": "builder-assets/openlife/sim_toddler_average.glb"
+    },
+    {
+      "id": "openlife:sim_toddler_slender",
+      "label": "Sim Toddler Slender",
+      "category": "Objects",
+      "tags": [
+        "model"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_toddler_slender.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "bytes": 16116,
+      "nominalSize": [
+        1,
+        1,
+        1
+      ],
+      "path": "builder-assets/openlife/sim_toddler_slender.glb"
+    },
+    {
+      "id": "openlife:sim_toddler_soft",
+      "label": "Sim Toddler Soft",
+      "category": "Objects",
+      "tags": [
+        "model"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sim_toddler_soft.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "bytes": 16116,
+      "nominalSize": [
+        1,
+        1,
+        1
+      ],
+      "path": "builder-assets/openlife/sim_toddler_soft.glb"
+    },
+    {
+      "id": "openlife:sofa_basic",
+      "label": "Sofa Basic",
+      "category": "Furniture",
+      "tags": [
+        "furniture",
+        "living",
+        "seat"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sofa_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "0ee10972c5eb5e8fff6b09628c9b03696cf7578f812e4cf134a937c70fa554be",
+      "bytes": 8884,
+      "nominalSize": [
+        2.3,
+        1.1,
+        1
+      ],
+      "path": "builder-assets/openlife/sofa_basic.glb"
+    },
+    {
+      "id": "openlife:spa_vanity",
+      "label": "Spa Vanity",
+      "category": "Fixtures",
+      "tags": [
+        "fixture",
+        "bathroom"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/spa_vanity.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "6b472f2379b6046f3b0b577ec94bbdada7389fa2a8ce30a01760837929395cfb",
+      "bytes": 5156,
+      "nominalSize": [
+        0.95,
+        2,
+        0.55
+      ],
+      "path": "builder-assets/openlife/spa_vanity.glb"
+    },
+    {
+      "id": "openlife:sport_car_display",
+      "label": "Sport Car Display",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "stuff_pack",
+        "sp02",
+        "vehicle"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/sport_car_display.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "72a7d60f1c4ff1f61a354301d5a8002a621666320de56277a9663fb20f6c2360",
+      "bytes": 7572,
+      "nominalSize": [
+        4,
+        1.6,
+        2
+      ],
+      "path": "builder-assets/openlife/sport_car_display.glb"
+    },
+    {
+      "id": "openlife:stereo_basic",
+      "label": "Stereo Basic",
+      "category": "Furniture",
+      "tags": [
+        "furniture",
+        "electronics"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/stereo_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "e049f75e092b7413141e32f7005a7973ea828fbbdf8852b43f25e77f4d12256b",
+      "bytes": 2656,
+      "nominalSize": [
+        1.45,
+        1.3,
+        0.5
+      ],
+      "path": "builder-assets/openlife/stereo_basic.glb"
+    },
+    {
+      "id": "openlife:tattoo_chair",
+      "label": "Tattoo Chair",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "tattoo",
+        "profession",
+        "ambitions"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/tattoo_chair.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "542915a628a7a864d29ca530fd4174ebbd0e21a8dc54d69d230f5f888ba68b8d",
+      "bytes": 4212,
+      "nominalSize": [
+        1.1,
+        1.5,
+        1.8
+      ],
+      "path": "builder-assets/openlife/tattoo_chair.glb"
+    },
+    {
+      "id": "openlife:television_basic",
+      "label": "Television Basic",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "electronics",
+        "fun"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/television_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "94ac9b3eeb112932d074f7519c743ed3d62e6b4e0a832e1d1c409509faad6ec2",
+      "bytes": 6184,
+      "nominalSize": [
+        1.6,
+        1.75,
+        0.55
+      ],
+      "path": "builder-assets/openlife/television_basic.glb"
+    },
+    {
+      "id": "openlife:time_portal",
+      "label": "Time Portal",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "future",
+        "portal",
+        "time_travel"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/time_portal.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "5ff7282f14512117a5d5d2a320957fa28f51a93c0e8cda926f34db344d2ea519",
+      "bytes": 11212,
+      "nominalSize": [
+        2.5,
+        3.2,
+        1
+      ],
+      "path": "builder-assets/openlife/time_portal.glb"
+    },
+    {
+      "id": "openlife:toilet_basic",
+      "label": "Toilet Basic",
+      "category": "Fixtures",
+      "tags": [
+        "fixture",
+        "bathroom"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/toilet_basic.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "6a62962895345ad6c901dd4ab7c4695d462edcf3c88615b3e1ef1887d9accf16",
+      "bytes": 4060,
+      "nominalSize": [
+        0.5,
+        0.9,
+        0.6
+      ],
+      "path": "builder-assets/openlife/toilet_basic.glb"
+    },
+    {
+      "id": "openlife:trash_bin",
+      "label": "Trash Bin",
+      "category": "Outdoor",
+      "tags": [
+        "outdoor",
+        "yard"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/trash_bin.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "b665cab01b7079b78b821774daa4f1b35880aa8f6f53f1243d91b7788b7e396f",
+      "bytes": 2652,
+      "nominalSize": [
+        0.6,
+        0.8,
+        0.6
+      ],
+      "path": "builder-assets/openlife/trash_bin.glb"
+    },
+    {
+      "id": "openlife:trash_can",
+      "label": "Trash Can",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "trash",
+        "clean"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/trash_can.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "991643a8e368a06ad018b913ba5881ed2beeebb6c2756511565dcc6f870175fb",
+      "bytes": 4876,
+      "nominalSize": [
+        1,
+        1.1,
+        1
+      ],
+      "path": "builder-assets/openlife/trash_can.glb"
+    },
+    {
+      "id": "openlife:tree_deciduous",
+      "label": "Tree Deciduous",
+      "category": "Nature",
+      "tags": [
+        "nature",
+        "tree"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/tree_deciduous.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "0198fba13e6726c891a709a5ed8de12eafe8c2cf23d6e547748d01ac15697207",
+      "bytes": 12284,
+      "nominalSize": [
+        3.5,
+        5.2,
+        3.5
+      ],
+      "path": "builder-assets/openlife/tree_deciduous.glb"
+    },
+    {
+      "id": "openlife:treehouse",
+      "label": "Treehouse",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "children",
+        "tree_house",
+        "generations"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/treehouse.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "292ad286aa9241352bdd2b2678d7a4f2d29648cab07a44ff88eef6136dd8095f",
+      "bytes": 8836,
+      "nominalSize": [
+        3,
+        4.2,
+        2.8
+      ],
+      "path": "builder-assets/openlife/treehouse.glb"
+    },
+    {
+      "id": "openlife:university_podium",
+      "label": "University Podium",
+      "category": "Objects",
+      "tags": [
+        "interactable",
+        "university",
+        "class",
+        "education"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/university_podium.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "3d6415e7d7a878eff12c590849ecca816f6eb1e881e51470c8900ddbdec4b25b",
+      "bytes": 2648,
+      "nominalSize": [
+        1.4,
+        1.7,
+        1
+      ],
+      "path": "builder-assets/openlife/university_podium.glb"
+    },
+    {
+      "id": "openlife:vehicle_compact",
+      "label": "Vehicle Compact",
+      "category": "Vehicles",
+      "tags": [
+        "vehicle",
+        "car",
+        "transport"
+      ],
+      "source": "OpenLife (Life_Sim)",
+      "sourcePath": "assets/generated/models/vehicle_compact.glb",
+      "license": "MIT — OpenLife contributors",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "71ae8ca6818f73f8915229aac731a05ef07d2ef8407459b87d4e004f52a0f90a",
+      "bytes": 6544,
+      "nominalSize": [
+        4,
+        2,
+        2
+      ],
+      "path": "builder-assets/openlife/vehicle_compact.glb"
     }
   ],
   "textures": [
@@ -500,28 +2613,143 @@
       "label": "Blue wallpaper",
       "path": "builder-assets/openlife/wallpaper_blue.png",
       "source": "OpenLife",
-      "license": "MIT"
+      "license": "MIT",
+      "sha256": "28d7a2c0fe18cd5003901c961b7ead9f2dc8275a201be3c1ab3db8cc3b8ca4ba",
+      "bytes": 855,
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sourcePath": "assets/generated/textures/wallpaper_blue.png"
     },
     {
       "id": "wallpaper-cream",
       "label": "Cream wallpaper",
       "path": "builder-assets/openlife/wallpaper_cream.png",
       "source": "OpenLife",
-      "license": "MIT"
+      "license": "MIT",
+      "sha256": "6cb01231ebc55a5bd4217ed429ae3fdf90d9c128fba7cebafc6fbb39026ed112",
+      "bytes": 857,
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sourcePath": "assets/generated/textures/wallpaper_cream.png"
     },
     {
       "id": "floor-wood",
       "label": "Wood floor",
       "path": "builder-assets/openlife/floor_wood.png",
       "source": "OpenLife",
-      "license": "MIT"
+      "license": "MIT",
+      "sha256": "a2574b9d642d63e5f6e2dbb7f6c9f72a65ab3ec5b33e5a019f14b89a80eedb80",
+      "bytes": 678,
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sourcePath": "assets/generated/textures/floor_wood.png"
     },
     {
       "id": "stone-paver",
       "label": "Stone paver",
       "path": "builder-assets/openlife/stone_paver.png",
       "source": "OpenLife",
-      "license": "MIT"
+      "license": "MIT",
+      "sha256": "507c35e0a3a47c9b728b29e51bd87ffc228683fe1f4f40e9d6230b5a7e149e7c",
+      "bytes": 3575,
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sourcePath": "assets/generated/textures/stone_paver.png"
+    },
+    {
+      "id": "driveway",
+      "label": "Driveway",
+      "source": "OpenLife (Life_Sim)",
+      "license": "MIT — OpenLife contributors",
+      "path": "builder-assets/openlife/driveway.png",
+      "sourcePath": "assets/generated/textures/driveway.png",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "120dc25b0aee6d58c4739de86e620a1243a8c87665a40fb8d8f863289e5c23a4",
+      "bytes": 513982
+    },
+    {
+      "id": "floor-tile",
+      "label": "Floor Tile",
+      "source": "OpenLife (Life_Sim)",
+      "license": "MIT — OpenLife contributors",
+      "path": "builder-assets/openlife/floor_tile.png",
+      "sourcePath": "assets/generated/textures/floor_tile.png",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "9e175dcdd255a805971fc4eb08143547c212c350acf3047b40144803dd2ef1fe",
+      "bytes": 652
+    },
+    {
+      "id": "garden-soil",
+      "label": "Garden Soil",
+      "source": "OpenLife (Life_Sim)",
+      "license": "MIT — OpenLife contributors",
+      "path": "builder-assets/openlife/garden_soil.png",
+      "sourcePath": "assets/generated/textures/garden_soil.png",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "81341b383f61e0a2dfa4894ac510c03e3f4b71bb269df3437929c4f5fc97fd58",
+      "bytes": 564204
+    },
+    {
+      "id": "lot-edge",
+      "label": "Lot Edge",
+      "source": "OpenLife (Life_Sim)",
+      "license": "MIT — OpenLife contributors",
+      "path": "builder-assets/openlife/lot_edge.png",
+      "sourcePath": "assets/generated/textures/lot_edge.png",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "d5ec2cbf000025432ecc5149a2d4b50d0c6f65e2a7ea9287e820280b82650111",
+      "bytes": 459185
+    },
+    {
+      "id": "sidewalk",
+      "label": "Sidewalk",
+      "source": "OpenLife (Life_Sim)",
+      "license": "MIT — OpenLife contributors",
+      "path": "builder-assets/openlife/sidewalk.png",
+      "sourcePath": "assets/generated/textures/sidewalk.png",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "f34c58a37658c67d3bd8c6909793a86bd1a8d1eaaa725274bab6d8b3628f1782",
+      "bytes": 473160
+    },
+    {
+      "id": "terrain-grass",
+      "label": "Terrain Grass",
+      "source": "OpenLife (Life_Sim)",
+      "license": "MIT — OpenLife contributors",
+      "path": "builder-assets/openlife/terrain_grass.png",
+      "sourcePath": "assets/generated/textures/terrain_grass.png",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "96e746410ccd5f0f4e0a32ce24786a8b77b2fc37cd7fa0f40d3e28ff5dae8fa2",
+      "bytes": 528938
+    },
+    {
+      "id": "terrain-grass-dry",
+      "label": "Terrain Grass Dry",
+      "source": "OpenLife (Life_Sim)",
+      "license": "MIT — OpenLife contributors",
+      "path": "builder-assets/openlife/terrain_grass_dry.png",
+      "sourcePath": "assets/generated/textures/terrain_grass_dry.png",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "3d01cda2d991a8d5161b3c13d5605a608218a3fe4990112013c539080997f01e",
+      "bytes": 528341
+    },
+    {
+      "id": "terrain-grass-lush",
+      "label": "Terrain Grass Lush",
+      "source": "OpenLife (Life_Sim)",
+      "license": "MIT — OpenLife contributors",
+      "path": "builder-assets/openlife/terrain_grass_lush.png",
+      "sourcePath": "assets/generated/textures/terrain_grass_lush.png",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "5c49007e415874f0318609155ff319f6598829d24c69821e60fa6390b6b6dc54",
+      "bytes": 528745
+    },
+    {
+      "id": "terrain-road",
+      "label": "Terrain Road",
+      "source": "OpenLife (Life_Sim)",
+      "license": "MIT — OpenLife contributors",
+      "path": "builder-assets/openlife/terrain_road.png",
+      "sourcePath": "assets/generated/textures/terrain_road.png",
+      "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
+      "sha256": "ffb9b53a6efc29b0cff02c748be6ce9624ff03bf248533d0ab596432318159b3",
+      "bytes": 513956
     }
   ]
 }
