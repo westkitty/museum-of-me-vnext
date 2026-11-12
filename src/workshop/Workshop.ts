@@ -1304,6 +1304,8 @@ export class Workshop {
     this.helper.visible = false;
     this.clearSelectionBox();
     const object = id ? this.placements.getObject(id) : null;
+    // Keep the selected placement live even if the editor camera moves away.
+    this.placements.setPinned(object ? id : null);
     if (!object) {
       this.selectedId = null;
       this.refreshInspector();
