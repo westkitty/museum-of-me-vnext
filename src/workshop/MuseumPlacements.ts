@@ -43,6 +43,7 @@ export class MuseumPlacements {
   readonly surfaces = new WorkshopSurfaces();
 
   private readonly roots = new Map<string, THREE.Group>();
+  private readonly recordsById = new Map<string, WorkshopPlacementRecord>();
   private readonly scope = new ResourceScope('museum-placements');
   private readonly registry: AuthorableSceneRegistry | null;
   private manifest: WorkshopPlacementManifest;
@@ -173,6 +174,19 @@ export class MuseumPlacements {
     return this.roots.get(id) ?? this.registry?.get(id)?.root ?? null;
   }
 
+  /** Read one current placement without serializing and sorting the entire manifest. */
+  getRecord(id: string): WorkshopPlacementRecord | null {
+    const record = this.recordsById.get(id);
+    if (!record) return null;
+    const root = this.roots.get(id);
+    const current = root ? { ...record,
+      position: root.position.toArray() as [number, number, number],
+      rotation: [root.rotation.x, root.rotation.y, root.rotation.z] as [number, number, number],
+      scale: root.scale.toArray() as [number, number, number],
+    } : record;
+    return canonicalizeWorkshopManifest({ schemaVersion: WORKSHOP_SCHEMA_VERSION, objects: [current] }).objects[0] ?? null;
+  }
+
   getSceneEntry(id: string) {
     return this.registry?.get(id) ?? null;
   }
@@ -299,6 +313,7 @@ export class MuseumPlacements {
     this.group.removeFromParent();
     this.group.clear();
     this.roots.clear();
+    this.recordsById.clear();
     this.scope.dispose();
   }
 
@@ -315,12 +330,14 @@ export class MuseumPlacements {
     this.boundCollisions.clear();
     this.group.clear();
     this.roots.clear();
+    this.recordsById.clear();
     this.scope.releaseAll();
     for (const entry of this.registry?.entries() ?? []) this.registry?.apply(entry.id, entry.baseline);
     for (const override of this.manifest.sceneOverrides ?? []) this.registry?.apply(override.id, override);
     const materials = this.createMaterials();
 
     for (const record of this.manifest.objects) {
+      this.recordsById.set(record.id, record);
       const root = this.buildPrefab(record, materials);
       if (record.color) {
         root.traverse((node) => {

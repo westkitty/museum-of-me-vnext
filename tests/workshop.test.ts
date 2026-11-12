@@ -288,6 +288,11 @@ describe('MuseumPlacements', () => {
     object!.position.x = 9.5;
     const captured = placements.captureManifest();
     expect(captured.objects[0]?.position[0]).toBe(9.5);
+    expect(placements.getRecord('bench-01')).toEqual(captured.objects[0]);
+    const detached = placements.getRecord('bench-01')!;
+    detached.position[0] = 123;
+    expect(placements.getRecord('bench-01')?.position[0]).toBe(9.5);
+    expect(placements.getRecord('missing')).toBeNull();
     placements.dispose();
   });
 
@@ -295,8 +300,10 @@ describe('MuseumPlacements', () => {
     const placements = new MuseumPlacements(sample);
     placements.removeRecord('bench-01');
     expect(placements.objectCount).toBe(0);
+    expect(placements.getRecord('bench-01')).toBeNull();
     placements.replaceManifest(sample);
     expect(placements.objectCount).toBe(1);
+    expect(placements.getRecord('bench-01')).toEqual(placements.captureManifest().objects[0]);
     placements.dispose();
   });
 

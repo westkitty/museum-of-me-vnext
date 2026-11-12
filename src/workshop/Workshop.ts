@@ -1319,9 +1319,7 @@ export class Workshop {
 
   private object(): THREE.Object3D | null { return this.selectedId ? this.placements.getObject(this.selectedId) : null; }
   private record(): WorkshopPlacementRecord | null {
-    return this.selectedId
-      ? this.placements.captureManifest().objects.find((item) => item.id === this.selectedId) ?? null
-      : null;
+    return this.selectedId ? this.placements.getRecord(this.selectedId) : null;
   }
 
   private sceneEntry(): AuthorableSceneEntry | null {
