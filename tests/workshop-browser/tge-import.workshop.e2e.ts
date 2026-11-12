@@ -26,4 +26,16 @@ test('imports a pinned candidate into the actual Builder and inspects bounds', a
   await item.click();
   await expect(workshop.locator('[data-workshop="source-inspector"]')).toContainText('Installed locally');
   await expect(workshop.getByRole('button', { name: 'Place cached model' })).toBeEnabled();
+  // Interior handoff requires the existing frame-driven prewarm to finish.
+  await page.evaluate(() => window.__museum?.start());
+  await expect.poll(() => page.evaluate(() => window.__museum?.streaming?.telemetry.prewarmReady), { timeout: 80_000 }).toBe(true);
+  await workshop.locator('[data-workshop="world-interior"]').click();
+  await expect.poll(() => page.evaluate(() => window.__museum?.activeWorld), { timeout: 60_000 }).toBe('interior');
+  await page.evaluate(() => (window.__museum as unknown as { workshopUpdate: () => void }).workshopUpdate());
+  expect(await page.evaluate(() => window.__museum?.scene.getObjectByName('workshop:catalog-model-01')?.children[0]?.type)).toBe('Mesh');
+  await workshop.locator('[data-workshop="world-exterior"]').click();
+  await expect.poll(() => page.evaluate(() => window.__museum?.activeWorld), { timeout: 60_000 }).toBe('exterior');
+  await page.evaluate(() => (window.__museum as unknown as { workshopUpdate: () => void }).workshopUpdate());
+  await page.waitForFunction(() => window.__museum?.scene.getObjectByName('workshop:catalog-model-01')?.children[0]?.type === 'Group', null, { timeout: 60_000 });
+  await page.evaluate(() => window.__museum?.stop());
 });

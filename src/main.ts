@@ -66,6 +66,9 @@ const syncBuilderPlacements = () => placements.syncWorld(
   app.activeWorld, app.exteriorWorld.collision, app.museum?.collision,
   app.exteriorWorld.root, app.museum?.root,
 );
+// Establish the initial world before the first frame, including when a test or
+// embedding host pauses the application immediately after boot.
+syncBuilderPlacements();
 app.setWorkshopUpdate(syncBuilderPlacements);
 app.start();
 mountCinematicArrival(app);

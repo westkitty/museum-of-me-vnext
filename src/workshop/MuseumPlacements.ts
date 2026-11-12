@@ -25,6 +25,19 @@ interface PlacementMaterials {
   accent: THREE.MeshStandardMaterial;
 }
 
+interface ManagedModel {
+  readonly root: THREE.Group;
+  readonly placeholder: THREE.Object3D;
+  readonly scope: ResourceScope;
+  loading: boolean;
+  failed: boolean;
+}
+
+async function defaultModelLoader(assetId: string): Promise<THREE.Object3D> {
+  const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+  return (await new GLTFLoader().loadAsync(resolveBuilderResourceUrl(assetId))).scene;
+}
+
 export class MuseumPlacements {
   readonly group = new THREE.Group();
   readonly surfaces = new WorkshopSurfaces();
@@ -40,8 +53,12 @@ export class MuseumPlacements {
   private comparingOriginal = false;
   private readonly comparisonSceneTransforms = new Map<string, AuthorableSceneTransform>();
   private rebuildRevision = 0;
+  private activeWorld: 'exterior' | 'interior' | null = null;
+  private readonly managedModels = new Map<string, ManagedModel>();
+  private managedLoadsInFlight = 0;
 
-  constructor(rawManifest: unknown, registry: AuthorableSceneRegistry | null = null) {
+  constructor(rawManifest: unknown, registry: AuthorableSceneRegistry | null = null,
+    private readonly modelLoader: (assetId: string) => Promise<THREE.Object3D> = defaultModelLoader) {
     this.group.name = 'museum-authored-placements';
     this.registry = registry;
     const parsed = validateWorkshopManifestForMuseum(rawManifest, registry?.entries() ?? []);
@@ -94,12 +111,15 @@ export class MuseumPlacements {
     exteriorRoot?: THREE.Object3D,
     interiorRoot?: THREE.Object3D,
   ): void {
+    const changedWorld = this.activeWorld !== world;
+    this.activeWorld = world;
     if (exteriorRoot) this.surfaces.bind('exterior', exteriorRoot);
     if (interiorRoot) this.surfaces.bind('interior', interiorRoot);
     for (const record of this.manifest.objects) {
       const root = this.roots.get(record.id);
       if (root) root.visible = !record.worldId || record.worldId === 'shared' || record.worldId === world;
     }
+    if (changedWorld) this.syncManagedModels(world);
     this.syncCollision(exterior, 'exterior');
     if (interior) this.syncCollision(interior, 'interior');
   }
@@ -266,6 +286,7 @@ export class MuseumPlacements {
   dispose(): void {
     this.setOriginalComparison(false);
     this.rebuildRevision++;
+    this.releaseManagedModels();
     this.surfaces.dispose();
     for (const release of this.interactionDisposers.splice(0)) release();
     for (const [target, ids] of this.boundCollisions) {
@@ -283,6 +304,7 @@ export class MuseumPlacements {
 
   private rebuild(): void {
     const revision = ++this.rebuildRevision;
+    this.releaseManagedModels();
     for (const release of this.interactionDisposers.splice(0)) release();
     for (const [target, ids] of this.boundCollisions) {
       for (const id of ids) {
@@ -338,7 +360,9 @@ export class MuseumPlacements {
         this.interactionDisposers.push(release);
       }
       if (record.prefab === 'catalog-model' && record.assetId) {
-        void this.loadCatalogModel(root, record, revision);
+        if (record.collision === 'solid' || (record.event && record.event !== 'none')) {
+          void this.loadCatalogModel(root, record, revision);
+        }
       } else if (record.texture) {
         this.applyRecordFinish(root, record);
       }
@@ -355,19 +379,76 @@ export class MuseumPlacements {
       }
     }
     this.surfaces.apply(this.manifest.surfaceOverrides ?? []);
+    if (this.activeWorld) this.syncManagedModels(this.activeWorld);
   }
 
-  private applyRecordFinish(root: THREE.Object3D, record: WorkshopPlacementRecord): void {
+  /** Release decoded assets while retaining their lightweight editable roots and saved transforms. */
+  private releaseManagedModels(): void {
+    for (const state of this.managedModels.values()) {
+      state.scope.dispose();
+      state.root.clear();
+      state.root.add(state.placeholder);
+    }
+    this.managedModels.clear();
+  }
+
+  private syncManagedModels(world: 'exterior' | 'interior'): void {
+    const records = this.manifest.objects.filter((record) => record.prefab === 'catalog-model' && record.assetId
+      && record.collision !== 'solid' && (!record.event || record.event === 'none'));
+    const eligible = new Set(records.filter((record) => !record.worldId || record.worldId === 'shared' || record.worldId === world)
+      .map((record) => record.id));
+    for (const [id, state] of this.managedModels) {
+      if (eligible.has(id)) continue;
+      state.scope.dispose();
+      state.root.clear();
+      state.root.add(state.placeholder);
+      this.managedModels.delete(id);
+    }
+    for (const record of records) {
+      if (this.managedLoadsInFlight >= 2) break;
+      if (!eligible.has(record.id) || this.managedModels.has(record.id)) continue;
+      const root = this.roots.get(record.id);
+      const placeholder = root?.children[0];
+      if (!root || !placeholder) continue;
+      const state: ManagedModel = { root, placeholder, scope: new ResourceScope(`workshop-model:${record.id}`),
+        loading: true, failed: false };
+      this.managedModels.set(record.id, state);
+      this.managedLoadsInFlight++;
+      void this.modelLoader(record.assetId!).then((object) => {
+        if (state.scope.isDisposed || this.managedModels.get(record.id) !== state) {
+          const stale = new ResourceScope('stale-workshop-model');
+          stale.trackObject(object); stale.dispose();
+          return;
+        }
+        object.traverse((node) => { node.userData.workshopId = record.id; });
+        state.scope.trackObject(object);
+        if (record.color || record.texture) this.applyRecordFinish(object, record, state.scope);
+        root.clear(); root.add(object);
+      }).catch((error: unknown) => {
+        if (!state.scope.isDisposed) {
+          state.failed = true;
+          state.scope.dispose();
+          console.warn('[Museum Builder] model could not be loaded:', record.assetId, error);
+        }
+      }).finally(() => {
+        state.loading = false;
+        this.managedLoadsInFlight--;
+        if (!this.scope.isDisposed && this.activeWorld) this.syncManagedModels(this.activeWorld);
+      });
+    }
+  }
+
+  private applyRecordFinish(root: THREE.Object3D, record: WorkshopPlacementRecord, scope = this.scope): void {
     const url = record.texture ? resolveBuilderResourceUrl(record.texture) : null;
     root.traverse((node) => {
       const mesh = node as THREE.Mesh;
       if (!mesh.isMesh || mesh.userData.workshopImageSurface) return;
       const incoming = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
       const cloned = incoming.map((material) => {
-        const mat = this.scope.track(material.clone()) as THREE.MeshStandardMaterial;
+        const mat = scope.track(material.clone()) as THREE.MeshStandardMaterial;
         if ('color' in mat && mat.color?.isColor) mat.color.set(record.color ?? '#ffffff');
         if (url && 'map' in mat) {
-          const texture = this.scope.track(new THREE.TextureLoader().load(url, undefined, undefined,
+          const texture = scope.track(new THREE.TextureLoader().load(url, undefined, undefined,
             (error) => console.warn('[Museum Builder] model finish failed', record.texture, error)));
           texture.colorSpace = THREE.SRGBColorSpace;
           texture.wrapS = THREE.RepeatWrapping;
@@ -383,20 +464,18 @@ export class MuseumPlacements {
 
   private async loadCatalogModel(root: THREE.Group, record: WorkshopPlacementRecord, revision: number): Promise<void> {
     try {
-      const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
-      const url = resolveBuilderResourceUrl(record.assetId!);
-      const gltf = await new GLTFLoader().loadAsync(url);
+      const object = await this.modelLoader(record.assetId!);
       if (revision !== this.rebuildRevision || this.scope.isDisposed) {
         const stale = new ResourceScope('stale-builder-model');
-        stale.trackObject(gltf.scene);
+        stale.trackObject(object);
         stale.dispose();
         return;
       }
       root.clear();
-      gltf.scene.traverse((node) => { node.userData.workshopId = record.id; });
-      root.add(gltf.scene);
-      this.scope.trackObject(gltf.scene);
-      if (record.color || record.texture) this.applyRecordFinish(gltf.scene, record);
+      object.traverse((node) => { node.userData.workshopId = record.id; });
+      root.add(object);
+      this.scope.trackObject(object);
+      if (record.color || record.texture) this.applyRecordFinish(object, record);
       // The true model bounds become available only after the asynchronous
       // load; invalidate old dynamic boxes and let the normal App tick rebind.
       for (const [world, ids] of this.boundCollisions) {
