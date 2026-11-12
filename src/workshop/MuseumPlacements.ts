@@ -262,10 +262,27 @@ export class MuseumPlacements {
     }
     const previous = this.manifest;
     this.manifest = parsed.value;
-    if (JSON.stringify(previous.objects) === JSON.stringify(parsed.value.objects)) {
-      // Surface and registered-scene edits do not own authored prefab resources.
-      // Keep those roots and in-flight model loads intact when their records match.
-      for (const record of parsed.value.objects) this.recordsById.set(record.id, record);
+    const sameDefinitions = previous.objects.length === parsed.value.objects.length
+      && previous.objects.every((record, index) => this.roots.has(record.id)
+        && samePlacementDefinition(record, parsed.value!.objects[index]));
+    if (sameDefinitions) {
+      // Keep prefab resources when only transforms, surfaces or scene overrides change.
+      // Reapply even an unchanged saved transform: a live gizmo may have moved its root.
+      let collisionDirty = false;
+      for (const [index, record] of parsed.value.objects.entries()) {
+        const root = this.roots.get(record.id);
+        const old = previous.objects[index];
+        if (root) {
+          const current = { position: root.position.toArray(), rotation: [root.rotation.x, root.rotation.y, root.rotation.z],
+            scale: root.scale.toArray() };
+          if (record.collision === 'solid' && (JSON.stringify(current) !== JSON.stringify({ position: record.position, rotation: record.rotation, scale: record.scale })
+            || JSON.stringify({ position: old.position, rotation: old.rotation, scale: old.scale })
+              !== JSON.stringify({ position: record.position, rotation: record.rotation, scale: record.scale }))) collisionDirty = true;
+          root.position.set(...record.position); root.rotation.set(...record.rotation); root.scale.set(...record.scale);
+        }
+        this.recordsById.set(record.id, record);
+      }
+      if (collisionDirty) this.invalidateCollisions();
       if (JSON.stringify(previous.sceneOverrides ?? []) !== JSON.stringify(parsed.value.sceneOverrides ?? [])) {
         for (const entry of this.registry?.entries() ?? []) this.registry?.apply(entry.id, entry.baseline);
         for (const override of parsed.value.sceneOverrides ?? []) this.registry?.apply(override.id, override);
@@ -666,4 +683,10 @@ function transformsEqual(a: AuthorableSceneTransform, b: AuthorableSceneTransfor
   return a.position.every((value, index) => value === b.position[index])
     && a.rotation.every((value, index) => value === b.rotation[index])
     && a.scale.every((value, index) => value === b.scale[index]);
+}
+
+function samePlacementDefinition(a: WorkshopPlacementRecord, b: WorkshopPlacementRecord | undefined): boolean {
+  if (!b) return false;
+  return JSON.stringify({ ...a, position: null, rotation: null, scale: null })
+    === JSON.stringify({ ...b, position: null, rotation: null, scale: null });
 }

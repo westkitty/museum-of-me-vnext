@@ -332,6 +332,28 @@ describe('MuseumPlacements', () => {
     mesh.geometry.dispose(); material.dispose();
   });
 
+  it('restores live gizmo changes and preserves roots across transform-only edits', () => {
+    const solid: WorkshopPlacementManifest = { schemaVersion: 1, objects: [{ ...sample.objects[0],
+      position: [30, 0, 42], collision: 'solid', worldId: 'exterior' }] };
+    const placements = new MuseumPlacements(solid);
+    const world = new CollisionWorld();
+    placements.syncWorld('exterior', world);
+    const root = placements.getObject('bench-01')!;
+    root.position.x = 40; // unsaved gizmo motion: the stored manifest is still at 30
+    placements.replaceManifest(solid);
+    expect(placements.getObject('bench-01')).toBe(root);
+    expect(root.position.x).toBe(30);
+    placements.syncWorld('exterior', world);
+    expect(world.resolveHorizontal({ x: 30, y: 0, z: 42 }, 0.2, 1.7)).toBe(true);
+    const moved: WorkshopPlacementManifest = { ...solid, objects: [{ ...solid.objects[0], position: [40, 0, 42] }] };
+    placements.replaceManifest(moved);
+    expect(placements.getObject('bench-01')).toBe(root);
+    placements.syncWorld('exterior', world);
+    expect(world.resolveHorizontal({ x: 30, y: 0, z: 42 }, 0.2, 1.7)).toBe(false);
+    expect(world.resolveHorizontal({ x: 40, y: 0, z: 42 }, 0.2, 1.7)).toBe(true);
+    placements.dispose();
+  });
+
   it('applies existing-scene overrides through the explicit registry', () => {
     const root = new THREE.Group();
     const registry = new AuthorableSceneRegistry([{ id: 'arrival-garden-shrub-01', root }]);
