@@ -252,6 +252,26 @@ export class MuseumPlacements {
     return this.registry?.get(id)?.root ?? null;
   }
 
+  /** Whether a placement currently has a live root in the scene. */
+  isResident(id: string): boolean { return this.roots.has(id); }
+
+  /**
+   * World-space bounds of one placement without materializing it: the live
+   * root when resident, otherwise derived from its record and cached shape.
+   * Null for unknown ids and for models whose bounds are not yet known.
+   */
+  placementBounds(id: string): THREE.Box3 | null {
+    const root = this.roots.get(id);
+    if (root) {
+      root.updateWorldMatrix(true, true);
+      const box = new THREE.Box3().setFromObject(root);
+      return box.isEmpty() ? null : box;
+    }
+    const record = this.recordsById.get(id);
+    const box = new THREE.Box3();
+    return record && this.recordBounds(record, box) && !box.isEmpty() ? box : null;
+  }
+
   /** Read one current placement without serializing and sorting the entire manifest. */
   getRecord(id: string): WorkshopPlacementRecord | null {
     const record = this.recordsById.get(id);

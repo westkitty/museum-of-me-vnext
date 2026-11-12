@@ -25,17 +25,17 @@ describe('authored route clearance advisory', () => {
     inside.setDynamicWall('blocked-wall', wall);
     const base = buildMuseumSceneIndex(manifest, { exterior: outside, interior: inside });
     const index = { ...base, route: [
-      { id: 'route:000', label: 'start', position: [0, 0, -5] as const },
-      { id: 'route:001', label: 'end', position: [0, 0, 5] as const },
+      { id: 'route:000', label: 'start', position: [0, 0, -5] as const, zone: 'rotunda' as const },
+      { id: 'route:001', label: 'end', position: [0, 0, 5] as const, zone: 'rotunda' as const },
     ] };
     const report = scanAuthoredRouteClearance(index);
     expect(report.status).toBe('WARNING');
     expect(report.findings).toHaveLength(1);
     expect(report.findings[0]).toMatchObject({ objectId: 'blocked-wall', authority: 'authored', world: 'interior' });
     inside.setDynamicWall('blocked-wall', null);
-    const clear = scanAuthoredRouteClearance({ ...index, collisions: { exterior: outside.snapshot(), interior: inside.snapshot() } });
+    const clear = scanAuthoredRouteClearance({ ...index, collisions: buildMuseumSceneIndex(manifest, { exterior: outside, interior: inside }).collisions });
     expect(clear.findings).toHaveLength(0);
     expect(clear.status).toBe('WARNING');
-    expect(scanAuthoredRouteClearance({ ...index, collisions: { exterior: null, interior: inside.snapshot() } }).status).toBe('UNKNOWN');
+    expect(scanAuthoredRouteClearance({ ...index, collisions: { exterior: null, interior: buildMuseumSceneIndex(manifest, { interior: inside }).collisions.interior } }).status).toBe('UNKNOWN');
   });
 });

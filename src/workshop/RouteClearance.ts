@@ -59,7 +59,7 @@ export function scanAuthoredRouteClearance(index: MuseumSceneIndex): RouteCleara
   }
   const findings: RouteClearanceFinding[] = [];
   for (const world of ['exterior', 'interior'] as const) {
-    const walls = index.collisions[world]!.filter((collider): collider is WallSnapshot =>
+    const walls = index.collisions[world]!.filter((collider): collider is typeof collider & WallSnapshot =>
       collider.ownership === 'dynamic' && collider.kind === 'wall');
     for (const wall of walls) {
       const raw = wall.id.startsWith('wall:') ? wall.id.slice(5) : wall.id;

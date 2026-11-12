@@ -12,7 +12,7 @@ import { defaultOpening } from './WallOpenings';
 import { BUILDER_MODELS, BUILDER_FINISHES, searchBuilderLibrary, builderModel } from './builderAssetCatalog';
 import { conservationErrors, validateWorkshopConservation } from './conservation';
 import { WorkshopHistory } from './history';
-import { buildMuseumSceneIndex } from './SceneIndex';
+import { buildMuseumSceneIndex, querySceneIndex } from './SceneIndex';
 import { scanAuthoredRouteClearance } from './RouteClearance';
 import {
   type WorkshopAnchor,
@@ -471,7 +471,7 @@ export class Workshop {
   private refreshSceneIndex(): void {
     const index = buildMuseumSceneIndex(this.placements.captureManifest(), {
       exterior: this.app.exteriorWorld.collision, interior: this.app.museum?.collision,
-    });
+    }, { placements: this.placements });
     const select = this.el<HTMLSelectElement>('scene-index-exhibit');
     const selected = select.value;
     select.replaceChildren();
@@ -481,17 +481,19 @@ export class Workshop {
       select.append(option);
     }
     if (index.exhibits.some((item) => item.id === selected)) select.value = selected;
-    this.el('scene-index-summary').textContent = `${index.wings.length} wings · ${index.exhibits.length} exhibits · ${index.stairs.length} stairs · ${index.installations.length} source installations · ${index.authored.length} authored objects · ${index.collisions.exterior?.length ?? 'unknown'} exterior and ${index.collisions.interior?.length ?? 'unknown'} interior colliders. Snapshot derived from layout and live collision worlds.`;
+    this.el('scene-index-summary').textContent = `${index.wings.length} wings · ${index.exhibits.length} exhibits · ${index.stairs.length} stairs · ${index.installations.length} source installations · ${index.authored.length} authored objects (${index.authored.filter((item) => item.resident).length} live) · ${index.sceneObjects?.filter((item) => item.moved).length ?? 0} moved original objects · ${index.collisions.exterior?.length ?? 'unknown'} exterior and ${index.collisions.interior?.length ?? 'unknown'} interior colliders. Snapshot derived from layout and live collision worlds.`;
     this.el('scene-index-unavailable').textContent = `Not indexed: ${index.unavailable.join(', ')}.`;
     this.describeSceneExhibit();
   }
 
   private describeSceneExhibit(): void {
-    const index = buildMuseumSceneIndex(this.placements.captureManifest());
+    const index = buildMuseumSceneIndex(this.placements.captureManifest(), {}, { placements: this.placements });
     const exhibit = index.exhibits.find((item) => item.id === this.el<HTMLSelectElement>('scene-index-exhibit').value);
     if (!exhibit) return;
     const point = (values: readonly number[]) => values.map((value) => value.toFixed(1)).join(', ');
-    this.el('scene-index-detail').textContent = `${exhibit.id} · ${exhibit.wing} · anchor (${point(exhibit.anchor)}) · doorway (${point(exhibit.doorway)}) · visitor position (${point(exhibit.visitorSpot)}) · bounds half-extents (${point(exhibit.bounds.h)}) metres.`;
+    this.el('scene-index-detail').textContent = `${exhibit.id} · ${exhibit.wing} · anchor (${point(exhibit.anchor)}) · doorway (${point(exhibit.doorway)}) · visitor position (${point(exhibit.visitorSpot)}) · bounds half-extents (${point(exhibit.bounds.h)}) metres.`
+      + ` Within 3 m of the visitor position: ${querySceneIndex(index).near(exhibit.visitorSpot, 3)
+        .filter((hit) => hit.kind !== 'route').map((hit) => `${hit.kind} ${hit.id}`).join(', ') || 'nothing indexed'}.`;
   }
 
   private scanClearance(): void {
@@ -500,7 +502,7 @@ export class Workshop {
       this.app.exteriorWorld.root, this.app.museum?.root);
     const report = scanAuthoredRouteClearance(buildMuseumSceneIndex(this.placements.captureManifest(), {
       exterior: this.app.exteriorWorld.collision, interior: this.app.museum?.collision,
-    }));
+    }, { placements: this.placements }));
     this.el('clearance-status').textContent = `${report.status}: ${report.findings.length} potential authored or unknown obstruction(s). ${report.limitations.join(' ')}`;
     const results = this.el('clearance-results');
     results.replaceChildren();
