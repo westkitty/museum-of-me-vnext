@@ -116,9 +116,11 @@ export class MuseumPlacements {
     this.activeWorld = world;
     if (exteriorRoot) this.surfaces.bind('exterior', exteriorRoot);
     if (interiorRoot) this.surfaces.bind('interior', interiorRoot);
-    for (const record of this.manifest.objects) {
-      const root = this.roots.get(record.id);
-      if (root) root.visible = !record.worldId || record.worldId === 'shared' || record.worldId === world;
+    if (changedWorld) {
+      for (const record of this.manifest.objects) {
+        const root = this.roots.get(record.id);
+        if (root) root.visible = !record.worldId || record.worldId === 'shared' || record.worldId === world;
+      }
     }
     if (changedWorld) this.syncManagedModels(world);
     this.syncCollision(exterior, 'exterior');
@@ -351,6 +353,7 @@ export class MuseumPlacements {
         });
       }
       root.name = `workshop:${record.id}`;
+      root.visible = !this.activeWorld || !record.worldId || record.worldId === 'shared' || record.worldId === this.activeWorld;
       root.userData.workshopId = record.id;
       root.userData.workshopPrefab = record.prefab;
       root.position.set(...record.position);

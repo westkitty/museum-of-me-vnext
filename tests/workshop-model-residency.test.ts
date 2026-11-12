@@ -58,4 +58,20 @@ describe('Workshop model world residency', () => {
     await tick();
     expect(late.dispose).toHaveBeenCalledOnce();
   });
+
+  it('applies world visibility on transitions and immediately after rebuilds', () => {
+    const outside: WorkshopPlacementRecord = { ...model('outside', 'exterior'), prefab: 'sculpture-sphere', assetId: undefined };
+    const inside: WorkshopPlacementRecord = { ...outside, id: 'inside', worldId: 'interior' };
+    const placements = new MuseumPlacements({ schemaVersion: 1, objects: [outside, inside] });
+    const exterior = new CollisionWorld(), interior = new CollisionWorld();
+    placements.syncWorld('exterior', exterior, interior);
+    expect(placements.getObject('outside')?.visible).toBe(true);
+    expect(placements.getObject('inside')?.visible).toBe(false);
+    placements.replaceManifest({ schemaVersion: 1, objects: [outside, inside] });
+    expect(placements.getObject('inside')?.visible).toBe(false);
+    placements.syncWorld('interior', exterior, interior);
+    expect(placements.getObject('outside')?.visible).toBe(false);
+    expect(placements.getObject('inside')?.visible).toBe(true);
+    placements.dispose();
+  });
 });
