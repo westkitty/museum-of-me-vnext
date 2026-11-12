@@ -7,7 +7,7 @@ export const WORKSHOP_MAX_OBJECTS = 256;
 
 export type WorkshopAnchor = 'floor' | 'free' | 'wall';
 export type WorkshopCollisionMode = 'none' | 'solid';
-export type WorkshopEventMode = 'none' | 'announce';
+export type WorkshopEventMode = 'none' | 'announce' | 'message' | 'toggle-glow' | 'toggle-tint';
 export type WorkshopWorldId = 'exterior' | 'interior' | 'shared';
 export type WorkshopVec3 = [number, number, number];
 
@@ -43,6 +43,10 @@ export interface WorkshopPlacementRecord {
   readonly depth?: number;
   readonly collision?: WorkshopCollisionMode;
   readonly event?: WorkshopEventMode;
+  /** Bounded, literal HUD copy; never executable code or interpreted as markup. */
+  readonly eventMessage?: string;
+  /** Six-digit target tint/emissive color for visual reactions. */
+  readonly eventColor?: string;
   readonly worldId?: WorkshopWorldId;
   /** Apertures only exist in authored partition walls; static museum walls stay protected. */
   readonly opening?: Exclude<WallOpeningKind, 'none'>;
@@ -119,7 +123,15 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
   const image = value.image === undefined ? undefined : typeof value.image === 'string' && WORKSHOP_IMAGE.test(value.image) ? value.image : null;
   const depth = value.depth === undefined ? undefined : typeof value.depth === 'number' && Number.isFinite(value.depth) && value.depth >= 0.01 && value.depth <= 2 ? value.depth : null;
   const collision = value.collision === undefined ? undefined : value.collision === 'none' || value.collision === 'solid' ? value.collision : null;
-  const event = value.event === undefined ? undefined : value.event === 'none' || value.event === 'announce' ? value.event : null;
+  const event = value.event === undefined ? undefined
+    : value.event === 'none' || value.event === 'announce' || value.event === 'message'
+      || value.event === 'toggle-glow' || value.event === 'toggle-tint' ? value.event : null;
+  const eventMessage = value.eventMessage === undefined ? undefined
+    : typeof value.eventMessage === 'string' && value.eventMessage.trim().length > 0
+      && value.eventMessage.trim().length <= 160 ? value.eventMessage.trim() : null;
+  const eventColor = value.eventColor === undefined ? undefined
+    : typeof value.eventColor === 'string' && COLOR.test(value.eventColor)
+      ? value.eventColor.toLowerCase() : null;
   const worldId = value.worldId === undefined ? undefined
     : value.worldId === 'exterior' || value.worldId === 'interior' || value.worldId === 'shared' ? value.worldId : null;
   if (color === null) errors.push(`objects[${index}].color must be a six-digit hex color`);
@@ -131,6 +143,15 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
   if (depth === null) errors.push(`objects[${index}].depth must be between 0.01 and 2 metres`);
   if (collision === null) errors.push(`objects[${index}].collision is invalid`);
   if (event === null) errors.push(`objects[${index}].event is invalid`);
+  if (eventMessage === null) errors.push('Event message must be 1–160 characters');
+  if (eventColor === null) errors.push('Event reaction color must be a six-digit hex color');
+  if (event === 'message' && !eventMessage) errors.push('Message event requires authored text');
+  if (eventMessage && (!event || event === 'none' || event === 'announce')) {
+    errors.push('Event message requires message or visual reaction mode');
+  }
+  if (eventColor && event !== 'toggle-glow' && event !== 'toggle-tint') {
+    errors.push('Event color requires a visual reaction mode');
+  }
   if (worldId === null) errors.push(`objects[${index}].worldId is invalid`);
   if (image && prefab !== 'wall-art') errors.push(`objects[${index}].image requires a wall-art prefab`);
   if (anchor === 'wall' && prefab !== 'wall-art' && prefab !== 'wall-panel') errors.push(`objects[${index}].wall anchor requires wall-art or wall-panel`);
@@ -220,6 +241,8 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
     ...(depth === undefined || depth === null ? {} : { depth }),
     ...(collision ? { collision: collision as WorkshopCollisionMode } : {}),
     ...(event ? { event: event as WorkshopEventMode } : {}),
+    ...(eventMessage ? { eventMessage } : {}),
+    ...(eventColor ? { eventColor } : {}),
     ...(worldId ? { worldId: worldId as WorkshopWorldId } : {}),
     ...(opening ? { opening } : {}),
     ...(openingWidth === undefined || openingWidth === null ? {} : { openingWidth }),
@@ -374,6 +397,8 @@ export function canonicalizeWorkshopManifest(manifest: WorkshopPlacementManifest
         ...(record.depth === undefined ? {} : { depth: roundNumber(record.depth) }),
         ...(record.collision ? { collision: record.collision } : {}),
         ...(record.event ? { event: record.event } : {}),
+        ...(record.eventMessage ? { eventMessage: record.eventMessage.trim() } : {}),
+        ...(record.eventColor ? { eventColor: record.eventColor.toLowerCase() } : {}),
         ...(record.worldId ? { worldId: record.worldId } : {}),
         ...(record.opening ? { opening: record.opening } : {}),
         ...(record.openingWidth === undefined ? {} : { openingWidth: roundNumber(record.openingWidth) }),
