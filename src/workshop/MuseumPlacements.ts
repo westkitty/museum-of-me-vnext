@@ -4,6 +4,7 @@ import { WorkshopSurfaces, type WorkshopSurfaceSelection } from './WorkshopSurfa
 import { resolveBuilderResourceUrl } from './builderAssetCatalog';
 import { defaultOpening, wallOpeningSegments } from './WallOpenings';
 import { createWorkshopActivation } from './BuilderEvents';
+import { constructionColliders } from './ConstructionCollision';
 import type { CollisionWorld } from '../world/CollisionWorld';
 import type { InteractionManager } from '../interaction/InteractionManager';
 import { AuthorableSceneRegistry, type AuthorableSceneTransform } from './AuthorableSceneRegistry';
@@ -127,52 +128,24 @@ export class MuseumPlacements {
       if (record.collision !== 'solid') continue;
       if (record.worldId && record.worldId !== 'shared' && record.worldId !== world) continue;
       const root = this.roots.get(record.id);
+      if (record.prefab === 'floor-slab' || record.prefab === 'partition-wall') {
+        root?.updateWorldMatrix(true, true);
+        for (const { id, collider } of constructionColliders(record, root?.matrixWorld)) {
+          ids.add(id);
+          if (collider.kind === 'floor') target.setDynamicFloor(id, collider);
+          else target.setDynamicWall(id, collider);
+        }
+        continue;
+      }
       if (!root) continue;
       root.updateWorldMatrix(true, true);
       const box = new THREE.Box3().setFromObject(root);
       if (box.isEmpty()) continue;
-      if (record.prefab === 'floor-slab') {
-        ids.add(record.id);
-        const inverse = root.matrixWorld.clone().invert();
-        const point = new THREE.Vector3();
-        target.setDynamicFloor(record.id, {
-          kind: 'floor', minX: box.min.x, maxX: box.max.x,
-          minZ: box.min.z, maxZ: box.max.z, y: box.max.y,
-          contains: (x, z) => {
-            point.set(x, box.max.y, z).applyMatrix4(inverse);
-            return Math.abs(point.x) <= 1.0001 && Math.abs(point.z) <= 1.0001;
-          },
-        });
-      } else if (record.prefab === 'partition-wall') {
-        // Each visible solid segment receives its own oriented collider.
-        // A doorway is not silently blocked by the old full-wall AABB.
-        for (const [index, node] of root.children.entries()) {
-          if (!(node instanceof THREE.Mesh) || !(node.geometry instanceof THREE.BoxGeometry)) continue;
-          node.updateWorldMatrix(true, false);
-          const bounds = new THREE.Box3().setFromObject(node);
-          const center = node.getWorldPosition(new THREE.Vector3());
-          const params = node.geometry.parameters;
-          const id = `${record.id}:segment-${index}`;
-          ids.add(id);
-          target.setDynamicWall(id, {
-            kind: 'wall',
-            minX: bounds.min.x, maxX: bounds.max.x, minY: bounds.min.y, maxY: bounds.max.y,
-            minZ: bounds.min.z, maxZ: bounds.max.z,
-            oriented: {
-              centerX: center.x, centerZ: center.z,
-              halfX: Math.abs(params.width * root.scale.x * node.scale.x) / 2,
-              halfZ: Math.abs(params.depth * root.scale.z * node.scale.z) / 2,
-              yaw: root.rotation.y,
-            },
-          });
-        }
-      } else {
-        ids.add(record.id);
-        target.setDynamicWall(record.id, {
-          kind: 'wall', minX: box.min.x, maxX: box.max.x, minY: box.min.y,
-          maxY: box.max.y, minZ: box.min.z, maxZ: box.max.z,
-        });
-      }
+      ids.add(record.id);
+      target.setDynamicWall(record.id, {
+        kind: 'wall', minX: box.min.x, maxX: box.max.x, minY: box.min.y,
+        maxY: box.max.y, minZ: box.min.z, maxZ: box.max.z,
+      });
     }
   }
 
