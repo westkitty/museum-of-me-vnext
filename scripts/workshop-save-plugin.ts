@@ -4,6 +4,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { tgeThumbnail } from './tge-thumbnail';
+import { importTgeModel } from './tge-model';
 import {
   conservationErrors,
   validateWorkshopConservation,
@@ -19,6 +20,7 @@ const ENDPOINT = '/__museum-workshop/save';
 const MEDIA_ENDPOINT = '/__museum-workshop/media';
 const MODEL_ENDPOINT = '/__museum-workshop/model';
 const THUMBNAIL_ENDPOINT = '/__museum-workshop/tge-thumbnail';
+const SOURCE_IMPORT_ENDPOINT = '/__museum-workshop/tge-import';
 const MAX_MODEL_BYTES = 8 * 1024 * 1024;
 const MAX_MEDIA_BYTES = 3 * 1024 * 1024;
 
@@ -334,6 +336,25 @@ export function museumWorkshopSavePlugin(): Plugin {
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const url = req.url?.split('?')[0] ?? '';
+        if (url === SOURCE_IMPORT_ENDPOINT) {
+          if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'POST required' });
+          if (!isLoopback(req.socket.remoteAddress) || !isSameOriginRequest(req)) {
+            return json(res, 403, { ok: false, error: 'Local, same-origin authoring only' });
+          }
+          if (req.headers['content-type'] !== 'application/json') return json(res, 415, { ok: false, error: 'JSON required' });
+          try {
+            const value: unknown = JSON.parse(await readBody(req));
+            if (!value || typeof value !== 'object' || Array.isArray(value)
+              || Object.keys(value).length !== 1 || typeof (value as { id?: unknown }).id !== 'string') {
+              return json(res, 400, { ok: false, error: 'A single source ID is required' });
+            }
+            const imported = await importTgeModel((value as { id: string }).id, process.cwd(), hasValidLocalGLB);
+            json(res, 200, { ok: true, ...imported });
+          } catch (error) {
+            if (!req.destroyed) json(res, 400, { ok: false, error: error instanceof Error ? error.message : 'Source import failed' });
+          }
+          return;
+        }
         if (url === THUMBNAIL_ENDPOINT) {
           if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'GET required' });
           if (!isLoopback(req.socket.remoteAddress) || !isSameOriginRequest(req)) {

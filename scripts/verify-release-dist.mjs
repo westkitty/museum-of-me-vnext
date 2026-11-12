@@ -28,6 +28,8 @@ const files = filesUnder(root);
 const rel = files.map((file) => relative(root, file).replaceAll('\\', '/'));
 const suspicious = rel.filter((name) => /(^|\/)(\.env|id_rsa|id_ed25519)|\.(pem|key|p12|log)$/i.test(name));
 if (suspicious.length) errors.push(`suspicious files in dist: ${suspicious.join(', ')}`);
+const privateImports = rel.filter((name) => /^(?:workshop-models|workshop-media)\//.test(name));
+if (privateImports.length) errors.push('private Workshop imports must not be included in public distribution');
 
 const index = existsSync('dist/index.html') ? readFileSync('dist/index.html', 'utf8') : '';
 if (!/\.\/assets\/[^"']+-[A-Za-z0-9_-]+\.js/.test(index)) {
@@ -61,6 +63,7 @@ const workshopRuntimeMarkers = [
   'choreo-launcher',
   '/__museum-workshop/save',
   '/__museum-workshop/tge-thumbnail',
+  '/__museum-workshop/tge-import',
   'blaster-kit/blaster-a',
   'Museum Workshop development editor',
   'museum-workshop-transform-controls',

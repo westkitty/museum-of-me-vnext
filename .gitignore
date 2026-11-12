@@ -12,6 +12,9 @@ test-results/
 .asset-sources/
 # Private local copies of saved Workshop manifests; may reference personal assets.
 data/.workshop-backups/
+# Imported local assets may contain private material and require explicit publication review.
+public/workshop-models/
+public/workshop-media/
 validation/reports/*.json
 # The runtime source-parity evidence is a deliverable, not scratch output.
 !validation/reports/runtime-source-qa.json

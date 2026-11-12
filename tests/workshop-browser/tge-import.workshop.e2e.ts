@@ -1,0 +1,26 @@
+import { expect, test } from '@playwright/test';
+
+test('imports a pinned candidate into the actual Builder and inspects bounds', async ({ page }) => {
+  await page.goto('/?edit=1', { waitUntil: 'commit', timeout: 120_000 });
+  const workshop = page.locator('.museum-workshop');
+  const buildMode = page.getByRole('button', { name: 'Enter Build Mode' });
+  await expect(buildMode).toBeVisible({ timeout: 60_000 });
+  await page.evaluate(() => window.__museum?.stop());
+  await expect(workshop).toBeAttached({ timeout: 60_000 });
+  await buildMode.click();
+  await expect(workshop).toBeVisible();
+  await workshop.getByRole('button', { name: 'Browse source catalog' }).click();
+  await workshop.getByLabel('Search source candidates').fill('blaster-kit/blaster-a');
+  const item = workshop.locator('[data-source-id="blaster-kit/blaster-a"]');
+  await expect(item).toBeEnabled({ timeout: 30_000 });
+  await item.click();
+  const response = page.waitForResponse((value) => value.url().endsWith('/__museum-workshop/tge-import'));
+  await workshop.getByRole('button', { name: 'Import and place selected model' }).click();
+  expect((await response).status()).toBe(200);
+  await expect(workshop.locator('[data-workshop="source-inspector"]')).toContainText('bounds', { timeout: 60_000 });
+  await expect(workshop.locator('[data-workshop="selection-title"]')).toHaveText('Blaster a');
+  await page.waitForFunction(() => {
+    const root = window.__museum?.scene.getObjectByName('workshop:catalog-model-01');
+    return Boolean(root?.children.length && root.children[0].type === 'Group');
+  }, null, { timeout: 60_000 });
+});

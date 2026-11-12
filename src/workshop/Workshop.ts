@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ResourceScope } from '../assets/ResourceScope';
 import { TransformControls, type TransformControlsMode } from 'three/examples/jsm/controls/TransformControls.js';
 import type { App } from '../app/App';
 import type { MuseumPlacements } from './MuseumPlacements';
@@ -32,6 +33,7 @@ type InputKey = (typeof INPUT_KEYS)[number];
 export class Workshop {
   private savedBaseline: string;
   private sourceCatalog: typeof import('./catalog-data/tge-index.json').models | null = null;
+  private sourceSelection: (typeof import('./catalog-data/tge-index.json').models)[number] | null = null;
   private sourcePage = 0;
   private readonly root = document.createElement('div');
   private readonly raycaster = new THREE.Raycaster();
@@ -271,6 +273,7 @@ export class Workshop {
 
   private bindUi(): void {
     this.el<HTMLButtonElement>('source-load').addEventListener('click', () => void this.loadSourceCatalog());
+    this.el<HTMLButtonElement>('source-import').addEventListener('click', () => void this.importSourceCandidate());
     this.el<HTMLInputElement>('source-search').addEventListener('input', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
     this.el<HTMLSelectElement>('source-featured').addEventListener('change', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
     this.el<HTMLButtonElement>('source-prev').addEventListener('click', () => { this.sourcePage--; this.refreshSourceCatalog(); });
@@ -504,6 +507,8 @@ export class Workshop {
       const detail = document.createElement('small'); detail.textContent = `${item.packName} · ${item.license}`;
       button.append(img, title, detail);
       button.addEventListener('click', () => {
+        this.sourceSelection = item;
+        this.el<HTMLButtonElement>('source-import').disabled = false;
         this.el('source-inspector').textContent = `${item.name} · ${item.id} · ${item.bytes} bytes · ${item.license} · ${item.author} · source revision ${this.sourceCatalogRevision()} · ${item.featured?.role ?? 'Unassigned candidate'} · Not installed; import and visual review required.`;
       });
       results.append(button);
@@ -511,6 +516,39 @@ export class Workshop {
   }
 
   private sourceCatalogRevision(): string { return '3ddcc695adbba9fb918cf31b7c139b3f95b76910'; }
+
+  private async importSourceCandidate(): Promise<void> {
+    const selected = this.sourceSelection;
+    if (!selected || this.placements.isComparingOriginal) return;
+    const button = this.el<HTMLButtonElement>('source-import');
+    button.disabled = true;
+    try {
+      this.note(`Importing ${selected.name} from the pinned source…`, 'ok');
+      const response = await fetch('/__museum-workshop/tge-import', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: selected.id }),
+      });
+      const result = await response.json() as { ok?: boolean; assetId?: string; error?: string };
+      if (!response.ok || !result.ok || !result.assetId) throw new Error(result.error || 'Source import failed');
+      const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+      const gltf = await new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}${result.assetId}`);
+      const inspection = new ResourceScope('source-model-inspection');
+      inspection.trackObject(gltf.scene);
+      let dimensions: THREE.Vector3;
+      let center: THREE.Vector3;
+      try {
+        const bounds = new THREE.Box3().setFromObject(gltf.scene);
+        if (bounds.isEmpty() || ![...bounds.min.toArray(), ...bounds.max.toArray()].every(Number.isFinite)) {
+          throw new Error('Imported model has empty or invalid bounds');
+        }
+        dimensions = bounds.getSize(new THREE.Vector3());
+        center = bounds.getCenter(new THREE.Vector3());
+      } finally { inspection.dispose(); }
+      this.addModel(result.assetId, selected.name);
+      this.el('source-inspector').textContent = `${selected.name} · locally imported from ${selected.id} · ${selected.license} · bounds ${dimensions.toArray().map((n) => n.toFixed(2)).join(' × ')} m · bounding center from origin ${center.toArray().map((n) => n.toFixed(2)).join(', ')} m · visual review required.`;
+    } catch (error) {
+      this.note(error instanceof Error ? error.message : 'Source import failed.', 'error');
+    } finally { button.disabled = !this.sourceSelection; }
+  }
 
   private addModel(assetId: string, label: string): void {
     if (this.placements.isComparingOriginal) return;
@@ -1662,6 +1700,7 @@ const WORKSHOP_HTML = `
       <button type="button" data-workshop="source-prev">Previous candidates</button>
       <button type="button" data-workshop="source-next">Next candidates</button>
       <p data-workshop="source-inspector" class="workshop-muted">Select a loaded thumbnail for source details.</p>
+      <button type="button" data-workshop="source-import" disabled>Import and place selected model</button>
     </div>
   </section>
   <section><h3>Primitive objects & fixtures</h3><div class="workshop-palette" data-workshop="palette"></div></section>
