@@ -283,6 +283,26 @@ async function writeWorkshopManifestLocked(raw: unknown, target: string): Promis
   if (mediaErrors.length) return { ok: false, status: 400, errors: mediaErrors };
   const modelErrors = await validateLocalWorkshopModels(parsed.value, target);
   if (modelErrors.length) return { ok: false, status: 400, errors: modelErrors };
+  // A newer or damaged on-disk file cannot be reconstructed from the editor's
+  // older view. Never overwrite it merely because the incoming payload is valid.
+  let current: string | undefined;
+  try {
+    current = await readFile(target, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+  if (current !== undefined) {
+    let existing: unknown;
+    try {
+      existing = JSON.parse(current) as unknown;
+    } catch {
+      return { ok: false, status: 409, errors: ['Existing Workshop manifest is corrupt; save refused to preserve its bytes'] };
+    }
+    const checked = validateWorkshopManifest(existing);
+    if (!checked.ok) {
+      return { ok: false, status: 409, errors: ['Existing Workshop manifest is unsupported or invalid; save refused', ...checked.errors] };
+    }
+  }
   const temp = `${target}.tmp-${randomUUID()}`;
   await mkdir(dirname(target), { recursive: true });
   await backupWorkshopManifest(target);

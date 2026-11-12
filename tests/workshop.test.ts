@@ -45,6 +45,22 @@ describe('Museum Workshop schema', () => {
     expect(result.value?.objects).toHaveLength(0);
   });
 
+  it('rejects fields that this schema would otherwise silently discard', () => {
+    const cases = [
+      { schemaVersion: 1, objects: [], future: true },
+      { schemaVersion: 1, objects: [{ ...sample.objects[0], future: true }] },
+      { schemaVersion: 1, objects: [], sceneOverrides: [{ id: 'item', position: [1, 2, 3],
+        rotation: [0, 0, 0], scale: [1, 1, 1], future: true }] },
+      { schemaVersion: 1, objects: [], surfaceOverrides: [{ id: 'exterior:0', worldId: 'exterior',
+        color: '#ffffff', future: true }] },
+    ];
+    for (const input of cases) {
+      const result = validateWorkshopManifest(input);
+      expect(result.ok).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/unsupported field.*future/);
+    }
+  });
+
   it('rejects duplicate ids, unsupported prefabs and invalid scales', () => {
     const result = validateWorkshopManifest({
       schemaVersion: 1,
@@ -205,6 +221,22 @@ describe('Museum Workshop conservation', () => {
       await writeFile(join(directory, '.workshop-backups'), 'not a directory');
       await expect(writeWorkshopManifest(at([30, 0, 42]), target)).rejects.toThrow();
       expect(await readFile(target, 'utf8')).toBe(original);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses to overwrite a corrupt or newer on-disk save', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'museum-workshop-unknown-'));
+    const target = join(directory, 'workshop-placements.json');
+    try {
+      for (const existing of ['{broken', '{"schemaVersion":2,"objects":[]}',
+        '{"schemaVersion":1,"objects":[],"futureDecision":"preserve"}']) {
+        await writeFile(target, existing);
+        const result = await writeWorkshopManifest(at([30, 0, 42]), target);
+        expect(result.status).toBe(409);
+        expect(await readFile(target, 'utf8')).toBe(existing);
+      }
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

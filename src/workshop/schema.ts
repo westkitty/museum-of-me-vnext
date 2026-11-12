@@ -84,6 +84,18 @@ const COLOR = /^#[0-9a-fA-F]{6}$/;
 const WORKSHOP_IMAGE = /^workshop-media\/[0-9a-f]{64}\.webp$/;
 
 const SURFACE_PATH = /^(?:exterior|interior):(?:[0-9]{1,5}\/){0,12}[0-9]{1,5}$/;
+const MANIFEST_KEYS = new Set(['schemaVersion', 'objects', 'sceneOverrides', 'surfaceOverrides']);
+const OBJECT_KEYS = new Set(['id', 'label', 'prefab', 'anchor', 'position', 'rotation', 'scale', 'color',
+  'assetId', 'texture', 'image', 'depth', 'collision', 'event', 'eventMessage', 'eventColor', 'worldId',
+  'opening', 'openingWidth', 'openingHeight', 'openingSill']);
+const SCENE_KEYS = new Set(['id', 'position', 'rotation', 'scale']);
+const SURFACE_KEYS = new Set(['id', 'worldId', 'color', 'texture']);
+
+function rejectUnknownKeys(value: Record<string, unknown>, allowed: ReadonlySet<string>, path: string, errors: string[]): void {
+  for (const key of Object.keys(value)) {
+    if (!allowed.has(key)) errors.push(`${path} has unsupported field ${JSON.stringify(key)}; refusing to discard data`);
+  }
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -100,6 +112,7 @@ function validateRecord(value: unknown, index: number, errors: string[]): Worksh
     errors.push(`objects[${index}] must be an object`);
     return null;
   }
+  rejectUnknownKeys(value, OBJECT_KEYS, `objects[${index}]`, errors);
 
   const id = typeof value.id === 'string' ? value.id : '';
   if (!ID_PATTERN.test(id)) errors.push(`objects[${index}].id must match ${ID_PATTERN}`);
@@ -257,6 +270,7 @@ function validateSceneOverride(value: unknown, index: number, errors: string[]):
     errors.push(`sceneOverrides[${index}] must be an object`);
     return null;
   }
+  rejectUnknownKeys(value, SCENE_KEYS, `sceneOverrides[${index}]`, errors);
   const id = typeof value.id === 'string' ? value.id : '';
   if (!ID_PATTERN.test(id)) errors.push(`sceneOverrides[${index}].id must match ${ID_PATTERN}`);
   const position = finiteVec3(value.position);
@@ -281,6 +295,7 @@ function validateSceneOverride(value: unknown, index: number, errors: string[]):
 
 function validateSurfaceOverride(value: unknown, index: number, errors: string[]): WorkshopSurfaceOverride | null {
   if (!isRecord(value)) { errors.push('surfaceOverrides must contain objects'); return null; }
+  rejectUnknownKeys(value, SURFACE_KEYS, `surfaceOverrides[${index}]`, errors);
   const id = typeof value.id === 'string' ? value.id : '';
   const worldId = value.worldId;
   const color = value.color === undefined ? undefined
@@ -302,6 +317,7 @@ export function validateWorkshopManifest(value: unknown): WorkshopManifestValida
   if (!isRecord(value)) {
     return { ok: false, value: null, errors: ['manifest must be an object'] };
   }
+  rejectUnknownKeys(value, MANIFEST_KEYS, 'manifest', errors);
 
   if (value.schemaVersion !== WORKSHOP_SCHEMA_VERSION) {
     errors.push(`schemaVersion must be ${WORKSHOP_SCHEMA_VERSION}`);
