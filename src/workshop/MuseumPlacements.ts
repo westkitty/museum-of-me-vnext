@@ -4,6 +4,7 @@ import { WorkshopSurfaces, type WorkshopSurfaceSelection } from './WorkshopSurfa
 import { resolveBuilderResourceUrl } from './builderAssetCatalog';
 import { defaultOpening, wallOpeningSegments } from './WallOpenings';
 import { createWorkshopActivation } from './BuilderEvents';
+import { ModelHandleReleasedError, ModelTemplateCache } from './ModelTemplateCache';
 import { constructionColliders } from './ConstructionCollision';
 import type { CollisionWorld } from '../world/CollisionWorld';
 import { ZONES, zoneAtXYZ, type ZoneId } from '../world/layout';
@@ -91,10 +92,13 @@ export class MuseumPlacements {
   private readonly residencyFocus = new THREE.Vector3();
   private hasResidencyFocus = false;
   private pinnedId: string | null = null;
+  /** One decoded template per model asset, shared by reference count across placements. */
+  private readonly models: ModelTemplateCache;
   private focusZone: ZoneId | null = null;
 
   constructor(rawManifest: unknown, registry: AuthorableSceneRegistry | null = null,
-    private readonly modelLoader: (assetId: string) => Promise<THREE.Object3D> = defaultModelLoader) {
+    modelLoader: (assetId: string) => Promise<THREE.Object3D> = defaultModelLoader) {
+    this.models = new ModelTemplateCache(modelLoader);
     this.group.name = 'museum-authored-placements';
     this.registry = registry;
     const parsed = validateWorkshopManifestForMuseum(rawManifest, registry?.entries() ?? []);
@@ -438,6 +442,7 @@ export class MuseumPlacements {
     this.roots.clear();
     this.recordsById.clear();
     this.scope.dispose();
+    this.models.dispose();
     this.materials = null;
     this.pinnedId = null;
   }
@@ -688,17 +693,16 @@ export class MuseumPlacements {
         loading: true, failed: false };
       this.managedModels.set(record.id, state);
       this.managedLoadsInFlight++;
-      void this.modelLoader(record.assetId!).then((object) => {
-        if (state.scope.isDisposed || this.managedModels.get(record.id) !== state) {
-          const stale = new ResourceScope('stale-workshop-model');
-          stale.trackObject(object); stale.dispose();
-          return;
-        }
+      const handle = this.models.acquire(record.assetId!);
+      state.scope.track({ dispose: handle.release });
+      void handle.ready.then((object) => {
+        // A stale handle was already released when its scope was disposed.
+        if (state.scope.isDisposed || this.managedModels.get(record.id) !== state) return;
         object.traverse((node) => { node.userData.workshopId = record.id; });
-        state.scope.trackObject(object);
         if (record.color || record.texture) this.applyRecordFinish(object, record, state.scope);
         root.clear(); root.add(object);
       }).catch((error: unknown) => {
+        if (error instanceof ModelHandleReleasedError) return;
         if (!state.scope.isDisposed) {
           state.failed = true;
           state.scope.dispose();
@@ -737,18 +741,17 @@ export class MuseumPlacements {
   }
 
   private async loadCatalogModel(root: THREE.Group, record: WorkshopPlacementRecord, revision: number, recordScope: ResourceScope): Promise<void> {
+    const handle = this.models.acquire(record.assetId!);
+    recordScope.track({ dispose: handle.release });
     try {
-      const object = await this.modelLoader(record.assetId!);
+      const object = await handle.ready;
       if (revision !== this.rebuildRevision || recordScope.isDisposed) {
-        const stale = new ResourceScope('stale-builder-model');
-        stale.trackObject(object);
-        stale.dispose();
+        handle.release();
         return;
       }
       root.clear();
       object.traverse((node) => { node.userData.workshopId = record.id; });
       root.add(object);
-      recordScope.trackObject(object);
       if (record.color || record.texture) this.applyRecordFinish(object, record, recordScope);
       if (!this.shapeBounds.has(this.shapeKey(record))) this.shapeBounds.set(this.shapeKey(record), collectLocalBounds(root));
       // The true model bounds become available only after the asynchronous
@@ -761,6 +764,7 @@ export class MuseumPlacements {
       }
       this.boundCollisions.clear();
     } catch (error) {
+      if (error instanceof ModelHandleReleasedError) return;
       console.warn('[Museum Builder] model could not be loaded:', record.assetId, error);
     }
   }

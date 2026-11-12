@@ -130,7 +130,8 @@ describe('Workshop per-placement resource ownership', () => {
 
     expect(lateDispose).toHaveBeenCalledOnce();
     expect(late.parent).toBeNull();
-    expect(placements.getObject('kept')?.children[0]).toBe(kept);
+    expect(placements.getObject('kept')?.children[0]).not.toBe(kept);
+    expect((placements.getObject('kept')?.children[0] as THREE.Mesh).geometry).toBe(kept.geometry);
     expect(keptDispose).not.toHaveBeenCalled();
     placements.dispose();
     expect(keptDispose).toHaveBeenCalledOnce();

@@ -18,33 +18,43 @@ const visual = () => {
 };
 
 describe('Workshop model world residency', () => {
-  it('bounds concurrent loads, releases inactive visuals, and preserves saved records', async () => {
-    const pending: ((object: THREE.Object3D) => void)[] = [];
-    const loader = vi.fn(() => new Promise<THREE.Object3D>((resolve) => pending.push(resolve)));
+  it('shares one decoded template per asset, releases inactive visuals, and preserves saved records', async () => {
+    const pending = new Map<string, (object: THREE.Object3D) => void>();
+    const loader = vi.fn((assetId: string) => new Promise<THREE.Object3D>((resolve) => pending.set(assetId, resolve)));
+    const statue = (id: string): WorkshopPlacementRecord => ({ ...model(id, 'interior'), assetId: 'openlife:movie_prop_statue' });
     const placements = new MuseumPlacements({ schemaVersion: 1, objects: [
-      model('outside-one', 'exterior'), model('outside-two', 'exterior'), model('inside', 'interior'),
+      model('outside-one', 'exterior'), model('outside-two', 'exterior'), statue('inside'),
     ] }, null, loader);
     const exterior = new CollisionWorld(), interior = new CollisionWorld();
     expect(loader).not.toHaveBeenCalled();
     placements.syncWorld('exterior', exterior, interior);
-    expect(loader).toHaveBeenCalledTimes(2);
-    const first = visual(), stale = visual();
-    pending[0](first.root);
+    // Two exterior placements of one asset decode it once.
+    expect(loader).toHaveBeenCalledTimes(1);
+    const bench = visual();
+    pending.get('openlife:park_bench')!(bench.root);
     await tick();
-    expect(placements.getObject('outside-one')?.children[0]).toBe(first.root);
+    const benchGeometry = (bench.root.children[0] as THREE.Mesh).geometry;
+    for (const id of ['outside-one', 'outside-two']) {
+      const shown = placements.getObject(id)?.children[0];
+      expect(shown).toBeDefined();
+      expect(shown).not.toBe(bench.root);
+      expect((shown!.children[0] as THREE.Mesh).geometry).toBe(benchGeometry);
+    }
+    expect(bench.dispose).not.toHaveBeenCalled();
+
     placements.syncWorld('interior', exterior, interior);
-    expect(first.dispose).toHaveBeenCalledOnce();
+    // The last exterior holder released the shared template.
+    expect(bench.dispose).toHaveBeenCalledOnce();
     expect(placements.captureManifest().objects).toHaveLength(3);
-    pending[1](stale.root);
-    await tick();
-    expect(stale.dispose).toHaveBeenCalledOnce();
-    expect(loader).toHaveBeenCalledTimes(3);
+    expect(loader).toHaveBeenCalledTimes(2);
     const inside = visual();
-    pending[2](inside.root);
+    pending.get('openlife:movie_prop_statue')!(inside.root);
     await tick();
-    expect(placements.getObject('inside')?.children[0]).toBe(inside.root);
+    expect((placements.getObject('inside')?.children[0]?.children[0] as THREE.Mesh).geometry)
+      .toBe((inside.root.children[0] as THREE.Mesh).geometry);
     placements.dispose();
     expect(inside.dispose).toHaveBeenCalledOnce();
+    expect(bench.dispose).toHaveBeenCalledOnce();
   });
 
   it('disposes a late model after the placement system is disposed', async () => {
@@ -92,7 +102,8 @@ describe('Workshop model world residency', () => {
     const loaded = visual();
     resolve(loaded.root);
     await tick();
-    expect(priorRoot?.children[0]).toBe(loaded.root);
+    expect(priorRoot?.children[0]).not.toBe(loaded.root);
+    expect((priorRoot?.children[0]?.children[0] as THREE.Mesh).geometry).toBe((loaded.root.children[0] as THREE.Mesh).geometry);
     expect(loaded.dispose).not.toHaveBeenCalled();
     placements.dispose();
     expect(loaded.dispose).toHaveBeenCalledOnce();
