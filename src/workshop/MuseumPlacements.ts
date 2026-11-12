@@ -14,6 +14,7 @@ import { AuthorableSceneRegistry, type AuthorableSceneTransform } from './Author
 import { validateWorkshopManifestForMuseum } from './conservation';
 import {
   canonicalizeWorkshopManifest,
+  validateWorkshopManifest,
   WORKSHOP_SCHEMA_VERSION,
   type WorkshopPlacementManifest,
   type WorkshopPlacementRecord,
@@ -361,9 +362,15 @@ export class MuseumPlacements {
     });
   }
 
-  replaceManifest(rawManifest: unknown): WorkshopPlacementManifest {
+  /**
+   * `history` restores a state the editor already held live. Such a state may
+   * break conservation (live transforms are not gated), so only the schema is
+   * checked; conservation is still enforced at save and reported by Museum Health.
+   */
+  replaceManifest(rawManifest: unknown, options: { history?: boolean } = {}): WorkshopPlacementManifest {
     this.setOriginalComparison(false);
-    const parsed = validateWorkshopManifestForMuseum(rawManifest, this.registry?.entries() ?? []);
+    const parsed = options.history ? validateWorkshopManifest(rawManifest)
+      : validateWorkshopManifestForMuseum(rawManifest, this.registry?.entries() ?? []);
     if (!parsed.ok || !parsed.value) {
       throw new Error(`Museum Workshop placement manifest is invalid: ${parsed.errors.join('; ')}`);
     }

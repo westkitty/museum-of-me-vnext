@@ -18,6 +18,7 @@ import { applyWalkwayProposals, clearWalkways, type WalkwayProposal } from './Cl
 import { museumHealth } from './MuseumHealth';
 import { MEANINGFUL_ACTIONS, MEANING_MAX_DISTANCE } from './MeaningfulObjects';
 import { applyCurateSuggestions, autoCurate, rejectCurateSuggestion, type CurateDensity, type CurateMode, type CurateSuggestion } from './AutoCurate';
+import { NARRATIVE_GRAVITY_PILOTS, applyGravitySuggestions, narrativeGravity, rejectGravitySuggestion, type GravitySuggestion, type NarrativeGravityPilot } from './NarrativeGravity';
 import { ZONES } from '../world/layout';
 import { KIT_TEMPLATES, duplicateKit, kitFollowMember, kitOf, kitOverrides, placeKit, removeKit, resetKitSlot } from './ExhibitKits';
 import { addEmptyRegion, isLocked, latestDecision, recordDecision, removeEmptyRegion, setLocked } from './CuratorMemory';
@@ -291,6 +292,7 @@ export class Workshop {
     this.el<HTMLSelectElement>('meaning').addEventListener('change', () => this.commitMeaning());
     this.el<HTMLButtonElement>('curate-run').addEventListener('click', () => this.runCurate());
     this.el<HTMLButtonElement>('curate-approve-all').addEventListener('click', () => this.curateAction(this.curateSuggestions, 'approve'));
+    this.el<HTMLButtonElement>('gravity-run').addEventListener('click', () => this.runGravity());
     this.el<HTMLButtonElement>('kit-place').addEventListener('click', () => this.placeKitInView());
     this.el<HTMLButtonElement>('kit-duplicate').addEventListener('click', () => this.kitAction('duplicate'));
     this.el<HTMLButtonElement>('kit-reset').addEventListener('click', () => this.kitAction('reset'));
@@ -618,6 +620,80 @@ export class Workshop {
     }
     this.refresh();
     this.runCurate();
+  }
+
+  /** Pilot read of an exhibit's composition; NO CHANGE is a valid outcome and nothing moves without approval. */
+  private runGravity(): void {
+    this.setWalkwayGhost(null);
+    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+      this.app.exteriorWorld.root, this.app.museum?.root);
+    const manifest = this.placements.captureManifest();
+    const exhibit = this.el<HTMLSelectElement>('gravity-exhibit').value as NarrativeGravityPilot;
+    const report = narrativeGravity(buildMuseumSceneIndex(manifest, { exterior: this.app.exteriorWorld.collision, interior: this.app.museum?.collision },
+      { placements: this.placements }), manifest, exhibit);
+    const status = this.el('gravity-status');
+    status.dataset.gravityVerdict = report.verdict;
+    status.textContent = `${exhibit}: ${report.verdict}. ${report.verdict === 'NO CHANGE'
+      ? 'The sightline from the visitor position is clear and nothing competes with the hero; nothing is proposed.'
+      : `${report.suggestions.length} suggestion(s), ${report.competing.length} to review, ${report.unresolved.length} unresolved. Nothing changes until you approve.`}`;
+    const results = this.el('gravity-results');
+    results.replaceChildren();
+    for (const suggestion of report.suggestions) {
+      const row = document.createElement('div');
+      row.dataset.gravitySuggestion = suggestion.objectId;
+      const text = document.createElement('p');
+      text.textContent = `Move ${suggestion.label}: ${suggestion.reason}`;
+      row.append(text);
+      for (const [action, label] of [['preview', 'Preview'], ['approve', 'Approve'], ['reject', 'Reject']] as const) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.gravityAction = action;
+        button.textContent = label;
+        button.addEventListener('click', () => {
+          if (action === 'preview') {
+            this.setWalkwayGhost(new THREE.Box3(new THREE.Vector3(...suggestion.bounds.min), new THREE.Vector3(...suggestion.bounds.max)));
+            this.focusPlacement(suggestion.objectId);
+          } else this.gravityAction(suggestion, action);
+        });
+        row.append(button);
+      }
+      results.append(row);
+    }
+    const notes: [string, string, string][] = [
+      ...report.competing.map((item) => ['competing', item.objectId, `${item.label}: ${item.reason}`] as [string, string, string]),
+      ...report.unresolved.map((item) => ['unresolved', item.objectId, `${item.objectId}: ${item.reason}`] as [string, string, string]),
+    ];
+    for (const [kind, id, message] of notes) {
+      const note = document.createElement('p');
+      note.className = 'workshop-muted';
+      note.dataset.gravityNote = kind;
+      note.dataset.gravitySubject = id;
+      note.textContent = message;
+      results.append(note);
+    }
+    const preserved = document.createElement('p');
+    preserved.className = 'workshop-muted';
+    preserved.dataset.gravityPreserved = '';
+    preserved.textContent = `Never moved: ${report.preserved.join('; ')}. ${report.limitations.join(' ')}`;
+    results.append(preserved);
+  }
+
+  private gravityAction(suggestion: GravitySuggestion, action: 'approve' | 'reject'): void {
+    const before = this.placements.captureManifest();
+    try {
+      const next = action === 'approve'
+        ? applyGravitySuggestions(before, [suggestion], new Set([suggestion.objectId]))
+        : rejectGravitySuggestion(before, suggestion);
+      const after = this.placements.replaceManifest(next);
+      this.history.push(`${action === 'approve' ? 'Approve' : 'Reject'} narrative gravity move`, before, after);
+      this.placements.invalidateCollisions();
+      this.note(action === 'approve' ? `${suggestion.label} moved out of the sightline as one undoable step.` : 'Suggestion rejected and remembered.', 'ok');
+    } catch (error) {
+      this.placements.replaceManifest(before);
+      this.note(error instanceof Error ? error.message : 'Suggestion rejected by Museum conservation.', 'error');
+    }
+    this.refresh();
+    this.runGravity();
   }
 
   /** Read-only health report; affected placements link to the object, nothing is changed. */
@@ -1653,7 +1729,7 @@ export class Workshop {
     if (!result) return;
     const id = this.selectedId;
     const surfaceId = this.selectedSurfaceId;
-    this.placements.replaceManifest(result.manifest);
+    this.placements.replaceManifest(result.manifest, { history: true });
     if (surfaceId) this.selectSurface(surfaceId);
     else this.select(id && this.placements.getObject(id) ? id : null);
     this.note(`${verb}: ${result.label}`, 'ok');
@@ -2230,6 +2306,13 @@ const WORKSHOP_HTML = `
     <div class="workshop-row"><button type="button" data-workshop="curate-run">Suggest</button><button type="button" data-workshop="curate-approve-all" disabled>Approve all shown</button></div>
     <p data-workshop="curate-status" role="status" class="workshop-muted">No suggestions yet. Nothing changes until you approve.</p>
     <div data-workshop="curate-results" class="workshop-outliner"></div>
+  </section>
+  <section><h3>Narrative gravity</h3>
+    <p class="workshop-muted">Pilot exhibits only. Keeps the visitor's view of the hero clear; exhibit content is never moved, and NO CHANGE is a valid answer.</p>
+    <div class="workshop-row"><select data-workshop="gravity-exhibit" aria-label="Exhibit">${NARRATIVE_GRAVITY_PILOTS.map((id) => `<option value="${id}">${id}</option>`).join('')}</select>
+      <button type="button" data-workshop="gravity-run">Read composition</button></div>
+    <p data-workshop="gravity-status" role="status" class="workshop-muted">Not read yet.</p>
+    <div data-workshop="gravity-results" class="workshop-outliner"></div>
   </section>
   <section><h3>Museum health</h3>
     <button type="button" data-workshop="health-run">Check museum health</button>
