@@ -31,6 +31,8 @@ type InputKey = (typeof INPUT_KEYS)[number];
 /** Development-only authoring UI. Production receives only MuseumPlacements. */
 export class Workshop {
   private savedBaseline: string;
+  private sourceCatalog: typeof import('./catalog-data/tge-index.json').models | null = null;
+  private sourcePage = 0;
   private readonly root = document.createElement('div');
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
@@ -268,6 +270,11 @@ export class Workshop {
   }
 
   private bindUi(): void {
+    this.el<HTMLButtonElement>('source-load').addEventListener('click', () => void this.loadSourceCatalog());
+    this.el<HTMLInputElement>('source-search').addEventListener('input', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
+    this.el<HTMLSelectElement>('source-featured').addEventListener('change', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
+    this.el<HTMLButtonElement>('source-prev').addEventListener('click', () => { this.sourcePage--; this.refreshSourceCatalog(); });
+    this.el<HTMLButtonElement>('source-next').addEventListener('click', () => { this.sourcePage++; this.refreshSourceCatalog(); });
     this.root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((button) => {
       button.addEventListener('click', () => this.setMode(button.dataset.mode as TransformControlsMode));
     });
@@ -451,6 +458,59 @@ export class Workshop {
       this.assetResults.append(empty);
     }
   }
+
+  private async loadSourceCatalog(): Promise<void> {
+    const button = this.el<HTMLButtonElement>('source-load');
+    button.disabled = true;
+    try {
+      this.sourceCatalog = (await import('./catalog-data/tge-index.json')).default.models;
+      this.el('source-controls').hidden = false;
+      button.hidden = true;
+      this.refreshSourceCatalog();
+    } catch {
+      button.disabled = false;
+      this.el('source-count').textContent = 'Source catalog could not be loaded.';
+    }
+  }
+
+  private refreshSourceCatalog(): void {
+    if (!this.sourceCatalog) return;
+    const query = this.el<HTMLInputElement>('source-search').value.trim().toLowerCase();
+    const featuredOnly = this.el<HTMLSelectElement>('source-featured').value === 'featured';
+    const matches = this.sourceCatalog.filter((item) => (!featuredOnly || Boolean(item.featured))
+      && (!query || [item.name, item.id, item.packName, item.featured?.target ?? '',
+        item.featured?.wing ?? '', item.featured?.role ?? ''].some((field) => field.toLowerCase().includes(query))));
+    const pages = Math.max(1, Math.ceil(matches.length / 24));
+    this.sourcePage = Math.max(0, Math.min(this.sourcePage, pages - 1));
+    this.el('source-count').textContent = `${matches.length} source candidates · page ${this.sourcePage + 1} of ${pages}`;
+    this.el<HTMLButtonElement>('source-prev').disabled = this.sourcePage === 0;
+    this.el<HTMLButtonElement>('source-next').disabled = this.sourcePage >= pages - 1;
+    const results = this.el('source-results');
+    results.replaceChildren();
+    for (const item of matches.slice(this.sourcePage * 24, this.sourcePage * 24 + 24)) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'workshop-asset';
+      button.disabled = true;
+      button.dataset.sourceId = item.id;
+      const img = document.createElement('img');
+      img.alt = '';
+      img.width = 96; img.height = 96;
+      img.loading = 'lazy';
+      img.addEventListener('load', () => { button.disabled = false; });
+      img.addEventListener('error', () => { detail.textContent = 'Thumbnail unavailable'; });
+      img.src = `/__museum-workshop/tge-thumbnail?id=${encodeURIComponent(item.id)}`;
+      const title = document.createElement('strong'); title.textContent = item.name;
+      const detail = document.createElement('small'); detail.textContent = `${item.packName} · ${item.license}`;
+      button.append(img, title, detail);
+      button.addEventListener('click', () => {
+        this.el('source-inspector').textContent = `${item.name} · ${item.id} · ${item.bytes} bytes · ${item.license} · ${item.author} · source revision ${this.sourceCatalogRevision()} · ${item.featured?.role ?? 'Unassigned candidate'} · Not installed; import and visual review required.`;
+      });
+      results.append(button);
+    }
+  }
+
+  private sourceCatalogRevision(): string { return '3ddcc695adbba9fb918cf31b7c139b3f95b76910'; }
 
   private addModel(assetId: string, label: string): void {
     if (this.placements.isComparingOriginal) return;
@@ -1591,6 +1651,18 @@ const WORKSHOP_HTML = `
     <div class="workshop-asset-results" data-workshop="asset-results" role="group" aria-label="Searchable asset models"></div>
     <label>Import GLB<input data-workshop="model-import" type="file" accept=".glb,model/gltf-binary" aria-label="Import local GLB model"></label>
     <p class="workshop-muted">Self-contained GLB, up to 8 MB. Local-only import; review rights and assets before publication.</p>
+    <h4>External source candidates</h4>
+    <p class="workshop-muted">Browse verified source records. Thumbnails are fetched on demand and cached locally; models require a separate import and review.</p>
+    <button type="button" data-workshop="source-load">Browse source catalog</button>
+    <div data-workshop="source-controls" hidden>
+      <label>Search source<input data-workshop="source-search" type="search" aria-label="Search source candidates"></label>
+      <label>Collection<select data-workshop="source-featured"><option value="all">All 3D candidates</option><option value="featured">Featured 200</option></select></label>
+      <p data-workshop="source-count" role="status"></p>
+      <div data-workshop="source-results" class="workshop-asset-results" role="group" aria-label="Source candidates"></div>
+      <button type="button" data-workshop="source-prev">Previous candidates</button>
+      <button type="button" data-workshop="source-next">Next candidates</button>
+      <p data-workshop="source-inspector" class="workshop-muted">Select a loaded thumbnail for source details.</p>
+    </div>
   </section>
   <section><h3>Primitive objects & fixtures</h3><div class="workshop-palette" data-workshop="palette"></div></section>
   <section><h3>Placed objects</h3><div class="workshop-outliner" data-workshop="outliner"></div></section>

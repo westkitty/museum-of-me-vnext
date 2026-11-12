@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
+import { tgeThumbnail } from './tge-thumbnail';
 import {
   conservationErrors,
   validateWorkshopConservation,
@@ -17,6 +18,7 @@ import {
 const ENDPOINT = '/__museum-workshop/save';
 const MEDIA_ENDPOINT = '/__museum-workshop/media';
 const MODEL_ENDPOINT = '/__museum-workshop/model';
+const THUMBNAIL_ENDPOINT = '/__museum-workshop/tge-thumbnail';
 const MAX_MODEL_BYTES = 8 * 1024 * 1024;
 const MAX_MEDIA_BYTES = 3 * 1024 * 1024;
 
@@ -332,6 +334,22 @@ export function museumWorkshopSavePlugin(): Plugin {
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const url = req.url?.split('?')[0] ?? '';
+        if (url === THUMBNAIL_ENDPOINT) {
+          if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'GET required' });
+          if (!isLoopback(req.socket.remoteAddress) || !isSameOriginRequest(req)) {
+            return json(res, 403, { ok: false, error: 'Local, same-origin authoring only' });
+          }
+          const id = new URL(req.url ?? '', 'http://localhost').searchParams.get('id') ?? '';
+          try {
+            const bytes = await tgeThumbnail(id, process.cwd());
+            res.setHeader('Content-Type', 'image/webp');
+            res.setHeader('Cache-Control', 'private, max-age=86400');
+            res.end(bytes);
+          } catch {
+            json(res, 404, { ok: false, error: 'Thumbnail unavailable or failed integrity verification.' });
+          }
+          return;
+        }
         if (url === MODEL_ENDPOINT) {
           if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'POST required' });
           if (!isLoopback(req.socket.remoteAddress) || !isSameOriginRequest(req)) {

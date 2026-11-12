@@ -60,6 +60,8 @@ const workshopRuntimeMarkers = [
   'Nominal source-route evidence',
   'choreo-launcher',
   '/__museum-workshop/save',
+  '/__museum-workshop/tge-thumbnail',
+  'blaster-kit/blaster-a',
   'Museum Workshop development editor',
   'museum-workshop-transform-controls',
 ];
