@@ -260,8 +260,22 @@ export class MuseumPlacements {
     if (!parsed.ok || !parsed.value) {
       throw new Error(`Museum Workshop placement manifest is invalid: ${parsed.errors.join('; ')}`);
     }
+    const previous = this.manifest;
     this.manifest = parsed.value;
-    this.rebuild();
+    if (JSON.stringify(previous.objects) === JSON.stringify(parsed.value.objects)) {
+      // Surface and registered-scene edits do not own authored prefab resources.
+      // Keep those roots and in-flight model loads intact when their records match.
+      for (const record of parsed.value.objects) this.recordsById.set(record.id, record);
+      if (JSON.stringify(previous.sceneOverrides ?? []) !== JSON.stringify(parsed.value.sceneOverrides ?? [])) {
+        for (const entry of this.registry?.entries() ?? []) this.registry?.apply(entry.id, entry.baseline);
+        for (const override of parsed.value.sceneOverrides ?? []) this.registry?.apply(override.id, override);
+      }
+      if (JSON.stringify(previous.surfaceOverrides ?? []) !== JSON.stringify(parsed.value.surfaceOverrides ?? [])) {
+        this.surfaces.apply(parsed.value.surfaceOverrides ?? []);
+      }
+    } else {
+      this.rebuild();
+    }
     return this.captureManifest();
   }
 

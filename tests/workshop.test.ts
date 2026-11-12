@@ -12,6 +12,7 @@ import { validateWorkshopManifestForMuseum, validateWorkshopConservation } from 
 import { MuseumPlacements } from '../src/workshop/MuseumPlacements';
 import { WorkshopHistory } from '../src/workshop/history';
 import { AuthorableSceneRegistry } from '../src/workshop/AuthorableSceneRegistry';
+import { CollisionWorld } from '../src/world/CollisionWorld';
 import {
   EMPTY_WORKSHOP_MANIFEST,
   serializeWorkshopManifest,
@@ -305,6 +306,30 @@ describe('MuseumPlacements', () => {
     expect(placements.objectCount).toBe(1);
     expect(placements.getRecord('bench-01')).toEqual(placements.captureManifest().objects[0]);
     placements.dispose();
+  });
+
+  it('preserves authored roots when only surface or registered scene overrides change', () => {
+    const shrub = new THREE.Group();
+    shrub.position.set(30, 0, 42);
+    const registry = new AuthorableSceneRegistry([{ id: 'arrival-garden-shrub-01', root: shrub }]);
+    const placements = new MuseumPlacements(sample, registry);
+    const original = placements.getObject('bench-01');
+    const exteriorRoot = new THREE.Group();
+    const material = new THREE.MeshStandardMaterial({ color: '#445566' });
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(), material);
+    exteriorRoot.add(mesh);
+    placements.syncWorld('exterior', new CollisionWorld(), undefined, exteriorRoot);
+    placements.setSurfaceOverride({ id: 'exterior:0', worldId: 'exterior', color: '#abcdef' });
+    expect(placements.getObject('bench-01')).toBe(original);
+    expect((mesh.material as THREE.MeshStandardMaterial).color.getHexString()).toBe('abcdef');
+    placements.setSceneOverride('arrival-garden-shrub-01', { position: [31, 0, 42], rotation: [0, 0, 0], scale: [1, 1, 1] });
+    expect(placements.getObject('bench-01')).toBe(original);
+    expect(shrub.position.x).toBe(31);
+    placements.removeSurfaceOverride('exterior:0');
+    expect(mesh.material).toBe(material);
+    expect(placements.getObject('bench-01')).toBe(original);
+    placements.dispose();
+    mesh.geometry.dispose(); material.dispose();
   });
 
   it('applies existing-scene overrides through the explicit registry', () => {
