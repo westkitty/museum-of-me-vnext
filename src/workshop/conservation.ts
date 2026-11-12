@@ -234,6 +234,11 @@ function protectedAreas(): readonly ProtectedArea[] {
 
 const PROTECTED_AREAS = protectedAreas();
 
+/** Nominal half extents of a placement before scale and rotation, as conservation assesses it. */
+export function workshopPlacementExtents(record: WorkshopPlacementRecord): Readonly<PrefabBounds> {
+  return placementBounds(record);
+}
+
 function placementBounds(record: WorkshopPlacementRecord): PrefabBounds {
   if (record.prefab !== 'catalog-model') return PREFAB_BOUNDS[record.prefab];
   const size = record.assetId ? builderModel(record.assetId)?.nominalSize : null;

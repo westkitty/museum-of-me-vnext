@@ -16,6 +16,8 @@ import { buildMuseumSceneIndex, querySceneIndex } from './SceneIndex';
 import { scanAuthoredRouteClearance } from './RouteClearance';
 import { applyWalkwayProposals, clearWalkways, type WalkwayProposal } from './ClearWalkways';
 import { museumHealth } from './MuseumHealth';
+import { applyCurateSuggestions, autoCurate, rejectCurateSuggestion, type CurateDensity, type CurateMode, type CurateSuggestion } from './AutoCurate';
+import { ZONES } from '../world/layout';
 import { KIT_TEMPLATES, duplicateKit, kitFollowMember, kitOf, kitOverrides, placeKit, removeKit, resetKitSlot } from './ExhibitKits';
 import { addEmptyRegion, isLocked, latestDecision, recordDecision, removeEmptyRegion, setLocked } from './CuratorMemory';
 import {
@@ -284,6 +286,8 @@ export class Workshop {
     this.el<HTMLButtonElement>('clearance-scan').addEventListener('click', () => this.scanClearance());
     this.el<HTMLButtonElement>('walkways-scan').addEventListener('click', () => this.scanWalkways());
     this.el<HTMLButtonElement>('health-run').addEventListener('click', () => this.checkHealth());
+    this.el<HTMLButtonElement>('curate-run').addEventListener('click', () => this.runCurate());
+    this.el<HTMLButtonElement>('curate-approve-all').addEventListener('click', () => this.curateAction(this.curateSuggestions, 'approve'));
     this.el<HTMLButtonElement>('kit-place').addEventListener('click', () => this.placeKitInView());
     this.el<HTMLButtonElement>('kit-duplicate').addEventListener('click', () => this.kitAction('duplicate'));
     this.el<HTMLButtonElement>('kit-reset').addEventListener('click', () => this.kitAction('reset'));
@@ -539,6 +543,76 @@ export class Workshop {
       });
       results.append(button);
     }
+  }
+
+  private curateSuggestions: readonly CurateSuggestion[] = [];
+
+  /** Suggestions only: preview shows a ghost, approval applies as one undoable step, rejection is remembered. */
+  private runCurate(): void {
+    this.setWalkwayGhost(null);
+    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+      this.app.exteriorWorld.root, this.app.museum?.root);
+    const manifest = this.placements.captureManifest();
+    const scopeValue = this.el<HTMLSelectElement>('curate-scope').value;
+    const report = autoCurate(buildMuseumSceneIndex(manifest, { exterior: this.app.exteriorWorld.collision, interior: this.app.museum?.collision },
+      { placements: this.placements }), manifest, {
+      mode: this.el<HTMLSelectElement>('curate-mode').value as CurateMode,
+      density: this.el<HTMLSelectElement>('curate-density').value as CurateDensity,
+      scope: scopeValue === 'museum' ? { kind: 'museum' } : { kind: 'zone', zone: scopeValue as (typeof ZONES)[number]['id'] },
+    });
+    this.curateSuggestions = report.suggestions;
+    this.el<HTMLButtonElement>('curate-approve-all').disabled = !report.suggestions.length;
+    this.el('curate-status').textContent = `${report.suggestions.length} suggestion(s), ${report.skipped.length} skipped. Nothing changes until you approve. ${report.limitations.join(' ')}`;
+    const results = this.el('curate-results');
+    results.replaceChildren();
+    for (const suggestion of report.suggestions) {
+      const row = document.createElement('div');
+      row.dataset.curateSuggestion = suggestion.id;
+      row.dataset.curateKind = suggestion.kind;
+      const text = document.createElement('p');
+      text.textContent = `${suggestion.kind === 'add' ? 'Add' : 'Move'} ${suggestion.label} · ${suggestion.zone}: ${suggestion.reason}`;
+      row.append(text);
+      for (const [action, label] of [['preview', 'Preview'], ['approve', 'Approve'], ['reject', 'Reject']] as const) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.curateAction = action;
+        button.textContent = label;
+        button.addEventListener('click', () => {
+          if (action === 'preview') {
+            this.setWalkwayGhost(new THREE.Box3(new THREE.Vector3(...suggestion.bounds.min), new THREE.Vector3(...suggestion.bounds.max)));
+            if (suggestion.kind === 'move') this.focusPlacement(suggestion.id);
+          } else this.curateAction([suggestion], action);
+        });
+        row.append(button);
+      }
+      results.append(row);
+    }
+    for (const item of report.skipped.slice(0, 20)) {
+      const note = document.createElement('p');
+      note.className = 'workshop-muted';
+      note.dataset.curateSkipped = item.id;
+      note.textContent = `${item.id}: ${item.reason}`;
+      results.append(note);
+    }
+  }
+
+  private curateAction(suggestions: readonly CurateSuggestion[], action: 'approve' | 'reject'): void {
+    if (!suggestions.length) return;
+    const before = this.placements.captureManifest();
+    try {
+      const next = action === 'approve'
+        ? applyCurateSuggestions(before, suggestions, new Set(suggestions.map((suggestion) => suggestion.id)))
+        : suggestions.reduce((manifest, suggestion) => rejectCurateSuggestion(manifest, suggestion), before);
+      const after = this.placements.replaceManifest(next);
+      this.history.push(`${action === 'approve' ? 'Approve' : 'Reject'} ${suggestions.length} curation suggestion(s)`, before, after);
+      this.placements.invalidateCollisions();
+      this.note(action === 'approve' ? `${suggestions.length} suggestion(s) applied as one undoable step.` : 'Suggestion rejected and remembered.', 'ok');
+    } catch (error) {
+      this.placements.replaceManifest(before);
+      this.note(error instanceof Error ? error.message : 'Suggestion rejected by Museum conservation.', 'error');
+    }
+    this.refresh();
+    this.runCurate();
   }
 
   /** Read-only health report; affected placements link to the object, nothing is changed. */
@@ -2116,6 +2190,14 @@ const WORKSHOP_HTML = `
       <button type="button" data-workshop="kit-reset" disabled>Reset this part</button>
       <button type="button" data-workshop="kit-ungroup" disabled>Ungroup</button>
       <button type="button" data-workshop="kit-delete" disabled>Delete kit</button></div>
+  </section>
+  <section><h3>Auto-curate &amp; clear</h3>
+    <div class="workshop-row"><select data-workshop="curate-mode" aria-label="Curation mode"><option value="clear">Clear walkways</option><option value="furnish">Furnish</option><option value="both">Clear and furnish</option></select>
+      <select data-workshop="curate-density" aria-label="Density"><option value="minimal">Minimal</option><option value="restrained" selected>Restrained</option><option value="rich">Rich</option></select>
+      <select data-workshop="curate-scope" aria-label="Scope"><option value="museum">Whole museum</option>${ZONES.map((zone) => `<option value="${zone.id}">${zone.label}</option>`).join('')}</select></div>
+    <div class="workshop-row"><button type="button" data-workshop="curate-run">Suggest</button><button type="button" data-workshop="curate-approve-all" disabled>Approve all shown</button></div>
+    <p data-workshop="curate-status" role="status" class="workshop-muted">No suggestions yet. Nothing changes until you approve.</p>
+    <div data-workshop="curate-results" class="workshop-outliner"></div>
   </section>
   <section><h3>Museum health</h3>
     <button type="button" data-workshop="health-run">Check museum health</button>

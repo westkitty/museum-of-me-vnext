@@ -65,7 +65,7 @@ export interface WorkshopPlacementRecord {
   readonly openingSill?: number;
 }
 
-export type CuratorDecisionKind = 'walkway-move';
+export type CuratorDecisionKind = 'walkway-move' | 'furnish-add';
 export type CuratorDecisionOutcome = 'approved' | 'rejected' | 'user-override';
 
 /** One curator response to an automated suggestion, kept so repeated runs respect it. */
@@ -434,7 +434,7 @@ function validateCurator(value: unknown, ids: ReadonlySet<string>, errors: strin
       if (!isRecord(raw)) { errors.push(`curator.decisions[${index}] must be an object`); return; }
       rejectUnknownKeys(raw, DECISION_KEYS, `curator.decisions[${index}]`, errors);
       const position = raw.position;
-      if (raw.kind !== 'walkway-move' || typeof raw.objectId !== 'string' || !ID_PATTERN.test(raw.objectId)
+      if ((raw.kind !== 'walkway-move' && raw.kind !== 'furnish-add') || typeof raw.objectId !== 'string' || !ID_PATTERN.test(raw.objectId)
         || (raw.outcome !== 'approved' && raw.outcome !== 'rejected' && raw.outcome !== 'user-override')
         || typeof raw.at !== 'string' || !ISO_TIME.test(raw.at)
         || !Array.isArray(position) || position.length !== 3 || !position.every((n) => typeof n === 'number' && Number.isFinite(n))) {
