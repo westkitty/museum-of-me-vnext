@@ -1,5 +1,6 @@
 import placementManifest from '../data/workshop-placements.json';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
@@ -160,6 +161,50 @@ describe('Museum Workshop conservation', () => {
       const accepted = await writeWorkshopManifest(at([30, 0, 42]), target);
       expect(accepted.ok).toBe(true);
       expect(await readFile(target, 'utf8')).toBe(serializeWorkshopManifest(at([30, 0, 42])));
+      const hash = createHash('sha256').update(original).digest('hex');
+      expect(await readFile(join(directory, '.workshop-backups', `${hash}.json`), 'utf8')).toBe(original);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves each prior version for concurrent saves and refuses a corrupt backup', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'museum-workshop-backup-'));
+    const target = join(directory, 'workshop-placements.json');
+    const original = '{"schemaVersion":1,"objects":[]}\n';
+    try {
+      await writeFile(target, original);
+      const first = at([30, 0, 42]);
+      const second = at([31, 0, 42]);
+      const results = await Promise.all([writeWorkshopManifest(first, target), writeWorkshopManifest(second, target)]);
+      expect(results.every((result) => result.ok)).toBe(true);
+      const backupDir = join(directory, '.workshop-backups');
+      const backups = await Promise.all((await readdir(backupDir)).map((name) => readFile(join(backupDir, name), 'utf8')));
+      expect(backups).toContain(original);
+      expect(backups).toContain(serializeWorkshopManifest(first));
+      expect(await readFile(target, 'utf8')).toBe(serializeWorkshopManifest(second));
+
+      const bytes = await readFile(target);
+      const hash = createHash('sha256').update(bytes).digest('hex');
+      await writeFile(join(backupDir, `${hash}.json`), 'corrupt');
+      await expect(writeWorkshopManifest(first, target)).rejects.toThrow(/backup does not match/);
+      expect(await readFile(target)).toEqual(bytes);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('leaves the original untouched if the backup directory cannot be used', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'museum-workshop-backup-fail-'));
+    const target = join(directory, 'workshop-placements.json');
+    const original = '{"schemaVersion":1,"objects":[]}\n';
+    try {
+      await writeFile(target, original);
+      await mkdir(join(directory, '.workshop-backups'));
+      await rm(join(directory, '.workshop-backups'), { recursive: true });
+      await writeFile(join(directory, '.workshop-backups'), 'not a directory');
+      await expect(writeWorkshopManifest(at([30, 0, 42]), target)).rejects.toThrow();
+      expect(await readFile(target, 'utf8')).toBe(original);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

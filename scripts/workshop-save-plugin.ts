@@ -1,6 +1,6 @@
-import { lstat, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import {
@@ -221,8 +221,51 @@ export interface WorkshopSaveResult {
   readonly violations?: readonly WorkshopConservationViolation[];
 }
 
-/** Validate before opening the target and atomically replace it only on success. */
+/** Preserve the exact previous bytes outside the public tree before replacement. */
+async function backupWorkshopManifest(target: string): Promise<void> {
+  let previous: Buffer;
+  try {
+    previous = await readFile(target);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+    throw error;
+  }
+  const directory = resolve(dirname(target), '.workshop-backups');
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  if (!(await lstat(directory)).isDirectory()) throw new Error('Workshop backup path is not a directory');
+  const digest = createHash('sha256').update(previous).digest('hex');
+  const backup = resolve(directory, `${digest}.json`);
+  try {
+    await writeFile(backup, previous, { flag: 'wx', mode: 0o600 });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+    const stat = await lstat(backup);
+    if (!stat.isFile() || !(await readFile(backup)).equals(previous)) {
+      throw new Error('Existing Workshop backup does not match the original manifest');
+    }
+  }
+}
+
+const pendingSaves = new Map<string, Promise<void>>();
+
+/** Serialize same-target saves so each successful replacement has a backup. */
 export async function writeWorkshopManifest(raw: unknown, target: string): Promise<WorkshopSaveResult> {
+  const key = resolve(target);
+  const previous = pendingSaves.get(key) ?? Promise.resolve();
+  let release!: () => void;
+  const current = new Promise<void>((resolveSave) => { release = resolveSave; });
+  pendingSaves.set(key, current);
+  await previous;
+  try {
+    return await writeWorkshopManifestLocked(raw, key);
+  } finally {
+    if (pendingSaves.get(key) === current) pendingSaves.delete(key);
+    release();
+  }
+}
+
+/** Validate, preserve the old bytes, then atomically replace the target. */
+async function writeWorkshopManifestLocked(raw: unknown, target: string): Promise<WorkshopSaveResult> {
   const parsed = validateWorkshopManifest(raw);
   if (!parsed.ok || !parsed.value) {
     return { ok: false, status: 400, errors: parsed.errors };
@@ -240,10 +283,17 @@ export async function writeWorkshopManifest(raw: unknown, target: string): Promi
   if (mediaErrors.length) return { ok: false, status: 400, errors: mediaErrors };
   const modelErrors = await validateLocalWorkshopModels(parsed.value, target);
   if (modelErrors.length) return { ok: false, status: 400, errors: modelErrors };
-  const temp = `${target}.tmp-${process.pid}`;
+  const temp = `${target}.tmp-${randomUUID()}`;
   await mkdir(dirname(target), { recursive: true });
-  await writeFile(temp, serializeWorkshopManifest(parsed.value), 'utf8');
-  await rename(temp, target);
+  await backupWorkshopManifest(target);
+  try {
+    await writeFile(temp, serializeWorkshopManifest(parsed.value), { encoding: 'utf8', flag: 'wx' });
+    await rename(temp, target);
+  } finally {
+    await unlink(temp).catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== 'ENOENT') throw error;
+    });
+  }
   return { ok: true, status: 200, manifest: parsed.value };
 }
 
