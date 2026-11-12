@@ -99,6 +99,27 @@ export interface CuratorMemory {
 export const CURATOR_MAX_DECISIONS = 4096;
 export const CURATOR_MAX_REGIONS = 256;
 
+export const WORKSHOP_KIT_TEMPLATE_IDS = ['archive-research-station', 'observatory-workstation'] as const;
+export type WorkshopKitTemplateId = (typeof WORKSHOP_KIT_TEMPLATE_IDS)[number];
+export const WORKSHOP_MAX_KITS = 512;
+
+/**
+ * An Exhibit Kit: a parent transform grouping ordinary placement records.
+ * Member records keep their world transforms (so collision, residency and
+ * conservation are unchanged); each member's local transform is derived from
+ * the kit origin, so there is one source of truth. Schema v2 only.
+ */
+export interface WorkshopKit {
+  readonly id: string;
+  readonly label: string;
+  readonly template: WorkshopKitTemplateId;
+  readonly worldId: 'exterior' | 'interior';
+  readonly position: WorkshopVec3;
+  /** Yaw of the kit origin in radians; kits stand on the floor. */
+  readonly rotationY: number;
+  readonly members: readonly { readonly slot: string; readonly id: string }[];
+}
+
 export interface WorkshopPlacementManifest {
   readonly schemaVersion: typeof WORKSHOP_SCHEMA_VERSION;
   readonly objects: readonly WorkshopPlacementRecord[];
@@ -106,6 +127,7 @@ export interface WorkshopPlacementManifest {
   readonly sceneOverrides?: readonly WorkshopSceneOverride[];
   readonly surfaceOverrides?: readonly WorkshopSurfaceOverride[];
   readonly curator?: CuratorMemory;
+  readonly kits?: readonly WorkshopKit[];
 }
 
 export interface WorkshopManifestValidation {
@@ -131,7 +153,9 @@ const COLOR = /^#[0-9a-fA-F]{6}$/;
 const WORKSHOP_IMAGE = /^workshop-media\/[0-9a-f]{64}\.webp$/;
 
 const SURFACE_PATH = /^(?:exterior|interior):(?:[0-9]{1,5}\/){0,12}[0-9]{1,5}$/;
-const MANIFEST_KEYS = new Set(['schemaVersion', 'objects', 'sceneOverrides', 'surfaceOverrides', 'curator']);
+const MANIFEST_KEYS = new Set(['schemaVersion', 'objects', 'sceneOverrides', 'surfaceOverrides', 'curator', 'kits']);
+const KIT_KEYS = new Set(['id', 'label', 'template', 'worldId', 'position', 'rotationY', 'members']);
+const SLOT_PATTERN = /^[a-z][a-z0-9-]{0,31}$/;
 const CURATOR_KEYS = new Set(['locks', 'decisions', 'emptyRegions']);
 const DECISION_KEYS = new Set(['kind', 'objectId', 'outcome', 'at', 'position']);
 const REGION_KEYS = new Set(['id', 'label', 'worldId', 'min', 'max']);
@@ -348,6 +372,51 @@ function finitePair(value: unknown): value is [number, number] {
   return Array.isArray(value) && value.length === 2 && value.every((n) => typeof n === 'number' && Number.isFinite(n) && Math.abs(n) <= 500);
 }
 
+function validateKits(value: unknown, records: readonly WorkshopPlacementRecord[], errors: string[]): WorkshopKit[] {
+  if (!Array.isArray(value)) { errors.push('kits must be an array'); return []; }
+  if (value.length > WORKSHOP_MAX_KITS) errors.push(`At most ${WORKSHOP_MAX_KITS} kits`);
+  const byId = new Map(records.map((record) => [record.id, record]));
+  const kitIds = new Set<string>();
+  const claimed = new Set<string>();
+  const kits: WorkshopKit[] = [];
+  value.forEach((raw, index) => {
+    const path = `kits[${index}]`;
+    if (!isRecord(raw)) { errors.push(`${path} must be an object`); return; }
+    rejectUnknownKeys(raw, KIT_KEYS, path, errors);
+    const position = raw.position;
+    if (typeof raw.id !== 'string' || !ID_PATTERN.test(raw.id) || kitIds.has(raw.id) || byId.has(raw.id)
+      || typeof raw.label !== 'string' || !raw.label.trim() || raw.label.trim().length > 80
+      || !WORKSHOP_KIT_TEMPLATE_IDS.includes(raw.template as WorkshopKitTemplateId)
+      || (raw.worldId !== 'exterior' && raw.worldId !== 'interior')
+      || !Array.isArray(position) || position.length !== 3 || !position.every((n, axis) => typeof n === 'number' && Number.isFinite(n) && Math.abs(n) <= POSITION_LIMITS[axis])
+      || typeof raw.rotationY !== 'number' || !Number.isFinite(raw.rotationY) || Math.abs(raw.rotationY) > 2 * Math.PI
+      || !Array.isArray(raw.members)) {
+      errors.push(`${path} is invalid`);
+      return;
+    }
+    const slots = new Set<string>();
+    const members: { slot: string; id: string }[] = [];
+    for (const member of raw.members as unknown[]) {
+      if (!isRecord(member) || typeof member.slot !== 'string' || !SLOT_PATTERN.test(member.slot) || slots.has(member.slot)
+        || typeof member.id !== 'string' || Object.keys(member).some((key) => key !== 'slot' && key !== 'id')) {
+        errors.push(`${path}.members contains an invalid entry`);
+        continue;
+      }
+      const record = byId.get(member.id);
+      if (!record) { errors.push(`${path}.members references unknown object ${JSON.stringify(member.id)}`); continue; }
+      if (claimed.has(member.id)) { errors.push(`${path}.members: object ${member.id} already belongs to another kit`); continue; }
+      if (record.worldId !== raw.worldId) { errors.push(`${path}.members: object ${member.id} is in a different world`); continue; }
+      slots.add(member.slot);
+      claimed.add(member.id);
+      members.push({ slot: member.slot, id: member.id });
+    }
+    kitIds.add(raw.id);
+    kits.push({ id: raw.id, label: raw.label.trim(), template: raw.template as WorkshopKitTemplateId, worldId: raw.worldId,
+      position: [position[0], position[1], position[2]] as WorkshopVec3, rotationY: raw.rotationY, members });
+  });
+  return kits;
+}
+
 function validateCurator(value: unknown, ids: ReadonlySet<string>, errors: string[]): CuratorMemory | null {
   if (!isRecord(value)) { errors.push('curator must be an object'); return null; }
   rejectUnknownKeys(value, CURATOR_KEYS, 'curator', errors);
@@ -491,11 +560,17 @@ export function validateWorkshopManifest(value: unknown): WorkshopManifestValida
     else curator = validateCurator(value.curator, new Set(objects.map((object) => object.id)), errors) ?? undefined;
   }
 
+  let kits: WorkshopKit[] | undefined;
+  if (value.kits !== undefined) {
+    if (legacy) errors.push('kits require schema version 2');
+    else kits = validateKits(value.kits, objects, errors);
+  }
+
   if (errors.length) return { ok: false, value: null, errors };
   return {
     ok: true,
     value: canonicalizeWorkshopManifest({ schemaVersion: WORKSHOP_SCHEMA_VERSION, objects, sceneOverrides, surfaceOverrides,
-      ...(curator ? { curator } : {}) }),
+      ...(curator ? { curator } : {}), ...(kits ? { kits } : {}) }),
     errors: [],
     ...(legacy ? { migratedFrom: WORKSHOP_LEGACY_SCHEMA_VERSION } : {}),
   };
@@ -515,6 +590,9 @@ export interface WorkshopV1Downgrade {
 export function downgradeWorkshopManifestToV1(manifest: WorkshopPlacementManifest): WorkshopV1Downgrade {
   if (manifest.curator && !curatorIsEmpty(manifest.curator)) {
     return { ok: false, text: null, errors: ['Schema version 1 cannot hold Curator\'s Memory; downgrading would discard locks, decisions and empty regions. Nothing was discarded.'] };
+  }
+  if (manifest.kits?.length) {
+    return { ok: false, text: null, errors: ['Schema version 1 cannot hold Exhibit Kits; downgrading would discard their grouping. Nothing was discarded.'] };
   }
   if (manifest.objects.length > WORKSHOP_V1_MAX_OBJECTS) {
     return { ok: false, text: null, errors: [
@@ -590,6 +668,10 @@ export function canonicalizeWorkshopManifest(manifest: WorkshopPlacementManifest
         max: [roundNumber(region.max[0]), roundNumber(region.max[1])] as const }))
         .sort((a, b) => a.id.localeCompare(b.id)),
     } } : {}),
+    ...(manifest.kits?.length ? { kits: [...manifest.kits].map((kit) => ({ id: kit.id, label: kit.label.trim(), template: kit.template,
+      worldId: kit.worldId, position: canonicalVec3(kit.position), rotationY: roundNumber(kit.rotationY),
+      members: [...kit.members].map((member) => ({ slot: member.slot, id: member.id })).sort((a, b) => a.slot.localeCompare(b.slot)) }))
+      .sort((a, b) => a.id.localeCompare(b.id)) } : {}),
   };
 }
 

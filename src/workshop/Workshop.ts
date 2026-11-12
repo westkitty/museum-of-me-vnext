@@ -16,11 +16,13 @@ import { buildMuseumSceneIndex, querySceneIndex } from './SceneIndex';
 import { scanAuthoredRouteClearance } from './RouteClearance';
 import { applyWalkwayProposals, clearWalkways, type WalkwayProposal } from './ClearWalkways';
 import { museumHealth } from './MuseumHealth';
+import { KIT_TEMPLATES, duplicateKit, kitFollowMember, kitOf, kitOverrides, placeKit, removeKit, resetKitSlot } from './ExhibitKits';
 import { addEmptyRegion, isLocked, latestDecision, recordDecision, removeEmptyRegion, setLocked } from './CuratorMemory';
 import {
   type WorkshopAnchor,
   type WorkshopPlacementManifest,
   type WorkshopPlacementRecord,
+  type WorkshopKitTemplateId,
   type WorkshopVec3,
 } from './schema';
 import './workshop.css';
@@ -282,6 +284,11 @@ export class Workshop {
     this.el<HTMLButtonElement>('clearance-scan').addEventListener('click', () => this.scanClearance());
     this.el<HTMLButtonElement>('walkways-scan').addEventListener('click', () => this.scanWalkways());
     this.el<HTMLButtonElement>('health-run').addEventListener('click', () => this.checkHealth());
+    this.el<HTMLButtonElement>('kit-place').addEventListener('click', () => this.placeKitInView());
+    this.el<HTMLButtonElement>('kit-duplicate').addEventListener('click', () => this.kitAction('duplicate'));
+    this.el<HTMLButtonElement>('kit-reset').addEventListener('click', () => this.kitAction('reset'));
+    this.el<HTMLButtonElement>('kit-ungroup').addEventListener('click', () => this.kitAction('ungroup'));
+    this.el<HTMLButtonElement>('kit-delete').addEventListener('click', () => this.kitAction('delete'));
     this.el<HTMLButtonElement>('curator-lock').addEventListener('click', () => { if (this.selectedId) this.toggleLock(this.selectedId); });
     this.el<HTMLButtonElement>('curator-empty').addEventListener('click', () => this.keepAreaEmpty());
     this.el<HTMLSelectElement>('scene-index-exhibit').addEventListener('change', () => this.describeSceneExhibit());
@@ -650,6 +657,81 @@ export class Workshop {
     this.note(`Moved ${proposal.objectId} ${proposal.distance.toFixed(2)} m to clear the walkway. Undo restores it.`, 'ok');
     this.refresh();
     this.scanWalkways();
+  }
+
+  /** With "Move as kit" on, an edit of one part moves the whole kit; otherwise the part becomes an override. */
+  private followKit(before: WorkshopPlacementManifest, id: string, after: WorkshopPlacementManifest): WorkshopPlacementManifest {
+    const kit = kitOf(before, id);
+    const moved = after.objects.find((item) => item.id === id);
+    if (!kit || !moved || !this.el<HTMLInputElement>('kit-move-together').checked) return after;
+    return this.placements.replaceManifest(kitFollowMember({ ...before, curator: after.curator ?? before.curator }, kit.id, id, moved));
+  }
+
+  private placeKitInView(): void {
+    if (this.placements.isComparingOriginal) return;
+    const template = this.el<HTMLSelectElement>('kit-template').value as WorkshopKitTemplateId;
+    const direction = new THREE.Vector3();
+    this.app.camera.getWorldDirection(direction);
+    const x = this.app.camera.position.x + direction.x * 5;
+    const z = this.app.camera.position.z + direction.z * 5;
+    const collision = this.app.museum?.collision ?? this.app.player.collisionWorld;
+    const y = collision.supportHeight(x, z, this.app.player.position.y, 1.5) ?? this.app.player.position.y;
+    const before = this.placements.captureManifest();
+    try {
+      const { manifest, kit } = placeKit(before, template, { position: [x, y, z], rotationY: Math.atan2(-direction.x, -direction.z),
+        worldId: this.app.activeWorld });
+      const after = this.placements.replaceManifest(manifest);
+      this.history.push(`Place ${kit.label}`, before, after);
+      this.select(kit.members[0]?.id ?? null);
+      this.note(`${kit.label} placed as ${kit.members.length} parts.`, 'ok');
+    } catch (error) {
+      this.note(error instanceof Error ? error.message : 'Kit would intersect protected museum geometry.', 'error');
+    }
+    this.refresh();
+  }
+
+  private kitAction(action: 'duplicate' | 'reset' | 'ungroup' | 'delete'): void {
+    const record = this.record();
+    const before = this.placements.captureManifest();
+    const kit = record ? kitOf(before, record.id) : null;
+    if (!record || !kit) return;
+    try {
+      let after: WorkshopPlacementManifest;
+      if (action === 'duplicate') {
+        const copy = duplicateKit(before, kit.id, { position: [kit.position[0] + 3, kit.position[1], kit.position[2] + 3], rotationY: kit.rotationY });
+        after = this.placements.replaceManifest(copy.manifest);
+        this.select(copy.kit.members.find((member) => member.slot === kit.members.find((m) => m.id === record.id)?.slot)?.id ?? null);
+      } else if (action === 'reset') {
+        const slot = kit.members.find((member) => member.id === record.id)!.slot;
+        after = this.placements.replaceManifest(resetKitSlot(before, kit.id, slot));
+      } else {
+        after = this.placements.replaceManifest(removeKit(before, kit.id, { keepMembers: action === 'ungroup' }));
+        if (action === 'delete') this.select(null);
+      }
+      const verb = { duplicate: 'Duplicate', reset: 'Reset part of', ungroup: 'Ungroup', delete: 'Delete' }[action];
+      this.history.push(`${verb} ${kit.label}`, before, after);
+      this.note(`${verb} ${kit.label}.`, action === 'delete' ? 'warn' : 'ok');
+    } catch (error) {
+      this.placements.replaceManifest(before);
+      this.note(error instanceof Error ? error.message : 'Kit change rejected by Museum conservation.', 'error');
+    }
+    this.refresh();
+  }
+
+  private refreshKit(): void {
+    const manifest = this.placements.captureManifest();
+    const record = this.record();
+    const kit = record ? kitOf(manifest, record.id) : null;
+    for (const key of ['kit-duplicate', 'kit-reset', 'kit-ungroup', 'kit-delete'] as const) this.el<HTMLButtonElement>(key).disabled = !kit;
+    if (!kit || !record) {
+      this.el('kit-status').textContent = `${manifest.kits?.length ?? 0} kit(s) placed. Select a part of a kit to edit it.`;
+      return;
+    }
+    const slot = kit.members.find((member) => member.id === record.id)!.slot;
+    const { overridden, removed } = kitOverrides(manifest, kit.id);
+    this.el('kit-status').textContent = `${record.label} is the "${slot}" part of ${kit.label} (${kit.members.length} parts).`
+      + ` ${overridden.length ? `Changed from the kit: ${overridden.join(', ')}.` : 'No parts changed from the kit.'}`
+      + `${removed.length ? ` Removed: ${removed.join(', ')}.` : ''}`;
   }
 
   /** A hand move after an automated suggestion becomes the curator's standing decision for that object. */
@@ -1298,7 +1380,7 @@ export class Workshop {
       this.refresh();
       return;
     }
-    if (record) after = this.rememberManualMove(record.id, after);
+    if (record) after = this.rememberManualMove(record.id, this.followKit(before, record.id, after));
     this.history.push(`Transform ${label}`, before, after);
     if (record?.collision === 'solid') this.placements.invalidateCollisions();
     this.selectionBox?.update();
@@ -1644,7 +1726,7 @@ export class Workshop {
         let after = sceneEntry
           ? this.placements.setSceneOverride(sceneEntry.id, this.captureTransform(this.object()!))
           : this.placements.captureManifest();
-        if (record) after = this.rememberManualMove(record.id, after);
+        if (record) after = this.rememberManualMove(record.id, this.followKit(before, record.id, after));
         this.history.push(`Transform ${record?.label ?? sceneEntry?.label ?? 'object'}`, before, after);
         if (record?.collision === 'solid') this.placements.invalidateCollisions();
       } catch (error) {
@@ -1764,6 +1846,7 @@ export class Workshop {
 
   private refreshInspector(): void {
     this.refreshCuratorMemory();
+    this.refreshKit();
     const record = this.record();
     const sceneEntry = this.sceneEntry();
     const object = this.object();
@@ -2022,6 +2105,17 @@ const WORKSHOP_HTML = `
     <button type="button" data-workshop="walkways-scan">Scan walkways and suggest moves</button>
     <p data-workshop="walkways-status" role="status" class="workshop-muted">Not tested.</p>
     <div data-workshop="walkways-results" class="workshop-outliner"></div>
+  </section>
+  <section><h3>Exhibit kits</h3>
+    <div class="workshop-row"><select data-workshop="kit-template" aria-label="Kit">${Object.values(KIT_TEMPLATES)
+      .map((template) => `<option value="${template.id}">${template.label}</option>`).join('')}</select>
+      <button type="button" data-workshop="kit-place">Place kit in view</button></div>
+    <label><input type="checkbox" data-workshop="kit-move-together" checked> Move as kit (untick to adjust one part)</label>
+    <p data-workshop="kit-status" class="workshop-muted"></p>
+    <div class="workshop-row"><button type="button" data-workshop="kit-duplicate" disabled>Copy whole kit</button>
+      <button type="button" data-workshop="kit-reset" disabled>Reset this part</button>
+      <button type="button" data-workshop="kit-ungroup" disabled>Ungroup</button>
+      <button type="button" data-workshop="kit-delete" disabled>Delete kit</button></div>
   </section>
   <section><h3>Museum health</h3>
     <button type="button" data-workshop="health-run">Check museum health</button>
