@@ -118,7 +118,8 @@ export async function validateLocalWorkshopMedia(
   }
   return errors;
 }
-const MAX_BODY_BYTES = 256 * 1024;
+// Sized for WORKSHOP_MAX_OBJECTS pretty-printed records plus overrides.
+const MAX_BODY_BYTES = 4 * 1024 * 1024;
 
 function isLoopback(address: string | undefined): boolean {
   return address === '127.0.0.1'

@@ -4,7 +4,7 @@ import { buildMuseumSceneIndex } from '../src/workshop/SceneIndex';
 import { routeMayIntersectWall, scanAuthoredRouteClearance } from '../src/workshop/RouteClearance';
 import type { WorkshopPlacementManifest } from '../src/workshop/schema';
 
-const manifest: WorkshopPlacementManifest = { schemaVersion: 1, objects: [{ id: 'blocked-wall', label: 'Wall',
+const manifest: WorkshopPlacementManifest = { schemaVersion: 2, objects: [{ id: 'blocked-wall', label: 'Wall',
   prefab: 'partition-wall', anchor: 'floor', position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1], collision: 'solid', worldId: 'interior' }] };
 const wall: Extract<ColliderSnapshot, { kind: 'wall' }> = { id: 'wall:blocked-wall', ownership: 'dynamic', kind: 'wall',
   minX: -1, maxX: 1, minY: 0, maxY: 3, minZ: -0.1, maxZ: 0.1 };

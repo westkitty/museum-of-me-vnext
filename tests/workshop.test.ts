@@ -21,7 +21,7 @@ import {
 } from '../src/workshop/schema';
 
 const sample: WorkshopPlacementManifest = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   objects: [
     {
       id: 'bench-01',
@@ -77,7 +77,7 @@ describe('Museum Workshop schema', () => {
 
   it('serializes deterministically and rounds transform noise', () => {
     const text = serializeWorkshopManifest({
-      schemaVersion: 1,
+      schemaVersion: 2,
       objects: [
         { ...sample.objects[0], id: 'z-last' },
         { ...sample.objects[0], id: 'a-first', position: [1.234567, -0, 3] },
@@ -91,7 +91,7 @@ describe('Museum Workshop schema', () => {
 
 describe('Museum Workshop conservation', () => {
   const at = (position: readonly [number, number, number]): WorkshopPlacementManifest => ({
-    schemaVersion: 1,
+    schemaVersion: 2,
     objects: [{ ...sample.objects[0]!, position: [...position] as [number, number, number] }],
   });
 
@@ -231,7 +231,7 @@ describe('Museum Workshop conservation', () => {
     const directory = await mkdtemp(join(tmpdir(), 'museum-workshop-unknown-'));
     const target = join(directory, 'workshop-placements.json');
     try {
-      for (const existing of ['{broken', '{"schemaVersion":2,"objects":[]}',
+      for (const existing of ['{broken', '{"schemaVersion":3,"objects":[]}',
         '{"schemaVersion":1,"objects":[],"futureDecision":"preserve"}']) {
         await writeFile(target, existing);
         const result = await writeWorkshopManifest(at([30, 0, 42]), target);
@@ -338,7 +338,7 @@ describe('MuseumPlacements', () => {
   });
 
   it('restores live gizmo changes and preserves roots across transform-only edits', () => {
-    const solid: WorkshopPlacementManifest = { schemaVersion: 1, objects: [{ ...sample.objects[0],
+    const solid: WorkshopPlacementManifest = { schemaVersion: 2, objects: [{ ...sample.objects[0],
       position: [30, 0, 42], collision: 'solid', worldId: 'exterior' }] };
     const placements = new MuseumPlacements(solid);
     const world = new CollisionWorld();
@@ -392,7 +392,7 @@ describe('WorkshopHistory', () => {
   it('treats one edit as one undo/redo command', () => {
     const history = new WorkshopHistory();
     const after: WorkshopPlacementManifest = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       objects: [{ ...sample.objects[0], position: [5, 0, 0] }],
     };
     expect(history.push('Move Bench 01', sample, after)).toBe(true);
@@ -402,7 +402,7 @@ describe('WorkshopHistory', () => {
 
   it('shares unchanged records across a large edit history and preserves undo isolation', () => {
     const history = new WorkshopHistory();
-    const initial: WorkshopPlacementManifest = { schemaVersion: 1, objects: Array.from({ length: 2000 }, (_, i) => ({
+    const initial: WorkshopPlacementManifest = { schemaVersion: 2, objects: Array.from({ length: 2000 }, (_, i) => ({
       ...sample.objects[0]!, id: `bench-${String(i).padStart(4, '0')}`, position: [30, 0, 42] as [number, number, number],
     })), sceneOverrides: [{ id: 'arrival-garden-shrub-01', position: [1, 0, 1], rotation: [0, 0, 0], scale: [1, 1, 1] }],
     surfaceOverrides: [{ id: 'exterior:0', worldId: 'exterior', color: '#123456' }] };

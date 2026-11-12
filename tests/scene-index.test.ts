@@ -6,7 +6,7 @@ import { buildMuseumSceneIndex } from '../src/workshop/SceneIndex';
 import type { WorkshopPlacementManifest } from '../src/workshop/schema';
 import { CollisionWorld } from '../src/world/CollisionWorld';
 
-const manifest: WorkshopPlacementManifest = { schemaVersion: 1, objects: [{
+const manifest: WorkshopPlacementManifest = { schemaVersion: 2, objects: [{
   id: 'outside-object', label: 'Outside', prefab: 'sculpture-sphere', anchor: 'free',
   position: [260, 0, 260], rotation: [0, 0, 0], scale: [1, 1, 1], worldId: 'exterior', collision: 'solid',
 }] };

@@ -2,8 +2,18 @@ import { isWorkshopPrefabId, type WorkshopPrefabId } from './catalog';
 import { builderModelAllowed, builderFinishAllowed } from './builderAssetCatalog';
 import { defaultOpening, wallOpeningSegments, type WallOpeningKind } from './WallOpenings';
 
-export const WORKSHOP_SCHEMA_VERSION = 1 as const;
-export const WORKSHOP_MAX_OBJECTS = 256;
+/**
+ * Version 2 lifts the 256-record cap of version 1; the record shape is
+ * otherwise unchanged. Version 1 files remain readable and are migrated in
+ * memory; the local save endpoint preserves their exact bytes before the
+ * first version-2 write, and {@link downgradeWorkshopManifestToV1} rolls a
+ * small enough manifest back to the version-1 format.
+ */
+export const WORKSHOP_SCHEMA_VERSION = 2 as const;
+export const WORKSHOP_LEGACY_SCHEMA_VERSION = 1 as const;
+export const WORKSHOP_V1_MAX_OBJECTS = 256;
+export const WORKSHOP_MAX_OBJECTS = 4096;
+export type WorkshopSchemaVersion = typeof WORKSHOP_LEGACY_SCHEMA_VERSION | typeof WORKSHOP_SCHEMA_VERSION;
 
 export type WorkshopAnchor = 'floor' | 'free' | 'wall';
 export type WorkshopCollisionMode = 'none' | 'solid';
@@ -67,6 +77,8 @@ export interface WorkshopManifestValidation {
   readonly ok: boolean;
   readonly value: WorkshopPlacementManifest | null;
   readonly errors: readonly string[];
+  /** Set when an older on-disk schema version was accepted and migrated. */
+  readonly migratedFrom?: typeof WORKSHOP_LEGACY_SCHEMA_VERSION;
 }
 
 export const EMPTY_WORKSHOP_MANIFEST: WorkshopPlacementManifest = {
@@ -319,8 +331,9 @@ export function validateWorkshopManifest(value: unknown): WorkshopManifestValida
   }
   rejectUnknownKeys(value, MANIFEST_KEYS, 'manifest', errors);
 
-  if (value.schemaVersion !== WORKSHOP_SCHEMA_VERSION) {
-    errors.push(`schemaVersion must be ${WORKSHOP_SCHEMA_VERSION}`);
+  const legacy = value.schemaVersion === WORKSHOP_LEGACY_SCHEMA_VERSION;
+  if (!legacy && value.schemaVersion !== WORKSHOP_SCHEMA_VERSION) {
+    errors.push(`schemaVersion must be ${WORKSHOP_LEGACY_SCHEMA_VERSION} or ${WORKSHOP_SCHEMA_VERSION}`);
   }
   if (!Array.isArray(value.objects)) {
     errors.push('objects must be an array');
@@ -332,8 +345,9 @@ export function validateWorkshopManifest(value: unknown): WorkshopManifestValida
   if (!Array.isArray(rawSceneOverrides)) {
     errors.push('sceneOverrides must be an array when present');
   }
-  if (value.objects.length > WORKSHOP_MAX_OBJECTS) {
-    errors.push(`objects may contain at most ${WORKSHOP_MAX_OBJECTS} records`);
+  const maxObjects = legacy ? WORKSHOP_V1_MAX_OBJECTS : WORKSHOP_MAX_OBJECTS;
+  if (value.objects.length > maxObjects) {
+    errors.push(`objects may contain at most ${maxObjects} records in schema version ${legacy ? 1 : 2}`);
   }
 
   const objects: WorkshopPlacementRecord[] = [];
@@ -382,7 +396,30 @@ export function validateWorkshopManifest(value: unknown): WorkshopManifestValida
     ok: true,
     value: canonicalizeWorkshopManifest({ schemaVersion: WORKSHOP_SCHEMA_VERSION, objects, sceneOverrides, surfaceOverrides }),
     errors: [],
+    ...(legacy ? { migratedFrom: WORKSHOP_LEGACY_SCHEMA_VERSION } : {}),
   };
+}
+
+export interface WorkshopV1Downgrade {
+  readonly ok: boolean;
+  /** Exact version-1 file text, or null when the manifest cannot be represented. */
+  readonly text: string | null;
+  readonly errors: readonly string[];
+}
+
+/**
+ * Roll a manifest back to the version-1 file format. Refuses, rather than
+ * truncating, when the manifest holds more records than version 1 permits.
+ */
+export function downgradeWorkshopManifestToV1(manifest: WorkshopPlacementManifest): WorkshopV1Downgrade {
+  if (manifest.objects.length > WORKSHOP_V1_MAX_OBJECTS) {
+    return { ok: false, text: null, errors: [
+      `Schema version 1 holds at most ${WORKSHOP_V1_MAX_OBJECTS} records; this manifest has ${manifest.objects.length}. Nothing was discarded.`,
+    ] };
+  }
+  const canonical = canonicalizeWorkshopManifest(manifest);
+  return { ok: true, errors: [],
+    text: `${JSON.stringify({ ...canonical, schemaVersion: WORKSHOP_LEGACY_SCHEMA_VERSION }, null, 2)}\n` };
 }
 
 function roundNumber(value: number): number {
