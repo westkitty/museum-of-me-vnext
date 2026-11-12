@@ -21,6 +21,11 @@ export interface BuilderFinish {
   readonly path: string;
   readonly source: string;
   readonly license: string;
+  /** Pinned original byte integrity; all finishes are checked in CI. */
+  readonly sourcePath: string;
+  readonly srcRevision: string;
+  readonly sha256: string;
+  readonly bytes: number;
 }
 
 export const BUILDER_MODELS: readonly BuilderLibraryModel[] = raw.models.map((item) => ({
