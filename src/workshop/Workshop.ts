@@ -14,6 +14,7 @@ import { conservationErrors, validateWorkshopConservation } from './conservation
 import { WorkshopHistory } from './history';
 import { buildMuseumSceneIndex, querySceneIndex } from './SceneIndex';
 import { scanAuthoredRouteClearance } from './RouteClearance';
+import { applyWalkwayProposals, clearWalkways, type WalkwayProposal } from './ClearWalkways';
 import {
   type WorkshopAnchor,
   type WorkshopPlacementManifest,
@@ -74,6 +75,9 @@ export class Workshop {
   private savedVisitorWorld: 'interior' | 'exterior' = 'exterior';
   private readonly helper: THREE.Object3D;
   private readonly history = new WorkshopHistory();
+  /** Walkway suggestions the curator rejected this session; never re-proposed until reload. */
+  private readonly rejectedWalkwayMoves = new Set<string>();
+  private walkwayGhost: THREE.Box3Helper | null = null;
   private readonly inputs = {} as Record<InputKey, HTMLInputElement>;
   private readonly labelInput: HTMLInputElement;
   private readonly anchorInput: HTMLSelectElement;
@@ -275,6 +279,7 @@ export class Workshop {
   private bindUi(): void {
     this.el<HTMLButtonElement>('scene-index-refresh').addEventListener('click', () => this.refreshSceneIndex());
     this.el<HTMLButtonElement>('clearance-scan').addEventListener('click', () => this.scanClearance());
+    this.el<HTMLButtonElement>('walkways-scan').addEventListener('click', () => this.scanWalkways());
     this.el<HTMLSelectElement>('scene-index-exhibit').addEventListener('change', () => this.describeSceneExhibit());
     this.el<HTMLButtonElement>('source-load').addEventListener('click', () => void this.loadSourceCatalog());
     this.el<HTMLButtonElement>('source-import').addEventListener('click', () => void this.importSourceCandidate());
@@ -523,6 +528,88 @@ export class Workshop {
       });
       results.append(button);
     }
+  }
+
+  /** Audit protected walkways; suggestions are previewed and applied only on approval, as one undoable step each. */
+  private scanWalkways(): void {
+    this.setWalkwayGhost(null);
+    const manifest = this.placements.captureManifest();
+    const report = clearWalkways(buildMuseumSceneIndex(manifest, {}, { placements: this.placements }), manifest);
+    const proposals = report.proposals.filter((proposal) => !this.rejectedWalkwayMoves.has(proposal.objectId));
+    this.el('walkways-status').textContent = `${report.status}: ${report.findings.length} obstruction(s) across ${report.walkways} protected walkways · ${proposals.length} suggested move(s) · ${report.unresolved.length} unresolved. ${report.limitations.join(' ')}`;
+    const results = this.el('walkways-results');
+    results.replaceChildren();
+    for (const finding of report.findings) {
+      const row = document.createElement('div');
+      row.dataset.walkwayFinding = finding.objectId;
+      const label = document.createElement('button');
+      label.type = 'button';
+      label.textContent = `${finding.severity} · ${finding.label} · ${finding.walkways.map((walkway) => `${walkway.label} (${walkway.intrusion.toFixed(2)} m)`).join(', ')}`;
+      label.addEventListener('click', () => this.focusPlacement(finding.objectId));
+      row.append(label);
+      const proposal = proposals.find((item) => item.objectId === finding.objectId);
+      const reason = report.unresolved.find((item) => item.objectId === finding.objectId)?.reason
+        ?? (this.rejectedWalkwayMoves.has(finding.objectId) ? 'Suggestion rejected this session.' : null);
+      if (proposal) {
+        for (const [action, text] of [['preview', `Preview move ${proposal.distance.toFixed(2)} m`], ['approve', 'Approve'], ['reject', 'Reject']] as const) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.dataset.walkwayAction = action;
+          button.textContent = text;
+          button.addEventListener('click', () => this.walkwayAction(action, proposal));
+          row.append(button);
+        }
+      } else if (reason) {
+        const note = document.createElement('p');
+        note.className = 'workshop-muted';
+        note.textContent = reason;
+        row.append(note);
+      }
+      results.append(row);
+    }
+  }
+
+  private walkwayAction(action: 'preview' | 'approve' | 'reject', proposal: WalkwayProposal): void {
+    if (action === 'preview') {
+      const bounds = this.placements.placementBounds(proposal.objectId);
+      if (!bounds) { this.note('Bounds are not available for this object yet.', 'warn'); return; }
+      const offset = new THREE.Vector3(proposal.to[0] - proposal.from[0], 0, proposal.to[2] - proposal.from[2]);
+      this.setWalkwayGhost(bounds.translate(offset));
+      this.focusPlacement(proposal.objectId);
+      return;
+    }
+    if (action === 'reject') {
+      this.rejectedWalkwayMoves.add(proposal.objectId);
+      this.note(`Suggestion for ${proposal.objectId} rejected; the object was not moved.`, 'ok');
+      this.scanWalkways();
+      return;
+    }
+    const before = this.placements.captureManifest();
+    const after = this.placements.replaceManifest(applyWalkwayProposals(before, [proposal], new Set([proposal.objectId])));
+    this.history.push(`Clear walkway: move ${proposal.objectId}`, before, after);
+    this.placements.invalidateCollisions();
+    this.note(`Moved ${proposal.objectId} ${proposal.distance.toFixed(2)} m to clear the walkway. Undo restores it.`, 'ok');
+    this.refresh();
+    this.scanWalkways();
+  }
+
+  private focusPlacement(id: string): void {
+    this.select(id);
+    const object = this.placements.getObject(id);
+    if (object) this.camera.focus(object);
+  }
+
+  private setWalkwayGhost(bounds: THREE.Box3 | null): void {
+    if (this.walkwayGhost) {
+      this.walkwayGhost.removeFromParent();
+      this.walkwayGhost.geometry.dispose();
+      (this.walkwayGhost.material as THREE.Material).dispose();
+      this.walkwayGhost = null;
+    }
+    if (!bounds) return;
+    this.walkwayGhost = new THREE.Box3Helper(bounds, 0x3ddc84);
+    this.walkwayGhost.name = 'workshop-walkway-ghost';
+    this.app.scene.add(this.walkwayGhost);
   }
 
   private async loadSourceCatalog(): Promise<void> {
@@ -1808,6 +1895,11 @@ const WORKSHOP_HTML = `
     <button type="button" data-workshop="clearance-scan">Scan authored route obstructions</button>
     <p data-workshop="clearance-status" role="status" class="workshop-muted">Not tested.</p>
     <div data-workshop="clearance-results" class="workshop-outliner"></div>
+  </section>
+  <section><h3>Clear walkways</h3>
+    <button type="button" data-workshop="walkways-scan">Scan walkways and suggest moves</button>
+    <p data-workshop="walkways-status" role="status" class="workshop-muted">Not tested.</p>
+    <div data-workshop="walkways-results" class="workshop-outliner"></div>
   </section>
   <section><h3>Placed objects</h3><div class="workshop-outliner" data-workshop="outliner"></div></section>
   <p data-workshop="world-indicator" class="workshop-muted">Editing: Island</p>
