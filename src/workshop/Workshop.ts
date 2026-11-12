@@ -546,6 +546,8 @@ export class Workshop {
   }
 
   private curateSuggestions: readonly CurateSuggestion[] = [];
+  /** Bumped on every source selection and import; a status reply for an older request is ignored. */
+  private sourceStatusRequest = 0;
 
   /** Suggestions only: preview shows a ghost, approval applies as one undoable step, rejection is remembered. */
   private runCurate(): void {
@@ -950,18 +952,20 @@ export class Workshop {
         this.el<HTMLButtonElement>('source-import').textContent = 'Import and place selected model';
         const details = `${item.name} · ${item.id} · ${item.bytes} bytes · ${item.license} · ${item.author} · source revision ${this.sourceCatalogRevision()} · ${item.featured?.role ?? 'Unassigned candidate'}`;
         this.el('source-inspector').textContent = `${details} · Checking local installation…`;
+        const request = ++this.sourceStatusRequest;
+        const current = () => this.sourceSelection === item && this.sourceStatusRequest === request;
         void fetch(`/__museum-workshop/tge-status?id=${encodeURIComponent(item.id)}`)
           .then(async (response) => {
             if (!response.ok) throw new Error('Local status unavailable');
             return await response.json() as { installed?: boolean };
           })
           .then((status) => {
-            if (this.sourceSelection !== item) return;
+            if (!current()) return;
             this.el('source-inspector').textContent = `${details} · ${status.installed ? 'Installed locally' : 'Not installed'}; visual review required.`;
             this.el<HTMLButtonElement>('source-import').textContent = status.installed ? 'Place cached model' : 'Import and place selected model';
           })
           .catch(() => {
-            if (this.sourceSelection === item) this.el('source-inspector').textContent = `${details} · Local installation status unavailable.`;
+            if (current()) this.el('source-inspector').textContent = `${details} · Local installation status unavailable.`;
           });
       });
       results.append(button);
@@ -975,6 +979,8 @@ export class Workshop {
     if (!selected || this.placements.isComparingOriginal) return;
     const button = this.el<HTMLButtonElement>('source-import');
     button.disabled = true;
+    // A status check still in flight must not overwrite this import's result.
+    this.sourceStatusRequest++;
     try {
       this.note(`Importing ${selected.name} from the pinned source…`, 'ok');
       const response = await fetch('/__museum-workshop/tge-import', {

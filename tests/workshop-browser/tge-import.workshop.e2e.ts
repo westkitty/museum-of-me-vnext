@@ -24,6 +24,15 @@ test('imports a pinned candidate into the actual Builder and inspects bounds', a
   await workshop.getByRole('button', { name: 'Scan authored route obstructions' }).click();
   await expect(workshop.locator('[data-workshop="clearance-results"]')).toContainText('clearance-fixture');
   await page.evaluate(() => window.__museum!.exteriorWorld.collision.setDynamicWall('clearance-fixture', null));
+  // Hold the installation-status reply until the import has finished, so a stale
+  // "Not installed" reply arrives last; it must not overwrite the import result.
+  let importDone!: () => void;
+  const imported = new Promise<void>((resolve) => { importDone = resolve; });
+  await page.route('**/__museum-workshop/tge-status*', async (route) => {
+    await imported;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await route.continue();
+  });
   await workshop.getByRole('button', { name: 'Browse source catalog' }).click();
   await workshop.getByLabel('Search source candidates').fill('blaster-kit/blaster-a');
   const item = workshop.locator('[data-source-id="blaster-kit/blaster-a"]');
@@ -33,6 +42,11 @@ test('imports a pinned candidate into the actual Builder and inspects bounds', a
   await workshop.getByRole('button', { name: /Import and place selected model|Place cached model/ }).click();
   expect((await response).status()).toBe(200);
   await expect(workshop.locator('[data-workshop="source-inspector"]')).toContainText('bounds', { timeout: 60_000 });
+  importDone();
+  await page.waitForResponse((value) => value.url().includes('/__museum-workshop/tge-status'));
+  await page.waitForTimeout(300);
+  await expect(workshop.locator('[data-workshop="source-inspector"]')).toContainText('bounds');
+  await page.unroute('**/__museum-workshop/tge-status*');
   await expect(workshop.locator('[data-workshop="selection-title"]')).toHaveText('Blaster a');
   await page.waitForFunction(() => {
     const root = window.__museum?.scene.getObjectByName('workshop:catalog-model-01');
