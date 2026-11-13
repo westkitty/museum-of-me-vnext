@@ -8,10 +8,10 @@
   "total": 1883,
   "complete": true,
   "counts": {
-    "verified": 1866,
+    "verified": 1883,
     "size-mismatch": 0,
     "blob-mismatch": 0,
-    "unsupported-extension": 17,
+    "unsupported-extension": 0,
     "invalid-glb": 0,
     "fetch-failed": 0,
     "unchecked": 0
@@ -63,7 +63,24 @@
     "blaster-kit/target-fragment-small",
     "blaster-kit/target-large",
     "blaster-kit/target-small",
+    "blocky-characters/character-a",
+    "blocky-characters/character-b",
+    "blocky-characters/character-c",
+    "blocky-characters/character-d",
+    "blocky-characters/character-e",
+    "blocky-characters/character-f",
+    "blocky-characters/character-g",
+    "blocky-characters/character-h",
     "blocky-characters/character-i",
+    "blocky-characters/character-j",
+    "blocky-characters/character-k",
+    "blocky-characters/character-l",
+    "blocky-characters/character-m",
+    "blocky-characters/character-n",
+    "blocky-characters/character-o",
+    "blocky-characters/character-p",
+    "blocky-characters/character-q",
+    "blocky-characters/character-r",
     "car-kit/ambulance",
     "car-kit/box",
     "car-kit/cone",
@@ -1890,143 +1907,6 @@
     "tower-defense-kit/wood-structure-high-part",
     "tower-defense-kit/wood-structure-part"
   ],
-  "rejected": [
-    {
-      "id": "blocky-characters/character-a",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    },
-    {
-      "id": "blocky-characters/character-b",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    },
-    {
-      "id": "blocky-characters/character-c",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    },
-    {
-      "id": "blocky-characters/character-d",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    },
-    {
-      "id": "blocky-characters/character-e",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    },
-    {
-      "id": "blocky-characters/character-f",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    },
-    {
-      "id": "blocky-characters/character-g",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    },
-    {
-      "id": "blocky-characters/character-h",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    },
-    {
-      "id": "blocky-characters/character-j",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    },
-    {
-      "id": "blocky-characters/character-k",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    },
-    {
-      "id": "blocky-characters/character-l",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    },
-    {
-      "id": "blocky-characters/character-m",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    },
-    {
-      "id": "blocky-characters/character-n",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    },
-    {
-      "id": "blocky-characters/character-o",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    },
-    {
-      "id": "blocky-characters/character-p",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    },
-    {
-      "id": "blocky-characters/character-q",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    },
-    {
-      "id": "blocky-characters/character-r",
-      "status": "unsupported-extension",
-      "detail": "requires unsupported glTF extension KHR_materials_unlit",
-      "extensions": [
-        "KHR_materials_unlit"
-      ]
-    }
-  ],
+  "rejected": [],
   "unchecked": []
 }

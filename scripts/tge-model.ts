@@ -6,6 +6,12 @@ import index from '../src/workshop/catalog-data/tge-index.json';
 const models = new Map(index.models.map((model) => [model.id, model]));
 const limit = 8 * 1024 * 1024;
 
+/**
+ * Required glTF extensions the import path accepts. Each is implemented by the
+ * bundled three.js GLTFLoader (KHR_materials_unlit maps to MeshBasicMaterial).
+ */
+export const ALLOWED_REQUIRED_EXTENSIONS: readonly string[] = ['KHR_texture_transform', 'KHR_materials_unlit'];
+
 /** Reject external references and required extensions that this import path has not verified. */
 export function safeSourceGlb(bytes: Buffer, validate: (bytes: Buffer) => boolean): boolean {
   if (!validate(bytes)) return false;
@@ -15,7 +21,7 @@ export function safeSourceGlb(bytes: Buffer, validate: (bytes: Buffer) => boolea
     if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return false;
     const required = (doc as { extensionsRequired?: unknown }).extensionsRequired;
     if (required !== undefined && (!Array.isArray(required)
-      || required.some((entry: unknown) => entry !== 'KHR_texture_transform'))) return false;
+      || required.some((entry: unknown) => typeof entry !== 'string' || !ALLOWED_REQUIRED_EXTENSIONS.includes(entry)))) return false;
     const stack: unknown[] = [doc];
     while (stack.length) {
       const value = stack.pop();

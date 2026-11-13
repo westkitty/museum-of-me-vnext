@@ -21,6 +21,9 @@ describe('pinned model import', () => {
     expect(safeSourceGlb(glb({ asset: { version: '2.0' }, extensions: { example: { uri: 'https://example.invalid/data' } } }), hasValidLocalGLB)).toBe(false);
     expect(safeSourceGlb(glb({ asset: { version: '2.0' }, extensionsRequired: ['unverified'] }), hasValidLocalGLB)).toBe(false);
     expect(safeSourceGlb(glb({ asset: { version: '2.0' }, extensionsRequired: ['KHR_texture_transform'] }), hasValidLocalGLB)).toBe(true);
+    expect(safeSourceGlb(glb({ asset: { version: '2.0' }, extensionsRequired: ['KHR_materials_unlit'] }), hasValidLocalGLB)).toBe(true);
+    expect(safeSourceGlb(glb({ asset: { version: '2.0' }, extensionsRequired: ['KHR_draco_mesh_compression'] }), hasValidLocalGLB)).toBe(false);
+    expect(safeSourceGlb(glb({ asset: { version: '2.0' }, extensionsRequired: [7] }), hasValidLocalGLB)).toBe(false);
   });
   it('verifies source identity, stores the model and records provenance', async () => {
     const root = await mkdtemp(join(tmpdir(), 'tge-model-'));

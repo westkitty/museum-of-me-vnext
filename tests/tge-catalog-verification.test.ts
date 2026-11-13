@@ -4,10 +4,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import index from '../src/workshop/catalog-data/tge-index.json';
-import report from '../src/workshop/catalog-data/tge-verification.json';
-import { classifySourceGlb, verifyTgeCatalog } from '../scripts/tge-catalog-verify';
+import reportJson from '../src/workshop/catalog-data/tge-verification.json';
+import { classifySourceGlb, verifyTgeCatalog, type CatalogReport } from '../scripts/tge-catalog-verify';
 import { hasValidLocalGLB, writeWorkshopManifest } from '../scripts/workshop-save-plugin';
 import { filterSourceCatalog, sourceAvailability } from '../src/workshop/sourceCatalog';
+
+/** The committed report, typed as written (an empty `rejected` would otherwise infer `never[]`). */
+const report = reportJson as unknown as CatalogReport;
 import { validateWorkshopManifest } from '../src/workshop/schema';
 import { MuseumPlacements } from '../src/workshop/MuseumPlacements';
 
@@ -30,9 +33,12 @@ describe('pinned source catalog verification', () => {
     expect(classifySourceGlb(model, fixture.subarray(0, -4), hasValidLocalGLB).status).toBe('size-mismatch');
     const altered = Buffer.from(fixture); altered[altered.length - 1] ^= 1;
     expect(classifySourceGlb(model, altered, hasValidLocalGLB).status).toBe('blob-mismatch');
+    // three.js implements KHR_materials_unlit; a compression extension needing a decoder is still refused.
     const unlit = glb({ asset: { version: '2.0' }, extensionsRequired: ['KHR_materials_unlit', 'KHR_texture_transform'] });
-    expect(classifySourceGlb({ bytes: unlit.length, gitBlob: blob(unlit) }, unlit, hasValidLocalGLB))
-      .toMatchObject({ status: 'unsupported-extension', extensions: ['KHR_materials_unlit'] });
+    expect(classifySourceGlb({ bytes: unlit.length, gitBlob: blob(unlit) }, unlit, hasValidLocalGLB).status).toBe('verified');
+    const draco = glb({ asset: { version: '2.0' }, extensionsRequired: ['KHR_draco_mesh_compression', 'KHR_materials_unlit'] });
+    expect(classifySourceGlb({ bytes: draco.length, gitBlob: blob(draco) }, draco, hasValidLocalGLB))
+      .toMatchObject({ status: 'unsupported-extension', extensions: ['KHR_draco_mesh_compression'] });
     const external = glb({ asset: { version: '2.0' }, buffers: [{ uri: 'https://example.invalid/a.bin' }] });
     expect(classifySourceGlb({ bytes: external.length, gitBlob: blob(external) }, external, hasValidLocalGLB).status).toBe('invalid-glb');
   });
@@ -105,6 +111,13 @@ describe('Builder source catalog filters across all 1,883 records', () => {
       if (entry.status === 'unsupported-extension') expect(info.reason).toContain('extension');
     }
     expect(sourceAvailability(null)('blaster-kit/blaster-a').state).toBe('unchecked');
+    // Independent of how many real models the pinned report rejects today.
+    const synthetic = sourceAvailability({ sourceRevision: report.sourceRevision, verified: ['a/ok'], unchecked: ['a/later'],
+      rejected: [{ id: 'a/draco', status: 'unsupported-extension', detail: 'KHR_draco_mesh_compression' }, { id: 'a/net', status: 'fetch-failed' }] });
+    expect(synthetic('a/ok').state).toBe('importable');
+    expect(synthetic('a/draco')).toMatchObject({ state: 'unsupported' });
+    expect(synthetic('a/draco').reason).toContain('KHR_draco_mesh_compression');
+    for (const id of ['a/later', 'a/net', 'a/unknown']) expect(synthetic(id).state).toBe('unchecked');
   });
 
   it('matches every term across name, ID, pack, author and featured fields', () => {

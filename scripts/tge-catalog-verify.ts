@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import index from '../src/workshop/catalog-data/tge-index.json';
-import { findCachedTgeModel, importTgeModel, safeSourceGlb } from './tge-model';
+import { ALLOWED_REQUIRED_EXTENSIONS, findCachedTgeModel, importTgeModel, safeSourceGlb } from './tge-model';
 import { tgeThumbnail } from './tge-thumbnail';
 
 type Model = (typeof index.models)[number];
@@ -27,7 +27,7 @@ export interface CatalogReport {
   unchecked: string[];
 }
 
-const ALLOWED_REQUIRED = new Set(['KHR_texture_transform']);
+const ALLOWED_REQUIRED = new Set(ALLOWED_REQUIRED_EXTENSIONS);
 const LIMIT = 8 * 1024 * 1024;
 
 /** Required glTF extensions this import path has not verified; [] when none. */

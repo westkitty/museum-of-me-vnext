@@ -53,19 +53,35 @@ async function openBuilder(page: import('@playwright/test').Page) {
 
 test('filters the full pinned catalog, refuses unsupported models, and saves and reloads an imported placement', async ({ page, request }) => {
   const rejected = report.rejected.filter((entry) => entry.status !== 'fetch-failed');
-  const target = report.verified.includes('food-kit/mortar') ? 'food-kit/mortar' : report.verified.find((id) => !id.startsWith('blaster-kit/'))!;
+  // An unlit (KHR_materials_unlit) model proves that extension imports, renders, saves and reloads.
+  const target = ['blocky-characters/character-b', 'food-kit/mortar'].find((id) => report.verified.includes(id))
+    ?? report.verified.find((id) => !id.startsWith('blaster-kit/'))!;
   expect(target).toBeTruthy();
+  // The refusal path must stay exercised even when the pinned report rejects nothing:
+  // withhold one verified ID from the report this page receives, so it is unverified.
+  const stripped = rejected.length ? null : report.verified.find((id) => id !== target && id.startsWith('blocky-characters/'))!;
+  if (stripped) {
+    await page.route('**/src/workshop/catalog-data/tge-verification.json*', async (route) => {
+      const response = await route.fetch();
+      const body = await response.text();
+      const escaped = stripped.replace(/[/.-]/g, (c) => `\\${c}`);
+      const altered = body.replace(new RegExp(`\\\\?"${escaped}\\\\?",?`), '');
+      expect(altered).not.toBe(body);
+      await route.fulfill({ response, body: altered });
+    });
+  }
+  const verifiedShown = report.verified.length - (stripped ? 1 : 0);
   const workshop = await openBuilder(page);
   await workshop.getByRole('button', { name: 'Browse source catalog' }).click();
   const count = workshop.locator('[data-workshop="source-count"]');
   await expect(count).toContainText('1883 source candidates');
   const status = workshop.getByLabel('Import status');
   await status.selectOption('importable');
-  await expect(count).toContainText(`${report.verified.length} source candidates`);
+  await expect(count).toContainText(`${verifiedShown} source candidates`);
   await status.selectOption('unsupported');
   await expect(count).toContainText(`${rejected.length} source candidates`);
   await status.selectOption('unchecked');
-  await expect(count).toContainText(`${1883 - report.verified.length - rejected.length} source candidates`);
+  await expect(count).toContainText(`${1883 - verifiedShown - rejected.length} source candidates`);
   await status.selectOption('');
 
   if (rejected.length) {
@@ -78,6 +94,15 @@ test('filters the full pinned catalog, refuses unsupported models, and saves and
     await tile.click();
     await expect(workshop.locator('[data-workshop="source-inspector"]')).toContainText('Not importable');
     await expect(workshop.locator('[data-workshop="source-inspector"]')).toContainText(bad.detail ?? bad.status);
+    await expect(workshop.getByRole('button', { name: 'Import and place selected model' })).toBeDisabled();
+  } else {
+    await workshop.getByLabel('Search source candidates').fill(stripped!);
+    const tile = workshop.locator(`[data-source-id="${stripped}"]`);
+    await expect(tile).toHaveAttribute('data-source-availability', 'unchecked');
+    await expect(tile).toContainText('Unverified');
+    await expect(tile).toBeEnabled({ timeout: 30_000 });
+    await tile.click();
+    await expect(workshop.locator('[data-workshop="source-inspector"]')).toContainText('Not importable until verified');
     await expect(workshop.getByRole('button', { name: 'Import and place selected model' })).toBeDisabled();
   }
 
