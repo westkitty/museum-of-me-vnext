@@ -242,7 +242,10 @@ export class WorldDirector {
 
     const inApproach = isApproachingEntrance(playerPosition);
     if (!inApproach) this.thresholdPromptDismissed = false;
-    const rawEntranceReady = Boolean(this.app.interiorWorld?.streaming.telemetry.prewarmReady);
+    // The architecture's own shaders and buffers must be warm too, not only the
+    // entrance exhibits; otherwise the first interior frames compile them.
+    const rawEntranceReady = Boolean(this.app.interiorWorld?.streaming.telemetry.prewarmReady)
+      && this.app.interiorWorldWarmed !== false;
     if (rawEntranceReady && this.app.interiorLoadTelemetry.entranceReadyAtMs === null) {
       this.app.interiorLoadTelemetry.entranceReadyAtMs = performance.now();
     }

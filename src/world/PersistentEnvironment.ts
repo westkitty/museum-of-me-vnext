@@ -9,7 +9,7 @@ import { RotundaWayfinding } from './RotundaWayfinding';
 import { WingAtmosphere } from './WingAtmosphere';
 import { WingFurnishings } from './WingFurnishings';
 import { WingIdentity } from './WingIdentity';
-import { mergeStatic, NO_MERGE } from './MergeStatic';
+import { mergeStatic, mergeStaticCooperatively, NO_MERGE } from './MergeStatic';
 import type { ZoneId } from './layout';
 
 /**
@@ -45,8 +45,26 @@ export class PersistentEnvironment {
   /** Lazy interior path: yield between each measured layer and merge. */
   async buildCooperatively(yieldControl: () => Promise<void>): Promise<THREE.Group> {
     const layers: { name: string; group: THREE.Group }[] = [];
-    for (const { name, build } of this.buildLayerDefinitions()) {
-      layers.push({ name, group: this.buildLayer(name, build) });
+    for (const { name, build, steps } of this.buildLayerDefinitions()) {
+      if (!steps) {
+        layers.push({ name, group: this.buildLayer(name, build) });
+        await yieldControl();
+        continue;
+      }
+      // Large layers build in steps; time only the work, not the pauses.
+      const generator = steps();
+      let elapsed = 0;
+      for (;;) {
+        const started = performance.now();
+        const next = generator.next();
+        elapsed += performance.now() - started;
+        if (next.done) {
+          layers.push({ name, group: next.value });
+          break;
+        }
+        await yieldControl();
+      }
+      this.buildStageMs[`layer:${name}`] = elapsed;
       await yieldControl();
     }
     this.attachAndProtect(layers);
@@ -57,15 +75,15 @@ export class PersistentEnvironment {
     return this.group;
   }
 
-  private buildLayerDefinitions(): { name: string; build: () => THREE.Group }[] {
+  private buildLayerDefinitions(): { name: string; build: () => THREE.Group; steps?: () => Generator<void, THREE.Group> }[] {
     return [
-      { name: 'dressing', build: () => this.dressing.build() },
+      { name: 'dressing', build: () => this.dressing.build(), steps: () => this.dressing.buildSteps() },
       { name: 'exterior-identity', build: () => new ExteriorIdentity(this.scope).build() },
       { name: 'monumental-rotunda', build: () => new MonumentalRotunda(this.scope).build() },
       { name: 'rotunda-wayfinding', build: () => new RotundaWayfinding(this.scope).build() },
       { name: 'wing-identity', build: () => new WingIdentity(this.scope).build() },
       { name: 'wing-atmosphere', build: () => new WingAtmosphere(this.scope).build() },
-      { name: 'wing-furnishings', build: () => new WingFurnishings(this.scope).build() },
+      { name: 'wing-furnishings', build: () => new WingFurnishings(this.scope).build(), steps: () => new WingFurnishings(this.scope).buildSteps() },
       { name: 'exhibit-thresholds', build: () => new ExhibitThresholds(this.scope).build() },
       { name: 'exhibit-color-fields', build: () => this.colorFields.build() },
     ];
@@ -103,8 +121,13 @@ export class PersistentEnvironment {
     let cpuMs = 0;
     for (const child of [...group.children]) {
       const mergeStarted = performance.now();
-      const report = mergeStatic(group, this.scope, { cellSize: 1000, preserveTopLevel: true, onlyTopLevel: child });
-      cpuMs += performance.now() - mergeStarted;
+      let waited = 0;
+      const report = await mergeStaticCooperatively(group, this.scope, { cellSize: 1000, preserveTopLevel: true, onlyTopLevel: child }, async () => {
+        const pause = performance.now();
+        await yieldControl();
+        waited += performance.now() - pause;
+      });
+      cpuMs += performance.now() - mergeStarted - waited;
       this.mergeReport.before += report.before;
       this.mergeReport.after += report.after;
       this.mergeReport.merged += report.merged;

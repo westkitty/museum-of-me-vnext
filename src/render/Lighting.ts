@@ -30,6 +30,9 @@ export class Lighting {
   private lastEyeY = Number.NaN;
   private lastEyeZ = Number.NaN;
   private dirty = true;
+  private readonly baseIntensity = new Map<THREE.PointLight, number>();
+  /** The one visible point-light count every shader is compiled for. */
+  private constantCount = 0;
 
   constructor(scope: ResourceScope, quality: QualitySettings) {
     this.group.name = 'lighting';
@@ -150,6 +153,9 @@ export class Lighting {
       node.matrixWorldAutoUpdate = false;
     });
 
+    for (const light of this.managed) this.baseIntensity.set(light, light.intensity);
+    this.constantCount = Math.min(MAX_ACTIVE_POINT_LIGHTS, this.managed.length);
+
     void scope;
   }
 
@@ -194,8 +200,6 @@ export class Lighting {
     this.lastEyeZ = eye[2];
     this.dirty = false;
     let candidateCount = 0;
-    let bucketFill: THREE.PointLight | null = null;
-    let bucketFillDistance = Infinity;
     for (const light of this.managed) {
       light.visible = false;
       if (this.suppressed.has(light)) continue;
@@ -204,13 +208,7 @@ export class Lighting {
       const dy = light.position.y - eye[1];
       const dz = light.position.z - eye[2];
       const d = dx * dx + dy * dy + dz * dz;
-      if (d > light.distance * light.distance) {
-        if (d < bucketFillDistance) {
-          bucketFill = light;
-          bucketFillDistance = d;
-        }
-        continue;
-      }
+      if (d > light.distance * light.distance) continue;
 
       // Maintain only the nearest bounded light set. The old path collected
       // every candidate and sorted the whole array even though only eight
@@ -230,23 +228,31 @@ export class Lighting {
       candidateCount = Math.min(candidateCount + 1, MAX_ACTIVE_POINT_LIGHTS);
     }
 
-    // Three.js keys point-light shader variants by visible-light count. Round
-    // odd counts up to the next even bucket with the nearest light outside its
-    // physical cutoff: it contributes zero illumination while reducing the
-    // traversal variants from eight possible counts to four, and adds at most
-    // one light rather than forcing the maximum everywhere.
-    if (candidateCount % 2 === 1 && candidateCount < MAX_ACTIVE_POINT_LIGHTS && bucketFill) {
-      const spare = this.distances[candidateCount] ?? { light: bucketFill, d: bucketFillDistance };
-      spare.light = bucketFill;
-      spare.d = bucketFillDistance;
-      this.distances[candidateCount] = spare;
-      candidateCount++;
-    }
+    // Three.js compiles a separate shader variant of every lit material for each
+    // visible point-light count, and compiling one stalls the frame it is first
+    // drawn in. Keep the count constant: pad the chosen set with lights that are
+    // switched to zero intensity (a uniform change, never a recompile).
     this.distances.length = candidateCount;
-
     for (let i = 0; i < candidateCount; i++) {
-      this.distances[i].light.visible = true;
+      const light = this.distances[i].light;
+      light.visible = true;
+      light.intensity = this.baseIntensity.get(light) ?? light.intensity;
     }
+    let padding = this.constantCount - candidateCount;
+    for (const light of this.managed) {
+      if (padding <= 0) break;
+      if (light.visible) continue;
+      light.visible = true;
+      light.intensity = 0;
+      padding--;
+    }
+  }
+
+  /** Point lights that contribute light now (padding lights are visible but dark). */
+  get litPointLights(): number {
+    let n = 0;
+    for (const light of this.managed) if (light.visible && light.intensity > 0) n++;
+    return n;
   }
 
   get activePointLights(): number {

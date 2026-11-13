@@ -61,21 +61,27 @@ export class InteriorWorld {
       this.app.interiorLoadTelemetry.buildStageMs[`museum.${name}`] = duration;
     }
     this.root.add(this.built.root);
+    await yieldBudget.checkpoint();
 
     this.sanctuary = this.measureBuildStage('sanctuary', () => new DexterSanctuary(this.scope));
     this.root.add(this.sanctuary.group);
+    await yieldBudget.checkpoint();
 
     this.wayfinding = this.measureBuildStage('wayfinding', () => new Wayfinding(this.scope));
     this.root.add(this.wayfinding.group);
+    await yieldBudget.checkpoint();
 
     this.visitors = this.measureBuildStage('ambient-visitors', () =>
       new AmbientVisitors(this.scope, this.app.renderer.quality.ambientVisitors));
     this.root.add(this.visitors.group);
+    await yieldBudget.checkpoint();
 
     this.flightPadAtmosphere = this.measureBuildStage('flight-pad-atmosphere', () => new FlightPadAtmosphere(this.scope));
     this.root.add(this.flightPadAtmosphere.group);
+    await yieldBudget.checkpoint();
 
     this.measureBuildStage('exhibit-registration', () => installExhibits());
+    await yieldBudget.checkpoint();
     this.streaming = this.measureBuildStage('streaming-manager', () => new StreamingManager(
       this.built.exhibitMounts,
       {
@@ -103,10 +109,12 @@ export class InteriorWorld {
     ));
     this.measureBuildStage('streaming-initialise', () => this.streaming.initialise());
     this.streaming.beginEntrancePrewarm();
+    await yieldBudget.checkpoint();
 
     this.sourceArtwork = this.measureBuildStage('source-artwork', () =>
       new SourceArtwork(this.scope, this.built.exhibitMounts));
     this.root.add(this.sourceArtwork.group);
+    await yieldBudget.checkpoint();
 
     this.sourceVisitors = this.measureBuildStage('source-visitors', () => new SourceVisitors(
       this.scope,
@@ -120,6 +128,7 @@ export class InteriorWorld {
       },
     ));
     this.root.add(this.sourceVisitors.group);
+    await yieldBudget.checkpoint();
 
     this.supplementary = this.measureBuildStage('supplementary-cases', () => new SupplementaryCases(
       this.scope,
@@ -128,6 +137,7 @@ export class InteriorWorld {
       (id, title, summary) => this.app.announce(`supplementary:${id}`, `${title}. ${summary}`),
     ));
     this.root.add(this.supplementary.group);
+    await yieldBudget.checkpoint();
 
     this.sourceInstallations = this.measureBuildStage('source-installations', () => new SourceInstallations(
       this.scope,
@@ -138,6 +148,7 @@ export class InteriorWorld {
       undefined,
       true,
     ));
+    await yieldBudget.checkpoint();
     await this.measureBuildStageAsync('source-installations.build', () =>
       this.sourceInstallations.buildCooperatively(() => yieldBudget.checkpoint()));
     for (const [id, duration] of Object.entries(this.sourceInstallations.buildStageMs)) {
@@ -147,8 +158,10 @@ export class InteriorWorld {
     if (this.sourceInstallations.store.recoveryNotice) {
       this.app.journal.recoveryNotice = this.sourceInstallations.store.recoveryNotice;
     }
+    await yieldBudget.checkpoint();
 
     this.persistentEnvironment = this.measureBuildStage('persistent-environment', () => new PersistentEnvironment(this.scope));
+    await yieldBudget.checkpoint();
     const envGroup = await this.measureBuildStageAsync('persistent-environment.build', () =>
       this.persistentEnvironment.buildCooperatively(() => yieldBudget.checkpoint()));
     for (const [name, duration] of Object.entries(this.persistentEnvironment.buildStageMs)) {

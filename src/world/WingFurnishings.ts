@@ -35,7 +35,16 @@ export class WingFurnishings {
   }
 
   build(): THREE.Group {
-    for (const wing of WINGS) this.buildWing(wing);
+    for (const step of this.buildSteps()) void step;
+    return this.group;
+  }
+
+  /** The same build one wing at a time, so the lazy interior path can yield between wings. */
+  *buildSteps(): Generator<void, THREE.Group> {
+    for (const wing of WINGS) {
+      this.buildWing(wing);
+      yield;
+    }
     return this.group;
   }
 

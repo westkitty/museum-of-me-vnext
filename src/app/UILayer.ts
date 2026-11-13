@@ -74,6 +74,7 @@ export class UILayer {
         ...(app.sourceVisitors?.positions() ?? []),
         ...(app.visitors?.positions() ?? []),
       ],
+      () => app.isOutside,
     );
     this.deep = new DeepPanel(app.journal);
     this.journal = new JournalPanel(app.journal, (id) => this.deep.openFor(id), () => this.visitThread.open());
@@ -456,7 +457,7 @@ export class UILayer {
     this.hud.setTouchMode(this.app.input.touchActive);
     this.hud.setArrivalReadiness(this.app.arrivalReady);
     this.hud.update(elapsed);
-    this.hud.setLocation(this.app.currentZone);
+    this.hud.setLocation(this.app.currentZone, this.app.isOutside ? this.app.zoneLabel : undefined);
 
     if (!this.diagnostics.root.hidden) {
       const extra: Record<string, string | number> = {
@@ -472,6 +473,7 @@ export class UILayer {
         shaderMs: this.app.renderer.warmTelemetry.lastCompileWallMs.toFixed(1),
         textureMs: this.app.renderer.warmTelemetry.lastTextureInitCpuMs.toFixed(1),
         dpr: this.app.renderer.effectivePixelRatio.toFixed(2),
+        longFrames: this.app.longFrames.summary(),
         exhibit: this.app.currentExhibitId ?? '—',
       };
       this.diagnostics.update(elapsed, extra);

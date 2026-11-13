@@ -581,3 +581,19 @@ export function zoneAtXYZ(x: number, y: number, zPos: number): ZoneId {
   }
   return best;
 }
+
+const EXTERIOR_SIDES = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'] as const;
+/** Fixed labels, so a per-frame lookup allocates nothing. */
+export const EXTERIOR_LABELS: readonly string[] = EXTERIOR_SIDES.map((side) => `Exterior · ${side} side`);
+export const EXTERIOR_PLAZA_LABEL = 'Exterior · Arrival Plaza';
+
+/**
+ * Where a visitor outside the museum is, by compass side of the building
+ * (north is −Z). The exterior shares X/Z with the interior plan, so interior
+ * zones must never be reported from outside.
+ */
+export function exteriorLocationLabel(x: number, y: number, zPos: number): string {
+  if (ZONE_BY_ID.get('plaza')!.shapes.some((shape) => shapeContainsXYZ(shape, x, y, zPos))) return EXTERIOR_PLAZA_LABEL;
+  const degrees = (Math.atan2(x, -zPos) * 180 / Math.PI + 360) % 360;
+  return EXTERIOR_LABELS[Math.round(degrees / 45) % 8];
+}

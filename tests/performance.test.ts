@@ -298,18 +298,19 @@ describe('light budget', () => {
     scope.dispose();
   });
 
-  it('uses even point-light shader buckets along the main traversal', () => {
+  it('keeps one visible point-light count everywhere, so no shader variant is ever compiled mid-walk', () => {
     const scope = new ResourceScope('stable-light-counts');
     const lighting = new Lighting(scope, QUALITY.high);
     const cases: Array<[[number, number, number], number]> = [
-      [[0, 1.6, 150], 4],
-      [[0, 1.6, 102], 6],
-      [[0, 1.6, 84], 8],
-      [[0, 1.6, -92.5], 2],
+      [[0, 1.6, 150], 3],
+      [[0, 1.6, 102], 5],
+      [[0, 1.6, 84], 7],
+      [[0, 1.6, -92.5], 1],
     ];
-    for (const [position, count] of cases) {
+    for (const [position, lit] of cases) {
       lighting.update(position);
-      expect(lighting.activePointLights, `light bucket at ${position.join(',')}`).toBe(count);
+      expect(lighting.activePointLights, `visible lights at ${position.join(',')}`).toBe(8);
+      expect(lighting.litPointLights, `lit lights at ${position.join(',')}`).toBeLessThanOrEqual(lit + 1);
     }
     lighting.dispose();
     scope.dispose();

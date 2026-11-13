@@ -24,6 +24,8 @@ export interface LoopCallbacks {
 export const FIXED_STEP = 1 / 60;
 /** Never simulate more than this much wall-clock in one frame (tab restore). */
 const MAX_FRAME_DELTA = 0.1;
+/** How early (ms) a frame may arrive and still count for a capped frame rate. */
+const FRAME_CAP_TOLERANCE_MS = 1.5;
 /** Bail out of the catch-up loop rather than spiral. */
 const MAX_STEPS_PER_FRAME = 5;
 
@@ -106,10 +108,18 @@ export class Loop {
     const variableStarted = performance.now();
     this.cb.variableUpdate(delta);
     const variableMs = performance.now() - variableStarted;
-    if (this.frameCapHz > 0 && now - this.lastRenderTime < 1000 / this.frameCapHz) {
-      return;
+    if (this.frameCapHz > 0) {
+      const interval = 1000 / this.frameCapHz;
+      const sinceRender = now - this.lastRenderTime;
+      // rAF timestamps jitter around the display period. Without a tolerance, a
+      // 60 Hz cap on a 60 Hz display skips every frame that lands at 16.6 ms and
+      // presents it 33 ms late; keep to the ideal schedule instead.
+      if (sinceRender < interval - FRAME_CAP_TOLERANCE_MS) return;
+      this.lastRenderTime = sinceRender < interval * 2
+        ? Math.min(now, Math.max(this.lastRenderTime + interval, now - FRAME_CAP_TOLERANCE_MS)) : now;
+    } else {
+      this.lastRenderTime = now;
     }
-    this.lastRenderTime = now;
     const presentedMs = this.lastPresentTime === Number.NEGATIVE_INFINITY
       ? this.wallFrameTimeMs : now - this.lastPresentTime;
     this.lastPresentTime = now;
