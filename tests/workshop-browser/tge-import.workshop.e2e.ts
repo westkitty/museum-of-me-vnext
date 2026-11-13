@@ -43,9 +43,9 @@ test('imports a pinned candidate into the actual Builder and inspects bounds', a
   page.on('request', (value) => {
     if (isThumbnail(value.url())) maxThumbnailsInFlight = Math.max(maxThumbnailsInFlight, ++thumbnailsInFlight);
   });
-  for (const event of ['requestfinished', 'requestfailed'] as const) {
-    page.on(event, (value) => { if (isThumbnail(value.url())) thumbnailsInFlight--; });
-  }
+  const settled = (value: import('@playwright/test').Request) => { if (isThumbnail(value.url())) thumbnailsInFlight--; };
+  page.on('requestfinished', settled);
+  page.on('requestfailed', settled);
   await page.route('**/__museum-workshop/tge-thumbnail*', async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 1_000));
     await route.continue().catch(() => undefined);
