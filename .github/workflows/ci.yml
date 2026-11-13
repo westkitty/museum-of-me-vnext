@@ -27,9 +27,16 @@ jobs:
       - name: canonical development gate
         run: npm run gate
 
-  browser:
+  # The visitor-path browser suite is split by file across parallel runners
+  # (about 12 min serially). `browser` below is the single required check.
+  browser-shard:
     needs: gate
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    name: browser (${{ matrix.shard }}/3)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,21 +45,32 @@ jobs:
           cache: npm
       - run: npm ci
       - name: production dependency audit
+        if: matrix.shard == 1
         run: npm audit --omit=dev --audit-level=high
       - name: build production-style museum artifact
         run: npm run build
       - name: install Chromium
         run: npx playwright install --with-deps chromium
-      - name: real browser visitor-path gate
-        run: npm run test:e2e
+      - name: real browser visitor-path gate (shard ${{ matrix.shard }}/3)
+        run: npm run test:e2e -- --shard=${{ matrix.shard }}/3
+      - name: Upload visual regression snapshots and diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: museum-visual-snapshots-${{ matrix.shard }}-${{ github.sha }}
+          path: |
+            tests/browser/visual-regression.e2e.ts-snapshots/
+            test-results/**/*.png
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Capture cinematic review screenshots (non-acceptance evidence)
-        if: github.event_name == 'pull_request' && github.head_ref == 'feature/cinematic-monumental-museum-2026-10-11'
+        if: matrix.shard == 1 && github.event_name == 'pull_request' && github.head_ref == 'feature/cinematic-monumental-museum-2026-10-11'
         continue-on-error: true
         env:
           PW_TEST_SCREENSHOT_NO_FONTS_READY: '1'
         run: node scripts/capture-cinematic-evidence.mjs
       - name: Upload cinematic review evidence
-        if: always() && github.event_name == 'pull_request' && github.head_ref == 'feature/cinematic-monumental-museum-2026-10-11'
+        if: always() && matrix.shard == 1 && github.event_name == 'pull_request' && github.head_ref == 'feature/cinematic-monumental-museum-2026-10-11'
         uses: actions/upload-artifact@v4
         with:
           name: museum-cinematic-visual-${{ github.sha }}
@@ -60,16 +78,24 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
       - name: Validate exterior review render set
-        if: always() && github.event_name == 'pull_request' && (github.head_ref == 'feat/exterior-render-review-20261103' || github.head_ref == 'feat/exterior-composition-forest-review-20261103' || github.head_ref == 'feat/exterior-night-water-lagoon-review-20261103' || github.head_ref == 'feat/exterior-woodland-canopy-infill-20261103' || github.head_ref == 'feat/exterior-lagoon-depth-surf-correction-20261103' || github.head_ref == 'feat/exterior-forest-belt-visibility-20261104' || github.head_ref == 'feat/exterior-living-island-wildlife-20261104')
+        if: always() && matrix.shard == 1 && github.event_name == 'pull_request' && (github.head_ref == 'feat/exterior-render-review-20261103' || github.head_ref == 'feat/exterior-composition-forest-review-20261103' || github.head_ref == 'feat/exterior-night-water-lagoon-review-20261103' || github.head_ref == 'feat/exterior-woodland-canopy-infill-20261103' || github.head_ref == 'feat/exterior-lagoon-depth-surf-correction-20261103' || github.head_ref == 'feat/exterior-forest-belt-visibility-20261104' || github.head_ref == 'feat/exterior-living-island-wildlife-20261104')
         run: node scripts/finalize-exterior-renders.mjs
       - name: Upload independently rendered exterior views
-        if: always() && github.event_name == 'pull_request' && (github.head_ref == 'feat/exterior-render-review-20261103' || github.head_ref == 'feat/exterior-composition-forest-review-20261103' || github.head_ref == 'feat/exterior-night-water-lagoon-review-20261103' || github.head_ref == 'feat/exterior-woodland-canopy-infill-20261103' || github.head_ref == 'feat/exterior-lagoon-depth-surf-correction-20261103' || github.head_ref == 'feat/exterior-forest-belt-visibility-20261104' || github.head_ref == 'feat/exterior-living-island-wildlife-20261104')
+        if: always() && matrix.shard == 1 && github.event_name == 'pull_request' && (github.head_ref == 'feat/exterior-render-review-20261103' || github.head_ref == 'feat/exterior-composition-forest-review-20261103' || github.head_ref == 'feat/exterior-night-water-lagoon-review-20261103' || github.head_ref == 'feat/exterior-woodland-canopy-infill-20261103' || github.head_ref == 'feat/exterior-lagoon-depth-surf-correction-20261103' || github.head_ref == 'feat/exterior-forest-belt-visibility-20261104' || github.head_ref == 'feat/exterior-living-island-wildlife-20261104')
         uses: actions/upload-artifact@v4
         with:
           name: museum-exterior-renders-${{ github.event.pull_request.head.sha }}
           path: test-results/exterior-review-2026-11-03/
           if-no-files-found: error
           retention-days: 14
+
+  browser:
+    needs: browser-shard
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: every browser shard passed
+        run: test "${{ needs.browser-shard.result }}" = "success"
 
   workshop:
     needs: gate

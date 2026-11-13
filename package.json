@@ -11,6 +11,7 @@
     "preview": "vite preview --port 4173",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
+    "lint:models": "UPDATE_MODEL_DEFECTS=1 vitest run tests/builder-model-defects.test.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
@@ -26,6 +27,8 @@
     "verify:pages-dist": "node scripts/verify-pages-dist.mjs",
     "verify:pages-hosted": "node scripts/verify-pages-hosted.mjs",
     "verify:human-evidence": "node scripts/verify-human-evidence.mjs",
+    "perf:device": "npm run build && playwright test -c playwright.perf.config.ts; node scripts/check-perf-budgets.mjs",
+    "perf:check": "node scripts/check-perf-budgets.mjs",
     "validate:source-parity": "node scripts/validate-source-parity.mjs",
     "build:standalone": "npm run build:collection && vite build --config vite.standalone.config.ts && node scripts/build-standalone.mjs",
     "verify:standalone": "node scripts/verify-standalone-offline.mjs && node scripts/standalone-offline-browser.mjs && node scripts/runtime-source-qa.mjs",
@@ -35,7 +38,8 @@
     "build:collection": "node scripts/build-collection.mjs",
     "validate:exhibits": "node scripts/validate-exhibits.mjs",
     "qa": "node scripts/qa-report-runner.mjs",
-    "qa:runtime-source": "node scripts/runtime-source-qa.mjs"
+    "qa:runtime-source": "node scripts/runtime-source-qa.mjs",
+    "status": "node scripts/status.mjs"
   },
   "dependencies": {
     "three": "0.185.1"

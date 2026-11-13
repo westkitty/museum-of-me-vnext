@@ -1,0 +1,19 @@
+{
+  "device": "Representative baseline: MacBookAir10,1 (Apple M1, 8 GB), Chrome, ANGLE Metal, 1440x900, DPR 1",
+  "measured": "docs/evidence/device-performance-2026-11-12/",
+  "budgets": [
+    { "id": "cold-start", "path": "coldStartsProduction[*].appRenderingFramesMs", "max": 2000, "unit": "ms", "why": "first rendered frames of the production build" },
+    { "id": "exterior-idle-p99", "path": "exteriorIdleAtSpawn.frames.p99", "max": 20, "unit": "ms" },
+    { "id": "exterior-walk-p99", "path": "exteriorWalkingPath1.frames.p99", "max": 20, "unit": "ms" },
+    { "id": "exterior-walk-fps", "path": "exteriorWalkingPath1.frames.fps", "min": 55, "unit": "fps" },
+    { "id": "interior-steady-p95", "path": "interiorSteady.frames.p95", "max": 20, "unit": "ms" },
+    { "id": "exterior-after-return-p99", "path": "exteriorAfterReturn.first5s.p99", "max": 20, "unit": "ms" },
+    { "id": "workshop-2000-p99", "path": "workshop2000.after.frames.p99", "max": 20, "unit": "ms" },
+    { "id": "workshop-2000-sweep-p99", "path": "workshop2000.residencySweep.frames.p99", "max": 20, "unit": "ms" },
+    { "id": "first-entry-worst-frame", "path": "transitions[*].entry.worst5[0]", "max": 900, "target": 100, "unit": "ms",
+      "why": "known first interior entry hitch (0.33-0.84 s on 2026-11-12); the limit guards against regression, the target is the fix goal" },
+    { "id": "second-entry-worst-frame", "path": "transitions[*].secondEntry.worst3[0]", "max": 50, "unit": "ms" },
+    { "id": "round-trip-dom-growth", "path": "transitions[*].domGrowth", "max": 20, "unit": "nodes", "why": "after GC across 10 round trips" },
+    { "id": "round-trip-heap-growth", "path": "transitions[*].heapGrowthMB", "max": 5, "unit": "MB", "why": "after GC across 10 round trips" }
+  ]
+}

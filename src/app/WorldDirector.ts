@@ -65,9 +65,44 @@ export type WorldPhase =
  * It enforces atomic, single-active-root rendering and collision handoffs,
  * predictive loading on approach, seam hold during preparation, and failure recovery.
  */
+/**
+ * Every phase change the director may make. Anything else is a logic error:
+ * it is recorded in `illegalTransitions` and reported, never silently taken
+ * as normal. (The doorway stranding bug was an unmodelled state: a
+ * constructed interior whose entrance was not yet ready.)
+ */
+export const WORLD_TRANSITIONS: Readonly<Record<WorldPhase, readonly WorldPhase[]>> = {
+  EXTERIOR_ACTIVE: ['PREPARING_INTERIOR', 'COMMITTING_INTERIOR'],
+  PREPARING_INTERIOR: ['PREPARING_RENDER_RESOURCES', 'AT_THRESHOLD', 'INTERIOR_ACTIVE', 'PREPARATION_FAILED'],
+  PREPARING_RENDER_RESOURCES: ['AT_THRESHOLD', 'COMMITTING_INTERIOR'],
+  AT_THRESHOLD: ['COMMITTING_INTERIOR'],
+  COMMITTING_INTERIOR: ['INTERIOR_ACTIVE'],
+  INTERIOR_ACTIVE: ['COMMITTING_EXTERIOR'],
+  PREPARING_EXTERIOR: [],
+  COMMITTING_EXTERIOR: ['EXTERIOR_ACTIVE'],
+  PREPARATION_FAILED: ['PREPARING_INTERIOR'],
+};
+
+export function isLegalWorldTransition(from: WorldPhase, to: WorldPhase): boolean {
+  return from === to || WORLD_TRANSITIONS[from].includes(to);
+}
+
 export class WorldDirector {
   activeWorld: WorldId = 'exterior';
-  phase: WorldPhase = 'EXTERIOR_ACTIVE';
+  private currentPhase: WorldPhase = 'EXTERIOR_ACTIVE';
+  /** Transitions outside WORLD_TRANSITIONS, for tests and diagnostics. Expected to stay empty. */
+  readonly illegalTransitions: { from: WorldPhase; to: WorldPhase }[] = [];
+
+  get phase(): WorldPhase { return this.currentPhase; }
+
+  private transition(to: WorldPhase): void {
+    const from = this.currentPhase;
+    if (!isLegalWorldTransition(from, to)) {
+      this.illegalTransitions.push({ from, to });
+      console.error(`[WorldDirector] illegal phase transition ${from} -> ${to}`);
+    }
+    this.currentPhase = to;
+  }
 
   interiorConstructed = false;
   interiorImportStarted = false;
@@ -91,15 +126,15 @@ export class WorldDirector {
     if (this.interiorConstructed) return;
     if (this.preparePromise) return this.preparePromise;
     this.interiorImportStarted = true;
-    this.phase = 'PREPARING_INTERIOR';
+    this.transition('PREPARING_INTERIOR');
     this.app.ui?.hud.setThresholdStatus(true, 'Loading the museum module and building its architecture.', false, true);
 
     this.preparePromise = (async () => {
       try {
         await this.app.ensureInteriorLoaded();
         this.interiorConstructed = true;
-        this.phase = this.activeWorld === 'interior' ? 'INTERIOR_ACTIVE'
-          : this.entranceIsReady() ? 'AT_THRESHOLD' : 'PREPARING_RENDER_RESOURCES';
+        this.transition(this.activeWorld === 'interior' ? 'INTERIOR_ACTIVE'
+          : this.entranceIsReady() ? 'AT_THRESHOLD' : 'PREPARING_RENDER_RESOURCES');
 
         // Preparation can finish while the visitor walks around the island.
         // Only the physical doorway is allowed to trigger a world switch.
@@ -108,7 +143,7 @@ export class WorldDirector {
         }
       } catch (err) {
         console.error('[WorldDirector] failed to prepare interior', err);
-        this.phase = 'PREPARATION_FAILED';
+        this.transition('PREPARATION_FAILED');
         this.preparePromise = null;
         this.app.ui?.hud.setThresholdStatus(true, 'Museum preparation failed. The island remains available. Retry preparation or continue outside.', true);
         throw err;
@@ -132,7 +167,7 @@ export class WorldDirector {
       || !this.entranceIsReady()) return false;
 
     this.isCommitting = true;
-    this.phase = 'COMMITTING_INTERIOR';
+    this.transition('COMMITTING_INTERIOR');
 
     // Scoped freeze during atomic handoff: ensures no half-step movement or physics desync
     const releaseFreeze = this.app.player.acquireFreeze();
@@ -153,7 +188,7 @@ export class WorldDirector {
 
       // 4. Update world mode and state
       this.activeWorld = 'interior';
-      this.phase = 'INTERIOR_ACTIVE';
+      this.transition('INTERIOR_ACTIVE');
       this.app.interiorLoadTelemetry.transitionCommittedAtMs = performance.now();
 
       return true;
@@ -174,7 +209,7 @@ export class WorldDirector {
     if (this.app.renderer.isContextLost) return false;
 
     this.isCommitting = true;
-    this.phase = 'COMMITTING_EXTERIOR';
+    this.transition('COMMITTING_EXTERIOR');
 
     // Scoped freeze during atomic handoff
     const releaseFreeze = this.app.player.acquireFreeze();
@@ -193,7 +228,7 @@ export class WorldDirector {
       }
 
       this.activeWorld = 'exterior';
-      this.phase = 'EXTERIOR_ACTIVE';
+      this.transition('EXTERIOR_ACTIVE');
 
       return true;
     } finally {
@@ -213,7 +248,7 @@ export class WorldDirector {
     }
     const entranceReady = this.entranceIsReady();
     if (entranceReady && this.activeWorld === 'exterior' && this.interiorConstructed
-      && this.phase === 'PREPARING_RENDER_RESOURCES') this.phase = 'AT_THRESHOLD';
+      && this.phase === 'PREPARING_RENDER_RESOURCES') this.transition('AT_THRESHOLD');
     if (inApproach && !this.thresholdPromptDismissed && this.activeWorld === 'exterior') {
       const failed = this.phase === 'PREPARATION_FAILED';
       const preparing = this.interiorImportStarted && !entranceReady && !failed;

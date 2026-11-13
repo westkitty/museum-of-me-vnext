@@ -38,11 +38,14 @@ export class WorkshopHistory {
   private readonly undoStack: HistoryEntry[] = [];
   private readonly redoStack: HistoryEntry[] = [];
   private anchor: WorkshopPlacementManifest | null = null;
+  private changes = 0;
 
   constructor(private readonly limit = 100) {}
 
   get canUndo(): boolean { return this.undoStack.length > 0; }
   get canRedo(): boolean { return this.redoStack.length > 0; }
+  /** Increases on every recorded edit, undo, redo and clear; lets observers notice change cheaply. */
+  get revision(): number { return this.changes; }
 
   /** Diagnostic count of distinct retained records, not a heap-size measurement. */
   get retainedRecordCount(): number {
@@ -63,6 +66,7 @@ export class WorkshopHistory {
     if (this.undoStack.length > this.limit) this.undoStack.shift();
     this.anchor = this.undoStack.length ? afterSnapshot : null;
     this.redoStack.length = 0;
+    this.changes++;
     return true;
   }
 
@@ -71,6 +75,7 @@ export class WorkshopHistory {
     if (!entry) return null;
     this.redoStack.push(entry);
     this.anchor = entry.before;
+    this.changes++;
     return { label: entry.label, manifest: cloneWorkshopManifest(entry.before) };
   }
 
@@ -79,6 +84,7 @@ export class WorkshopHistory {
     if (!entry) return null;
     this.undoStack.push(entry);
     this.anchor = entry.after;
+    this.changes++;
     return { label: entry.label, manifest: cloneWorkshopManifest(entry.after) };
   }
 
@@ -86,5 +92,6 @@ export class WorkshopHistory {
     this.undoStack.length = 0;
     this.redoStack.length = 0;
     this.anchor = null;
+    this.changes++;
   }
 }
