@@ -93,4 +93,14 @@ Mission: MUSEUM-INTELLIGENT-BUILDER. Status: NOT COMPLETE; Phase 0 in progress.
     - Workshop failed on `tge-catalog.workshop.e2e.ts`, which timed out waiting for imported-model bounds. That test is unchanged and network-bound; it passed locally in 47 s and on the next run.
   - [Run 43365542161](https://github.com/westkitty/museum-of-me-vnext/actions/runs/43365542161) on c126f2b: all four jobs passed (gate, browser, workshop, standalone).
 
-Next action: full Workshop browser suite on the merged tree, then exact-head CI after push; remaining: Bible continuity entries, the first interior entry hitch measured on the M1/8 GB (0.3–0.8 s worst frame), Exhibit Kit template fixes (both reviewed, not accepted), and in-place artistic review of any Featured model before installation. The island path reroute is done. PR stays draft; no merge to main or deploy.
+- **Exhibit Kits fixed and re-reviewed (2026-11-13):** `docs/evidence/artistic-review-2026-11-13/`. The real GLBs showed that the defects were in the library models, so the kits now use different ones:
+  - The computer sits on the desk; it is modelled with its base at desk height.
+  - `bookshelf_basic` seals its own books inside a solid box, so it is replaced by `dresser_basic` drawer chests.
+  - The dark prefab table is replaced by `dining_table`.
+  - `dining_chair` has no grounded legs, so it is replaced by `park_bench`.
+  - `telescope_basic` has a detached tube and drum, so it is replaced by `easel_basic`, by owner decision. Its slot is renamed `telescope` → `chart-easel`. Saved kits with the old slot name still validate.
+- Both templates are now accepted for template use. The Observatory carries one caveat: the easel's canvas is plain white.
+- New test: `tests/exhibit-kit-models.test.ts` (4 checks on the real GLBs). All four checks fail on the old templates.
+- Kit unit tests: three slot references were renamed, and one test that pins the chair's offset changed from 0.9 to 0.75 m.
+
+Next action: full Workshop browser suite on the merged tree, then exact-head CI after push; remaining: Bible continuity entries, the first interior entry hitch measured on the M1/8 GB (0.3–0.8 s worst frame), in-place review of any kit when it is installed in a bay, and in-place artistic review of any Featured model before installation. The island path reroute is done. PR stays draft; no merge to main or deploy.

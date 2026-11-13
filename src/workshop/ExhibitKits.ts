@@ -24,30 +24,42 @@ const model = (assetId: string) => ({ prefab: 'catalog-model' as const, anchor: 
 const ONE: WorkshopVec3 = [1, 1, 1];
 
 /**
- * Floor-standing arrangements built only from the bundled, licensed Builder
- * library. Nothing is stacked, so no slot depends on another model's height.
+ * Arrangements built only from the bundled, licensed Builder library, in its
+ * shared light-wood palette. Every part stands on the floor except the
+ * computer: `openlife:computer_basic` is modelled with its base at desk height
+ * (0.73 m), so it belongs on the `openlife:desk_basic` top (0.71–0.77 m) and
+ * floats if stood on the floor beside it. `openlife:bookshelf_basic` is not
+ * used: its solid outer box encloses its shelves and books, so it renders as a
+ * blank slab; the drawer chest (`openlife:dresser_basic`) stands in as the
+ * archive and chart storage. `openlife:dining_chair` is not used: its legs are
+ * modelled as horizontal bars 0.19 m above the floor, so the seat hovers; the
+ * park bench (seat 0.41–0.49 m on vertical legs, as wide as the desk) is the
+ * library's only grounded upright seat. `openlife:telescope_basic` is not used
+ * (owner decision, 2026-11-13): its tube does not touch its posts and its drum
+ * floats above the tube, so the observatory shows a star chart on an easel.
  */
 export const KIT_TEMPLATES: Readonly<Record<WorkshopKitTemplateId, KitTemplate>> = {
   'archive-research-station': {
     id: 'archive-research-station', label: 'Archive Research Station',
-    description: 'A reading desk and chair before two archive shelves, with a table for laid-out documents.',
+    description: 'A reading desk and bench before two archive drawer chests, with a table for laid-out documents.',
     slots: [
       { slot: 'desk', label: 'Research desk', record: model('openlife:desk_basic'), position: [0, 0, 0], rotation: [0, 0, 0], scale: ONE },
-      { slot: 'chair', label: 'Reader chair', record: model('openlife:dining_chair'), position: [0, 0, 0.9], rotation: [0, Math.PI, 0], scale: ONE },
-      { slot: 'shelf-left', label: 'Archive shelf', record: model('openlife:bookshelf_basic'), position: [-0.8, 0, -1.4], rotation: [0, 0, 0], scale: ONE },
-      { slot: 'shelf-right', label: 'Archive shelf', record: model('openlife:bookshelf_basic'), position: [0.8, 0, -1.4], rotation: [0, 0, 0], scale: ONE },
-      { slot: 'document-table', label: 'Document table', record: { prefab: 'artifact-table', anchor: 'floor', collision: 'solid' }, position: [1.8, 0, 0.2], rotation: [0, -Math.PI / 2, 0], scale: ONE },
+      { slot: 'chair', label: 'Reading bench', record: model('openlife:park_bench'), position: [0, 0, 0.75], rotation: [0, Math.PI, 0], scale: ONE },
+      { slot: 'shelf-left', label: 'Archive drawers', record: model('openlife:dresser_basic'), position: [-0.7, 0, -1.3], rotation: [0, 0, 0], scale: ONE },
+      { slot: 'shelf-right', label: 'Archive drawers', record: model('openlife:dresser_basic'), position: [0.7, 0, -1.3], rotation: [0, 0, 0], scale: ONE },
+      { slot: 'document-table', label: 'Document table', record: model('openlife:dining_table'), position: [1.95, 0, 0.2], rotation: [0, -Math.PI / 2, 0], scale: ONE },
     ],
   },
   'observatory-workstation': {
     id: 'observatory-workstation', label: 'Observatory Workstation',
-    description: 'A telescope beside an observing desk, chair and computer, with a shelf of star charts.',
+    description: 'An observing desk with a logging computer and bench, a star chart on an easel, and a chest of charts.',
     slots: [
-      { slot: 'telescope', label: 'Telescope', record: model('openlife:telescope_basic'), position: [-1.6, 0, 0], rotation: [0, Math.PI / 4, 0], scale: ONE },
+      { slot: 'chart-easel', label: 'Star chart easel', record: model('openlife:easel_basic'), position: [-1.5, 0, 0.1], rotation: [0, 0.3, 0], scale: ONE },
       { slot: 'desk', label: 'Observing desk', record: model('openlife:desk_basic'), position: [0.4, 0, 0], rotation: [0, 0, 0], scale: ONE },
-      { slot: 'chair', label: 'Observer chair', record: model('openlife:dining_chair'), position: [0.4, 0, 0.9], rotation: [0, Math.PI, 0], scale: ONE },
-      { slot: 'computer', label: 'Logging computer', record: model('openlife:computer_basic'), position: [1.7, 0, -0.1], rotation: [0, 0, 0], scale: ONE },
-      { slot: 'chart-shelf', label: 'Star chart shelf', record: model('openlife:bookshelf_basic'), position: [0.4, 0, -1.4], rotation: [0, 0, 0], scale: ONE },
+      { slot: 'chair', label: 'Observer bench', record: model('openlife:park_bench'), position: [0.4, 0, 0.75], rotation: [0, Math.PI, 0], scale: ONE },
+      // On the desk top. The model's screen is on its +z side, so a half turn puts the screen at the back and the keyboard toward the chair.
+      { slot: 'computer', label: 'Logging computer', record: model('openlife:computer_basic'), position: [0.75, 0, -0.1], rotation: [0, Math.PI, 0], scale: ONE },
+      { slot: 'chart-shelf', label: 'Star chart chest', record: model('openlife:dresser_basic'), position: [0.4, 0, -1.3], rotation: [0, 0, 0], scale: ONE },
     ],
   },
 };

@@ -57,7 +57,7 @@ describe('Exhibit Kits', () => {
     }
     // A quarter turn about the origin: the desk stays put, the template's +z chair offset becomes +x.
     expect(close(record(moved, 'archive-research-station-desk').position, [270, 0, 240])).toBe(true);
-    expect(close(record(moved, 'archive-research-station-chair').position, [270.9, 0, 239.7])).toBe(true);
+    expect(close(record(moved, 'archive-research-station-chair').position, [270.75, 0, 239.7])).toBe(true);
     expect(kitOverrides(moved, movedKit.id).overridden).toEqual(['chair']);
   });
 
@@ -75,13 +75,13 @@ describe('Exhibit Kits', () => {
 
   it('resets an overridden or removed child to the template without touching the others', () => {
     let manifest = reload(placeKit(empty, 'observatory-workstation', origin).manifest);
-    manifest = { ...manifest, objects: manifest.objects.map((item) => (item.id === 'observatory-workstation-telescope'
+    manifest = { ...manifest, objects: manifest.objects.map((item) => (item.id === 'observatory-workstation-chart-easel'
       ? { ...item, position: [240, 0, 255] as WorkshopVec3 } : item)) };
     const chair = record(manifest, 'observatory-workstation-chair');
     manifest = { ...manifest, objects: manifest.objects.filter((item) => item.id !== 'observatory-workstation-desk'),
       kits: manifest.kits!.map((kit) => ({ ...kit, members: kit.members.filter((member) => member.slot !== 'desk') })) };
-    expect(kitOverrides(manifest, 'observatory-workstation')).toEqual({ overridden: ['telescope'], removed: ['desk'] });
-    manifest = reload(resetKitSlot(resetKitSlot(manifest, 'observatory-workstation', 'telescope'), 'observatory-workstation', 'desk'));
+    expect(kitOverrides(manifest, 'observatory-workstation')).toEqual({ overridden: ['chart-easel'], removed: ['desk'] });
+    manifest = reload(resetKitSlot(resetKitSlot(manifest, 'observatory-workstation', 'chart-easel'), 'observatory-workstation', 'desk'));
     expect(kitOverrides(manifest, 'observatory-workstation')).toEqual({ overridden: [], removed: [] });
     expect(record(manifest, 'observatory-workstation-chair')).toEqual(chair);
   });
@@ -109,14 +109,14 @@ describe('Exhibit Kits', () => {
     try {
       await writeFile(target, '{"schemaVersion":1,"objects":[]}\n');
       let { manifest } = placeKit(empty, 'observatory-workstation', origin);
-      manifest = { ...manifest, objects: manifest.objects.map((item) => (item.id === 'observatory-workstation-telescope'
+      manifest = { ...manifest, objects: manifest.objects.map((item) => (item.id === 'observatory-workstation-chart-easel'
         ? { ...item, position: [247, 0, 251] as WorkshopVec3 } : item)) };
       const saved = await writeWorkshopManifest(manifest, target);
       expect(saved.errors ?? []).toEqual([]);
       const reloaded = validateWorkshopManifest(JSON.parse(await readFile(target, 'utf8')));
       expect(reloaded.value?.kits).toEqual(canonicalizeWorkshopManifest(manifest).kits);
       const placements = new MuseumPlacements(reloaded.value, null, async () => new THREE.Group());
-      expect(kitOverrides(placements.captureManifest(), 'observatory-workstation').overridden).toEqual(['telescope']);
+      expect(kitOverrides(placements.captureManifest(), 'observatory-workstation').overridden).toEqual(['chart-easel']);
       placements.dispose();
     } finally {
       await rm(directory, { recursive: true, force: true });

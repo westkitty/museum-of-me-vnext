@@ -43,7 +43,7 @@ test('Exhibit Kits move as a parent, duplicate, reset, delete and undo through t
   await expect(panel).toBeVisible();
   // The kit was placed from outside the panel; redraw the panel as any Workshop action would.
   await page.evaluate(() => (window.__museumWorkshop as unknown as { refresh(): void }).refresh());
-  await panel.locator('[data-workshop="outliner"]').getByRole('button', { name: /Reader chair/ }).click();
+  await panel.locator('[data-workshop="outliner"]').getByRole('button', { name: /Reading bench/ }).click();
   await expect(panel.locator('[data-workshop="kit-status"]')).toContainText('"chair" part of Archive Research Station (5 parts)');
   await expect(panel.locator('[data-workshop="kit-status"]')).toContainText('No parts changed from the kit.');
 
