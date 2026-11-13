@@ -155,3 +155,7 @@ Future 1.0 status will require an explicit owner decision based on the museum as
 ## Lineage
 
 This is a new product lineage rather than another restoration pass. Historical Reliquary artifacts remain preserved as evidence. Likewise, the erroneous `v1.0.0` branch/PR/merge labels remain in Git history as evidence of what happened; current documentation corrects their authority instead of rewriting that history away.
+
+## Shared Three.js AI development toolkit
+
+The user-level shared toolkit is documented in [docs/THREEJS_AI_TOOLKIT.md](docs/THREEJS_AI_TOOLKIT.md). It reuses this repository's existing play, Workshop, flight/sky and Museum/island workbench entry points; its MCP tools and browser bridge are not Museum runtime dependencies. Launch with `3d-lab museum --project "$PWD" [play|workshop|flight|island|workbench]` after installing the global toolkit.
