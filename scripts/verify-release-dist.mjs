@@ -69,6 +69,8 @@ const workshopRuntimeMarkers = [
   'blaster-kit/blaster-a',
   'Museum Workshop development editor',
   'museum-workshop-transform-controls',
+  // The shared Three.js DevTools bridge hook is development-only.
+  'museumDevtools',
 ];
 for (const chunk of jsChunks) {
   const text = readFileSync(join(root, chunk), 'utf8');
@@ -95,4 +97,4 @@ console.log(`  - ${rel.length} files`);
 console.log(`  - ${(bytes / 1024 / 1024).toFixed(2)} MB uncompressed build output`);
 console.log(`  - ${jsChunks.length} JavaScript chunks`);
 console.log('  - hashed assets, cache policy, CSP and secret-file denylist verified');
-console.log('  - development-only Workshop and Choreographer controls excluded from production');
+console.log('  - development-only Workshop, Choreographer and DevTools hook excluded from production');

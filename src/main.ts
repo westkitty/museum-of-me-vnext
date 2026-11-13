@@ -61,6 +61,12 @@ try {
 // Expose the constructed app before starting the continuous render loop. Browser
 // proofs can now observe and stop the real runtime at its first stable boundary.
 window.__museum = app;
+// The shared Three.js DevTools bridge discovers the active scene/renderer by
+// inspecting ordinary window properties. Keep its entry point development-only
+// and point it at the existing app; never create another renderer or loop.
+if (import.meta.env.DEV) {
+  window.museumDevtools = app;
+}
 // Expose startup phase timings in opt-in QA only, never as inferred GPU time.
 if (new URLSearchParams(window.location.search).has('qa')) {
   console.info('[Museum boot]', JSON.stringify({
@@ -134,5 +140,6 @@ declare global {
   interface Window {
     __museum?: App;
     __museumWorkshop?: { dispose(): void };
+    museumDevtools?: App;
   }
 }
