@@ -135,4 +135,14 @@ test('filters the full pinned catalog, refuses unsupported models, and saves and
   });
   expect(reloaded.meshes).toBeGreaterThan(0);
   await page.evaluate(() => window.__museum?.stop());
+
+  // Restore the empty fixture while this page is still open, and absorb the dev
+  // server's reload here; restoring in afterEach would reload the next test's page.
+  const current = await readFile(placementFile);
+  if (placementBeforeTest && !current.equals(placementBeforeTest) && exactTestSave !== null && current.toString('utf8') === exactTestSave) {
+    const restoreReload = page.waitForEvent('framenavigated', { timeout: 20_000 }).catch(() => null);
+    await writeFile(placementFile, placementBeforeTest);
+    await restoreReload;
+    await page.waitForLoadState('load');
+  }
 });
