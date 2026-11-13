@@ -30,3 +30,19 @@ Verified on `arena/eight-replacements` prior to candidate builds (`npm run typec
 | `E12` | `experiments/arena/replacements/E12-the-headline-that-built-two-cities/` | Grounded (`P062`) | PASS (Twin framing cities + inference strip + dissolve) | PASS (3/3 Vitest) | PASS (Chromium WebGL, 0 console errors) | PASS (5 controls, neutral logs, reducedMotion) | PASS (0 leaks on remount) | 108 res / 57 meshes / 1,102 tris / 0 plinth hits (Tier B pass) | `ACCEPT FOR REVIEW` | None | `NOT AUTHORIZED` |
 | `E20` | `experiments/arena/replacements/E20-the-impossible-cleanup/` | Grounded (`P024`, `P032`, `P061`) | PASS (Exact MB audit shrink + zero-delete safe plan) | PASS (3/3 Vitest) | PASS (Chromium WebGL, 0 console errors) | PASS (6 controls, synthetic disclaimer, reducedMotion) | PASS (0 leaks on remount) | 92 res / 43 meshes / 1,224 tris / 0 plinth hits (Tier C pass, fewer res than incumbent) | `ACCEPT FOR REVIEW` | None | `NOT AUTHORIZED` |
 | `E13` | `experiments/arena/replacements/E13-the-disobedient-orchestra/` | Grounded (`P010`, synthetic local probe labeled) | PASS (4-layer drift vs strict-cue convergence) | PASS (3/3 Vitest) | PASS (Chromium WebGL, 0 console errors) | PASS (5 controls, muted default, silent 3D legibility) | PASS (0 leaks on remount) | 94 res / 50 meshes / 3,300 tris / 0 plinth hits (fewer meshes/tris than incumbent) | `ACCEPT FOR REVIEW` | None | `NOT AUTHORIZED` |
+
+
+## Program-Level Validation (Milestone 9 Closeout)
+
+- **Scope & Isolation Check (`git diff --name-only origin/main...HEAD`):** 59 files, strictly inside `experiments/arena/replacements/**`. Zero edits to `src/`, `data/`, `package.json`, incumbent modules, or `src/exhibits/index.ts`.
+- **Arena Typecheck & ESLint:** `npx tsc -p experiments/arena/replacements/tsconfig.json --noEmit` (PASS), `npx eslint experiments/arena/replacements --max-warnings 0` (PASS, 0 warnings).
+- **Arena Unit & Contract Suite (`vitest.arena.config.ts`):** 9 files passed, 25 tests passed (frozen `ExhibitModule` contract, zero `ResourceScope` leaks on remount, zero `PLINTH_BOX` intersections, zero allocations in `onUpdate`, reduced motion & low `detailScale` parity, and exhibit-specific causal simulations).
+- **Arena Browser WebGL Suite (`playwright.arena.config.ts`, system Chrome):** 9 Chromium WebGL tests passed with 0 console/page errors across `_shared/previewHost.e2e.ts` and all 8 replacement journeys.
+- **Repository Regression & Integrity Gates:**
+  - `npm run typecheck`: PASS
+  - `npm run lint`: PASS (`eslint . --max-warnings 0`)
+  - `npm test`: PASS (100 files, 987 tests)
+  - `npm run build` & `npm run verify:dist`: PASS (237 files, 107.80 MB uncompressed build output, 14.44 MB initial visit bundle under 20 MB budget)
+  - `npm run validate:source-parity`, `validate:exhibits`, `validate:hotpaths`, `validate:frameloop`, `validate:privacy`, `check:budgets`: ALL PASS.
+
+**Final Authorization Status:** `NOT AUTHORIZED` — all 8 replacement candidates are delivered in the isolated arena worktree for side-by-side review only.
