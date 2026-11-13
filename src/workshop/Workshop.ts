@@ -1065,6 +1065,7 @@ export class Workshop {
     this.el<HTMLButtonElement>('source-prev').disabled = this.sourcePage === 0;
     this.el<HTMLButtonElement>('source-next').disabled = this.sourcePage >= pages - 1;
     const results = this.el('source-results');
+    this.cancelSourceThumbnails();
     results.replaceChildren();
     for (const item of matches.slice(this.sourcePage * 24, this.sourcePage * 24 + 24)) {
       const button = document.createElement('button');
@@ -1077,10 +1078,8 @@ export class Workshop {
       const img = document.createElement('img');
       img.alt = '';
       img.width = 96; img.height = 96;
-      img.loading = 'lazy';
-      img.addEventListener('load', () => { button.disabled = false; });
-      img.addEventListener('error', () => { detail.textContent = 'Thumbnail unavailable'; });
-      img.src = `/__museum-workshop/tge-thumbnail?id=${encodeURIComponent(item.id)}`;
+      this.queueSourceThumbnail(img, `/__museum-workshop/tge-thumbnail?id=${encodeURIComponent(item.id)}`,
+        () => { button.disabled = false; }, () => { detail.textContent = 'Thumbnail unavailable'; });
       const title = document.createElement('strong'); title.textContent = item.name;
       const detail = document.createElement('small');
       detail.textContent = `${item.packName} · ${item.license}${availability.state === 'importable' ? '' : availability.state === 'unsupported' ? ' · Not importable' : ' · Unverified'}`;
@@ -1116,6 +1115,37 @@ export class Workshop {
       });
       results.append(button);
     }
+  }
+
+  /**
+   * Thumbnails can take seconds each on a cold cache (the server fetches them from
+   * the pinned source). Load at most two at a time so imports, status checks and
+   * model downloads always have a browser connection, and drop stale ones when the
+   * grid is re-rendered.
+   */
+  private sourceThumbnailQueue: (() => void)[] = [];
+  private sourceThumbnailsActive = new Set<HTMLImageElement>();
+
+  private queueSourceThumbnail(img: HTMLImageElement, src: string, onLoad: () => void, onError: () => void): void {
+    const start = () => {
+      this.sourceThumbnailsActive.add(img);
+      const finish = (ok: boolean) => {
+        if (!this.sourceThumbnailsActive.delete(img)) return;
+        if (ok) onLoad(); else onError();
+        this.sourceThumbnailQueue.shift()?.();
+      };
+      img.addEventListener('load', () => finish(true), { once: true });
+      img.addEventListener('error', () => finish(false), { once: true });
+      img.src = src;
+    };
+    if (this.sourceThumbnailsActive.size < 2) start();
+    else this.sourceThumbnailQueue.push(start);
+  }
+
+  private cancelSourceThumbnails(): void {
+    this.sourceThumbnailQueue = [];
+    for (const img of this.sourceThumbnailsActive) img.removeAttribute('src');
+    this.sourceThumbnailsActive.clear();
   }
 
   private sourceCatalogRevision(): string { return '3ddcc695adbba9fb918cf31b7c139b3f95b76910'; }

@@ -33,10 +33,29 @@ test('imports a pinned candidate into the actual Builder and inspects bounds', a
     await new Promise((resolve) => setTimeout(resolve, 500));
     await route.continue();
   });
+  // A cold thumbnail cache on a slow network: each thumbnail can take seconds (the
+  // server fetches it from the pinned source). Browsing must never hold more than
+  // two browser connections, so the import, its status check and the model
+  // download are not starved (Chrome allows six per host).
+  let thumbnailsInFlight = 0;
+  let maxThumbnailsInFlight = 0;
+  const isThumbnail = (url: string) => url.includes('/__museum-workshop/tge-thumbnail');
+  page.on('request', (value) => {
+    if (isThumbnail(value.url())) maxThumbnailsInFlight = Math.max(maxThumbnailsInFlight, ++thumbnailsInFlight);
+  });
+  for (const event of ['requestfinished', 'requestfailed'] as const) {
+    page.on(event, (value) => { if (isThumbnail(value.url())) thumbnailsInFlight--; });
+  }
+  await page.route('**/__museum-workshop/tge-thumbnail*', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+    await route.continue().catch(() => undefined);
+  });
   await workshop.getByRole('button', { name: 'Browse source catalog' }).click();
   await workshop.getByLabel('Search source candidates').fill('blaster-kit/blaster-a');
   const item = workshop.locator('[data-source-id="blaster-kit/blaster-a"]');
   await expect(item).toBeEnabled({ timeout: 30_000 });
+  expect(maxThumbnailsInFlight).toBeGreaterThan(0);
+  expect(maxThumbnailsInFlight).toBeLessThanOrEqual(2);
   await item.click();
   const response = page.waitForResponse((value) => value.url().endsWith('/__museum-workshop/tge-import'));
   await workshop.getByRole('button', { name: /Import and place selected model|Place cached model/ }).click();
