@@ -78,6 +78,11 @@ export class WestCatSystems extends ExhibitBase {
     base.position.set(-1.6, 0.97, -4.2);
     this.group.add(base);
 
+    const overlayLabel = buildLabel(scope, 'WESTCAT OVERLAY · OPERATIONS MAP', 2.6);
+    overlayLabel.position.set(-1.6, 2.7, -4.2);
+    this.group.add(overlayLabel);
+    scope.track(overlayLabel.geometry);
+
     // ── overlay panels, stacked above the map ──
     OVERLAYS.forEach((overlay, i) => {
       const panel = new THREE.Mesh(
@@ -156,14 +161,14 @@ export class WestCatSystems extends ExhibitBase {
 
     // ── the lineage board: fragmentation shown honestly ──
     const board = new THREE.Mesh(
-      scope.track(new THREE.BoxGeometry(2.2, 1.4, 0.08)),
+      scope.track(new THREE.BoxGeometry(2.6, 0.72, 0.08)),
       this.standard(0x3a352e, { roughness: 0.9 }),
     );
-    board.position.set(-1.6, 2.2, -6.6);
+    board.position.set(-2.3, 3.85, -6.6);
     this.group.add(board);
 
-    const boardLabel = buildLabel(scope, 'Five repositories, one tool. The variants are the artifact.', 2.0);
-    boardLabel.position.set(-1.6, 2.2, -6.5);
+    const boardLabel = buildLabel(scope, 'Five repositories, one tool. The variants are the artifact.', 2.4, 0.22);
+    boardLabel.position.set(-2.3, 3.85, -6.55);
     this.group.add(boardLabel);
     scope.track(boardLabel.geometry);
   }

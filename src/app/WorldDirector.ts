@@ -243,10 +243,13 @@ export class WorldDirector {
     // 2. This is a doorway aperture, not an infinite plane across the island.
     if (this.activeWorld === 'exterior') {
       if (playerPosition.z <= ENTRANCE_PORTAL_Z && isAtEntrancePortal(playerPosition)) {
-        if (this.interiorConstructed && this.app.interiorWorld) {
-          this.commitToInterior();
-        } else {
-          // Hold only inside the doorway until the destination is ready.
+        // Hold only inside the doorway until the destination is ready. A
+        // constructed interior can still be waiting for its entrance prewarm;
+        // without the hold the visitor walks past the portal window in the
+        // exterior world and can never be admitted.
+        const committed = this.interiorConstructed && Boolean(this.app.interiorWorld)
+          && this.commitToInterior();
+        if (!committed) {
           playerPosition.z = Math.max(ENTRANCE_PORTAL_Z + 0.05, playerPosition.z);
         }
       }

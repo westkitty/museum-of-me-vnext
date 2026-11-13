@@ -2,6 +2,7 @@
 // Gate (plan Phase 9): no visitor-facing placeholder prose survives.
 import { readFileSync } from 'node:fs';
 import { walk, report } from './_lib.mjs';
+import { countClaims } from './content-count-lib.mjs';
 
 const BANNED = [
   /\bTODO\b/i,
@@ -55,6 +56,29 @@ for (const m of collection.matchAll(/"(summary|brief|plaque|problem|made|interac
   if (m[2].trim().length < 20) errors.push(`collection: "${m[1]}" is too short to be finished: "${m[2]}"`);
   if (!/[.!?]"?$/.test(m[2].trim())) errors.push(`collection: "${m[1]}" does not end as a sentence: "${m[2].slice(-40)}"`);
 }
+
+// A count the visitor can read must be the count the building actually holds.
+// The collection grew from 64 to 73 identities while two sentences still said
+// "sixty-four projects"; this keeps any stated current total tied to the living
+// data while leaving explicitly historical sentences alone.
+const totals = {
+  projects: walk('data/projects', ['.json']).reduce((n, f) => n + JSON.parse(readFileSync(f, 'utf8')).length, 0),
+  exhibits: (collection.match(/"id":\s*"E\d+"/g) ?? []).length,
+};
+let countClaimTotal = 0;
+let historicalClaims = 0;
+for (const f of ['src/content/collection.generated.ts', ...sourceFiles, ...walk('src/world', ['.ts']), ...walk('src/guide', ['.ts'])]) {
+  const text = readFileSync(f, 'utf8');
+  text.split('\n').forEach((line, i) => {
+    if (/^\s*(\/\/|\*)/.test(line)) return;
+    for (const claim of countClaims(line, totals)) {
+      countClaimTotal++;
+      if (claim.historical && claim.stated !== claim.actual) historicalClaims++;
+      if (!claim.ok) errors.push(`${f}:${i + 1} states "${claim.text}" but the current collection holds ${claim.actual}`);
+    }
+  });
+}
+notes.push(`${countClaimTotal} stated collection totals checked against ${totals.projects} projects / ${totals.exhibits} exhibits (${historicalClaims} explicitly historical)`);
 
 notes.push(`${dataFiles.length} data files, ${sourceFiles.length} source files, ${literalCount} visitor-facing literals scanned`);
 

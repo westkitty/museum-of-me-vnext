@@ -80,8 +80,8 @@ export class SpecialistSystems extends ExhibitBase {
       this.group.add(post);
     }
 
-    const wallLabel = buildLabel(scope, 'Trust boundary — nothing crosses', 2.0);
-    wallLabel.position.set(0, 3.7, -4.2);
+    const wallLabel = buildLabel(scope, 'Trust boundary — nothing crosses', 2.2, 0.18);
+    wallLabel.position.set(0, 3.6, -1.55);
     this.group.add(wallLabel);
     scope.track(wallLabel.geometry);
 

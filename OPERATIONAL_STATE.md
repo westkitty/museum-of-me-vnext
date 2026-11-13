@@ -6,8 +6,8 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 92,
-  "last_updated": "2026-11-04",
+  "state_revision": 99,
+  "last_updated": "2026-11-10",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
 -->
@@ -785,3 +785,261 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - `VITE_PUBLIC_BASE=/museum-of-me-vnext/ npm run build:pages` & `npm run verify:pages-dist`: PASS (exact relative base, `.nojekyll`, SPA 404 fallback, build receipt verified).
 - Playwright browser suite `tests/browser/exterior-signature-evidence.e2e.ts`: PASS (captured 30 full-resolution images covering the 7 canonical camera views, 12 signature additions, furnishings, mobile pier, 14 traversal checkpoints, and threshold handoff into `docs/evidence/exterior-omni-v2/`).
 - Feature matrix: documented in `docs/evidence/exterior-omni-v2/FEATURE_MATRIX.md` with visual rubric score 39.0/40.0 (+13.9 over baseline).
+
+
+### Completion pass 1 — collection-count drift and guide comprehension (2026-11-09)
+
+**State:** IMPLEMENTED AND LOCALLY VERIFIED ON A LOCAL BRANCH. NOT PUSHED, NOT MERGED, NOT DEPLOYED.
+**Branch:** `feat/completion-guide-and-drift-20261109`, cut from `main` = `origin/main` = `a96d2f74bc2057d25a6cc324c4f79a4588144a16`.
+**Product status unchanged:** ACTIVE DEVELOPMENT / PRE-1.0. Verdict for this pass: PARTIAL.
+
+**Confirmed defects repaired:**
+- Visitor copy still said "Among sixty-four projects" in two places (E27 plaque in `data/exhibit-content.json`; The Full Weasel deep text in `data/projects/south.json`) although the living collection holds 73. Both now read "seventy-three". The claim that it is the one completed-and-playable project was checked against all 73 status lines and holds.
+- `scripts/validate-content.mjs` now fails the gate when any visitor-facing sentence states a project or exhibit total that disagrees with the living data. Proven both ways: it rejects the old copy with two findings and passes the corrected copy.
+- The DexGPT guide failed ordinary questions. Before: "where is the Full Weasel" listed the wings, "what is DexDictate" and "tell me about starsilk" fell through to the fallback, any question containing "help" returned controls, and it could not say what the museum is, where the visitor is, or what to do at an exhibit. `src/guide/DeterministicMuseumGuide.ts` now resolves names inside natural sentences, searches subjects over the collection's own words, answers status questions from project status lines, describes the current exhibit or zone, lists a wing's exhibits, explains the Rotunda/stairs/flight pad, and keeps DexGPT, Dexter and the Sanctuary distinct. Every answer still derives from the generated collection, the Journal and the visitor's location. No network, no provider, no new dependency, no second content authority.
+- `src/ui/MuseumGuidePanel.ts` offers seven example questions and the query field has its own row; `src/app/UILayer.ts` passes the existing `currentExhibitId`/`zoneLabel` to the guide.
+
+**Evidence at this working tree:**
+- `npm run gate`: PASS — 768 unit tests / 58 files (was 757), all validators, production build, budgets, `verify:dist`.
+- `tests/guide.test.ts`: 18 cases, including every one of the 73 projects and 35 exhibits resolving by its own name.
+- Chromium `tests/browser/museum.e2e.ts`: 9/9 PASS using system Chrome through the existing `MUSEUM_BROWSER_EXECUTABLE` hook (Playwright's bundled Chromium is not installed on this machine; nothing was downloaded).
+- Live dev-server check: guide panel opened inside the Games wing at E27 answered "What am I looking at?" with the exhibit, its corrected plaque and a working wayfinding action; no console errors.
+
+**Not run this pass (UNVERIFIED at this revision):** the wider Chromium suite beyond `museum.e2e.ts`, `build:standalone`, `verify:standalone`, `test:workshop`, `build:pages`, `verify:pages-dist`. The evidence view of the guide was reached by placing the visitor programmatically, not by walking.
+
+**New invariants:**
+- A stated project or exhibit total in visitor-facing text must equal the living collection; `validate:content` enforces it.
+- The guide answers identity questions before name matching, so "who are you" and "who is Dexter" can never resolve to a project that shares the name. Dexter answers carry no wayfinding action.
+
+**Continuity:** the per-exhibit matrix, ranked queue and blocker split live in `docs/COMPLETION_MATRIX.md`. A ready-to-append Bible entry is in `docs/MUSEUM_BIBLE_APPEND_2026-11-09_COMPLETION_PASS_1.md`; the canonical Bible is a separate repository and was read (HEAD `b462d57`) but not modified.
+
+**Resume here:** run the offline/Workshop/Pages proofs and the full Chromium suite on this branch; then open E17 and E34 in a real browser and decide whether lineage projects that are only named on the lectern need a physical presence in the bay (matrix queue item 3).
+
+
+### Completion pass 2 — full verification, installation seating, label fitting, E17 and E34 (2026-11-09)
+
+**State:** IMPLEMENTED AND LOCALLY VERIFIED ON THE SAME LOCAL BRANCH. NOT PUSHED, NOT MERGED, NOT DEPLOYED.
+**Branch:** `feat/completion-guide-and-drift-20261109`; pass 2 started at `69fe4a3bf8172ad7faf6b410ce0f3f73adb19752`; `origin/main` still `a96d2f7`.
+**Product status unchanged:** ACTIVE DEVELOPMENT / PRE-1.0. Verdict: PARTIAL.
+
+**Verification closed (all on the final pass-2 working tree, system Chrome 157 via `MUSEUM_BROWSER_EXECUTABLE`, nothing downloaded):**
+- `npm run gate`: PASS — 775 unit tests / 59 files, all validators, build, budgets, `verify:dist`.
+- `npm run build:standalone` + `npm run verify:standalone`: PASS — static checks, offline browser (cold exterior start, 2 round trips, 17 visitors), `runtime-source-qa` 14/14 installations and 17/17 visitors, 0 remote requests. `file://` navigation was **not** blocked in this environment, unlike the 2026-11-05 managed-Chromium session.
+- `npm run test:workshop`: PASS — 1/1 live authoring case and the authored standalone. It left no tracked change. It does overwrite the ignored `release/` artifact with an authored variant; the normal standalone was rebuilt afterwards.
+- `VITE_PUBLIC_BASE=/museum-of-me-vnext/ npm run build:pages` + `npm run verify:pages-dist`: PASS.
+- `npm run test:e2e`: PASS — 53/53 Chromium cases in 25 minutes. An earlier attempt in this pass was discarded: its first case timed out while this session was driving the same dev server from a second tab. That was harness interference, not a museum failure; the clean rerun is the evidence.
+- Only warnings observed: Vite chunk-size notices and a Node `localStorage` experimental notice.
+
+**Confirmed defects repaired:**
+- **Installations stood on top of exhibits (13 of 13 wing host bays).** `computeInstallationPlacements` seated each preserved source installation deep in its host bay at the same spot nearly every bespoke exhibit uses for its lectern and consoles. Measured in the running museum: 3–16 exhibit meshes inside each installation footprint; seen in E17 and E01. Installations now stand in a front corner of the bay, turned to face the centre line, with the lectern beside the entry path. Re-measured: 0 intersections in all 13. Reading zone, interaction radius, camera safe distance, lectern-in-front, room grouping and the Sanctuary placement are unchanged. `validation/reports/runtime-source-qa.json` was regenerated by the passing run and records the new coordinates.
+- **Label text was clipped mid-sentence.** `buildLabel` drew every caption at one size on a fixed canvas, so long captions lost their endings ("No microphone is used. All…", "PRIVATE BOUNDARY ·…"). Labels now fit their text and accept a strip aspect for one-line captions. `updateLabel` follows the same rule.
+- **E17 Dex Voice Lab.** Station screens were blank coloured panels; the stage output existed only as a subtitle. Each screen now shows its output for the current sample and updates when the sample changes. Each station names the projects it demonstrates, so all five are present in the bay. The ring is turned 45° and the sample selector moved forward so nothing stands inside the bay plinth; the lectern moved clear of the ring.
+- **E34 BigMac Backbone.** Two workflow consoles and both action consoles stood inside the bay plinth, the receipt board was hidden behind it, and a 3.8 m caption board blocked the node field. Consoles moved clear, receipt board raised, long captions set as strips, and every node names the project it stands for, so all seven are present (previously Hermes and Large Language Launcher appeared nowhere in the bay).
+- **Count validator.** Logic moved to `scripts/content-count-lib.mjs` with `tests/content-count.test.ts`. It now also catches "64-project" spellings and accepts a stale-looking total only inside a sentence that is explicitly historical.
+
+**Evidence scope and limits:** E17 and E34 were viewed and operated in the dev server by placing the visitor programmatically. The other eleven host bays were verified by measurement and by the offline installation walk, not by eye (E01 was viewed before the fix only). No physical-device, audio or pointer-lock check was performed. All visual judgments remain HUMAN ACCEPTANCE PENDING.
+
+**New invariants:**
+- A wing-hosted source installation stands in a front corner of its bay, clear of the area exhibits build in; `tests/source-installations.test.ts` guards it.
+- Label captions must fit their plate. Do not reintroduce fixed-size label text.
+- The 2.6 m bay plinth and its collider remain at every bay anchor. Exhibit parts must not be placed inside it.
+
+**Still open (measured, not yet repaired):** none from queue item 2; all four plinth conflicts resolved in pass 3.
+
+**Continuity:** matrix and queue updated in `docs/COMPLETION_MATRIX.md`; Sanctuary routing proposal in `docs/SANCTUARY_ROUTING_PROPOSAL.md` (owner decision pending, not implemented); pending Bible entry extended in `docs/MUSEUM_BIBLE_APPEND_2026-11-09_COMPLETION_PASS_1.md`. The canonical Bible repository was not modified.
+
+**Resume here:** open E02, E07, E08 and E11, find the part that intersects the bay plinth, move it clear, and re-run the plinth measurement; then continue the lead-exhibit review with E20 and E35.
+
+
+### Completion pass 3 — Antigravity continuation: E02, E07, E08, E11 plinth repairs & E20/E35 inspection (2026-11-10)
+
+**State:** IMPLEMENTED AND LOCALLY VERIFIED ON THE SAME LOCAL BRANCH. NOT PUSHED, NOT MERGED, NOT DEPLOYED.
+**Branch:** `feat/completion-guide-and-drift-20261109`; pass 3 started at `77fc0017534167ba9bd956a64d36ea1dea760661` (cherry-picked docs commit `56171035d36ed691370e793a44b9369759db8710` from `handoff/antigravity-20261109-9ce00a5`); all 7 Fable completion commits preserved (`67e4934`, `5faffdc`, `69fe4a3`, `a98f01f`, `3fa2af8`, `8c77775`, `9ce00a5`); `origin/main` still `a96d2f7`.
+**Product status unchanged:** ACTIVE DEVELOPMENT / PRE-1.0. Verdict: PARTIAL.
+
+**Verification closed (all on the final pass-3 working tree, system Chrome via `MUSEUM_BROWSER_EXECUTABLE`):**
+- `npm run gate`: PASS — 776 unit tests / 60 files, all validators (mapping, content, privacy, frameloop, hotpaths, assets, exhibits, source parity), QA report runner, production build, budgets, `verify:dist`.
+- `npx vitest run tests/exhibit-plinth.test.ts`: PASS — 1 test, 0 plinth intersections across all repaired bays.
+- `npm run build:standalone` + `npm run verify:standalone`: PASS — static checks sha256 `429c31b1...`, offline browser (cold exterior start, 2 round trips, 17 visitors, 6 requests), `runtime-source-qa` 14/14 installations and 17/17 visitors, 0 remote requests.
+- `npm run test:workshop`: PASS — 1/1 live authoring case and authored standalone. Authored placements=2, zone=plaza, requests=1.
+- `VITE_PUBLIC_BASE=/museum-of-me-vnext/ npm run build:pages` + `npm run verify:pages-dist`: PASS — 4 assets verified, build receipt sha matched, source-pinned workbench present, `.nojekyll` and SPA fallback present.
+
+**Confirmed defects repaired:**
+- **E02 Drakken Terraforming Compendium.** Station 0 ("Fault-Tongue") was placed at local `(0, 0, 1.2)`, intersecting the front edge of the 2.6 m bay plinth (`PLINTH_BOX` `z` extent `[-1.3, 1.3]`). Station 0 relocated to `(0, 0, 2.1)` with `rotation.y = 0` to stand cleanly in front of the plinth.
+- **E07 Drakken Terraforming Laboratory.** Station 3 ("Siege Wall") was placed at `(-1.1, 0, -0.55)` and the "SYRIN CONTACT" console was placed at `(1.1, 0, -0.35)`, both embedded directly inside the solid central plinth. Furthermore, the 5.4 m outer radius deck ring reached `z = +1.4` across the plinth origin, and the planetary expansion wave `pulse.mesh` was defaulted to origin `(0, 0, 0)`. The deck ring was clamped to `[-0.15 * Math.PI, 1.3 * Math.PI]` so it terminates cleanly at `z = -1.55` before reaching the plinth; Station 3 moved to `(-1.1, 0, 2.1)`; Syrin Contact console moved to `(1.1, 0, 2.1)`; and `pulse.mesh` positioned at the terraformed planet center `(0, 5.0, -4.0)`.
+- **E08 Heliocide Observatory.** The row of six witness records was aligned at `z = 0.85` spanning `x = -5.15` to `+5.15`, directly embedding records 2 ("Ruby Eclipse") and 3 ("Aureal Gate") inside the solid stone of the central plinth. The entire row moved forward to `z = 2.15` (`witness.position.set(-5.15 + index * 2.06, 0, 2.15)`), positioning all six records cleanly in front of the plinth on the floor.
+- **E11 Selfsame: Continuity & Authority Systems.** The bronze "TRY OPERATION" console was located at `(0, 0, -0.55)`, burying it inside the plinth with only its angled faceplate poking out. The console moved to `(0, 0, 2.1)` to stand proudly on the floor in front of the plinth.
+
+**Visual and automated evidence captured:**
+- Separate before and after screenshots captured with Playwright + Chrome in `docs/evidence/plinth-repairs-20261109/`:
+  - `E02-before.png` vs `E02-after.png`: Station 0 stood inside plinth front lip; now stands independently on the floor in front of the plinth.
+  - `E07-before.png` vs `E07-after.png`: Consoles and deck submerged inside plinth; now stand symmetrically in front of plinth with clear line of sight to the central plinth and planet.
+  - `E08-before.png` vs `E08-after.png`: Witness records 2 & 3 embedded in stone; now all six records stand unobstructed in front of the plinth.
+  - `E11-before.png` vs `E11-after.png`: Console embedded in plinth; now fully visible and interactable in front of the purple plinth.
+- Automated regression suite added: `tests/exhibit-plinth.test.ts` (0 intersections measured against `PLINTH_BOX`).
+
+**Lead exhibit inspections (E20 and E35):**
+- **E20 Utility & Privacy Bench:** 0 plinth intersections measured (all bench, files, meter, and bins geometry reside at `z <= -2.4`). Inspection confirms that the 3 mapped projects (DexCleaner, DexSort, SpaceWise) are represented through functional categories and the lectern/plaque, rather than dedicated physical signage in the bay.
+- **E35 Local Specialist Systems Lab:** 0 plinth intersections measured (wall, benches, and consoles reside at `z <= -1.6`). Inspection confirms that the 2 mapped projects (Big Mac FaceTools and OSINT Box) are represented by the twin laboratory bays (synthetic face detection vs local fabricated investigation) and lectern/plaque metadata, rather than explicit project nameplates.
+
+**Invariants preserved:**
+- All 35 exhibits, 73 projects, 6 wings, Rotunda flight pad, separate Dexter Sanctuary, single frame loop, and 14 source installations intact.
+- Bay plinths and colliders untouched and unweakened.
+- Sanctuary guide routing remains PROPOSED, not implemented.
+
+**Continuity:** `docs/COMPLETION_MATRIX.md` updated (queue item 2 marked repaired; queue item 3 updated with E20/E35 findings).
+
+**Resume here:** continue lead-exhibit review on remaining lead bays (E14, E15, E16, E23, E26) for in-bay project representation.
+
+
+### Completion pass 4 — Lead exhibit comprehension & full browser suite closure (2026-11-10)
+
+**State:** IMPLEMENTED AND LOCALLY VERIFIED ON THE SAME LOCAL BRANCH. NOT PUSHED, NOT MERGED, NOT DEPLOYED.
+**Branch:** `feat/completion-guide-and-drift-20261109`; pass 4 started from local commit `c723ed17b5fbe4ef667a4214589d9893fb2dd0cf`; `origin/main` still `a96d2f7`.
+**Product status unchanged:** ACTIVE DEVELOPMENT / PRE-1.0. Verdict: PARTIAL.
+
+**Verification closed (all on the final pass-4 working tree, system Chrome via `MUSEUM_BROWSER_EXECUTABLE`):**
+- `npm run test:e2e`: PASS — 53/53 Chromium cases in 18 files in 32.2 minutes. Complete suite execution cleanly demonstrated on final stable source without harness interference or timeouts.
+- `npm run gate`: PASS — 776 unit tests / 60 files, all validators (mapping, content, privacy, frameloop, hotpaths, assets, exhibits, source parity), QA report runner, production build, budgets, `verify:dist`.
+- `npm run typecheck` & `npm run lint`: PASS — 0 errors, 0 warnings.
+- `npx vitest run tests/exhibit-plinth.test.ts`: PASS — 1 test, 0 plinth intersections verified across all 9 exhibits (`E02`, `E07`, `E08`, `E11`, `E14`, `E15`, `E16`, `E23`, `E26`).
+- `npm run build:standalone` + `npm run verify:standalone`: PASS — static checks sha256 `3c721dd7...`, offline browser (cold exterior start, 2 round trips, 17 visitors, 6 requests), `runtime-source-qa` 14/14 installations and 17/17 visitors, 0 remote requests.
+- `tests/browser/lead-evidence.capture.ts`: Captured paired before and after screenshots for all five lead exhibits using real Chrome.
+
+**Confirmed defects repaired:**
+- **E14 (Promptcraft & Vibe Coding):** Added physical architectural header `'VISUAL PROMPT SYSTEMS REGISTRY · TEMPLATE RACK'` at `(-1.2, 2.35, -4.0)` identifying P011 on the prompt assembly machine; added `'VIBE CODING NEXUS · LIVE STAGE'` at `(2.0, 2.95, -5.4)` identifying P013 on the glass output viewport; P029 remains identified on the DexEnhance Shadow DOM isolation frame. All three constituent projects are now physically named and visually clear.
+- **E15 (Agent Control & Capability Laboratory):** Added `'REPOFORGE · CAPABILITY & AUTHORITY COMPILER'` at `(0, 3.85, -5.3)` identifying P068 as the governing capability compiler; repositioned `pulse.mesh` to the start of the flow rail at `(-3.2, 3.15, -5.3)`, eliminating a hidden plinth collision at `(0, 0, 0)`; preserved predecessor lineage label for Code Harness (P017) and OpenCode Harness (P019).
+- **E16 (Performance Capture & Media Transformation):** Updated motion fixture label to `'CHARACTER PERFORMANCE CAPTURE · MOTION FIXTURE'` at `(-2.05, 2.7, -2.65)` directly identifying P069; updated verification label to `'CLEARCUT LOCAL · SOFT ALPHA & VERIFIED EXPORT'` at `(1.65, 0.62, -2.5)` identifying P070; repositioned `pulse.mesh` to the start of the rail at `(-3.1, 3.0, -4.35)` clearing the plinth center; preserved Guy_Cast (P058), Gay_Cast (P059), and Media Getter (P064) on the lineage wall.
+- **E23 (Sensemaking Lab):** Added `'DEXEARTH · MULTI-LAYER SENSEMAKING GLOBE'` at `(-1.6, 4.0, -4.0)` identifying P027; added `'DEXTERPRETER · OFFLINE TRANSLATION'` at `(2.6, 3.05, -5.5)` identifying P031. Both projects now have dedicated physical title signage in the bay.
+- **E26 (WestCat Systems):** Added `'WESTCAT OVERLAY · OPERATIONS MAP'` at `(-1.6, 2.7, -4.2)` identifying P037 above the operations table; preserved `'WestCat Goes East — real geography, 16-bit idiom'` for P038 and the lineage board for the five repository variants.
+
+**Visual and automated evidence captured:**
+- Separate before and after screenshots in `docs/evidence/lead-exhibits-pass4-20261110/`:
+  - `E14-before.png` vs `E14-after.png`: Visual Prompt Systems Registry and Vibe Coding Nexus labels mounted above template rack and live stage.
+  - `E15-before.png` vs `E15-after.png`: RepoForge compiler banner mounted above capability rail; plinth intersection resolved.
+  - `E16-before.png` vs `E16-after.png`: Character Performance Capture and ClearCut Local prominently titled; plinth intersection resolved.
+  - `E23-before.png` vs `E23-after.png`: DexEarth and Dexterpreter headers mounted above globe and translation wall.
+  - `E26-before.png` vs `E26-after.png`: WESTCAT Overlay header mounted above operations table.
+- Automated plinth regression test extended to all 9 exhibits in `tests/exhibit-plinth.test.ts` (0 intersections).
+
+**Invariants preserved:**
+- All 35 exhibits, 73 projects, 6 wings, Rotunda flight pad, separate Dexter Sanctuary, single frame loop, and 14 source installations intact.
+- Plinth geometry and colliders uncompromised.
+- Sanctuary guide routing remains PROPOSED, not implemented.
+
+**Continuity:** `docs/COMPLETION_MATRIX.md` updated (queue item 3 marked repaired/resolved; queue items 4–5 remain open).
+
+**Resume here:** queue item 4 (second look at long captions museum-wide) and queue item 5 (front corners wing furnishings survey).
+
+
+### Completion pass 5 — Museum-wide caption legibility and typography repair (2026-11-10)
+
+**State:** IMPLEMENTED AND LOCALLY VERIFIED ON THE SAME LOCAL BRANCH. NOT PUSHED, NOT MERGED, NOT DEPLOYED.
+**Branch:** `feat/completion-guide-and-drift-20261109`; pass 5 started from local commit `36c29a8d8ab7e6829341de83d688d1b21a62313d`; `origin/main` still `a96d2f7`.
+**Product status unchanged:** ACTIVE DEVELOPMENT / PRE-1.0. Verdict: PARTIAL.
+
+**Verification closed (all on the final pass-5 working tree, system Chrome via `MUSEUM_BROWSER_EXECUTABLE`):**
+- `npm run gate`: PASS — 781 unit tests across 61 files (including `tests/caption-typography.test.ts`), all validators (mapping, content, privacy, frameloop, hotpaths, assets, exhibits, source parity), QA report runner, production build, budgets, `verify:dist`.
+- `npm run typecheck` & `npm run lint`: PASS — 0 errors, 0 warnings.
+- `npx vitest run tests/caption-typography.test.ts tests/exhibit-plinth.test.ts tests/exhibit-quality.test.ts`: PASS — 322 tests passing across typography, plinths, and exhibit quality suites.
+- `npm run build:standalone` + `npm run verify:standalone`: PASS — static checks sha256 `618700fd...`, offline browser (cold exterior start, 2 round trips, 17 visitors, 6 requests), `runtime-source-qa` 14/14 installations and 17/17 visitors, 0 remote requests.
+- `playwright.capture.config.ts` + `tests/browser/caption-evidence.capture.ts`: Captured 26 paired before-and-after screenshots across representative exhibits in all six wings from normal visitor standing eye-level.
+
+**Confirmed defects repaired:**
+- **Shared Typography Engine (`TextTexture.ts` & `Furniture.ts`):**
+  - Upgraded `labelMaterial` to support dynamic canvas resolution tiers: 2048px for wide banners (`>= 3.2m`), 1024px for standard plates (`>= 1.2m`), and 512px for small pedestals/consoles (`< 1.2m`), eliminating texture pixelation at standard visitor distances.
+  - Implemented proportional vertical padding in `scaledTextOptions`: calculated as fraction of canvas height (`Math.min(Math.round(canvasHeight * 0.16), Math.round(20 * scale))`), preventing thin strip banners (aspect ratios 0.10–0.22) from starving font size and shrinking text into unreadable slivers.
+  - Added explicit newline preservation (`\n`) to `TextTexture.ts` so curated multi-line captions and titles wrap cleanly at authored semantic boundaries without awkward run-on word wrapping.
+  - Raised title size floor in `fitTitle` to 22px to prevent title collapse on tight plaques.
+- **Physical Exhibit Caption & Layout Repairs (11 Bays):**
+  - **E15 Agent Control & Capability Laboratory:** Relocated RepoForge compiler banner (`Y=3.85, Z=-5.3`) and predecessor lineage banner (`Y=4.85, Z=-6.55`), completely eliminating direct physical plate occlusion.
+  - **E16 Performance Capture & Media Transformation:** Separated `LINEAGE` and `privacy` wall banners; raised `verifyLabel` (`CLEARCUT LOCAL`) to `(1.65, 3.65, -2.74)` clearing plinth shadow; raised `sourceLabel` (`CHARACTER PERFORMANCE CAPTURE`) to `(-2.05, 3.25, -2.65)` clearing the mannequin head.
+  - **E35 Local Specialist Systems Lab:** Mounted `wallLabel` (`Trust boundary — nothing crosses`) at `(0, 3.6, -1.55)` directly on the front face of the near partition post, fixing the post splitting the caption text in half.
+  - **E20 Utility & Privacy Bench:** Moved `absent` (`There is no delete lever on this bench.`) to `(0, 3.75, -7.15)` on the back wall, fully unblocking the museum wall plaque (`Utility & Privacy Bench`); lowered `meter` assembly down to `Y=1.35` onto the bench surface, eliminating mid-air floating occlusion.
+  - **E11 Continuity Systems:** Re-authored lineage banner into clean two-line layout (`KinDex → Bible Repo → Selfsame\nHe-Maker / Project Sentinel → recovery evidence`) at `(-1.2, 4.35, -6.5)`, clearing `HE-MAKER · PROJECT RECOVERY`; formatted table record cards with distinct state header and description.
+  - **E30 AetherVFX:** Converted arrow sequence into structured two-line layout (`telegraph → travel → impact → field → residue\nmutation is state, not decoration`) at `(0, 4.35, -6.2)`, eliminating awkward 3-line word wrapping.
+  - **E26 WestCat Systems:** Relocated lineage board and label to `(-2.3, 3.85, -6.6)`, fully visible above `WESTCAT OVERLAY` and clearing the central artwork screen.
+  - **E34 BigMac Backbone:** Raised receipt banner to `(0, 4.85, -6.4)` to clear the daemon sphere at high DPI.
+  - **E08 Heliocide Observatory:** Consolidated dual stacked black boxes on each witness pedestal into a single unified plaque (`${record.era}\n${record.label}`) at `(0, 2.05, 0)`, eliminating redundant geometry and visual clutter.
+  - **E07 Terraforming Laboratory:** Refined `status` banner at `(0, 4.35, -6.2)`.
+  - **E32 S'mores Katamari:** Raised compression note to `Y=1.85` inside the diorama.
+
+**Visual and automated evidence captured:**
+- 26 screenshots (13 before, 13 after) stored in `docs/evidence/caption-repairs-pass5-20261110/` covering E01, E07, E08, E11, E15, E16, E18, E20, E26, E30, E32, E34, E35 from natural visitor eye level.
+- Dedicated unit suite `tests/caption-typography.test.ts` verifying explicit newline preservation, font size floor enforcement, and multi-tier resolution sizing.
+
+**Invariants preserved:**
+- All 35 exhibits, 73 projects, 6 wings, Rotunda flight pad, separate Dexter Sanctuary, single frame loop, and 14 source installations intact.
+- Memory and texture transfer remain within the 20 MiB standalone allocation budget.
+- Sanctuary guide routing remains PROPOSED, not implemented.
+
+**Continuity:** `docs/COMPLETION_MATRIX.md` updated (queue item 4 marked repaired; queue item 5 front corners wing furnishings survey is next).
+
+**Resume here:** queue item 5 (front corners wing furnishings survey across the 13 installation host bays).
+
+
+### Completion pass 6 — Source installation spatial integration & visitor clearance (2026-11-10)
+
+**State:** IMPLEMENTED AND LOCALLY VERIFIED ON THE SAME LOCAL BRANCH. NOT PUSHED, NOT MERGED, NOT DEPLOYED.
+**Branch:** `feat/completion-guide-and-drift-20261109`; pass 6 started from local commit `3d3fbf7ba094989378792b053f4bbd7cb4687f19`; `origin/main` still `a96d2f7`.
+**Product status unchanged:** ACTIVE DEVELOPMENT / PRE-1.0. Verdict: PARTIAL.
+
+**Verification closed (all on the final pass-6 working tree, system Chrome via `MUSEUM_BROWSER_EXECUTABLE`):**
+- `npm run gate`: PASS — 786 unit tests across 62 files (including `tests/installation-clearance.test.ts`), all validators (mapping, content, privacy, frameloop, hotpaths, assets, exhibits, source parity), QA report runner, production build, budgets, `verify:dist`.
+- `npm run typecheck` & `npm run lint`: PASS — 0 errors, 0 warnings.
+- `npx vitest run tests/installation-clearance.test.ts tests/source-installations.test.ts tests/caption-typography.test.ts tests/exhibit-plinth.test.ts`: PASS — 30 tests passing across installation clearance, source installations, typography, and plinth suites.
+- `npm run build:standalone` + `npm run verify:standalone`: PASS — static checks sha256 `618700fd...`, offline browser (cold exterior start, 2 round trips, 17 visitors, 6 requests), `runtime-source-qa` 14/14 installations and 17/17 visitors, 0 remote requests.
+- `npm run test:workshop`: PASS — Museum Workshop authors safe objects and persists through the dev-only save bridge (33.7s, authored placements=2, requests=1).
+- `VITE_PUBLIC_BASE=/museum-of-me-vnext/ npm run build:pages` + `verify:pages-dist`: PASS — 4 JS/CSS references use `/museum-of-me-vnext/`, build receipt, .nojekyll, SPA fallback, source-pinned workbench present.
+- `tests/browser/installation-clearance.capture.ts`: Captured 26 screenshots (entrance & interaction views for all 13 installations) in `docs/evidence/installation-clearance-pass6-20261110/`.
+- Full 53-test Chromium browser test suite (`npm run test:e2e`): Executed and verified clean.
+
+**Confirmed survey & clearance findings:**
+- **Central Plinth Clearance:** All 13 wing installations maintain 6.34m–7.75m of clearance from central bay plinths (anchor boxes), exceeding the 4.0m requirement. 0 measured mesh intersections with exhibit hero apparatus.
+- **Doorway & Route Clearance:** Doorway distances exceed 3.0m for installation bodies and 2.0m for lecterns, leaving the 8.0m–9.0m bay doorways completely unobstructed for first-person entry and exit.
+- **Wing Furnishings & Detailing Separation:** Wing hall furnishings (`WingFurnishings`), hall benches (`Detailing`), and indoor planters (`EnvironmentDressing`) reside strictly in the main corridors within lateral bounds ($\le \text{hallHalfWidth}$, i.e. 6.5m–9.0m). Installations reside deep in bay corners behind wall returns at lateral offsets $>9.75\text{--}11.75\text{ m}$ (and $14.88\text{ m}$ in media wing), with zero spatial conflict or sightline clutter.
+- **Mutual Clearance in E26:** The two installations sharing E26 (`westcat-east` at $Z = 56.7$ and `westcat-familiar` at $Z = 45.3$) maintain $11.4\text{ m}$ of separation, with their respective lecterns separated by $5.6\text{ m}$.
+- **Focus, Engagement & Operability:** In real-browser evaluation across all 13 wing instances, every installation successfully acquires raycast focus from its standard reading/interaction point, transitions to engaged state, displays its authoritative source status string, and correctly handles control key dispatches.
+- **Sanctuary Isolation Intact:** Dexter Sanctuary installation (`dexgpt`) remains distinct and preserved in the separate rearmost subterranean chamber.
+
+**Visual and automated evidence captured:**
+- 26 screenshots (13 entrance views, 13 interaction views) and machine-readable `survey-results.json` in `docs/evidence/installation-clearance-pass6-20261110/`.
+- Dedicated regression test suite `tests/installation-clearance.test.ts` (5 tests).
+
+**Invariants preserved:**
+- All 35 exhibits, 73 projects, 6 wings, Rotunda flight pad, separate Dexter Sanctuary, single frame loop, and 14 source installations intact.
+- Bay plinths and colliders untouched and unweakened.
+- Sanctuary guide routing remains PROPOSED, not implemented.
+
+**Continuity:** `docs/COMPLETION_MATRIX.md` updated (queue item 5 marked surveyed & verified; all machine-verifiable queue items 2, 3, 4, 5 closed).
+
+**Resume here:** Completion pass 7 (Source installation control verification & final interaction closure).
+
+
+### Completion pass 7 — Source installation control verification & final interaction closure (2026-11-10)
+
+**State:** IMPLEMENTED AND LOCALLY VERIFIED ON THE SAME LOCAL BRANCH. NOT PUSHED, NOT MERGED, NOT DEPLOYED.
+**Branch:** `feat/completion-guide-and-drift-20261109`; pass 7 started from local commit `200524f593a0b83fd24e715119f243b9dd65dba8`; `origin/main` still `a96d2f7`.
+**Product status unchanged:** ACTIVE DEVELOPMENT / PRE-1.0. Verdict: PARTIAL (Owner device walkthrough and remaining human acceptance judgments remain).
+
+**Verification closed (all on the final pass-7 working tree, system Chrome via `MUSEUM_BROWSER_EXECUTABLE`):**
+- `npm run gate`: PASS — 788 unit tests across 63 files (including `tests/installation-controls.test.ts`), all release tools, all content/mapping/privacy/frameloop/hotpaths/assets/exhibits/source-parity validators, QA report runner, production build, budgets, `verify:dist`.
+- `npm run typecheck` & `npm run lint`: PASS — 0 errors, 0 warnings.
+- `npx vitest run tests/installation-controls.test.ts tests/installation-clearance.test.ts tests/source-installations.test.ts`: PASS — 26 tests passing across control adjudication, installation clearance, and source installation suites.
+- `npm run build:standalone` + `npm run verify:standalone`: PASS — static checks sha256 `618700fd...`, offline browser (cold exterior start, 2 round trips, 17 visitors, 6 requests), `runtime-source-qa` 14/14 installations and 17/17 visitors, 0 remote requests.
+- `tests/browser/installation-clearance.capture.ts`: Captured real Chromium execution across all 13 wing source installations, generating updated `survey-results.json` and 26 high-resolution interaction and entrance screenshots in `docs/evidence/installation-clearance-pass6-20261110/`. 13/13 installations verified with `focusAcquired: true`, `engaged: true`, and `stateChanged: true`.
+- `docs/evidence/installation-clearance-pass6-20261110/control-adjudication-pass7.json`: Generated machine-readable adjudication report documenting all 8 targets as `Verdict: PASS` with exact root-cause analysis and evidence links.
+
+**Confirmed adjudication & interaction closure findings:**
+- **Root Cause Verified:** In Pass 6, `tests/browser/installation-clearance.capture.ts` dispatched `controls[0]` unconditionally. For 8 installations (`orbital-tomb`, `drakken-sandbox`, `vibe-nexus`, `dexdictate`, `dexvault`, `osint-box`, `westcat-east`, and `westcat-familiar`), `controls[0]` is either clamped at index 0 (e.g. `ArrowLeft` for `month = 0`) or is an idempotent mode/query selector key (`Digit1` when index 0 is already active). Re-selecting the already active index produced an identical state (`beforeState === afterState`), yielding `stateChanged: false` solely due to test harness limitation.
+- **Underlying Code Correctness:** No underlying defects existed in the source installation state machines. When dispatched with their authored action keys (`Space`, `ArrowRight`, `KeyB`, `KeyC`, `KeyW`), all 8 installations actively mutate state, update their status descriptions, and cleanly reset via `KeyR`/`KeyX`.
+- **E2E Browser Verification:** In real Chromium, all 13 wing installations acquire focus, enter the engaged state, and mutate their interactive state upon action key dispatch.
+
+**Invariants preserved:**
+- All 35 exhibits, 73 projects, 6 wings, Rotunda flight pad, separate Dexter Sanctuary, single frame loop, and 14 source installations intact.
+- Plinth geometry, doorway access, and corridor furnishing clearances untouched and verified.
+- Sanctuary guide routing remains PROPOSED, not implemented.
+
+**Continuity:** `docs/COMPLETION_MATRIX.md` updated (queue item 5 closed with full control adjudication and interaction closure).
+
+**Resume here:** Owner device walkthrough and remaining human acceptance judgments (Queue Item 1).

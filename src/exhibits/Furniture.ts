@@ -19,7 +19,7 @@ function scaledTextOptions(
   scale: number,
 ): TextTextureOptions {
   const scaled = { ...opts };
-  for (const key of ['width', 'height', 'titleSize', 'bodySize', 'padding'] as const) {
+  for (const key of ['width', 'height', 'titleSize', 'bodySize', 'padding', 'paddingX', 'paddingY'] as const) {
     const value = opts[key];
     if (value !== undefined) scaled[key] = Math.max(1, Math.round(value * scale));
   }
@@ -184,22 +184,43 @@ export function buildLectern(
  * A small label for a control or sub-element inside an exhibit. Used wherever a
  * visitor needs to know what a thing is without opening a panel.
  */
-export function buildLabel(scope: ResourceScope, text: string, width = 0.9): THREE.Mesh {
-  const height = width * 0.32;
-  return new THREE.Mesh(
-    scope.track(new THREE.PlaneGeometry(width, height)),
-    textMaterial(scope, [], {
-      width: 512,
-      height: 164,
-      title: text,
-      titleSize: 56,
-      align: 'center',
-      rule: false,
-      padding: 24,
-      background: '#1a1712',
-      titleColor: '#e8d9b0',
-    }),
+export function buildLabel(scope: ResourceScope, text: string, width = 0.9, aspect = LABEL_ASPECT): THREE.Mesh {
+  const mesh = new THREE.Mesh(
+    scope.track(new THREE.PlaneGeometry(width, width * aspect)),
+    labelMaterial(scope, text, width, aspect),
   );
+  mesh.userData.labelAspect = aspect;
+  mesh.userData.labelWidth = width;
+  return mesh;
+}
+
+const LABEL_ASPECT = 0.32;
+
+/**
+ * Label text is fitted to its plate: a long caption is set smaller rather than
+ * cut off mid-sentence. Wide plates get a wider canvas so the smaller type
+ * stays sharp.
+ */
+function labelMaterial(scope: ResourceScope, text: string, width: number, aspect: number): THREE.MeshStandardMaterial {
+  const canvasWidth = width >= 3.2 ? 2048 : width >= 1.2 ? 1024 : 512;
+  const scale = canvasWidth / 512;
+  const canvasHeight = Math.max(48, Math.round(canvasWidth * aspect));
+  const padX = Math.round(28 * scale);
+  const padY = Math.max(6, Math.min(Math.round(canvasHeight * 0.16), Math.round(20 * scale)));
+
+  return textMaterial(scope, [], {
+    width: canvasWidth,
+    height: canvasHeight,
+    title: text,
+    titleSize: Math.round(54 * scale),
+    fitTitle: true,
+    align: 'center',
+    rule: false,
+    paddingX: padX,
+    paddingY: padY,
+    background: '#1a1712',
+    titleColor: '#e8d9b0',
+  });
 }
 
 /**
@@ -210,10 +231,11 @@ export function buildLabel(scope: ResourceScope, text: string, width = 0.9): THR
  */
 export function updateLabel(scope: ResourceScope, mesh: THREE.Mesh, text: string): void {
   const previous = mesh.material as THREE.MeshStandardMaterial;
-  mesh.material = textMaterial(scope, [], {
-    width: 512, height: 164, title: text, titleSize: 56, align: 'center', rule: false,
-    padding: 24, background: '#1a1712', titleColor: '#e8d9b0',
-  });
+  mesh.material = labelMaterial(
+    scope, text,
+    (mesh.userData.labelWidth as number | undefined) ?? 0.9,
+    (mesh.userData.labelAspect as number | undefined) ?? LABEL_ASPECT,
+  );
   const previousMap = previous.map as THREE.Texture | null;
   previousMap?.dispose();
   previous.dispose();

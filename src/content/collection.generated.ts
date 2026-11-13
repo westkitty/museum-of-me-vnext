@@ -1002,7 +1002,7 @@ export const COLLECTION: Collection = {
       "summary": "A finished birthday rhythm game in which Dexter catches treats and dodges sharks.",
       "brief": "The Full Weasel is a mobile-first rhythm game made as a birthday gift. Dexter catches falling treats in time with the music, avoids sharks, fills a party meter and reaches an escalating celebratory finale. It is small, complete and playable — which makes it rare in this collection.",
       "deep": [
-        "It is finished. Among sixty-four projects, a completed and shipped artifact is worth marking.",
+        "It is finished. Among seventy-three projects, a completed and shipped artifact is worth marking.",
         "The scope was fixed by the occasion, and the deadline did what deadlines do: it prevented the project from growing.",
         "Dexter appears here as a character in a game he was made for. The Sanctuary elsewhere in this building is a different kind of space, and the distinction is deliberate."
       ],
@@ -2401,7 +2401,7 @@ export const COLLECTION: Collection = {
       ],
       "copy": {
         "subtitle": "Finished",
-        "plaque": "Among sixty-four projects, this one is complete and playable. A hard deadline did what deadlines do.",
+        "plaque": "Among seventy-three projects, this one is complete and playable. A hard deadline did what deadlines do.",
         "problem": "Scope grows until something external stops it.",
         "made": "A mobile-first rhythm game made as a birthday gift, in which Dexter catches treats, avoids sharks and fills a party meter toward a celebratory finale.",
         "interaction": "Three linked mechanisms in the cabinet, each escalating the result of the last.",

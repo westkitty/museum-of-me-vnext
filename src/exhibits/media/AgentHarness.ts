@@ -79,7 +79,9 @@ export class AgentHarness extends ExhibitBase {
     });
     const rail = new Filament(scope, this.scaled(24), 0.018, this.standard(0x75643b, { roughness: 0.65 }));
     this.flowCurve = new THREE.CatmullRomCurve3(flowPositions); rail.follow(this.flowCurve); this.group.add(rail.group);
-    this.pulse = new Pulse(scope, 0.09, this.emissive(0xffffff, 1.8)); this.group.add(this.pulse.mesh);
+    this.pulse = new Pulse(scope, 0.09, this.emissive(0xffffff, 1.8));
+    this.pulse.mesh.position.copy(flowPositions[0]);
+    this.group.add(this.pulse.mesh);
 
     const invoke = buildConsole(scope, 0.72, 0.48, 1.0, metal);
     invoke.position.set(0, 0, -1.8); this.group.add(invoke);
@@ -91,8 +93,13 @@ export class AgentHarness extends ExhibitBase {
       activate: () => this.invokeSelected(),
     });
 
-    const oldHarness = buildLabel(scope, 'PREDECESSORS: Code Harness · OpenCode Harness    persistence remains outside the rack', 4.0);
-    oldHarness.position.set(0, 4.35, -6.0); this.group.add(oldHarness); scope.track(oldHarness.geometry);
+    const repoForgeLabel = buildLabel(scope, 'REPOFORGE · CAPABILITY & AUTHORITY COMPILER', 3.2, 0.16);
+    repoForgeLabel.position.set(0, 3.85, -5.3);
+    this.group.add(repoForgeLabel);
+    scope.track(repoForgeLabel.geometry);
+
+    const oldHarness = buildLabel(scope, 'PREDECESSORS: Code Harness · OpenCode Harness\nPersistence remains outside the rack', 4.4, 0.18);
+    oldHarness.position.set(0, 4.85, -6.55); this.group.add(oldHarness); scope.track(oldHarness.geometry);
   }
 
   private invokeSelected(): void {

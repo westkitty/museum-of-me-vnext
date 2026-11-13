@@ -108,8 +108,8 @@ export class AetherVFX extends ExhibitBase {
       },
     });
 
-    const semantic = buildLabel(scope, 'telegraph → travel → impact → field → residue    mutation is state, not decoration', 4.1);
-    semantic.position.set(0, 4.25, -6.2); this.group.add(semantic); scope.track(semantic.geometry);
+    const semantic = buildLabel(scope, 'telegraph → travel → impact → field → residue\nmutation is state, not decoration', 5.6, 0.18);
+    semantic.position.set(0, 4.35, -6.2); this.group.add(semantic); scope.track(semantic.geometry);
   }
 
   private advance(): void {

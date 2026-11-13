@@ -1,0 +1,193 @@
+{
+  "adjudicationDate": "2026-11-10",
+  "pass": "Completion Pass 7: Source Installation Control Verification & Final Interaction Closure",
+  "evaluator": "Google Anti-Gravity",
+  "summary": {
+    "totalInstallationsSurveyed": 13,
+    "focusAcquiredCount": 13,
+    "engagedCount": 13,
+    "pass6ReportedStateChangedFalse": 8,
+    "pass7AdjudicatedTargets": 8,
+    "pass7DefectsFound": 0,
+    "pass7HarnessLimitations": 8,
+    "finalStateChangedCount": 13,
+    "overallVerdict": "PASS"
+  },
+  "methodology": {
+    "rootCause": "In Pass 6, tests/browser/installation-clearance.capture.ts blindly dispatched the first control tuple (controls[0]) for each installation. For 8 installations, controls[0] maps to either a lower-clamped navigation key (ArrowLeft at index 0) or an idempotent mode/query selector key (Digit1 when index 0 is already active). Re-selecting the active index produced an identical state, causing beforeState === afterState (stateChanged: false).",
+    "adjudicationProof": [
+      "Deterministic unit test tests/installation-controls.test.ts verifies both that controls[0] is idempotent on initial state and that the authored progression/action key mutates state and updates status text.",
+      "Playwright end-to-end browser capture tests/browser/installation-clearance.capture.ts verifies live interaction, focus acquisition, engaged status, and stateChanged: true across all 13 wing installations."
+    ]
+  },
+  "targets": [
+    {
+      "id": "orbital-tomb",
+      "hostId": "E03",
+      "wing": "north",
+      "title": "Orbital Tomb Visual Timeline",
+      "initialState": { "month": 0 },
+      "idempotentControl": {
+        "label": "Earlier month",
+        "code": "ArrowLeft",
+        "behavior": "Math.max(0, month - 1) at month 0 clamps to 0; no mutation."
+      },
+      "actionControl": {
+        "label": "Later month",
+        "code": "ArrowRight",
+        "resultState": { "month": 1 },
+        "statusBefore": "2024-01: Foundation and containment excavation",
+        "statusAfter": "2024-02: Structural core and vacuum seals"
+      },
+      "verdict": "PASS",
+      "reason": "Test harness limitation in Pass 6. The installation state machine correctly mutates on ArrowRight."
+    },
+    {
+      "id": "drakken-sandbox",
+      "hostId": "E07",
+      "wing": "north",
+      "title": "Drakken AI Sandbox",
+      "initialState": { "strain": 0, "stage": 0 },
+      "idempotentControl": {
+        "label": "Vector Recon",
+        "code": "Digit1",
+        "behavior": "Strain index 0 is active by default. Dispatching Digit1 re-selects strain 0; no mutation."
+      },
+      "actionControl": {
+        "label": "Advance assault",
+        "code": "Space",
+        "resultState": { "strain": 0, "stage": 1 },
+        "statusBefore": "Vector Recon · stage 0/4",
+        "statusAfter": "Vector Recon · stage 1/4"
+      },
+      "verdict": "PASS",
+      "reason": "Test harness limitation in Pass 6. The installation state machine correctly mutates on Space."
+    },
+    {
+      "id": "vibe-nexus",
+      "hostId": "E14",
+      "wing": "media",
+      "title": "Vibe Nexus Engine Matrix",
+      "initialState": { "pipeline": 0, "stage": 0 },
+      "idempotentControl": {
+        "label": "Parser pipeline",
+        "code": "Digit1",
+        "behavior": "Pipeline 0 is active by default. Dispatching Digit1 re-selects pipeline 0; no mutation."
+      },
+      "actionControl": {
+        "label": "Advance compiler",
+        "code": "Space",
+        "resultState": { "pipeline": 0, "stage": 1 },
+        "statusBefore": "Parser pipeline · idle",
+        "statusAfter": "Parser pipeline · lexing"
+      },
+      "verdict": "PASS",
+      "reason": "Test harness limitation in Pass 6. The installation state machine correctly mutates on Space."
+    },
+    {
+      "id": "dexdictate",
+      "hostId": "E17",
+      "wing": "east",
+      "title": "DexDictate Speech Interface",
+      "initialState": { "recording": false, "mode": "hold" },
+      "idempotentControl": {
+        "label": "Hold-to-talk mode",
+        "code": "KeyH",
+        "behavior": "Mode 'hold' is active by default. Dispatching KeyH re-assigns mode 'hold'; no mutation."
+      },
+      "actionControl": {
+        "label": "Start capture",
+        "code": "Space",
+        "resultState": { "recording": true, "mode": "hold" },
+        "statusBefore": "Hold-to-talk · Ready",
+        "statusAfter": "Hold-to-talk · Recording..."
+      },
+      "verdict": "PASS",
+      "reason": "Test harness limitation in Pass 6. The installation state machine correctly mutates on Space."
+    },
+    {
+      "id": "dexvault",
+      "hostId": "E20",
+      "wing": "east",
+      "title": "DexVault Neural Storage",
+      "initialState": { "query": 0, "step": 0 },
+      "idempotentControl": {
+        "label": "Cluster 1: Semantic Embeddings",
+        "code": "Digit1",
+        "behavior": "Query cluster 0 is active by default. Dispatching Digit1 re-selects cluster 0; no mutation."
+      },
+      "actionControl": {
+        "label": "Run retrieval step",
+        "code": "Space",
+        "resultState": { "query": 0, "step": 1 },
+        "statusBefore": "Semantic Embeddings · indexed",
+        "statusAfter": "Semantic Embeddings · searching"
+      },
+      "verdict": "PASS",
+      "reason": "Test harness limitation in Pass 6. The installation state machine correctly mutates on Space."
+    },
+    {
+      "id": "osint-box",
+      "hostId": "E23",
+      "wing": "east",
+      "title": "OSINT Terminal Box",
+      "initialState": { "target": 0, "step": 0 },
+      "idempotentControl": {
+        "label": "Signal Channel 1",
+        "code": "Digit1",
+        "behavior": "Channel 0 is active by default. Dispatching Digit1 re-selects channel 0; no mutation."
+      },
+      "actionControl": {
+        "label": "Advance safe route",
+        "code": "Space",
+        "resultState": { "target": 0, "step": 1 },
+        "statusBefore": "Signal Channel 1 · passive",
+        "statusAfter": "Signal Channel 1 · scanning"
+      },
+      "verdict": "PASS",
+      "reason": "Test harness limitation in Pass 6. The installation state machine correctly mutates on Space."
+    },
+    {
+      "id": "westcat-east",
+      "hostId": "E26",
+      "wing": "south",
+      "title": "WestCat Route Simulator",
+      "initialState": { "weather": 0, "distance": 0 },
+      "idempotentControl": {
+        "label": "Clear weather",
+        "code": "Digit1",
+        "behavior": "Weather profile 0 is active by default. Dispatching Digit1 re-selects profile 0; no mutation."
+      },
+      "actionControl": {
+        "label": "Advance route",
+        "code": "Space",
+        "resultState": { "weather": 0, "distance": 1.15 },
+        "statusBefore": "Dry streets · route 0.00/10",
+        "statusAfter": "Dry streets · route 1.15/10"
+      },
+      "verdict": "PASS",
+      "reason": "Test harness limitation in Pass 6. The installation state machine correctly mutates on Space."
+    },
+    {
+      "id": "westcat-familiar",
+      "hostId": "E26",
+      "wing": "south",
+      "title": "WestCat Familiar System",
+      "initialState": { "mode": 0, "stateIndex": 0 },
+      "idempotentControl": {
+        "label": "Focus mode",
+        "code": "Digit1",
+        "behavior": "Mode 0 is active by default. Dispatching Digit1 re-selects mode 0; no mutation."
+      },
+      "actionControl": {
+        "label": "Advance state",
+        "code": "Space",
+        "resultState": { "mode": 0, "stateIndex": 1 },
+        "statusBefore": "Focus · watching",
+        "statusAfter": "Focus · working"
+      },
+      "verdict": "PASS",
+      "reason": "Test harness limitation in Pass 6. The installation state machine correctly mutates on Space."
+    }
+  ]
+}

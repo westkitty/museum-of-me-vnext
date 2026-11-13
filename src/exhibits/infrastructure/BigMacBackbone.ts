@@ -6,22 +6,27 @@ import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
 
 /** E34 — BigMac Backbone / AndrewOS Control Plane. All identifiers are synthetic. */
 
+/** Height-to-width of a one-line caption strip. */
+const STRIP = 0.1;
+
 interface Node {
   readonly id: string;
   readonly name: string;
+  /** The represented project(s) this node stands for, where there is one. */
+  readonly project?: string;
   readonly example: string;
   readonly at: readonly [number, number, number];
   readonly colour: number;
 }
 
 const NODES: readonly Node[] = [
-  { id: 'control', name: 'AndrewOS control plane', example: 'registry: museum.example', at: [-3.5, 1.7, -2.0], colour: 0x78c3d8 },
-  { id: 'laptop', name: 'Portable machine', example: 'host: notebook.example', at: [-2.0, 2.6, -3.2], colour: 0x9fd48c },
-  { id: 'route', name: 'Scoped access route', example: 'route: tunnel.example', at: [-0.5, 1.5, -4.2], colour: 0x76a566 },
-  { id: 'compute', name: 'Compute host', example: 'host: compute.example', at: [1.2, 2.4, -4.8], colour: 0x5f8a52 },
-  { id: 'storage', name: 'Attached storage', example: 'volume: archive.example', at: [3.2, 1.35, -4.1], colour: 0x8ec37c },
-  { id: 'models', name: 'Model engine', example: 'endpoint: loopback.example', at: [2.7, 3.25, -2.8], colour: 0x6b9a5c },
-  { id: 'daemon', name: 'Persistent daemon', example: 'process: daemon.example', at: [0.4, 3.55, -5.7], colour: 0xb0d49c },
+  { id: 'control', name: 'AndrewOS control plane', project: 'AndrewOS Mac Bridge', example: 'registry: museum.example', at: [-3.5, 1.7, -2.0], colour: 0x78c3d8 },
+  { id: 'laptop', name: 'Portable machine', project: 'Large Language Launcher · Hermes Desktop', example: 'host: notebook.example', at: [-2.0, 2.6, -3.2], colour: 0x9fd48c },
+  { id: 'route', name: 'Scoped access route', project: 'Big Mac Westcat SSH', example: 'route: tunnel.example', at: [-0.5, 1.5, -4.2], colour: 0x76a566 },
+  { id: 'compute', name: 'Compute host', project: 'Hermes agent gateway', example: 'host: compute.example', at: [1.2, 2.4, -4.8], colour: 0x5f8a52 },
+  { id: 'storage', name: 'Attached storage', project: 'BigMac Storage and SMB', example: 'volume: archive.example', at: [3.2, 1.35, -4.1], colour: 0x8ec37c },
+  { id: 'models', name: 'Model engine', project: 'BigMac Ollama + Codex', example: 'endpoint: loopback.example', at: [2.7, 3.25, -2.8], colour: 0x6b9a5c },
+  { id: 'daemon', name: 'Persistent daemon', project: 'project_daemon / DAEMON', example: 'process: daemon.example', at: [0.4, 3.55, -5.7], colour: 0xb0d49c },
 ];
 
 interface Workflow {
@@ -77,14 +82,18 @@ export class BigMacBackbone extends ExhibitBase {
     const metal = this.standard(0x465247, { roughness: 0.45, metalness: 0.6 });
     const boundary = new THREE.Mesh(scope.track(new THREE.PlaneGeometry(9.2, 5.5)), scope.track(new THREE.MeshStandardMaterial({ color: 0x9fd48c, transparent: true, opacity: 0.055, side: THREE.DoubleSide, depthWrite: false })));
     boundary.position.set(0, 2.65, -1.05); this.group.add(boundary);
-    const boundaryLabel = buildLabel(scope, 'PRIVATE BOUNDARY · SYNTHETIC IDENTIFIERS ONLY', 3.7); boundaryLabel.position.set(0, 5.1, -1.05); this.group.add(boundaryLabel); scope.track(boundaryLabel.geometry);
+    const boundaryLabel = buildLabel(scope, 'PRIVATE BOUNDARY · SYNTHETIC IDENTIFIERS ONLY', 4.6, STRIP); boundaryLabel.position.set(0, 5.1, -1.05); this.group.add(boundaryLabel); scope.track(boundaryLabel.geometry);
 
     NODES.forEach((node) => {
       const mesh = new THREE.Mesh(scope.track(new THREE.IcosahedronGeometry(node.id === 'control' ? 0.43 : 0.31, 1)), this.emissive(node.colour, node.id === 'control' ? 0.8 : 0.28));
       mesh.position.set(...node.at); this.group.add(mesh); this.nodeMeshes.push(mesh); this.nodeIds.push(node.id);
       const stand = new THREE.Mesh(scope.track(new THREE.CylinderGeometry(0.035, 0.05, node.at[1], 6)), metal); stand.position.set(node.at[0], node.at[1] / 2, node.at[2]); this.group.add(stand);
       const label = buildLabel(scope, node.name, 1.15); label.position.set(node.at[0], node.at[1] + 0.58, node.at[2]); this.group.add(label); scope.track(label.geometry);
-      const example = buildLabel(scope, node.example, 1.25); example.position.set(node.at[0], node.at[1] - 0.52, node.at[2]); this.group.add(example); scope.track(example.geometry);
+      const example = buildLabel(scope, node.example, 1.25, 0.2); example.position.set(node.at[0], node.at[1] - 0.5, node.at[2]); this.group.add(example); scope.track(example.geometry);
+      if (node.project) {
+        // The real project this synthetic node stands for.
+        const project = buildLabel(scope, node.project, 1.25, 0.2); project.position.set(node.at[0], node.at[1] + 0.92, node.at[2]); this.group.add(project); scope.track(project.geometry);
+      }
     });
 
     const links: readonly [string, string][] = [['control','laptop'],['laptop','route'],['route','compute'],['compute','storage'],['compute','models'],['compute','daemon']];
@@ -95,7 +104,7 @@ export class BigMacBackbone extends ExhibitBase {
     this.pulse = new Pulse(scope, 0.12, this.emissive(0xf2ffe8, 1.9)); this.group.add(this.pulse.mesh);
 
     WORKFLOWS.forEach((workflow, i) => {
-      const c = buildConsole(scope, 0.62, 0.46, 1.0, metal); c.position.set(-3.0 + i * 2.0, 0, -0.4); this.group.add(c);
+      const c = buildConsole(scope, 0.62, 0.46, 1.0, metal); c.position.set(-3.0 + i * 2.0, 0, 2.1); this.group.add(c); // in front of the bay plinth, not inside it
       const label = buildLabel(scope, workflow.name, 0.66); label.position.set(0, 1.02, 0.22); label.rotation.x = -Math.PI / 2.1; c.add(label); scope.track(label.geometry);
       this.control({ object: c, label: `Select ${workflow.name}`, description: `${workflow.note} Permission class: ${workflow.permission}.`, activate: () => {
         this.workflow = i; this.segment = -1; this.previewReady = false; this.curves.length = 0;
@@ -109,31 +118,31 @@ export class BigMacBackbone extends ExhibitBase {
     this.gate.position.set(0, 1.65, -6.2); this.group.add(this.gate);
     const gateLabel = buildLabel(scope, 'THE DEXTER GATE', 1.55); gateLabel.position.set(0, 2.7, -6.15); this.group.add(gateLabel); scope.track(gateLabel.geometry);
 
-    const preview = buildConsole(scope, 0.7, 0.48, 1.0, metal); preview.position.set(-1.1, 0, -1.35); this.group.add(preview);
+    const preview = buildConsole(scope, 0.7, 0.48, 1.0, metal); preview.position.set(-2.4, 0, 0.2); this.group.add(preview);
     const previewLabel = buildLabel(scope, 'PREVIEW EXACT EFFECT', 0.8); previewLabel.position.set(0, 1.02, 0.2); previewLabel.rotation.x = -Math.PI / 2.1; preview.add(previewLabel); scope.track(previewLabel.geometry);
     this.control({ object: preview, label: 'Preview the selected operation', description: 'Consequential operations require this exact preview before execution. Read-only work may proceed without it.', activate: () => {
       if (this.workflow < 0) { this.ctx.announce('Select a registered operation first.'); return; }
       this.previewReady = true; const w = WORKFLOWS[this.workflow]; this.ctx.announce(`Preview bound: ${w.name}. Declared route: ${w.path.join(' → ')}. No other operation may use this preview.`);
     }});
 
-    const execute = buildConsole(scope, 0.7, 0.48, 1.0, metal); execute.position.set(1.1, 0, -1.35); this.group.add(execute);
+    const execute = buildConsole(scope, 0.7, 0.48, 1.0, metal); execute.position.set(2.4, 0, 0.2); this.group.add(execute);
     const executeLabel = buildLabel(scope, 'EXECUTE REGISTERED', 0.76); executeLabel.position.set(0, 1.02, 0.2); executeLabel.rotation.x = -Math.PI / 2.1; execute.add(executeLabel); scope.track(executeLabel.geometry);
     this.control({ object: execute, label: 'Execute selected registered operation', description: 'Starts only the selected registered route and returns an evidence receipt when its museum simulation verifies.', activate: () => this.execute() });
 
     const receiptBoard = new THREE.Mesh(scope.track(new THREE.BoxGeometry(6.0, 0.08, 0.72)), this.standard(0x2f3635, { roughness: 0.82 }));
-    receiptBoard.position.set(0, 0.72, -2.15); this.group.add(receiptBoard);
-    const receiptTitle = buildLabel(scope, 'EVIDENCE RECEIPT · STATES DO NOT COLLAPSE INTO “DONE”', 3.8);
-    receiptTitle.position.set(0, 1.62, -2.16); this.group.add(receiptTitle); scope.track(receiptTitle.geometry);
+    receiptBoard.position.set(0, 1.12, -2.15); // raised to read over the bay plinth this.group.add(receiptBoard);
+    const receiptTitle = buildLabel(scope, 'EVIDENCE RECEIPT · STATES DO NOT COLLAPSE INTO “DONE”', 4.4, STRIP);
+    receiptTitle.position.set(0, 1.86, -2.16); this.group.add(receiptTitle); scope.track(receiptTitle.geometry);
 
     RECEIPT_STATES.forEach((state, i) => {
       const lamp = new THREE.Mesh(scope.track(new THREE.BoxGeometry(0.42, 0.12, 0.28)), this.emissive(state.colour, 0.06));
       lamp.name = `E34 receipt ${state.key}`;
-      lamp.position.set(-2.5 + i, 0.86, -2.15); this.group.add(lamp); this.receiptLamps.push(lamp);
-      const label = buildLabel(scope, state.label, 0.72); label.position.set(-2.5 + i, 1.17, -2.13); this.group.add(label); scope.track(label.geometry);
+      lamp.position.set(-2.5 + i, 1.26, -2.15); this.group.add(lamp); this.receiptLamps.push(lamp);
+      const label = buildLabel(scope, state.label, 0.72); label.position.set(-2.5 + i, 1.52, -2.13); this.group.add(label); scope.track(label.geometry);
     });
 
-    const receipt = buildLabel(scope, 'REQUESTED → ATTEMPTED → CHANGED? → VERIFIED    FAILED / UNKNOWN stay distinct', 4.2);
-    receipt.position.set(0, 4.45, -6.4); this.group.add(receipt); scope.track(receipt.geometry);
+    const receipt = buildLabel(scope, 'REQUESTED → ATTEMPTED → CHANGED? → VERIFIED    FAILED / UNKNOWN stay distinct', 5.6, 0.12);
+    receipt.position.set(0, 4.85, -6.4); this.group.add(receipt); scope.track(receipt.geometry);
     this.applyReceiptVisualState();
   }
 
@@ -197,7 +206,7 @@ export class BigMacBackbone extends ExhibitBase {
   }
 
   protected override describeState(): string {
-    if (this.workflow < 0) return 'The AndrewOS control plane waits in front of six infrastructure nodes. No operation is selected; every identifier is synthetic. Evidence receipt lamps are clear.';
+    if (this.workflow < 0) return `The AndrewOS control plane waits in front of six infrastructure nodes, each labelled with the project it stands for: ${NODES.filter((n) => n.project).map((n) => `${n.name} — ${n.project}`).join('; ')}. No operation is selected; every identifier is synthetic. Evidence receipt lamps are clear.`;
     const w = WORKFLOWS[this.workflow];
     const receipt = [
       this.receiptRequested ? 'requested' : null,
@@ -205,6 +214,6 @@ export class BigMacBackbone extends ExhibitBase {
       this.receiptChanged ? 'changed' : null,
       this.receiptVerified ? 'verified' : null,
     ].filter(Boolean).join(' → ') || 'none';
-    return `${w.name} selected (${w.permission}). Preview ${this.previewReady ? 'is bound' : 'is not bound'}. Receipt: ${receipt}. Route: ${w.path.map((id) => NODES.find((n) => n.id === id)!.name).join(' → ')}.`;
+    return `${w.name} selected (${w.permission}). Preview ${this.previewReady ? 'is bound' : 'is not bound'}. Receipt: ${receipt}. Route: ${w.path.map((id) => { const n = NODES.find((node) => node.id === id)!; return n.project ? `${n.name} (${n.project})` : n.name; }).join(' → ')}.`;
   }
 }

@@ -1054,3 +1054,33 @@ html[data-contrast='high'] .hud__location[data-zone] { border-left-color: #fff; 
 @media (forced-colors: active) {
   .hud__location[data-zone] { border-left-color: CanvasText; }
 }
+
+/* DexGPT guide: example questions and a readable answer block. */
+.guide-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.9rem 0 0.2rem;
+}
+.guide-suggestions__item {
+  font-size: 0.78rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+}
+.guide-answer {
+  margin-top: 1.1rem;
+  line-height: 1.55;
+}
+.guide-answer button {
+  margin: 0.35rem 0.4rem 0 0;
+}
+#panel-dexgpt-guide label {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+#dexgpt-guide-query {
+  width: min(100%, 34rem);
+  margin-right: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  box-sizing: border-box;
+}

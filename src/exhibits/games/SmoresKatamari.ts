@@ -263,8 +263,8 @@ export class SmoresKatamari extends ExhibitBase {
     this.diorama.add(this.ball);
 
     // ── the compression note ──
-    const note = buildLabel(scope, 'The town is real. The distances are not — compressed about eight to one.', 3.4);
-    note.position.set(0, 1.5, -2.0);
+    const note = buildLabel(scope, 'The town is real. The distances are not — compressed about eight to one.', 3.8, 0.16);
+    note.position.set(0, 1.85, -2.0);
     this.diorama.add(note);
     scope.track(note.geometry);
 

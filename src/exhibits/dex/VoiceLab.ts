@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ExhibitBase } from '../ExhibitBase';
-import { buildPlaque, buildLectern, buildLabel } from '../Furniture';
+import { buildPlaque, buildLectern, buildLabel, updateLabel } from '../Furniture';
 import { buildConsole, Dial } from '../parts';
 import { ringTransforms } from '../../assets/generators';
 import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
@@ -51,19 +51,28 @@ const SAMPLES: readonly Sample[] = [
   },
 ];
 
+/**
+ * Each station is the part of the pipeline one or more of the five voice
+ * projects actually built, and says so on the station itself.
+ */
 const STAGES = [
-  { name: 'Raw transcription', note: 'What local recognition produced before any correction.', colour: 0x8a9aa0 },
-  { name: 'Refined transcription', note: 'After punctuation, casing and vocabulary repair. Still entirely on the machine.', colour: 0x3fb9b2 },
-  { name: 'Synthesised voice', note: 'The same text read back by a local synthesis engine.', colour: 0xe8c65a },
-  { name: 'Command interpretation', note: 'What a system would actually do with it — the point of dictation that reaches the whole OS.', colour: 0xd97a4e },
+  { name: 'Raw transcription', projects: 'DexDictate macOS · DexDictate Android', note: 'What local recognition produced before any correction. This is where DexDictate on macOS and its separate Android input method begin.', colour: 0x8a9aa0 },
+  { name: 'Refined transcription', projects: 'DexDictate', note: 'After punctuation, casing and vocabulary repair. Still entirely on the machine.', colour: 0x3fb9b2 },
+  { name: 'Synthesised voice', projects: 'DexSpeak · DexTalk · BigMac Voice Tools', note: 'The same text read back by a local synthesis engine: DexSpeak’s system and neural voices, a DexTalk cloned voice, or a model driven on a larger machine through BigMac Voice Tools.', colour: 0xe8c65a },
+  { name: 'Command interpretation', projects: 'DexDictate', note: 'What a system would actually do with it — the point of dictation that reaches the whole OS.', colour: 0xd97a4e },
 ] as const;
 
+/** What the synthesis station's screen shows: speech is not text, so it says what is being read. */
+const SPOKEN_PREFIX = 'Reads aloud: ';
+
 const WAVE_BARS = 56;
+const UP = new THREE.Vector3(0, 1, 0);
 
 export class VoiceLab extends ExhibitBase {
   private waveBars = this.tracked<THREE.Mesh>();
   private stationPanels = this.tracked<THREE.Mesh>();
   private stationLamps = this.tracked<THREE.Mesh>();
+  private stationReadouts = this.tracked<THREE.Mesh>();
   private sampleDial!: Dial;
   private sample = 0;
   private stage = 0;
@@ -82,8 +91,9 @@ export class VoiceLab extends ExhibitBase {
     scope.trackObject(plaque);
 
     const lectern = buildLectern(scope, this.ctx.record, this.ctx.projects);
-    lectern.position.set(3.4, 0, -5.0);
-    lectern.rotation.y = -0.6;
+    // Front right, clear of the ring and beside the entry path.
+    lectern.position.set(5.6, 0, -1.2);
+    lectern.rotation.y = -0.9;
     this.group.add(lectern);
     scope.trackObject(lectern);
 
@@ -135,7 +145,9 @@ export class VoiceLab extends ExhibitBase {
     const transforms = ringTransforms(STAGES.length, 3.9);
     STAGES.forEach((stage, i) => {
       const station = new THREE.Group();
-      station.position.setFromMatrixPosition(transforms[i]).add(new THREE.Vector3(0, 0, -3.6));
+      // The ring is turned an eighth so no station stands on the bay's central
+      // plinth, which occupies the front of the ring.
+      station.position.setFromMatrixPosition(transforms[i]).applyAxisAngle(UP, Math.PI / 4).add(new THREE.Vector3(0, 0, -3.6));
       station.rotation.y = Math.atan2(station.position.x, station.position.z + 3.6) + Math.PI;
       this.group.add(station);
 
@@ -169,9 +181,24 @@ export class VoiceLab extends ExhibitBase {
       this.stationLamps.push(lamp);
 
       const label = buildLabel(scope, stage.name, 1.0);
-      label.position.set(0, 1.85, 0);
+      label.position.set(0, 2.0, 0);
       station.add(label);
       scope.track(label.geometry);
+
+      // Which of the five projects this station demonstrates.
+      const attribution = buildLabel(scope, stage.projects, 1.0, 0.16);
+      attribution.position.set(0, 1.74, 0);
+      station.add(attribution);
+      scope.track(attribution.geometry);
+
+      // The stage's actual output for the current sample, on its screen, so
+      // the four results can be compared by looking from station to station.
+      const readout = buildLabel(scope, this.screenTextFor(i), 0.98, 0.45);
+      readout.position.set(0, 1.42, 0.075);
+      readout.rotation.x = -0.32;
+      station.add(readout);
+      scope.track(readout.geometry);
+      this.stationReadouts.push(readout);
 
       this.control({
         object: station,
@@ -190,7 +217,8 @@ export class VoiceLab extends ExhibitBase {
 
     // ── sample selector ──
     const selector = buildConsole(scope, 0.66, 0.5, 1.0, steel);
-    selector.position.set(0, 0, 1.4);
+    // In front of the central plinth rather than against it.
+    selector.position.set(0, 0, 2.3);
     this.group.add(selector);
 
     this.sampleDial = new Dial(scope, SAMPLES.length, 0.22, { handle: this.emissive(0x3fb9b2, 0.8) });
@@ -211,6 +239,7 @@ export class VoiceLab extends ExhibitBase {
       activate: () => {
         this.sample = this.sampleDial.advance();
         this.playhead = 0;
+        this.refreshReadouts();
         this.ctx.announce(`Sample: ${SAMPLES[this.sample].label}. ${this.textFor(this.stage)}`);
       },
     });
@@ -223,6 +252,14 @@ export class VoiceLab extends ExhibitBase {
   }
 
   private waveGroup!: THREE.Group;
+
+  private screenTextFor(stage: number): string {
+    return stage === 2 ? `${SPOKEN_PREFIX}${this.textFor(stage)}` : this.textFor(stage);
+  }
+
+  private refreshReadouts(): void {
+    this.stationReadouts.forEach((readout, i) => updateLabel(this.ctx.scope, readout, this.screenTextFor(i)));
+  }
 
   private textFor(stage: number): string {
     const s = SAMPLES[this.sample];
@@ -263,6 +300,7 @@ export class VoiceLab extends ExhibitBase {
   }
 
   protected override onReset(): void {
+    const sampleChanged = this.sample !== 0;
     this.sample = 0;
     this.stage = 0;
     this.playhead = 0;
@@ -271,6 +309,7 @@ export class VoiceLab extends ExhibitBase {
       this.sampleDial.update(0, true);
     }
     if (this.waveGroup) this.waveGroup.rotation.set(0, 0, 0);
+    if (sampleChanged) this.refreshReadouts();
     this.stationLamps.forEach((l, li) => {
       (l.material as THREE.MeshStandardMaterial).emissiveIntensity = li === 0 ? 1.5 : 0.08;
     });
@@ -279,6 +318,6 @@ export class VoiceLab extends ExhibitBase {
   protected override describeState(): string {
     const sample = SAMPLES[this.sample];
     const stage = STAGES[this.stage];
-    return `Sample “${sample.label}”, shown at the ${stage.name.toLowerCase()} station: “${this.textFor(this.stage)}”. No microphone is in use.`;
+    return `Sample “${sample.label}”, shown at the ${stage.name.toLowerCase()} station (${stage.projects}): “${this.textFor(this.stage)}”. No microphone is in use.`;
   }
 }

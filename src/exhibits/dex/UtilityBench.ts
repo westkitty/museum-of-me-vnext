@@ -126,19 +126,19 @@ export class UtilityBench extends ExhibitBase {
 
     // ── the honest meter ──
     const meterFrame = new THREE.Mesh(scope.track(new THREE.BoxGeometry(2.4, 0.3, 0.08)), steel);
-    meterFrame.position.set(0, 2.0, -4.3);
+    meterFrame.position.set(0, 1.35, -4.3);
     this.group.add(meterFrame);
 
     this.meter = new THREE.Mesh(
       scope.track(new THREE.BoxGeometry(2.2, 0.2, 0.06)),
       this.emissive(0x3fb9b2, 0.9),
     );
-    this.meter.position.set(0, 2.0, -4.25);
+    this.meter.position.set(0, 1.35, -4.25);
     this.meter.scale.x = 0.001;
     this.group.add(this.meter);
 
-    const meterLabel = buildLabel(scope, 'Actually reclaimable', 1.5);
-    meterLabel.position.set(0, 2.34, -4.3);
+    const meterLabel = buildLabel(scope, 'Actually reclaimable', 1.5, 0.18);
+    meterLabel.position.set(0, 1.62, -4.3);
     this.group.add(meterLabel);
     scope.track(meterLabel.geometry);
 
@@ -191,8 +191,8 @@ export class UtilityBench extends ExhibitBase {
     });
 
     // The absent control, named. A gap the visitor can see is a design statement.
-    const absent = buildLabel(scope, 'There is no delete lever on this bench.', 2.6);
-    absent.position.set(0, 2.7, -4.3);
+    const absent = buildLabel(scope, 'There is no delete lever on this bench.', 3.6, 0.14);
+    absent.position.set(0, 3.75, -7.15);
     this.group.add(absent);
     scope.track(absent.geometry);
   }

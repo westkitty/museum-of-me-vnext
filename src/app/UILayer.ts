@@ -136,7 +136,7 @@ export class UILayer {
       this.embeddedPaused = false;
       this.app.resumeFromEmbedded();
     }));
-    this.dexgptGuide = new MuseumGuidePanel(new DeterministicMuseumGuide(app.journal, app.visitThread), (id) => this.mapGuide(id));
+    this.dexgptGuide = new MuseumGuidePanel(new DeterministicMuseumGuide(app.journal, app.visitThread, () => ({ exhibitId: app.currentExhibitId, zoneLabel: app.zoneLabel })), (id) => this.mapGuide(id));
     this.visitThread = new VisitThreadPanel(
       app.visitThread,
       app.journal,
