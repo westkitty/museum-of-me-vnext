@@ -15,9 +15,44 @@ export const WORKSHOP_PREFABS = [
     description: 'Freestanding museum sign for wayfinding or temporary interpretation.',
   },
   {
+    id: 'sculpture-sphere',
+    label: 'Sculpture sphere',
+    description: 'A resizable sphere: small display piece or monumental outdoor sculpture.',
+  },
+  {
+    id: 'wall-art',
+    label: 'Wall artwork',
+    description: 'Frame with editable size, depth, color and locally imported image.',
+  },
+  {
+    id: 'wall-panel',
+    label: 'Paintable wall panel',
+    description: 'Thin wall finish overlay that can be colored, sized and surface-mounted.',
+  },
+  {
     id: 'artifact-table',
     label: 'Artifact table',
     description: 'Non-colliding display table for small objects and exhibit dressing.',
+  },
+  {
+    id: 'partition-wall',
+    label: 'Partition wall',
+    description: 'Resizable paintable 3m-high construction wall; solid visitor collision by default.',
+  },
+  {
+    id: 'floor-slab',
+    label: 'Floor slab',
+    description: 'Resizable 2m floor module with walkable top and adjustable height.',
+  },
+  {
+    id: 'roof-panel',
+    label: 'Roof panel',
+    description: 'Resizable paintable roof module; place and rotate above your authored walls.',
+  },
+  {
+    id: 'catalog-model',
+    label: 'Imported 3D model',
+    description: 'Reusable project GLB or a locally imported model with scale, color and interaction controls.',
   },
 ] as const;
 

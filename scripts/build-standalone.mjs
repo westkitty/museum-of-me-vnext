@@ -51,6 +51,99 @@ for (const file of assets) {
   encoded.set(rel, `data:${mimeFor(file)};base64,${bytes.toString('base64')}`);
 }
 
+// Offline authored artwork stays inside the portable HTML document.
+// Refuse missing or tampered files before producing a release.
+const authoredSource = JSON.parse(readFileSync(join(root, 'data/workshop-placements.json'), 'utf8'));
+const embeddedWorkshopMedia = {};
+for (const item of authoredSource.objects ?? []) {
+  const image = item.image;
+  if (!image) continue;
+  if (!/^workshop-media\/[0-9a-f]{64}\.webp$/.test(image)) {
+    throw new Error(`standalone: unsupported authored media reference: ${image}`);
+  }
+  if (embeddedWorkshopMedia[image]) continue;
+  const bytes = readFileSync(join(dist, image));
+  const hash = createHash('sha256').update(bytes).digest('hex');
+  if (bytes.length < 20 || bytes.length > 3 * 1024 * 1024
+    || bytes.toString('ascii', 0, 4) !== 'RIFF'
+    || bytes.toString('ascii', 8, 12) !== 'WEBP'
+    || bytes.readUInt32LE(4) !== bytes.length - 8
+    || !['VP8 ', 'VP8L', 'VP8X'].includes(bytes.toString('ascii', 12, 16))
+    || hash !== image.slice('workshop-media/'.length, -'.webp'.length)) {
+    throw new Error(`standalone: invalid, oversized or tampered authored image: ${image}`);
+  }
+  embeddedWorkshopMedia[image] = `data:image/webp;base64,${bytes.toString('base64')}`;
+}
+// Assemble only in-use textures and GLB models into the offline file.
+// The catalog is a source-pinned local inventory. Never fetch external URLs.
+const builderCatalog = JSON.parse(readFileSync(join(root, 'src/workshop/builderAssets.json'), 'utf8'));
+const byModelId = new Map(builderCatalog.models.map((model) => [model.id, model]));
+const byFinishId = new Map(builderCatalog.textures.map((finish) => [finish.id, finish]));
+const surfaceFinishes = new Set([
+  ...(authoredSource.objects ?? []).map((item) => item.texture),
+  ...(authoredSource.surfaceOverrides ?? []).map((item) => item.texture),
+].filter(Boolean));
+for (const finish of surfaceFinishes) {
+  if (embeddedWorkshopMedia[finish]) continue;
+  const known = byFinishId.get(finish);
+  if (known) {
+    const path = known.path;
+    if (!/^builder-assets\/openlife\/[a-z0-9_]+\.png$/.test(path)) {
+      throw new Error('standalone: catalog finish has unsafe path');
+    }
+    const bytes = readFileSync(join(dist, path));
+    if (bytes.length > 3 * 1024 * 1024 || bytes.length < 24
+      || !bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
+      throw new Error('standalone: invalid catalog texture: ' + finish);
+    }
+    embeddedWorkshopMedia[finish] = 'data:image/png;base64,' + bytes.toString('base64');
+    continue;
+  }
+  if (!/^workshop-media\/[0-9a-f]{64}\.webp$/.test(finish)) {
+    throw new Error('standalone: unapproved texture reference: ' + finish);
+  }
+  const bytes = readFileSync(join(dist, finish));
+  const hash = createHash('sha256').update(bytes).digest('hex');
+  if (hash !== finish.slice(15, -5)
+    || bytes.length < 20 || bytes.length > 3 * 1024 * 1024
+    || bytes.toString('ascii', 0, 4) !== 'RIFF'
+    || bytes.toString('ascii', 8, 12) !== 'WEBP') {
+    throw new Error('standalone: texture hash mismatch: ' + finish);
+  }
+  embeddedWorkshopMedia[finish] = 'data:image/webp;base64,' + bytes.toString('base64');
+}
+const modelRefs = new Set((authoredSource.objects ?? [])
+  .map((item) => item.assetId).filter(Boolean));
+for (const id of modelRefs) {
+  const known = byModelId.get(id);
+  let path;
+  if (known) {
+    path = known.path;
+    if (!/^builder-assets\/openlife\/[a-z0-9_]+\.glb$/.test(path)) {
+      throw new Error('standalone: unsafe catalog model path');
+    }
+  } else if (/^workshop-models\/[0-9a-f]{64}\.glb$/.test(id)) {
+    path = id;
+  } else {
+    throw new Error('standalone: unknown model: ' + id);
+  }
+  const bytes = readFileSync(join(dist, path));
+  const hash = createHash('sha256').update(bytes).digest('hex');
+  if (bytes.length < 32 || bytes.length > 8 * 1024 * 1024
+    || bytes.readUInt32LE(0) !== 0x46546c67 || bytes.readUInt32LE(4) !== 2
+    || bytes.readUInt32LE(8) !== bytes.length
+    || (known ? hash !== known.sha256 : hash !== id.slice(16, -4))) {
+    throw new Error('standalone: invalid, oversized or tampered GLB ' + id);
+  }
+  embeddedWorkshopMedia[id] = 'data:application/octet-stream;base64,' + bytes.toString('base64');
+}
+
+if (Object.keys(embeddedWorkshopMedia).length) {
+  const payload = `<script type="application/json" id="museum-workshop-media">${JSON.stringify(embeddedWorkshopMedia)}</script>`;
+  if (!html.includes('</head>')) throw new Error('standalone: HTML head not found for inline artwork');
+  html = html.replace('</head>', `${payload}</head>`);
+}
+
 html = html.replace(/(?:src|href)="(\.\/assets\/[^"]+)"/g, (all, spec) => {
   const key = spec.replace(/^\.\//, '');
   const data = encoded.get(key);

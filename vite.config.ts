@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite';
 import { fileURLToPath, URL } from 'node:url';
+import { readFile, rm } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { museumWorkshopSavePlugin } from './scripts/workshop-save-plugin';
 
 export default defineConfig({
@@ -8,6 +10,27 @@ export default defineConfig({
   base: process.env.VITE_PUBLIC_BASE || './',
   assetsInclude: ['**/*.glb'],
   plugins: [museumWorkshopSavePlugin(), {
+    name: 'museum-private-workshop-assets',
+    apply: 'build',
+    async buildStart() {
+      const manifest = JSON.parse(await readFile(resolve('data/workshop-placements.json'), 'utf8')) as {
+        objects?: { assetId?: string; image?: string; texture?: string }[];
+        surfaceOverrides?: { texture?: string }[];
+      };
+      const references = [
+        ...(manifest.objects ?? []).flatMap((object) => [object.assetId, object.image, object.texture]),
+        ...(manifest.surfaceOverrides ?? []).map((surface) => surface.texture),
+      ];
+      if (references.some((value) => value?.startsWith('workshop-models/') || value?.startsWith('workshop-media/'))) {
+        this.error('Public builds cannot include private Workshop imports. Preserve the manifest and use the local standalone workflow or remove references only with owner approval.');
+      }
+    },
+    async writeBundle(options) {
+      const output = resolve(options.dir ?? 'dist');
+      await Promise.all(['workshop-models', 'workshop-media'].map((name) =>
+        rm(resolve(output, name), { recursive: true, force: true })));
+    },
+  }, {
     name: 'museum-workbench-directory-index',
     configureServer(server) {
       // Vite's public-file lookup indexes files, not directories. Without this

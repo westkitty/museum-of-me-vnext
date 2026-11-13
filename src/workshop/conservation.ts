@@ -30,6 +30,8 @@ import {
   type WorkshopPlacementRecord,
 } from './schema';
 import type { WorkshopPrefabId } from './catalog';
+import { builderModel } from './builderAssetCatalog';
+import { meaningProblem } from './MeaningfulObjects';
 import {
   AUTHORABLE_SCENE_DEFINITIONS,
   type AuthorableSceneEntry,
@@ -76,6 +78,13 @@ const PREFAB_BOUNDS: Record<WorkshopPrefabId, PrefabBounds> = {
   'museum-bench': { halfX: 1.1, halfY: 0.385, halfZ: 0.36, minY: 0, maxY: 0.77 },
   'sign-post': { halfX: 0.625, halfY: 0.89, halfZ: 0.26, minY: 0, maxY: 1.78 },
   'artifact-table': { halfX: 0.825, halfY: 0.5, halfZ: 0.5, minY: 0, maxY: 1 },
+  'sculpture-sphere': { halfX: 0.5, halfY: 0.5, halfZ: 0.5, minY: -0.5, maxY: 0.5 },
+  'wall-art': { halfX: 0.5, halfY: 0.5, halfZ: 0.05, minY: -0.5, maxY: 0.5 },
+  'wall-panel': { halfX: 0.5, halfY: 0.5, halfZ: 0.05, minY: -0.5, maxY: 0.5 },
+  'catalog-model': { halfX: 2.5, halfY: 2.5, halfZ: 2.5, minY: 0, maxY: 5 },
+  'partition-wall': { halfX: 0.5, halfY: 1.5, halfZ: 0.075, minY: 0, maxY: 3 },
+  'floor-slab': { halfX: 1, halfY: 0.08, halfZ: 1, minY: -0.16, maxY: 0 },
+  'roof-panel': { halfX: 1, halfY: 0.09, halfZ: 1, minY: -0.09, maxY: 0.09 },
 };
 
 const SCENE_BOUNDS = new Map(AUTHORABLE_SCENE_DEFINITIONS.map((entry) => [entry.id, entry.bounds]));
@@ -226,8 +235,20 @@ function protectedAreas(): readonly ProtectedArea[] {
 
 const PROTECTED_AREAS = protectedAreas();
 
+/** Nominal half extents of a placement before scale and rotation, as conservation assesses it. */
+export function workshopPlacementExtents(record: WorkshopPlacementRecord): Readonly<PrefabBounds> {
+  return placementBounds(record);
+}
+
+function placementBounds(record: WorkshopPlacementRecord): PrefabBounds {
+  if (record.prefab !== 'catalog-model') return PREFAB_BOUNDS[record.prefab];
+  const size = record.assetId ? builderModel(record.assetId)?.nominalSize : null;
+  if (!size) return PREFAB_BOUNDS['catalog-model']; // safe upper envelope for unknown imports
+  return { halfX: size[0] / 2, halfY: size[1] / 2, halfZ: size[2] / 2, minY: 0, maxY: size[1] };
+}
+
 function placementRadius(record: WorkshopPlacementRecord): number {
-  const bounds = PREFAB_BOUNDS[record.prefab];
+  const bounds = placementBounds(record);
   // A sphere is intentionally conservative for arbitrary Euler rotation. The
   // validator protects visitor experience, not a new collision representation.
   return Math.hypot(
@@ -238,9 +259,9 @@ function placementRadius(record: WorkshopPlacementRecord): number {
 }
 
 function overlapsVertical(record: WorkshopPlacementRecord, area: ProtectedArea): boolean {
-  const bounds = PREFAB_BOUNDS[record.prefab];
-  const minY = record.position[1] + bounds.minY;
-  const maxY = record.position[1] + bounds.maxY;
+  const bounds = placementBounds(record);
+  const minY = record.position[1] + bounds.minY * record.scale[1];
+  const maxY = record.position[1] + bounds.maxY * record.scale[1];
   return minY <= area.yMax && maxY >= area.yMin;
 }
 
@@ -276,6 +297,9 @@ export function validateWorkshopConservation(
       });
       break;
     }
+    const meaning = meaningProblem(record);
+    if (meaning) violations.push({ placementId: record.id, placementLabel: record.label, protectedArea: 'Meaningful object binding',
+      rule: 'meaning-proximity', reason: meaning });
   }
 
   const entriesById = new Map(sceneEntries.map((entry) => [entry.id, entry]));
