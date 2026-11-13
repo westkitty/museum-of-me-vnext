@@ -10,8 +10,6 @@ const world = new ExteriorWorld('low');
 const manifest = (...objects: WorkshopPlacementRecord[]): WorkshopPlacementManifest => ({ schemaVersion: 2, objects });
 const run = (m: WorkshopPlacementManifest) => exteriorJury(buildMuseumSceneIndex(m, { exterior: world.collision }), m, world.collision);
 const route = (report: ReturnType<typeof run>, id: string) => report.routes.find((item) => item.id === id)!;
-/** The museum shell's long east and west outer walls in the exterior world (x = ±37.2–38.8, z = −98…98). */
-const isShellWall = (position: readonly number[] | null | undefined) => Boolean(position && Math.abs(Math.abs(position[0]) - 38) < 1 && Math.abs(position[2]) < 1);
 
 describe('Virtual Visitor Jury — exterior', () => {
   const clean = run(manifest());
@@ -24,18 +22,12 @@ describe('Virtual Visitor Jury — exterior', () => {
     expect(clean.walked.metres).toBeGreaterThan(500);
   });
 
-  it('reports island paths that run through the museum building, naming its shell wall, and never hides them', () => {
-    // The authored path ribbons pass inside the building footprint (e.g. the junction at
-    // (36, 54) is inside the east wall); the visitor cannot follow them there.
+  it('walks every island path end to end: each one goes around the museum, not through it', () => {
     const paths = clean.routes.filter((item) => item.id.startsWith('exterior:path-'));
-    for (const path of paths) {
-      if (path.status === 'PASS') continue;
-      expect(path.status).toBe('FAIL');
-      expect(path.affected.length).toBeGreaterThan(0);
-      expect(path.affected.some((item) => item.kind === 'collider' && (isShellWall(item.position) || /exterior collider/.test(item.label)))).toBe(true);
-    }
-    expect(clean.status).toBe(paths.some((item) => item.status === 'FAIL') ? 'FAIL' : 'PASS');
-    expect(clean.summary).toContain('exterior routes');
+    expect(paths).toHaveLength(PATH_CENTERLINES.length);
+    for (const path of paths) expect({ id: path.id, status: path.status, detail: path.detail }).toEqual({ id: path.id, status: 'PASS', detail: path.detail });
+    expect(clean.status).toBe('PASS');
+    expect(clean.summary).toContain('exterior routes all walked without a break');
   });
 
   it('fails the arrival and names a solid placement blocking the pier', () => {

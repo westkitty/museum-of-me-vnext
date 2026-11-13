@@ -1,0 +1,57 @@
+[
+  {
+    "path": 1,
+    "waypoints": 53,
+    "steps": 2710,
+    "seconds": 45.2,
+    "maxOffLine": 0.3,
+    "minY": -0.5,
+    "airborneSteps": 0,
+    "stuckAt": null,
+    "endDistance": 0.85
+  },
+  {
+    "path": 2,
+    "waypoints": 64,
+    "steps": 3304,
+    "seconds": 55.1,
+    "maxOffLine": 0.47,
+    "minY": -0.5,
+    "airborneSteps": 0,
+    "stuckAt": null,
+    "endDistance": 0.88
+  },
+  {
+    "path": 3,
+    "waypoints": 50,
+    "steps": 2558,
+    "seconds": 42.6,
+    "maxOffLine": 0.52,
+    "minY": -0.5,
+    "airborneSteps": 0,
+    "stuckAt": null,
+    "endDistance": 0.9
+  },
+  {
+    "path": 4,
+    "waypoints": 69,
+    "steps": 3539,
+    "seconds": 59,
+    "maxOffLine": 0.1,
+    "minY": -0.5,
+    "airborneSteps": 0,
+    "stuckAt": null,
+    "endDistance": 0.9
+  },
+  {
+    "path": 5,
+    "waypoints": 46,
+    "steps": 2318,
+    "seconds": 38.6,
+    "maxOffLine": 0.31,
+    "minY": -0.5,
+    "airborneSteps": 0,
+    "stuckAt": null,
+    "endDistance": 0.9
+  }
+]
