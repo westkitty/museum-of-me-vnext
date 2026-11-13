@@ -71,4 +71,20 @@ Mission: MUSEUM-INTELLIGENT-BUILDER. Status: NOT COMPLETE; Phase 0 in progress.
 - **Real-player evidence** (`docs/evidence/exterior-path-reroute-2026-11-12/`): the live `PlayerController` walked every path's rendered spline in Chromium. None got stuck, the player was never airborne, and the maximum deviation was 0.52 m. There are 11 runtime frames, top-down, oblique and eye-level, reviewed individually.
 - **Forest tree-count ranges were unchanged and pass.**
 
-Next action: full Workshop browser suite on the merged tree, then exact-head CI after push; remaining: Bible continuity entries, device performance measurements on the authorized MacBook Air M1/8 GB (NOT TESTED), and artistic review of proposed Featured installations and Exhibit Kits. The island path reroute is done. PR stays draft; no merge to main or deploy.
+- **Device performance on the authorized MacBook Air M1 / 8 GB (2026-11-12): measured.** Evidence is in `docs/evidence/device-performance-2026-11-12/`. The run used real Chrome 157, headed, on the ANGLE Metal hardware GPU, with a production build for the visitor and the dev Workshop for the 2,000-placement field.
+  - **Exterior:** idle, walking and after return all hold 59.9 fps, p99 ≤ 17.7 ms, with no frame over 50 ms.
+  - **2,000 placements:** a manifest replace takes 18 ms. 384 placements are live (the cap). Frames hold 59.9 fps, p99 17.5 ms, through a 28-teleport residency sweep.
+  - **Cold start:** first contentful paint 724–1,052 ms; app rendering 962–1,331 ms; 508 KB transferred.
+  - **Interior:** `prepareInterior` takes 254–813 ms.
+  - **Open issue, first interior entry hitch:** the worst frame on first entry is 334–835 ms. A single 6.3 s gap was seen once and did not reproduce. Later transitions are at most 34 ms.
+  - **Memory:** after forced GC there is no DOM, heap or listener growth over 10 round trips (701 nodes, about 33 MB, 123 listeners).
+  - **Not measured:** battery, Retina DPR 2, long sessions, thermal behaviour, disk save of 2,000 records, other browsers.
+  - Museum Health's per-manifest "Device frame time" check correctly stays NOT TESTED.
+
+- **Artistic review (2026-11-12):** both Exhibit Kit templates were rendered in the real runtime and inspected (`docs/evidence/artistic-review-2026-11-12/`, not saved).
+  - **Archive Research Station: reviewed, not accepted.** The shelves are blank slabs and the document table's materials clash with the rest of the kit.
+  - **Observatory Workstation: reviewed, not accepted.** The logging computer floats beside the desk at desk height, the telescope drum looks detached, and the star-chart shelf is blank.
+  - **Featured 200: not reviewed in place and not accepted.** None is installed. All 1,883 verified models remain browse-only.
+  - No canonical content was changed.
+
+Next action: full Workshop browser suite on the merged tree, then exact-head CI after push; remaining: Bible continuity entries, the first interior entry hitch measured on the M1/8 GB (0.3–0.8 s worst frame), Exhibit Kit template fixes (both reviewed, not accepted), and in-place artistic review of any Featured model before installation. The island path reroute is done. PR stays draft; no merge to main or deploy.
