@@ -49,3 +49,28 @@ Baseline git checkpoint before Iteration 1: `31cefc7315c077a013687f5539f681555f8
 - **Repair Passes Used (1 / 2 budget):** Moved bolted `DELETE ALL: OMITTED BY DESIGN` plate from table deck top (`y = 1.38, z = -4.18`) onto the front workbench fascia (`y = 0.98, z = -3.84`) so the audited `14.5 GB` cyan column renders completely unobstructed.
 - **Falsifier Verified:** Attempting `Assemble Safe Non-Delete Plan` with `0/4` or `2/4` audited gates leaves `SafePlan=false` and increments `Refusals`; completing all `4/4` gates unlocks `SafePlan=true` (`NetReclaimable=14500MB`, `Protected=49500MB`).
 - **Recommendation:** `ACCEPT` Iteration 2 uplift locally on `arena/eight-replacements`.
+
+
+---
+
+## Iteration 3 — E12 (`Rhetorical InDEX — Move the Lens, Not the Verdict`)
+- **Starting SHA & Branch:** `417447acc5892b2f93638ba673ee982493a81014` on `arena/eight-replacements`
+- **Target Slot & Paths Modified:** `experiments/arena/replacements/E12-the-headline-that-built-two-cities/{model.ts, index.ts, E12.test.ts, E12.e2e.ts, artifacts/*}`
+- **Scope Boundary Preserved:** `experiments/arena/replacements/**` only (`src/`, `data/`, incumbents, `main`, and `pages-preview` untouched).
+
+### 1. Observed BEFORE Baseline & Largest Consequential Gap
+- Captured and inspected `E12` Chromium WebGL renders (`artifacts/e12-divergent.png`, `artifacts/e12-dissolved.png`) plus real project canon in `data/projects/west.json` (`P062 Rhetorical InDEX`) and `src/exhibits/archive/RhetoricalIndex.ts`.
+- **Champion E12 BEFORE (`417447a`):** Built two uniform stacked cube towers (`City A` / `City B`) out of identical white/red/blue blocks, collided the `IMMUTABLE SOURCE LOGS` plaque directly behind `08:00 · Valve Flow 420 L/s`, and slid both cities inward to `x = ±0.35` on `Dissolve to Shared Source` so they physically clipped into `centralLedger` while floating headlines stayed visible.
+- **Largest AWE Gap:** Treating both cities as undifferentiated blocks hid *why* two headlines disagree from identical logs — obscuring `P062`'s core grammatical taxonomy (`evidence`, `interpretation`, `framing`, `inference`, `unsupported`) and breaking visual honesty when dissolving back to shared source.
+
+### 2. Three Competing Hypotheses Considered
+- **Hypothesis A (Visual Restraint / Anatomy):** Rebuild `City A` and `City B` as three clearly differentiated rhetorical strata (`Evidence` bedrock, `Framing` colonnade scaling with `Emphasis`, and untethered `Inference` spires) and keep both towers flanking `centralLedger` cleanly on dissolve (`x = ±1.68`).
+- **Hypothesis B (Grammatical Lens Mechanics):** Replace generic log selection with a sweeping optical `Rhetorical InDEX` scanner rail across spaced immutable source logs that inspects exact per-row rhetorical move spans (`framing`, `interpretation`, `inference`) across both towers simultaneously.
+- **Hypothesis C (Structural Synthesis / Selected):** Unify A + B: space 3 immutable harbor source logs vertically (`LOG_ROW_YS = [1.38, 1.88, 2.38]`) beneath `IMMUTABLE SOURCE LOGS (3)` (`y = 2.92`); add a sweeping horizontal optical scanner aperture (`1.56 x 0.34`) with bilateral filaments tying immutable facts to matching 3-course `Evidence` bedrocks; render fluted/buttressed `Framing` colonnades that respond selectively to `Emphasis` and retract cleanly into the bedrock (`0.03` height) while hiding divergent headlines when `Dissolved`; crown each city with untethered translucent `Inference` crystal spires that strip cleanly; and surface per-timestamp `P062` move tags (`spanTagA` / `spanTagB` at `y = 1.32`).
+
+### 3. Hard Gates & Challenger Verdict
+- Passed Purpose (`Commission 13` compliant: zero truth scoring, zero real-world political claims, immutable observations remain unchanged across every framing move), Invariants (zero `onUpdate` allocs, `plinthIntersections === 0`, 0 leaks across 3 remount cycles, Tier-C `1626` tris in Playwright render, `detailScale: 0.5` & `reducedMotion` parity), Truth (`P062` rhetorical-move grammar + explicit synthetic harbor log caveats), Access, Feasibility, Authority, and Demonstrability.
+- **Repair Passes Used (1 / 2 budget):** Relocated `ledgerHeader` (`y = 2.92`), swapped oversized `0.76` circular `reticleRing` for a compact `1.56 x 0.34` rectangular scanner aperture, lifted `spanTagA`/`spanTagB` to `y = 1.32` clear of console levers, and raised `headlineA`/`headlineB` (`y = 3.92`) and `statusReadout` (`y = 4.56`) clear of crystal tips — confirmed clean in `e12-divergent.png`, `e12-pinned-span.png`, and `e12-dissolved.png`.
+- **Falsifier Verified:** Stepping through all framing shifts, per-row lens pins (`08:04` -> `08:09` -> `08:00` -> `all`), `Strip Unsupported Inferences`, `Dissolve to Shared Source`, and `Reset Framing` keeps `SHARED_OBSERVATIONS.length === 3` and observation timestamps/metrics bit-identical while retracting both framing colonnades and hiding headlines only on `Dissolved`, with `Last unmount leak: 0`.
+- **Honest Limits:** `SHARED_OBSERVATIONS` remains synthetic 3-row harbor telemetry paired with pre-authored `P062` move classifications rather than a live free-text NLP parser, honoring `Commission 13` safety constraints.
+- **Recommendation:** `ACCEPT` Iteration 3 uplift locally on `arena/eight-replacements`.

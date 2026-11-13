@@ -2,10 +2,16 @@ export type EmphasisTarget = 'balanced' | 'frameA' | 'frameB';
 
 export type PinnedObservationId = 'all' | 'obs_flow' | 'obs_seal' | 'obs_bypass';
 
+export type RhetoricalMove = 'evidence' | 'interpretation' | 'framing' | 'inference' | 'unsupported';
+
 export interface ImmutableObservation {
   readonly id: Exclude<PinnedObservationId, 'all'>;
   readonly timestamp: string;
   readonly metric: string;
+  readonly moveA: RhetoricalMove;
+  readonly framingA: string;
+  readonly moveB: RhetoricalMove;
+  readonly framingB: string;
 }
 
 export interface FramingState {
@@ -17,24 +23,52 @@ export interface FramingState {
   readonly lastAction: string;
 }
 
+/**
+ * Fictional harbor sensor log shared identically by both framing architectures
+ * (honoring P062 span classification without real-world articles or truth scores).
+ */
 export const SHARED_OBSERVATIONS: readonly ImmutableObservation[] = [
-  { id: 'obs_flow', timestamp: '08:00', metric: 'Basin Valve Flow 420 L/s' },
-  { id: 'obs_seal', timestamp: '08:04', metric: 'Gasket Pressure -11%' },
-  { id: 'obs_bypass', timestamp: '08:09', metric: 'Manual Bypass Engaged' },
+  {
+    id: 'obs_flow',
+    timestamp: '08:00',
+    metric: 'Valve Flow 420 L/s',
+    moveA: 'evidence',
+    framingA: 'Nominal intake baseline',
+    moveB: 'interpretation',
+    framingB: 'Early surge warning ignored',
+  },
+  {
+    id: 'obs_seal',
+    timestamp: '08:04',
+    metric: 'Gasket -11%',
+    moveA: 'framing',
+    framingA: 'Minor pressure variance',
+    moveB: 'interpretation',
+    framingB: 'Confirmed seal fatigue',
+  },
+  {
+    id: 'obs_bypass',
+    timestamp: '08:09',
+    metric: 'Manual Bypass',
+    moveA: 'framing',
+    framingA: 'Prompt save before surge',
+    moveB: 'inference',
+    framingB: 'Unlogged safety override',
+  },
 ] as const;
 
 export const FRAME_HEADLINES: Readonly<Record<EmphasisTarget, { readonly a: string; readonly b: string }>> = {
   balanced: {
-    a: 'CITY A: PROMPT CREW BYPASS SAVED CONDUIT',
-    b: 'CITY B: VALVE WARNING OVERRIDDEN AT 08:09',
+    a: 'CITY A · PROMPT CREW SAVED CONDUIT',
+    b: 'CITY B · WARNING OVERRIDDEN 08:09',
   },
   frameA: {
-    a: 'CITY A: HEROIC INTERVENTION AVERTS FLOOD',
-    b: 'CITY B: DELAYED LOGS RAISE QUESTIONS',
+    a: 'CITY A · HEROIC BYPASS AVERTS FLOOD',
+    b: 'CITY B · DELAYED LOGS RAISE DOUBT',
   },
   frameB: {
-    a: 'CITY A: ROUTINE VALVE REROUTE COMPLETED',
-    b: 'CITY B: UNEXPLAINED BYPASS HIDES SEAL DROP',
+    a: 'CITY A · ROUTINE VALVE REROUTE',
+    b: 'CITY B · BYPASS MASKS SEAL DROP',
   },
 };
 
@@ -45,7 +79,7 @@ export function createInitialFramingState(): FramingState {
     pinned: 'all',
     inferencesStripped: false,
     dissolvedToSource: false,
-    lastAction: 'Dual civic narratives constructed atop identical 08:00-08:09 harbor telemetry.',
+    lastAction: 'Twin rhetorical skylines standing atop identical 08:00-08:09 source strata.',
   };
 }
 
@@ -56,17 +90,25 @@ export function cycleEmphasis(state: FramingState): FramingState {
     ...state,
     emphasis: next,
     dissolvedToSource: false,
-    lastAction: `Emphasis shifted to ${next.toUpperCase()} — headlines & tower elevation updated; source logs unchanged.`,
+    lastAction: `Lens shifted to ${next.toUpperCase()} — framing colonnades re-elevated; evidence bedrock untouched.`,
   };
 }
 
 export function cyclePinnedObservation(state: FramingState): FramingState {
   const order: readonly PinnedObservationId[] = ['all', 'obs_flow', 'obs_seal', 'obs_bypass'];
   const next = order[(order.indexOf(state.pinned) + 1) % order.length];
+  if (next === 'all') {
+    return {
+      ...state,
+      pinned: next,
+      lastAction: 'Swept InDEX lens across all 3 shared source rows (evidence vs framing spans).',
+    };
+  }
+  const obs = SHARED_OBSERVATIONS.find((o) => o.id === next)!;
   return {
     ...state,
     pinned: next,
-    lastAction: `Pinned shared source entry: ${next.toUpperCase()}.`,
+    lastAction: `${obs.timestamp} ${obs.metric} -> A[${obs.moveA}: ${obs.framingA}] vs B[${obs.moveB}: ${obs.framingB}].`,
   };
 }
 
@@ -76,8 +118,8 @@ export function toggleStripInferences(state: FramingState): FramingState {
     ...state,
     inferencesStripped: next,
     lastAction: next
-      ? 'Unsupported motive & blame spires stripped; only tethered observations remain.'
-      : 'Unsupported inference spires restored on both opposing frames.',
+      ? 'Unsupported inference crowns stripped — neither city can anchor those spires to source logs.'
+      : 'Unsupported inference spires restored above framing cornices.',
   };
 }
 
@@ -87,7 +129,7 @@ export function toggleDissolveToSource(state: FramingState): FramingState {
     ...state,
     dissolvedToSource: next,
     lastAction: next
-      ? 'Both divergent towers collapsed back to the single immutable 3-line observation ledger.'
-      : 'Restored twin divergent narrative cities over the shared observation plinth.',
+      ? 'Both rhetorical frames dissolved cleanly down onto the shared 3-log bedrock.'
+      : 'Rebuilt divergent City A & City B framing colonnades over shared bedrock.',
   };
 }
