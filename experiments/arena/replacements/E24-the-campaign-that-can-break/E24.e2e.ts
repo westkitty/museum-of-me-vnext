@@ -32,6 +32,7 @@ test('E24 renders 4-region campaign board, fractures on broken reference ID, rep
   snap = await page.evaluate(() => window.__ARENA_PREVIEW__!.getSnapshot());
   expect(snap.state).toContain('Schema=INTACT');
   expect(snap.state).toContain('Region=loc_last_keep');
+  await page.screenshot({ path: join(DIR, 'artifacts', 'e24-repaired-keep.png') });
 
   await verifyPreviewLifecycleAndReset(page);
   const resetSnap = await page.evaluate(() => window.__ARENA_PREVIEW__!.getSnapshot());

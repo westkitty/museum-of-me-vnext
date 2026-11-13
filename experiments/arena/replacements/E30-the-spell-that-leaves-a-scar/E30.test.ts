@@ -19,9 +19,10 @@ describe('E30 candidate — The Spell That Leaves a Scar', () => {
     expect(metrics.plinthIntersections).toBe(0);
     expect(metrics.controls).toBe(5);
     expect(metrics.meshes).toBeGreaterThanOrEqual(20);
+    expect(metrics.triangles).toBeLessThan(4500);
   });
 
-  it('produces persistent scars that causally transform subsequent spells', () => {
+  it('produces persistent scars that causally transform subsequent spells and predict refraction', () => {
     let state = createInitialArenaState();
     expect(countActiveScars(state)).toBe(0);
 
@@ -37,17 +38,18 @@ describe('E30 candidate — The Spell That Leaves a Scar', () => {
     expect(state.zones.conduit.scar).toBe('quench');
     expect(state.reactionCount).toBe(1);
 
-    // Prism on bare rim leaves a resonant crystal spire, then Cinder refracts onto conduit!
-    state = { ...state, selectedZone: 'rim', selectedSpell: 'prism' };
+    // Prism on quench raises Resonant Crystal Spire, which predicts 2-neighbor refraction for Cinder!
+    state = { ...state, selectedSpell: 'prism' };
     state = applyCast(state);
-    expect(state.zones.rim.scar).toBe('spire');
+    expect(state.zones.conduit.scar).toBe('spire');
 
     state = { ...state, selectedSpell: 'cinder' };
-    const beforeNeighbors = state.zones.conduit.intensity;
+    expect(previewCastOutcome(state).refractedTargets).toEqual(['rim', 'channel']);
     state = applyCast(state);
     expect(state.refractionCount).toBe(1);
-    expect(state.lastOutcome?.refractedTargets).toEqual(['conduit']);
-    expect(state.zones.conduit.intensity).toBeGreaterThan(beforeNeighbors);
+    expect(state.zones.rim.scar).toBe('crater');
+    expect(state.zones.channel.scar).toBe('crater');
+    expect(countActiveScars(state)).toBe(3);
   });
 
   it('supports atomic undo and deterministic reset across the mounted exhibit', async () => {
@@ -68,9 +70,8 @@ describe('E30 candidate — The Spell That Leaves a Scar', () => {
     // Cast cinder on central conduit (ctrl 2)
     controls[2].activate();
     step();
-    const afterFirstCast = host.module.getAccessibleContent().state;
-    expect(afterFirstCast).toContain('Casts=1');
-    expect(afterFirstCast).toContain('ActiveScars=1/3');
+    expect(host.module.getAccessibleContent().state).toContain('Casts=1');
+    expect(host.module.getAccessibleContent().state).toContain('ActiveScars=1/3');
 
     // Switch to Rime (ctrl 0) and cast again on same crater -> causal quench
     controls[0].activate();
@@ -78,24 +79,29 @@ describe('E30 candidate — The Spell That Leaves a Scar', () => {
     step();
     expect(host.module.getAccessibleContent().state).toContain('Reactions=1');
 
-    // Undo restores exact prior state
-    controls[3].activate();
-    expect(host.module.getAccessibleContent().state).toContain('Casts=1');
-    expect(host.module.getAccessibleContent().state).toContain('Reactions=0');
-
-    // Undo again returns to 0 scars
-    controls[3].activate();
-    expect(host.module.getAccessibleContent().state).toContain('Casts=0');
-    expect(host.module.getAccessibleContent().state).toContain('ActiveScars=0/3');
-
-    // Cast then reset deterministically
+    // Switch to Prism (ctrl 0) -> cast spire on conduit -> cycle back to Cinder -> predicts 2 refractions
+    controls[0].activate();
     controls[2].activate();
     step();
+    controls[0].activate();
+    expect(host.module.getAccessibleContent().state).toContain('PredictedRefract=2');
+
+    // Cast refracting Cinder -> scars all 3 zones simultaneously
+    controls[2].activate();
+    step();
+    expect(host.module.getAccessibleContent().state).toContain('Refractions=1');
+    expect(host.module.getAccessibleContent().state).toContain('ActiveScars=3/3');
+
+    // Undo restores prior single-scar conduit state cleanly
+    controls[3].activate();
+    expect(host.module.getAccessibleContent().state).toContain('Casts=3');
+    expect(host.module.getAccessibleContent().state).toContain('Refractions=0');
+    expect(host.module.getAccessibleContent().state).toContain('ActiveScars=1/3');
+
+    // Deterministic reset
     host.reset();
     expect(host.module.getAccessibleContent().state).toBe(baselineState);
-    expect(announcements.length).toBeGreaterThanOrEqual(4);
-
-    // Model undo matches idempotent boundary when empty
+    expect(announcements.length).toBeGreaterThanOrEqual(5);
     expect(undoLastCast(createInitialArenaState()).castCount).toBe(0);
 
     host.deactivate();

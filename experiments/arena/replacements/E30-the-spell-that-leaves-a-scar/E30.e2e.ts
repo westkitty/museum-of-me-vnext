@@ -5,39 +5,47 @@ import { openCandidatePreview, verifyPreviewLifecycleAndReset } from '../_shared
 
 const DIR = dirname(fileURLToPath(import.meta.url));
 
-test('E30 renders containment arena, executes causal scar reactions, undoes atomically, and resets cleanly', async ({ page }) => {
+test('E30 renders stepped scar arena, telegraphs bifurcated refraction, refracts across pads, and resets cleanly', async ({ page }) => {
   await openCandidatePreview(page, 'E30');
   await page.screenshot({ path: join(DIR, 'artifacts', 'e30-baseline.png') });
 
-  // Cast Cinder on Central Conduit (control 2)
+  // Cast 1: Cinder on Central Conduit (crater) -> Cast 2: Rime -> Thermal Quench trench -> Cast 3: Prism -> Resonant Crystal Spire
   await page.evaluate(() => window.__ARENA_PREVIEW__!.activateControl(2));
-  await page.waitForTimeout(850);
-  let snap = await page.evaluate(() => window.__ARENA_PREVIEW__!.getSnapshot());
-  expect(snap.state).toContain('Casts=1');
-  expect(snap.state).toContain('ActiveScars=1/3');
-
-  // Switch Spell to Rime (control 0) and cast on existing crater -> Quench reaction
+  await page.waitForTimeout(820);
   await page.evaluate(() => {
     window.__ARENA_PREVIEW__!.activateControl(0);
     window.__ARENA_PREVIEW__!.activateControl(2);
   });
-  await page.waitForTimeout(850);
-  snap = await page.evaluate(() => window.__ARENA_PREVIEW__!.getSnapshot());
+  await page.waitForTimeout(820);
+  let snap = await page.evaluate(() => window.__ARENA_PREVIEW__!.getSnapshot());
   expect(snap.state).toContain('Reactions=1');
 
-  // Switch Spell to Prism (control 0), target West Rim (control 1), cast Prism Spire
   await page.evaluate(() => {
     window.__ARENA_PREVIEW__!.activateControl(0);
-    window.__ARENA_PREVIEW__!.activateControl(1);
     window.__ARENA_PREVIEW__!.activateControl(2);
   });
-  await page.waitForTimeout(850);
+  await page.waitForTimeout(820);
+
+  // Arm Cinder onto Resonant Crystal Spire -> predicts bifurcated refraction BEFORE casting!
+  await page.evaluate(() => window.__ARENA_PREVIEW__!.activateControl(0));
+  snap = await page.evaluate(() => window.__ARENA_PREVIEW__!.getSnapshot());
+  expect(snap.state).toContain('PredictedRefract=2');
+  await page.screenshot({ path: join(DIR, 'artifacts', 'e30-refract-telegraph.png') });
+
+  // Cast 4: Cinder refracts off Central Spire to scar both West Rim and East Basin
+  await page.evaluate(() => window.__ARENA_PREVIEW__!.activateControl(2));
+  await page.waitForTimeout(1600);
+  snap = await page.evaluate(() => window.__ARENA_PREVIEW__!.getSnapshot());
+  expect(snap.state).toContain('Refractions=1');
+  expect(snap.state).toContain('ActiveScars=3/3');
   await page.screenshot({ path: join(DIR, 'artifacts', 'e30-scarred.png') });
 
-  // Undo Last Cast restores Casts=2
+  // Undo Last Cast restores Casts=3, Refractions=0, ActiveScars=1/3
   await page.evaluate(() => window.__ARENA_PREVIEW__!.activateControl(3));
   snap = await page.evaluate(() => window.__ARENA_PREVIEW__!.getSnapshot());
-  expect(snap.state).toContain('Casts=2');
+  expect(snap.state).toContain('Casts=3');
+  expect(snap.state).toContain('Refractions=0');
+  expect(snap.state).toContain('ActiveScars=1/3');
 
   await verifyPreviewLifecycleAndReset(page);
   const resetSnap = await page.evaluate(() => window.__ARENA_PREVIEW__!.getSnapshot());

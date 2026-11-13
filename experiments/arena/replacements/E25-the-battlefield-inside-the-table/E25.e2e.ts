@@ -18,6 +18,7 @@ test('E25 renders tactical battletable, flips DEFEAT to VICTORY with 1-square co
   await page.waitForTimeout(350);
   let snap = await page.evaluate(() => window.__ARENA_PREVIEW__!.getSnapshot());
   expect(snap.state).toContain('Outcome=DEFEAT');
+  await page.screenshot({ path: join(DIR, 'artifacts', 'e25-defeat-exposed.png') });
 
   // Reset, shift 1 square left to West Cover Pillar, and resolve 3 turns -> VICTORY
   await page.evaluate(() => {

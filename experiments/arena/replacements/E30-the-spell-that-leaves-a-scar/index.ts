@@ -19,8 +19,11 @@ import {
 
 interface ZoneVisualRig {
   readonly id: ZoneId;
+  readonly padY: number;
   readonly ringMat: THREE.MeshStandardMaterial;
   readonly reticle: THREE.Mesh;
+  readonly warnRing: THREE.Mesh;
+  readonly statusPlate: THREE.Mesh;
   readonly craterGroup: THREE.Group;
   readonly frostGroup: THREE.Group;
   readonly spireGroup: THREE.Group;
@@ -29,15 +32,39 @@ interface ZoneVisualRig {
   readonly vitrifiedGroup: THREE.Group;
   readonly cryoPrismGroup: THREE.Group;
   pulseBoost: number;
+  lastScar: ScarKind | null;
 }
 
-const BURST_PARTICLES = 18;
+interface SharedScarGeometries {
+  readonly craterPlate: THREE.BufferGeometry;
+  readonly craterRim: THREE.BufferGeometry;
+  readonly craterCore: THREE.BufferGeometry;
+  readonly frostSlab: THREE.BufferGeometry;
+  readonly frostSpike: THREE.BufferGeometry;
+  readonly spireMain: THREE.BufferGeometry;
+  readonly spireSide: THREE.BufferGeometry;
+  readonly trenchPlate: THREE.BufferGeometry;
+  readonly trenchGlow: THREE.BufferGeometry;
+  readonly geyserRing: THREE.BufferGeometry;
+  readonly geyserPlume: THREE.BufferGeometry;
+  readonly monolith: THREE.BufferGeometry;
+  readonly vein: THREE.BufferGeometry;
+  readonly cryoCollar: THREE.BufferGeometry;
+}
+
+const BURST_PARTICLES = 12;
 const PARTICLE_COLORS = [0xff6b2c, 0x5cd6ff, 0xc97dff] as const;
+const PAD_HEIGHTS: Readonly<Record<ZoneId, number>> = {
+  rim: 0.9,
+  conduit: 1.06,
+  channel: 0.9,
+};
 
 export class SpellLeavesScarExhibit extends ExhibitBase {
   private state: ArenaState = createInitialArenaState();
   private zoneRigs = this.tracked<ZoneVisualRig>();
   private refractBeams = this.tracked<THREE.Mesh>();
+  private refractTelegraphs = this.tracked<Filament>();
 
   private spellDial!: Dial;
   private zoneDial!: Dial;
@@ -47,6 +74,7 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
   private casterCrystalMat!: THREE.MeshStandardMaterial;
   private telegraphFilament!: Filament;
   private telegraphMat!: THREE.MeshStandardMaterial;
+  private refractTelegraphMat!: THREE.MeshStandardMaterial;
   private projectile!: Pulse;
   private projectileMat!: THREE.MeshStandardMaterial;
   private shockwaveRing!: THREE.Mesh;
@@ -66,10 +94,15 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
   private readonly burstQuat = new THREE.Quaternion();
   private readonly burstScale = new THREE.Vector3(1, 1, 1);
 
-  private readonly arcStart = new THREE.Vector3(0, 1.32, -2.05);
-  private readonly arcMid = new THREE.Vector3(0, 2.35, -3.6);
-  private readonly arcEnd = new THREE.Vector3(0, 0.55, -5.15);
+  private readonly arcStart = new THREE.Vector3(0, 1.04, -1.86);
+  private readonly arcMid = new THREE.Vector3(0, 2.25, -3.35);
+  private readonly arcEnd = new THREE.Vector3(0, 1.14, -5.15);
   private readonly castCurve = new THREE.QuadraticBezierCurve3(this.arcStart, this.arcMid, this.arcEnd);
+
+  private readonly refrStart = new THREE.Vector3();
+  private readonly refrMid = new THREE.Vector3();
+  private readonly refrEnd = new THREE.Vector3();
+  private readonly refrCurve = new THREE.QuadraticBezierCurve3(this.refrStart, this.refrMid, this.refrEnd);
 
   private flightActive = false;
   private shockwaveTimer = 0;
@@ -77,75 +110,184 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
   private beamTimer = 0;
   private readonly activeBeamFlags = [false, false] as [boolean, boolean];
 
+  constructor(def: ExhibitDefinition) {
+    super(def);
+  }
+
   protected override build(): void {
     const scope = this.ctx.scope;
     const detail = Math.max(0.45, Math.min(1, this.ctx.detailScale));
 
-    // ── Stepped containment arena (anchored z in [-8.0, -1.7], clear of plinth) ──
+    // Shared containment palette
     const obsidian = this.standard(0x1b1922, { roughness: 0.78, metalness: 0.22 });
-    const slate = this.standard(0x282633, { roughness: 0.72, metalness: 0.16 });
+    const basalt = this.standard(0x282734, { roughness: 0.72, metalness: 0.16 });
+    const slate = this.standard(0x323342, { roughness: 0.65, metalness: 0.2 });
     const brass = this.standard(0xc99c46, { roughness: 0.4, metalness: 0.7 });
 
-    const baseDeck = this.mesh(new THREE.CylinderGeometry(2.95, 3.15, 0.24, 8), obsidian);
-    baseDeck.position.set(0, 0.12, -4.85);
+    // Elevated stepped terrain dais (rises above front console sightlines, clear of PLINTH_BOX)
+    const baseDeck = this.mesh(new THREE.CylinderGeometry(2.95, 3.15, 0.56, 8), obsidian);
+    baseDeck.position.set(0, 0.28, -4.85);
 
-    const upperDeck = this.mesh(new THREE.CylinderGeometry(2.65, 2.82, 0.14, 8), slate);
-    upperDeck.position.set(0, 0.31, -4.85);
+    const upperDeck = this.mesh(new THREE.CylinderGeometry(2.68, 2.86, 0.28, 8), basalt);
+    upperDeck.position.set(0, 0.68, -4.85);
 
-    const arenaRim = this.mesh(new THREE.TorusGeometry(2.74, 0.055, 8, 32), brass);
+    const arenaRim = this.mesh(new THREE.TorusGeometry(2.74, 0.045, 5, 16), brass);
     arenaRim.rotation.x = Math.PI / 2;
-    arenaRim.position.set(0, 0.38, -4.85);
+    arenaRim.position.set(0, 0.83, -4.85);
 
-    // Containment rune pylons + arch frame (bounded below bay roof)
+    // Terrain step ramps linking West Rim <-> Central Conduit <-> East Basin (AetherVFX surface geometry)
+    const rampGeo = scope.track(new THREE.BoxGeometry(1.75, 0.18, 0.56));
+    const leftRamp = this.mesh(rampGeo, slate);
+    leftRamp.position.set(-0.92, 0.91, -4.8);
+    leftRamp.rotation.y = 0.36;
+    leftRamp.rotation.z = 0.08;
+
+    const rightRamp = this.mesh(rampGeo, slate);
+    rightRamp.position.set(0.92, 0.91, -4.8);
+    rightRamp.rotation.y = -0.36;
+    rightRamp.rotation.z = -0.08;
+
+    // Containment rune pylons + top arch lintel
     const runeCyan = this.emissive(0x3a94c9, 0.9);
+    const pylonGeo = scope.track(new THREE.BoxGeometry(0.38, 3.9, 0.38));
+    const capGeo = scope.track(new THREE.BoxGeometry(0.52, 0.18, 0.52));
+    const stripGeo = scope.track(new THREE.BoxGeometry(0.07, 3.0, 0.07));
     for (const side of [-1, 1] as const) {
-      const pylon = this.mesh(new THREE.BoxGeometry(0.42, 3.7, 0.42), obsidian);
-      pylon.position.set(side * 3.05, 1.85, -6.0);
+      const pylon = this.mesh(pylonGeo, obsidian);
+      pylon.position.set(side * 3.1, 1.95, -6.0);
 
-      const cap = this.mesh(new THREE.BoxGeometry(0.56, 0.2, 0.56), brass);
-      cap.position.set(side * 3.05, 3.75, -6.0);
+      const cap = this.mesh(capGeo, brass);
+      cap.position.set(side * 3.1, 3.96, -6.0);
 
-      const wardStrip = this.mesh(new THREE.BoxGeometry(0.08, 2.8, 0.08), runeCyan);
-      wardStrip.position.set(side * 2.85, 1.9, -5.8);
+      const wardStrip = this.mesh(stripGeo, runeCyan);
+      wardStrip.position.set(side * 2.9, 2.0, -5.82);
     }
 
-    const lintel = this.mesh(new THREE.BoxGeometry(6.7, 0.3, 0.46), obsidian);
-    lintel.position.set(0, 3.92, -6.0);
+    const lintel = this.mesh(new THREE.BoxGeometry(6.8, 0.28, 0.44), obsidian);
+    lintel.position.set(0, 4.12, -6.0);
 
-    const archSign = buildLabel(scope, 'CONTAINMENT BAY — CAUSAL SCAR ARENA', 3.4, 0.16);
-    archSign.position.set(0, 4.55, -5.77);
+    const archSign = buildLabel(scope, 'AETHERVFX — CAUSAL TERRAIN & SURFACE SCAR ARENA', 3.9, 0.17);
+    archSign.position.set(0, 4.74, -5.77);
     this.group.add(archSign);
 
-    this.archReadout = buildLabel(scope, 'SURFACE: ALL BARE BASALT · 0 SCARS', 3.4, 0.16);
-    this.archReadout.position.set(0, 3.92, -5.74);
+    this.archReadout = buildLabel(scope, 'CASTS: 0 · ACTIVE SCARS: 0/3 · REACTIONS: 0 · REFRACTIONS: 0', 4.1, 0.16);
+    this.archReadout.position.set(0, 4.16, -5.74);
     this.group.add(this.archReadout);
 
-    // Build 3 interactive ritual zones inside the basin
+    this.consoleReadout = buildLabel(scope, 'TELEGRAPH: CINDER LANCE -> CENTRAL CONDUIT', 3.8, 0.17);
+    this.consoleReadout.position.set(0, 3.5, -5.74);
+    this.group.add(this.consoleReadout);
+
+    // Pre-allocate shared scar geometries & materials once across all 3 zones
+    const sharedGeos: SharedScarGeometries = {
+      craterPlate: scope.track(new THREE.CylinderGeometry(0.76, 0.84, 0.1, 8)),
+      craterRim: scope.track(new THREE.TorusGeometry(0.58, 0.11, 5, 10)),
+      craterCore: scope.track(new THREE.CylinderGeometry(0.46, 0.5, 0.08, 8)),
+      frostSlab: scope.track(new THREE.CylinderGeometry(0.68, 0.76, 0.12, 6)),
+      frostSpike: scope.track(new THREE.ConeGeometry(0.11, 0.54, 4)),
+      spireMain: scope.track(new THREE.OctahedronGeometry(0.32, 0)),
+      spireSide: scope.track(new THREE.OctahedronGeometry(0.19, 0)),
+      trenchPlate: scope.track(new THREE.BoxGeometry(0.42, 0.16, 1.12)),
+      trenchGlow: scope.track(new THREE.BoxGeometry(0.24, 0.12, 1.04)),
+      geyserRing: scope.track(new THREE.TorusGeometry(0.6, 0.08, 5, 10)),
+      geyserPlume: scope.track(new THREE.CylinderGeometry(0.4, 0.16, 0.82, 8)),
+      monolith: scope.track(new THREE.BoxGeometry(0.38, 1.15, 0.38)),
+      vein: scope.track(new THREE.BoxGeometry(0.42, 0.84, 0.14)),
+      cryoCollar: scope.track(new THREE.TorusGeometry(0.46, 0.08, 5, 8)),
+    };
+
+    const scarMats = {
+      obsidian,
+      brass,
+      magma: this.emissive(0xff521b, 1.9),
+      ice: this.standard(0x8ae2ff, { emissive: 0x1a8cff, emissiveIntensity: 0.78, roughness: 0.25 }),
+      crystal: this.emissive(0xb96bff, 1.55),
+      quench: this.emissive(0x2ef0dc, 1.65),
+      mist: this.emissive(0xffc96b, 1.5),
+      amber: this.emissive(0xffaa2b, 1.5),
+    };
+
+    const padBaseGeo = scope.track(new THREE.CylinderGeometry(0.84, 0.94, 0.22, 8));
+    const collarGeo = scope.track(new THREE.TorusGeometry(0.86, 0.04, 5, 12));
+    const reticleGeo = scope.track(new THREE.TorusGeometry(0.96, 0.032, 5, 12));
+    const warnGeo = scope.track(new THREE.TorusGeometry(1.04, 0.026, 5, 12));
+    const warnMat = this.emissive(0xd87dff, 1.45);
+    const reticleMat = this.emissive(0xf2c86b, 1.55);
+
     for (const zone of ZONES) {
-      const rig = this.buildZoneRig(zone.id, zone.x, zone.z, obsidian, brass);
+      const rig = this.buildZoneRig(
+        zone.id,
+        zone.name,
+        zone.x,
+        zone.z,
+        PAD_HEIGHTS[zone.id],
+        padBaseGeo,
+        collarGeo,
+        reticleGeo,
+        warnGeo,
+        reticleMat,
+        warnMat,
+        sharedGeos,
+        scarMats,
+      );
       this.zoneRigs.push(rig);
     }
 
-    // Dual pre-allocated refraction beam bridges (conduit <-> rim, conduit <-> channel)
-    const beamMat = this.emissive(0xe0a4ff, 1.8);
-    const leftBeam = this.createBridgeBeam(ZONES[1].x, ZONES[1].z, ZONES[0].x, ZONES[0].z, beamMat);
-    const rightBeam = this.createBridgeBeam(ZONES[1].x, ZONES[1].z, ZONES[2].x, ZONES[2].z, beamMat);
+    // Elevated pad-to-pad refraction beams + preview bifurcated telegraph filaments
+    const beamMat = this.emissive(0xe0a4ff, 1.9);
+    const leftBeam = this.createBridgeBeam(
+      ZONES[1].x,
+      PAD_HEIGHTS.conduit + 0.48,
+      ZONES[1].z,
+      ZONES[0].x,
+      PAD_HEIGHTS.rim + 0.36,
+      ZONES[0].z,
+      beamMat,
+    );
+    const rightBeam = this.createBridgeBeam(
+      ZONES[1].x,
+      PAD_HEIGHTS.conduit + 0.48,
+      ZONES[1].z,
+      ZONES[2].x,
+      PAD_HEIGHTS.channel + 0.36,
+      ZONES[2].z,
+      beamMat,
+    );
     this.refractBeams.push(leftBeam, rightBeam);
 
-    // ── Shockwave ring + pooled impact particles (parked at arena center) ───
+    this.refractTelegraphMat = this.emissive(0xd87dff, 1.45);
+    const telSegs = this.scaled(8);
+    const leftTel = new Filament(scope, telSegs, 0.02, this.refractTelegraphMat);
+    this.refrStart.set(ZONES[1].x, PAD_HEIGHTS.conduit + 0.56, ZONES[1].z);
+    this.refrEnd.set(ZONES[0].x, PAD_HEIGHTS.rim + 0.24, ZONES[0].z);
+    this.refrMid.set((ZONES[1].x + ZONES[0].x) * 0.5, 2.02, (ZONES[1].z + ZONES[0].z) * 0.5);
+    leftTel.follow(this.refrCurve);
+    leftTel.group.visible = false;
+
+    const rightTel = new Filament(scope, telSegs, 0.02, this.refractTelegraphMat);
+    this.refrStart.set(ZONES[1].x, PAD_HEIGHTS.conduit + 0.56, ZONES[1].z);
+    this.refrEnd.set(ZONES[2].x, PAD_HEIGHTS.channel + 0.24, ZONES[2].z);
+    this.refrMid.set((ZONES[1].x + ZONES[2].x) * 0.5, 2.02, (ZONES[1].z + ZONES[2].z) * 0.5);
+    rightTel.follow(this.refrCurve);
+    rightTel.group.visible = false;
+
+    this.group.add(leftTel.group, rightTel.group);
+    this.refractTelegraphs.push(leftTel, rightTel);
+
+    // Shockwave ring + bounded pooled impact burst
     this.shockwaveMat = this.emissive(0xff6b2c, 1.8);
-    this.shockwaveRing = this.mesh(new THREE.TorusGeometry(0.45, 0.045, 8, 24), this.shockwaveMat);
+    this.shockwaveRing = this.mesh(scope.track(new THREE.TorusGeometry(0.45, 0.045, 6, 18)), this.shockwaveMat);
     this.shockwaveRing.rotation.x = Math.PI / 2;
-    this.shockwaveRing.position.set(0, 0.42, -4.85);
+    this.shockwaveRing.position.set(0, 1.12, -5.15);
     this.shockwaveRing.visible = false;
 
-    const shardGeom = scope.track(new THREE.OctahedronGeometry(0.08, 0));
+    const shardGeom = scope.track(new THREE.OctahedronGeometry(0.085, 0));
     const shardMat = this.emissive(0xffaa55, 1.7);
-    const count = Math.max(8, Math.round(BURST_PARTICLES * detail));
+    const count = Math.max(6, Math.round(BURST_PARTICLES * detail));
     this.burstMesh = scope.track(new THREE.InstancedMesh(shardGeom, shardMat, BURST_PARTICLES));
     this.burstMesh.name = 'e30-scar-burst-particles';
     this.burstMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    this.burstMesh.position.set(0, 0.55, -4.55);
+    this.burstMesh.position.set(0, 1.15, -5.15);
     this.burstMesh.visible = false;
     for (let i = 0; i < BURST_PARTICLES; i++) {
       this.burstPos.set(0, 0, i < count ? 0 : -0.2);
@@ -156,77 +298,79 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
     this.burstMesh.instanceMatrix.needsUpdate = true;
     this.group.add(this.burstMesh);
 
-    // ── Caster Console at z = -2.05 (safely outside central bay plinth) ─────
-    const consoleGroup = buildConsole(scope, 2.45, 0.72, 1.0, slate);
-    consoleGroup.position.set(0, 0, -2.05);
+    // Lowered streamlined caster rail at z = -1.85 so all 3 pads remain unobstructed
+    const consoleGroup = buildConsole(scope, 2.55, 0.56, 0.68, slate);
+    consoleGroup.position.set(0, 0, -1.85);
     this.group.add(consoleGroup);
 
     this.casterCrystalMat = this.emissive(SPELLS[0].emissiveHex, 1.6);
-    this.casterCrystal = buildNode(scope, 0.16, this.casterCrystalMat);
-    this.casterCrystal.position.set(0, 1.32, -2.05);
+    this.casterCrystal = buildNode(scope, 0.13, this.casterCrystalMat);
+    this.casterCrystal.position.set(0, 1.04, -1.85);
     this.group.add(this.casterCrystal);
 
-    const crystalPedestal = this.mesh(new THREE.CylinderGeometry(0.11, 0.17, 0.16, 6), brass);
-    crystalPedestal.position.set(0, 1.08, -2.05);
+    const crystalPedestal = this.mesh(new THREE.CylinderGeometry(0.1, 0.15, 0.14, 6), brass);
+    crystalPedestal.position.set(0, 0.78, -1.85);
 
-    this.telegraphMat = this.emissive(SPELLS[0].emissiveHex, 1.1);
-    this.telegraphFilament = new Filament(scope, 16, 0.022, this.telegraphMat);
+    this.telegraphMat = this.emissive(SPELLS[0].emissiveHex, 1.25);
+    this.telegraphFilament = new Filament(scope, this.scaled(10), 0.022, this.telegraphMat);
     this.group.add(this.telegraphFilament.group);
 
     this.projectileMat = this.emissive(SPELLS[0].emissiveHex, 2.2);
     this.projectile = new Pulse(scope, 0.12, this.projectileMat);
-    this.projectile.mesh.position.set(0, 1.32, -2.05);
+    this.projectile.mesh.position.set(0, 1.04, -1.85);
     this.group.add(this.projectile.mesh);
 
-    // Controls mounted along the console top
-    this.spellDial = new Dial(scope, 3, 0.2, { handle: this.emissive(0xff8e42, 1.1) });
-    this.spellDial.group.position.set(-0.92, 1.03, -2.02);
+    this.spellDial = new Dial(scope, 3, 0.18, { handle: this.emissive(0xff8e42, 1.1) });
+    this.spellDial.group.position.set(-0.98, 0.71, -1.84);
     this.group.add(this.spellDial.group);
-    const spellLbl = buildLabel(scope, 'ELEMENT', 0.46, 0.28);
-    spellLbl.position.set(-0.92, 1.14, -1.72);
-    spellLbl.rotation.x = -0.35;
+    const spellLbl = buildLabel(scope, 'ELEMENT', 0.44, 0.24);
+    spellLbl.position.set(-0.98, 0.76, -1.55);
+    spellLbl.rotation.x = -0.5;
     this.group.add(spellLbl);
 
-    this.zoneDial = new Dial(scope, 3, 0.2, { handle: this.emissive(0x52c7ff, 1.1) });
-    this.zoneDial.group.position.set(-0.38, 1.03, -2.02);
+    this.zoneDial = new Dial(scope, 3, 0.18, { handle: this.emissive(0x52c7ff, 1.1) });
+    this.zoneDial.group.position.set(-0.46, 0.71, -1.84);
     this.group.add(this.zoneDial.group);
-    const zoneLbl = buildLabel(scope, 'TARGET', 0.46, 0.28);
-    zoneLbl.position.set(-0.38, 1.14, -1.72);
-    zoneLbl.rotation.x = -0.35;
+    const zoneLbl = buildLabel(scope, 'TARGET', 0.44, 0.24);
+    zoneLbl.position.set(-0.46, 0.76, -1.55);
+    zoneLbl.rotation.x = -0.5;
     this.group.add(zoneLbl);
 
-    this.castLever = new Lever(scope, 2, 0.36, { arm: this.emissive(0xffb84d, 1.3) });
-    this.castLever.group.position.set(0.38, 1.03, -2.02);
+    this.castLever = new Lever(scope, 2, 0.34, { arm: this.emissive(0xffb84d, 1.3) });
+    this.castLever.group.position.set(0.42, 0.71, -1.84);
     this.group.add(this.castLever.group);
-    const castLbl = buildLabel(scope, 'CAST', 0.46, 0.28);
-    castLbl.position.set(0.38, 1.14, -1.72);
-    castLbl.rotation.x = -0.35;
+    const castLbl = buildLabel(scope, 'CAST', 0.4, 0.24);
+    castLbl.position.set(0.42, 0.76, -1.55);
+    castLbl.rotation.x = -0.5;
     this.group.add(castLbl);
 
-    this.undoLever = new Lever(scope, 2, 0.36, { arm: this.emissive(0xb4a4ff, 1.0) });
-    this.undoLever.group.position.set(0.92, 1.03, -2.02);
+    this.undoLever = new Lever(scope, 2, 0.34, { arm: this.emissive(0xb4a4ff, 1.0) });
+    this.undoLever.group.position.set(0.86, 0.71, -1.84);
     this.group.add(this.undoLever.group);
-    const undoLbl = buildLabel(scope, 'UNDO', 0.46, 0.28);
-    undoLbl.position.set(0.92, 1.14, -1.72);
-    undoLbl.rotation.x = -0.35;
+    const undoLbl = buildLabel(scope, 'UNDO', 0.4, 0.24);
+    undoLbl.position.set(0.86, 0.76, -1.55);
+    undoLbl.rotation.x = -0.5;
     this.group.add(undoLbl);
 
-    // Dynamic readout plate mounted vertically on console back
-    this.consoleReadout = buildLabel(scope, 'READY: CINDER LANCE -> CENTRAL CONDUIT', 2.4, 0.22);
-    this.consoleReadout.position.set(0, 1.62, -2.35);
-    this.group.add(this.consoleReadout);
+    const resetPuck = this.mesh(new THREE.CylinderGeometry(0.11, 0.13, 0.08, 10), brass);
+    resetPuck.position.set(1.16, 0.72, -1.84);
+    const resetLbl = buildLabel(scope, 'RESET', 0.36, 0.24);
+    resetLbl.position.set(1.16, 0.76, -1.55);
+    resetLbl.rotation.x = -0.5;
+    this.group.add(resetLbl);
 
-    // ── Interpretation furniture (Wall Plaque + Lectern) ─────────────────────
+    // Symmetrical outer wing placement for Plaque + Lectern so the terrain basin center is unobstructed
     const plaque = buildPlaque(scope, this.ctx.record);
-    plaque.position.set(0, 2.35, -7.25);
+    plaque.position.set(-3.85, 2.25, -4.45);
+    plaque.rotation.y = 0.46;
     this.group.add(plaque);
 
     const lectern = buildLectern(scope, this.ctx.record, this.ctx.projects);
-    lectern.position.set(3.6, 0, -4.4);
-    lectern.rotation.y = -0.45;
+    lectern.position.set(3.85, 0, -4.4);
+    lectern.rotation.y = -0.46;
     this.group.add(lectern);
 
-    // ── Register 5 Accessible Interactive Controls ───────────────────────────
+    // 5 accessible controls
     this.control({
       object: this.spellDial.group,
       label: () => {
@@ -255,7 +399,7 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
         const next = ZONES[(idx + 1) % ZONES.length];
         this.state = { ...this.state, selectedZone: next.id };
         this.syncVisualState();
-        this.ctx.announce(`Targeted ${next.name} (${SCAR_LABELS[this.state.zones[next.id].scar]}).`);
+        this.ctx.announce(`Targeted ${next.name} (${SCAR_LABELS[this.state.zones[next.id].scar]}). ${previewCastOutcome(this.state).summary}`);
       },
     });
 
@@ -282,15 +426,16 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
         }
         this.state = undoLastCast(this.state);
         this.flightActive = false;
+        this.activeBeamFlags[0] = false;
+        this.activeBeamFlags[1] = false;
+        this.beamTimer = 0;
         this.projectile.stop();
-        this.projectile.mesh.position.set(0, 1.32, -2.05);
+        this.projectile.mesh.position.set(0, 1.04, -1.85);
         this.syncVisualState();
         this.ctx.announce(`Undid last cast. ${countActiveScars(this.state)} scar(s) remain.`);
       },
     });
 
-    const resetPuck = this.mesh(new THREE.CylinderGeometry(0.11, 0.13, 0.08, 12), brass);
-    resetPuck.position.set(1.1, 1.04, -2.02);
     this.control({
       object: resetPuck,
       label: 'Reset Arena',
@@ -306,90 +451,109 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
 
   private buildZoneRig(
     id: ZoneId,
+    name: string,
     x: number,
     z: number,
-    obsidian: THREE.Material,
-    brass: THREE.Material,
+    padY: number,
+    padBaseGeo: THREE.BufferGeometry,
+    collarGeo: THREE.BufferGeometry,
+    reticleGeo: THREE.BufferGeometry,
+    warnGeo: THREE.BufferGeometry,
+    reticleMat: THREE.Material,
+    warnMat: THREE.Material,
+    geos: SharedScarGeometries,
+    mats: {
+      obsidian: THREE.Material;
+      brass: THREE.Material;
+      magma: THREE.Material;
+      ice: THREE.Material;
+      crystal: THREE.Material;
+      quench: THREE.Material;
+      mist: THREE.Material;
+      amber: THREE.Material;
+    },
   ): ZoneVisualRig {
-    const pad = this.mesh(new THREE.CylinderGeometry(0.86, 0.96, 0.14, 16), obsidian);
-    pad.position.set(x, 0.45, z);
+    const pad = this.mesh(padBaseGeo, mats.obsidian);
+    pad.position.set(x, padY - 0.11, z);
 
-    const ringMat = this.standard(0x4c485c, { roughness: 0.45, metalness: 0.5 });
-    const collar = this.mesh(new THREE.TorusGeometry(0.88, 0.04, 8, 24), ringMat);
+    const ringMat = this.standard(0x525066, { roughness: 0.45, metalness: 0.5 });
+    const collar = this.mesh(collarGeo, ringMat);
     collar.rotation.x = Math.PI / 2;
-    collar.position.set(x, 0.52, z);
+    collar.position.set(x, padY, z);
 
-    const reticle = this.mesh(
-      new THREE.TorusGeometry(0.98, 0.032, 8, 24),
-      this.emissive(0xf2c86b, 1.5),
-    );
+    const reticle = this.mesh(reticleGeo, reticleMat);
     reticle.rotation.x = Math.PI / 2;
-    reticle.position.set(x, 0.56, z);
+    reticle.position.set(x, padY + 0.04, z);
 
-    const craterGroup = this.makeScarGroup(x, z);
-    const magmaMat = this.emissive(0xff521b, 1.9);
-    const craterRim = this.meshInto(craterGroup, new THREE.TorusGeometry(0.56, 0.1, 8, 16), brass);
+    const warnRing = this.mesh(warnGeo, warnMat);
+    warnRing.rotation.x = Math.PI / 2;
+    warnRing.position.set(x, padY + 0.06, z);
+    warnRing.visible = false;
+
+    const statusPlate = buildLabel(this.ctx.scope, `${name.toUpperCase()}\nBARE BASALT`, 1.48, 0.17);
+    statusPlate.position.set(x, padY + 1.66, z);
+    this.group.add(statusPlate);
+
+    const craterGroup = this.makeScarGroup(x, padY, z);
+    this.meshInto(craterGroup, geos.craterPlate, mats.obsidian).position.y = 0.05;
+    const craterRim = this.meshInto(craterGroup, geos.craterRim, mats.brass);
     craterRim.rotation.x = Math.PI / 2;
-    craterRim.position.y = 0.04;
-    const craterCore = this.meshInto(craterGroup, new THREE.CylinderGeometry(0.5, 0.54, 0.05, 16), magmaMat);
-    craterCore.position.y = 0.025;
+    craterRim.position.y = 0.1;
+    this.meshInto(craterGroup, geos.craterCore, mats.magma).position.y = 0.09;
 
-    const frostGroup = this.makeScarGroup(x, z);
-    const iceMat = this.standard(0x8ae2ff, { emissive: 0x1a8cff, emissiveIntensity: 0.75, roughness: 0.25 });
-    const iceSlab = this.meshInto(frostGroup, new THREE.CylinderGeometry(0.68, 0.72, 0.06, 6), iceMat);
-    iceSlab.position.y = 0.03;
-    for (let i = 0; i < 4; i++) {
-      const ang = (i / 4) * Math.PI * 2 + 0.35;
-      const spike = this.meshInto(frostGroup, new THREE.ConeGeometry(0.11, 0.42, 5), iceMat);
-      spike.position.set(Math.cos(ang) * 0.4, 0.22, Math.sin(ang) * 0.4);
-      spike.rotation.z = Math.cos(ang) * 0.22;
+    const frostGroup = this.makeScarGroup(x, padY, z);
+    this.meshInto(frostGroup, geos.frostSlab, mats.ice).position.y = 0.06;
+    for (let i = 0; i < 3; i++) {
+      const ang = (i / 3) * Math.PI * 2 + 0.3;
+      const spike = this.meshInto(frostGroup, geos.frostSpike, mats.ice);
+      spike.position.set(Math.cos(ang) * 0.38, 0.29, Math.sin(ang) * 0.38);
+      spike.rotation.z = Math.cos(ang) * 0.24;
     }
 
-    const spireGroup = this.makeScarGroup(x, z);
-    const crystalMat = this.emissive(0xb96bff, 1.5);
-    const spireMain = this.meshInto(spireGroup, new THREE.OctahedronGeometry(0.32, 0), crystalMat);
-    spireMain.scale.set(0.65, 2.2, 0.65);
-    spireMain.position.y = 0.46;
-    const spireSide = this.meshInto(spireGroup, new THREE.OctahedronGeometry(0.2, 0), crystalMat);
-    spireSide.scale.set(0.55, 1.5, 0.55);
-    spireSide.position.set(0.28, 0.28, -0.18);
+    const spireGroup = this.makeScarGroup(x, padY, z);
+    const spireMain = this.meshInto(spireGroup, geos.spireMain, mats.crystal);
+    spireMain.scale.set(0.68, 2.25, 0.68);
+    spireMain.position.y = 0.48;
+    const spireSide = this.meshInto(spireGroup, geos.spireSide, mats.crystal);
+    spireSide.scale.set(0.58, 1.55, 0.58);
+    spireSide.position.set(0.28, 0.28, -0.16);
     spireSide.rotation.z = -0.35;
 
-    const quenchGroup = this.makeScarGroup(x, z);
-    const quenchMat = this.emissive(0x3be0d0, 1.4);
-    const ventBase = this.meshInto(quenchGroup, new THREE.TorusGeometry(0.54, 0.09, 6, 12), obsidian);
-    ventBase.rotation.x = Math.PI / 2;
-    ventBase.position.y = 0.05;
-    const ventCore = this.meshInto(quenchGroup, new THREE.CylinderGeometry(0.18, 0.34, 0.72, 8), quenchMat);
-    ventCore.position.y = 0.36;
+    // Split trench plates + glowing teal thermal seam (unmistakable physical fracture)
+    const quenchGroup = this.makeScarGroup(x, padY, z);
+    const leftPlate = this.meshInto(quenchGroup, geos.trenchPlate, mats.obsidian);
+    leftPlate.position.set(-0.34, 0.09, 0);
+    leftPlate.rotation.z = 0.14;
+    const rightPlate = this.meshInto(quenchGroup, geos.trenchPlate, mats.obsidian);
+    rightPlate.position.set(0.34, 0.09, 0);
+    rightPlate.rotation.z = -0.14;
+    this.meshInto(quenchGroup, geos.trenchGlow, mats.quench).position.y = 0.14;
 
-    const flashGroup = this.makeScarGroup(x, z);
-    const mistMat = this.emissive(0xffc96b, 1.5);
-    const geyserRing = this.meshInto(flashGroup, new THREE.TorusGeometry(0.6, 0.08, 8, 16), iceMat);
+    const flashGroup = this.makeScarGroup(x, padY, z);
+    const geyserRing = this.meshInto(flashGroup, geos.geyserRing, mats.ice);
     geyserRing.rotation.x = Math.PI / 2;
-    geyserRing.position.y = 0.05;
-    const geyserPlume = this.meshInto(flashGroup, new THREE.CylinderGeometry(0.42, 0.18, 0.8, 10), mistMat);
-    geyserPlume.position.y = 0.4;
+    geyserRing.position.y = 0.07;
+    this.meshInto(flashGroup, geos.geyserPlume, mats.mist).position.y = 0.44;
 
-    const vitrifiedGroup = this.makeScarGroup(x, z);
-    const amberMat = this.emissive(0xffaa2b, 1.45);
-    const monolith = this.meshInto(vitrifiedGroup, new THREE.BoxGeometry(0.36, 1.1, 0.36), obsidian);
-    monolith.position.y = 0.55;
-    const vein = this.meshInto(vitrifiedGroup, new THREE.BoxGeometry(0.4, 0.72, 0.14), amberMat);
-    vein.position.y = 0.58;
+    const vitrifiedGroup = this.makeScarGroup(x, padY, z);
+    this.meshInto(vitrifiedGroup, geos.monolith, mats.obsidian).position.y = 0.58;
+    this.meshInto(vitrifiedGroup, geos.vein, mats.amber).position.y = 0.62;
 
-    const cryoPrismGroup = this.makeScarGroup(x, z);
-    const cryoCore = this.meshInto(cryoPrismGroup, new THREE.OctahedronGeometry(0.34, 0), crystalMat);
+    const cryoPrismGroup = this.makeScarGroup(x, padY, z);
+    const cryoCore = this.meshInto(cryoPrismGroup, geos.spireMain, mats.crystal);
     cryoCore.scale.set(0.7, 2.3, 0.7);
-    cryoCore.position.y = 0.48;
-    const cryoCollar = this.meshInto(cryoPrismGroup, new THREE.TorusGeometry(0.46, 0.08, 6, 12), iceMat);
+    cryoCore.position.y = 0.5;
+    const cryoCollar = this.meshInto(cryoPrismGroup, geos.cryoCollar, mats.ice);
     cryoCollar.rotation.x = Math.PI / 2;
-    cryoCollar.position.y = 0.25;
+    cryoCollar.position.y = 0.26;
 
     return {
       id,
+      padY,
       ringMat,
       reticle,
+      warnRing,
+      statusPlate,
       craterGroup,
       frostGroup,
       spireGroup,
@@ -398,31 +562,41 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
       vitrifiedGroup,
       cryoPrismGroup,
       pulseBoost: 0,
+      lastScar: null,
     };
   }
 
-  private makeScarGroup(x: number, z: number): THREE.Group {
+  private makeScarGroup(x: number, padY: number, z: number): THREE.Group {
     const g = new THREE.Group();
-    g.position.set(x, 0.52, z);
+    g.position.set(x, padY, z);
     g.visible = false;
     this.group.add(g);
     return g;
   }
 
   private meshInto(parent: THREE.Group, geom: THREE.BufferGeometry, mat: THREE.Material): THREE.Mesh {
-    const m = new THREE.Mesh(this.ctx.scope.track(geom), mat);
+    const m = new THREE.Mesh(geom, mat);
     parent.add(m);
     return m;
   }
 
-  private createBridgeBeam(x1: number, z1: number, x2: number, z2: number, mat: THREE.Material): THREE.Mesh {
+  private createBridgeBeam(
+    x1: number,
+    y1: number,
+    z1: number,
+    x2: number,
+    y2: number,
+    z2: number,
+    mat: THREE.Material,
+  ): THREE.Mesh {
     const dx = x2 - x1;
+    const dy = y2 - y1;
     const dz = z2 - z1;
-    const length = Math.hypot(dx, dz);
-    const beam = new THREE.Mesh(this.ctx.scope.track(new THREE.CylinderGeometry(0.05, 0.05, length, 8)), mat);
-    beam.position.set((x1 + x2) / 2, 0.92, (z1 + z2) / 2);
-    beam.rotation.z = Math.PI / 2;
-    beam.rotation.y = -Math.atan2(dz, dx);
+    const length = Math.hypot(dx, dy, dz);
+    const beam = new THREE.Mesh(this.ctx.scope.track(new THREE.CylinderGeometry(0.055, 0.055, length, 8)), mat);
+    beam.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2);
+    const dir = new THREE.Vector3(dx, dy, dz).normalize();
+    beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
     beam.visible = false;
     this.group.add(beam);
     return beam;
@@ -436,17 +610,19 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
 
     const spell = SPELLS.find((s) => s.id === next.selectedSpell) ?? SPELLS[0];
     const targetZone = ZONES.find((z) => z.id === next.selectedZone) ?? ZONES[1];
+    const targetY = PAD_HEIGHTS[targetZone.id] + 0.14;
 
-    this.arcEnd.set(targetZone.x, 0.62, targetZone.z);
-    this.arcMid.set(targetZone.x * 0.5, 2.35, -3.35);
+    this.arcStart.set(0, 1.04, -1.85);
+    this.arcEnd.set(targetZone.x, targetY, targetZone.z);
+    this.arcMid.set(targetZone.x * 0.5, 2.32, -3.35);
     this.projectileMat.color.setHex(spell.colorHex);
     this.projectileMat.emissive.setHex(spell.emissiveHex);
 
     if (this.reducedMotion) {
       this.flightActive = false;
       this.projectile.stop();
-      this.projectile.mesh.position.set(0, 1.32, -2.05);
-      this.triggerImpact(targetZone.x, targetZone.z, spell.emissiveHex, next.lastOutcome?.refractedTargets ?? []);
+      this.projectile.mesh.position.set(0, 1.04, -1.85);
+      this.triggerImpact(targetZone.x, targetY, targetZone.z, spell.emissiveHex, next.lastOutcome?.refractedTargets ?? []);
       this.syncVisualState();
     } else {
       this.flightActive = true;
@@ -458,10 +634,10 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
     }
   }
 
-  private triggerImpact(x: number, z: number, emissiveHex: number, refracted: readonly ZoneId[]): void {
+  private triggerImpact(x: number, y: number, z: number, emissiveHex: number, refracted: readonly ZoneId[]): void {
     this.shockwaveMat.color.setHex(emissiveHex);
     this.shockwaveMat.emissive.setHex(emissiveHex);
-    this.shockwaveRing.position.set(x, 0.56, z);
+    this.shockwaveRing.position.set(x, y, z);
     this.shockwaveRing.scale.setScalar(0.35);
     this.shockwaveTimer = this.reducedMotion ? 0 : 0.55;
     this.shockwaveRing.visible = !this.reducedMotion;
@@ -469,7 +645,7 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
     const spellIdx = SPELLS.findIndex((s) => s.id === this.state.selectedSpell);
     (this.burstMesh.material as THREE.MeshStandardMaterial).color.setHex(PARTICLE_COLORS[Math.max(0, spellIdx)]);
     (this.burstMesh.material as THREE.MeshStandardMaterial).emissive.setHex(emissiveHex);
-    this.burstMesh.position.set(x, 0.65, z);
+    this.burstMesh.position.set(x, y + 0.08, z);
     this.burstTimer = this.reducedMotion ? 0 : 0.65;
     this.burstMesh.visible = !this.reducedMotion;
 
@@ -487,10 +663,14 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
     this.activeBeamFlags[0] = refracted.includes('rim') || (this.state.selectedZone === 'rim' && refracted.includes('conduit'));
     this.activeBeamFlags[1] = refracted.includes('channel') || (this.state.selectedZone === 'channel' && refracted.includes('conduit'));
     if (this.activeBeamFlags[0] || this.activeBeamFlags[1]) {
-      this.beamTimer = this.reducedMotion ? 0 : 1.1;
+      this.beamTimer = this.reducedMotion ? 0 : 1.25;
     }
     const rig = this.zoneRigs.find((r) => r.id === this.state.selectedZone);
     if (rig) rig.pulseBoost = 1;
+    for (const rId of refracted) {
+      const nRig = this.zoneRigs.find((r) => r.id === rId);
+      if (nRig) nRig.pulseBoost = 0.9;
+    }
   }
 
   private syncVisualState(): void {
@@ -506,31 +686,72 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
     this.casterCrystalMat.emissive.setHex(spell.emissiveHex);
     this.telegraphMat.color.setHex(spell.colorHex);
     this.telegraphMat.emissive.setHex(spell.emissiveHex);
+    this.refractTelegraphMat.color.setHex(spell.colorHex);
+    this.refractTelegraphMat.emissive.setHex(spell.emissiveHex);
 
-    this.arcEnd.set(zone.x, 0.58, zone.z);
-    this.arcMid.set(zone.x * 0.5, 2.2, -3.45);
+    this.arcStart.set(0, 1.04, -1.85);
+    this.arcEnd.set(zone.x, PAD_HEIGHTS[zone.id] + 0.1, zone.z);
+    this.arcMid.set(zone.x * 0.5, 2.28, -3.35);
     this.telegraphFilament.follow(this.castCurve);
+
+    const preview = previewCastOutcome(this.state);
+    const hasRefract = preview.refractedTargets.length > 0;
+
+    // Bifurcated preview telegraph arcs showing second spell curving into neighbor scars BEFORE casting
+    const leftFil = this.refractTelegraphs[0];
+    const rightFil = this.refractTelegraphs[1];
+    if (leftFil && rightFil) {
+      const refractLeft = hasRefract && (preview.refractedTargets.includes('rim') || (zone.id === 'rim' && preview.refractedTargets.includes('conduit')));
+      const refractRight = hasRefract && (preview.refractedTargets.includes('channel') || (zone.id === 'channel' && preview.refractedTargets.includes('conduit')));
+
+      leftFil.group.visible = refractLeft;
+      if (refractLeft) {
+        this.refrStart.set(ZONES[1].x, PAD_HEIGHTS.conduit + 0.56, ZONES[1].z);
+        this.refrEnd.set(ZONES[0].x, PAD_HEIGHTS.rim + 0.24, ZONES[0].z);
+        this.refrMid.set((ZONES[1].x + ZONES[0].x) * 0.5, 2.02, (ZONES[1].z + ZONES[0].z) * 0.5);
+        leftFil.follow(this.refrCurve);
+      }
+
+      rightFil.group.visible = refractRight;
+      if (refractRight) {
+        this.refrStart.set(ZONES[1].x, PAD_HEIGHTS.conduit + 0.56, ZONES[1].z);
+        this.refrEnd.set(ZONES[2].x, PAD_HEIGHTS.channel + 0.24, ZONES[2].z);
+        this.refrMid.set((ZONES[1].x + ZONES[2].x) * 0.5, 2.02, (ZONES[1].z + ZONES[2].z) * 0.5);
+        rightFil.follow(this.refrCurve);
+      }
+    }
 
     for (const rig of this.zoneRigs) {
       const zState = this.state.zones[rig.id];
+      const zSpec = ZONES.find((z) => z.id === rig.id)!;
       rig.reticle.visible = rig.id === this.state.selectedZone;
-      const scale = 0.82 + zState.intensity * 0.14;
+      rig.warnRing.visible = preview.refractedTargets.includes(rig.id);
+      const scale = 0.86 + zState.intensity * 0.12;
       this.applyScarVisibility(rig, zState.scar, scale);
+
+      if (rig.lastScar !== zState.scar) {
+        rig.lastScar = zState.scar;
+        updateLabel(scope, rig.statusPlate, `${zSpec.name.toUpperCase()}\n${SCAR_LABELS[zState.scar].toUpperCase()}`);
+      }
     }
 
     if (this.refractBeams.length >= 2) {
-      const showAll = this.beamTimer > 0 || this.state.refractionCount > 0;
-      this.refractBeams[0].visible = showAll && (this.activeBeamFlags[0] || this.state.zones.rim.scar !== 'none' && this.state.zones.conduit.scar === 'spire');
-      this.refractBeams[1].visible = showAll && (this.activeBeamFlags[1] || this.state.zones.channel.scar !== 'none' && this.state.zones.conduit.scar === 'spire');
+      const activeConduitCrystal =
+        this.state.zones.conduit.scar === 'spire' ||
+        this.state.zones.conduit.scar === 'cryoprism' ||
+        this.state.zones.conduit.scar === 'vitrified';
+      const showRefract = this.state.refractionCount > 0 && (this.beamTimer > 0 || activeConduitCrystal);
+      this.refractBeams[0].visible = showRefract && (this.activeBeamFlags[0] || this.state.zones.rim.scar !== 'none');
+      this.refractBeams[1].visible = showRefract && (this.activeBeamFlags[1] || this.state.zones.channel.scar !== 'none');
     }
 
-    const preview = previewCastOutcome(this.state);
-    updateLabel(scope, this.consoleReadout, preview.summary.toUpperCase());
+    const prefix = preview.refractedTargets.length > 0 ? 'REFRACT TELEGRAPH' : preview.reaction !== 'baseline' ? `REACTION [${preview.reaction.toUpperCase()}]` : 'TELEGRAPH';
+    updateLabel(scope, this.consoleReadout, `${prefix}: ${preview.summary.toUpperCase()}`);
     const scarCount = countActiveScars(this.state);
     updateLabel(
       scope,
       this.archReadout,
-      `CASTS: ${this.state.castCount} · ACTIVE SCARS: ${scarCount}/3 · REACTIONS: ${this.state.reactionCount}`,
+      `CASTS: ${this.state.castCount} · ACTIVE SCARS: ${scarCount}/3 · REACTIONS: ${this.state.reactionCount} · REFRACTIONS: ${this.state.refractionCount}`,
     );
   }
 
@@ -561,17 +782,23 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
 
     if (!instant) {
       this.casterCrystal.rotation.y += dt * 0.9;
-      this.casterCrystal.position.y = 1.32 + Math.sin(this.elapsed * 2.2) * 0.03;
+      this.casterCrystal.position.y = 1.04 + Math.sin(this.elapsed * 2.2) * 0.025;
     }
 
     if (this.flightActive) {
-      const done = this.projectile.update(dt, this.castCurve, 1.85);
+      const done = this.projectile.update(dt, this.castCurve, 1.9);
       if (done) {
         this.flightActive = false;
-        this.projectile.mesh.position.set(0, 1.32, -2.05);
+        this.projectile.mesh.position.set(0, 1.04, -1.85);
         const spell = SPELLS.find((s) => s.id === this.state.selectedSpell) ?? SPELLS[0];
         const zone = ZONES.find((z) => z.id === this.state.selectedZone) ?? ZONES[1];
-        this.triggerImpact(zone.x, zone.z, spell.emissiveHex, this.state.lastOutcome?.refractedTargets ?? []);
+        this.triggerImpact(
+          zone.x,
+          PAD_HEIGHTS[zone.id] + 0.14,
+          zone.z,
+          spell.emissiveHex,
+          this.state.lastOutcome?.refractedTargets ?? [],
+        );
         this.syncVisualState();
       }
     }
@@ -613,8 +840,9 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
         rig.pulseBoost = Math.max(0, rig.pulseBoost - dt * 2.4);
       }
       rig.ringMat.emissiveIntensity = 0.25 + rig.pulseBoost * 1.4;
-      if (!instant && rig.spireGroup.visible) {
+      if (!instant && (rig.spireGroup.visible || rig.cryoPrismGroup.visible)) {
         rig.spireGroup.rotation.y += dt * 0.4;
+        rig.cryoPrismGroup.rotation.y += dt * 0.4;
       }
     }
   }
@@ -629,7 +857,7 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
     this.activeBeamFlags[1] = false;
     if (this.built) {
       this.projectile.stop();
-      this.projectile.mesh.position.set(0, 1.32, -2.05);
+      this.projectile.mesh.position.set(0, 1.04, -1.85);
       this.shockwaveRing.visible = false;
       this.burstMesh.visible = false;
       this.syncVisualState();
@@ -640,10 +868,11 @@ export class SpellLeavesScarExhibit extends ExhibitBase {
     const spell = SPELLS.find((s) => s.id === this.state.selectedSpell) ?? SPELLS[0];
     const zone = ZONES.find((z) => z.id === this.state.selectedZone) ?? ZONES[1];
     const outcome = this.state.lastOutcome ? ` Last outcome: ${this.state.lastOutcome.summary}` : '';
+    const preview = previewCastOutcome(this.state);
     return (
       `Armed ${spell.name} on ${zone.name}. Casts=${this.state.castCount}, ` +
       `ActiveScars=${countActiveScars(this.state)}/3, Reactions=${this.state.reactionCount}, ` +
-      `Refractions=${this.state.refractionCount}.${outcome}`
+      `Refractions=${this.state.refractionCount}, PredictedRefract=${preview.refractedTargets.length}.${outcome}`
     );
   }
 }

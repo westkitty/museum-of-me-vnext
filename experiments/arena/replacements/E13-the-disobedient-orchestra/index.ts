@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { ExhibitBase } from '../../../../src/exhibits/ExhibitBase';
 import { buildLabel, buildLectern, buildPlaque, updateLabel } from '../../../../src/exhibits/Furniture';
-import { buildConsole, Dial, Lever } from '../../../../src/exhibits/parts';
+import { buildConsole, Dial, Filament, Lever } from '../../../../src/exhibits/parts';
 import type { ExhibitDefinition, ExhibitModule, ExhibitUpdateContext } from '../../../../src/exhibits/contract';
 import {
   createInitialOrchestraState,
@@ -17,14 +17,31 @@ interface SynthVoice {
   readonly gain: GainNode;
 }
 
+const STAGE_Y = 0.72;
+const LAYER_XS = [-2.05, -0.68, 0.68, 2.05] as const;
+const LAYER_ZS = [-4.6, -5.25, -5.25, -4.6] as const;
+const OBS_COLORS = [0xff6b57, 0xffb347, 0x52c7ff, 0xc77dff] as const;
+const LAYER_RATIOS = [1.0, 1.5, 2.02, 3.01] as const;
+
 export class DisobedientOrchestraExhibit extends ExhibitBase {
   private state: OrchestraState = createInitialOrchestraState();
 
-  private targetRings = this.tracked<THREE.Mesh>();
-  private observedColumns = this.tracked<THREE.Mesh>();
-  private observedMats = this.tracked<THREE.MeshStandardMaterial>();
-  private orbitPucks = this.tracked<THREE.Mesh>();
-  private observedHeights = new Float32Array(4);
+  private readonly targetRings: THREE.Mesh[] = [];
+  private readonly observedColumns: THREE.Mesh[] = [];
+  private readonly observedMats: THREE.MeshStandardMaterial[] = [];
+  private readonly orbitPucks: THREE.Mesh[] = [];
+  private readonly diffTethers: Filament[] = [];
+  private readonly diffMats: THREE.MeshStandardMaterial[] = [];
+  private readonly waveBars: THREE.Mesh[] = [];
+  private waveMat!: THREE.MeshStandardMaterial;
+  private cueArc!: Filament;
+  private cueArcMat!: THREE.MeshStandardMaterial;
+
+  private readonly observedHeights = new Float32Array(4);
+  private readonly tetherStart = new THREE.Vector3();
+  private readonly tetherMid = new THREE.Vector3();
+  private readonly tetherEnd = new THREE.Vector3();
+  private readonly tetherCurve = new THREE.QuadraticBezierCurve3(this.tetherStart, this.tetherMid, this.tetherEnd);
 
   private directiveDial!: Dial;
   private cueLever!: Lever;
@@ -38,112 +55,172 @@ export class DisobedientOrchestraExhibit extends ExhibitBase {
   protected override build(): void {
     const scope = this.ctx.scope;
     const ebony = this.standard(0x1a1c24, { roughness: 0.72, metalness: 0.25 });
-    const brass = this.standard(0xc99c46, { roughness: 0.36, metalness: 0.72 });
+    const brass = this.standard(0xcfa14a, { roughness: 0.34, metalness: 0.74 });
     const stageWood = this.standard(0x3a2a20, { roughness: 0.68 });
+    const caliperSteel = this.standard(0x636b7d, { roughness: 0.55, metalness: 0.45 });
 
-    // ── Amphitheater Orchestra Stage at z = -5.0 (clear of central plinth) ───
-    const amphitheater = this.mesh(new THREE.CylinderGeometry(3.1, 3.35, 0.28, 16), stageWood);
-    amphitheater.position.set(0, 0.14, -5.05);
+    // ── Elevated Amphitheater Orchestra Stage (clears low console cleanly) ─
+    const riser = this.mesh(new THREE.CylinderGeometry(3.25, 3.5, 0.62, 16), stageWood);
+    riser.position.set(0, 0.31, -5.0);
 
-    const conductorArc = this.mesh(new THREE.TorusGeometry(2.8, 0.06, 8, 32, Math.PI), brass);
+    const conductorArc = this.mesh(new THREE.TorusGeometry(2.85, 0.055, 8, 28, Math.PI), brass);
     conductorArc.rotation.x = Math.PI / 2;
     conductorArc.rotation.z = Math.PI;
-    conductorArc.position.set(0, 0.32, -4.7);
+    conductorArc.position.set(0, STAGE_Y - 0.04, -4.65);
 
-    // 4 Spatial Choir Stations across semicircular arc
-    const layerXs = [-2.1, -0.7, 0.7, 2.1] as const;
-    const layerZs = [-4.6, -5.35, -5.35, -4.6] as const;
-    const obsColors = [0xff6b57, 0xffb347, 0x52c7ff, 0xc77dff] as const;
+    // Bracket-Cue Bridge Arc framing all 4 stations from overhead
+    this.cueArcMat = this.emissive(0x6b7285, 0.55);
+    this.cueArc = new Filament(scope, 18, 0.028, this.cueArcMat);
+    this.tetherStart.set(LAYER_XS[0], STAGE_Y + 2.35, LAYER_ZS[0]);
+    this.tetherMid.set(0, STAGE_Y + 3.05, -5.45);
+    this.tetherEnd.set(LAYER_XS[3], STAGE_Y + 2.35, LAYER_ZS[3]);
+    this.cueArc.follow(this.tetherCurve);
+    this.group.add(this.cueArc.group);
+
+    this.targetRings.length = 0;
+    this.observedColumns.length = 0;
+    this.observedMats.length = 0;
+    this.orbitPucks.length = 0;
+    this.diffTethers.length = 0;
+    this.diffMats.length = 0;
+
+    // 4 Spatial Choir Stations with Caliper Posts + Intended Ring + Observed Column + Error Tether
+    const sharedPostGeo = scope.track(new THREE.BoxGeometry(0.045, 2.0, 0.045));
+    const sharedColGeo = scope.track(new THREE.CylinderGeometry(0.22, 0.25, 1.0, 10));
+    const sharedRingGeo = scope.track(new THREE.TorusGeometry(0.46, 0.045, 6, 20));
+    const sharedPuckGeo = scope.track(new THREE.OctahedronGeometry(0.13, 0));
 
     for (let i = 0; i < 4; i++) {
       const layer = this.state.layers[i];
-      const x = layerXs[i];
-      const z = layerZs[i];
+      const x = LAYER_XS[i];
+      const z = LAYER_ZS[i];
 
-      const pedestal = this.mesh(new THREE.CylinderGeometry(0.45, 0.52, 0.34, 12), ebony);
-      pedestal.position.set(x, 0.45, z);
+      const pedestal = this.mesh(new THREE.CylinderGeometry(0.45, 0.52, 0.22, 12), ebony);
+      pedestal.position.set(x, STAGE_Y + 0.02, z);
 
-      // Gold Score Intention Marker Ring hovering at target height
-      const ring = this.mesh(new THREE.TorusGeometry(0.48, 0.045, 8, 24), this.emissive(0xffe17a, 1.3));
+      // Twin Scale Caliper Rails showing 0..4 dynamic range next to column
+      if (this.ctx.detailScale >= 0.75) {
+        for (const sx of [-0.46, 0.46]) {
+          const post = new THREE.Mesh(sharedPostGeo, caliperSteel);
+          post.position.set(x + sx, STAGE_Y + 1.12, z);
+          this.group.add(post);
+        }
+      }
+
+      // Gold Intended Target Ring
+      const ring = new THREE.Mesh(sharedRingGeo, this.emissive(0xffe17a, 1.4));
       ring.rotation.x = Math.PI / 2;
-      ring.position.set(x, 0.8 + layer.intended * 0.45, z);
+      ring.position.set(x, STAGE_Y + 0.35 + layer.intended * 0.42, z);
+      this.group.add(ring);
       this.targetRings.push(ring);
 
       // Observed Output Harmonic Column
-      const obsMat = this.emissive(obsColors[i], 1.3);
+      const obsMat = this.emissive(OBS_COLORS[i], 1.25);
       this.observedMats.push(obsMat);
-      const col = this.mesh(new THREE.CylinderGeometry(0.24, 0.28, 1.0, 12), obsMat);
-      col.position.set(x, 1.12, z);
+      const col = new THREE.Mesh(sharedColGeo, obsMat);
+      col.position.set(x, STAGE_Y + 0.6, z);
+      this.group.add(col);
       this.observedColumns.push(col);
-      this.observedHeights[i] = 0.25 + layer.observed * 0.45;
+      this.observedHeights[i] = 0.22 + layer.observed * 0.42;
 
-      // Orbiting visual tuning puck (no audio required for full legibility)
-      const puck = this.mesh(new THREE.OctahedronGeometry(0.14, 0), brass);
-      puck.position.set(x, 2.9, z);
+      // Live Vertical Drift Tether between Intended Ring height & Observed Output top
+      const dMat = this.emissive(0xff3e33, 1.6);
+      this.diffMats.push(dMat);
+      const tether = new Filament(scope, 10, 0.022, dMat);
+      this.tetherStart.set(x, STAGE_Y + 0.35 + layer.intended * 0.42, z);
+      this.tetherEnd.set(x, STAGE_Y + 0.35 + layer.observed * 0.42, z);
+      this.tetherMid.set(x + (i < 2 ? -0.18 : 0.18), (this.tetherStart.y + this.tetherEnd.y) * 0.5, z + 0.22);
+      tether.follow(this.tetherCurve);
+      this.group.add(tether.group);
+      this.diffTethers.push(tether);
+
+      // Orbiting Tempo / Pitch Beacon above observed top
+      const puck = new THREE.Mesh(sharedPuckGeo, brass);
+      puck.position.set(x, STAGE_Y + 2.5, z);
+      this.group.add(puck);
       this.orbitPucks.push(puck);
 
-      const lbl = buildLabel(scope, layer.name.toUpperCase(), 0.76, 0.24);
-      lbl.position.set(x, 0.52, z + 0.56);
-      lbl.rotation.x = -0.4;
+      const lbl = buildLabel(scope, layer.name.toUpperCase(), 0.78, 0.23);
+      lbl.position.set(x, STAGE_Y + 0.14, z + 0.55);
+      lbl.rotation.x = -0.45;
       this.group.add(lbl);
     }
 
-    // Back Harmonic Readout Arch (capped well below media wing ceiling)
-    this.topBanner = buildLabel(scope, 'TAKE #1 · SPARSE VERSE · DRIFT = 7 (RAW PROMPT)', 3.8, 0.16);
-    this.topBanner.position.set(0, 4.15, -6.2);
+    // ── Silent-Mode Harmonic Output Waveform Ribbon (re-anchors mix physics) ──
+    const waveBarCount = this.scaled(24);
+    const sharedBarGeo = scope.track(new THREE.BoxGeometry(0.09, 1.0, 0.09));
+    this.waveMat = this.emissive(0xff6b57, 1.2);
+    this.waveBars.length = 0;
+    for (let i = 0; i < waveBarCount; i++) {
+      const bar = new THREE.Mesh(sharedBarGeo, this.waveMat);
+      const bx = (i / (waveBarCount - 1) - 0.5) * 4.2;
+      bar.position.set(bx, 3.25, -6.05);
+      bar.scale.y = 0.25;
+      this.group.add(bar);
+      this.waveBars.push(bar);
+    }
+
+    // Back Harmonic Readout Banners clear above Waveform Ribbon
+    this.topBanner = buildLabel(scope, 'TAKE #1 · SPARSE VERSE · DRIFT = 7 (RAW PROMPT)', 3.9, 0.16);
+    this.topBanner.position.set(0, 4.48, -6.22);
     this.group.add(this.topBanner);
 
-    this.subBanner = buildLabel(scope, 'SYNTHETIC LOCAL SPECTRUM PROBE · AUDIO MUTED · 3D SIGHT ACTIVE', 3.8, 0.16);
-    this.subBanner.position.set(0, 3.55, -6.2);
+    this.subBanner = buildLabel(scope, 'SYNTHETIC SPECTRUM PROBE · AUDIO MUTED · 3D SIGHT ACTIVE', 3.9, 0.16);
+    this.subBanner.position.set(0, 3.92, -6.22);
     this.group.add(this.subBanner);
 
-    // ── Conductor Console at z = -1.95 (clear of bay plinth) ─────────────────
-    const consoleGroup = buildConsole(scope, 2.65, 0.7, 1.0, ebony);
-    consoleGroup.position.set(0, 0, -1.95);
+    // ── Low Foreground Conductor Console (z = -1.78, h = 0.56 -> Zero stage occlusion!) ──
+    const consoleGroup = buildConsole(scope, 2.65, 0.62, 0.56, ebony);
+    consoleGroup.position.set(0, 0, -1.78);
     this.group.add(consoleGroup);
 
-    this.directiveDial = new Dial(scope, 3, 0.2, { handle: this.emissive(0xffe17a, 1.1) });
-    this.directiveDial.group.position.set(-0.98, 1.03, -1.93);
+    this.directiveDial = new Dial(scope, 3, 0.19, { handle: this.emissive(0xffe17a, 1.2) });
+    this.directiveDial.group.position.set(-0.98, 0.59, -1.76);
     this.group.add(this.directiveDial.group);
-    const dirLbl = buildLabel(scope, 'SCORE', 0.42, 0.28);
-    dirLbl.position.set(-0.98, 1.14, -1.64);
-    dirLbl.rotation.x = -0.35;
+    const dirLbl = buildLabel(scope, 'SCORE', 0.42, 0.24);
+    dirLbl.position.set(-0.98, 0.65, -1.48);
+    dirLbl.rotation.x = -0.45;
     this.group.add(dirLbl);
 
-    this.cueLever = new Lever(scope, 2, 0.36, { arm: this.emissive(0x52c7ff, 1.2) });
-    this.cueLever.group.position.set(-0.42, 1.03, -1.93);
+    this.cueLever = new Lever(scope, 2, 0.32, { arm: this.emissive(0x52c7ff, 1.25) });
+    this.cueLever.group.position.set(-0.42, 0.59, -1.76);
     this.group.add(this.cueLever.group);
-    const cueLbl = buildLabel(scope, 'CUES', 0.42, 0.28);
-    cueLbl.position.set(-0.42, 1.14, -1.64);
-    cueLbl.rotation.x = -0.35;
+    const cueLbl = buildLabel(scope, 'CUES', 0.42, 0.24);
+    cueLbl.position.set(-0.42, 0.65, -1.48);
+    cueLbl.rotation.x = -0.45;
     this.group.add(cueLbl);
 
-    const takePuck = this.mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.08, 12), this.emissive(0xc77dff, 1.2));
-    takePuck.position.set(0.18, 1.04, -1.93);
-    const takeLbl = buildLabel(scope, 'NEW TAKE', 0.46, 0.28);
-    takeLbl.position.set(0.18, 1.14, -1.64);
-    takeLbl.rotation.x = -0.35;
+    const takePuck = this.mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.08, 12), this.emissive(0xc77dff, 1.25));
+    takePuck.position.set(0.18, 0.6, -1.76);
+    const takeLbl = buildLabel(scope, 'NEW TAKE', 0.46, 0.24);
+    takeLbl.position.set(0.18, 0.65, -1.48);
+    takeLbl.rotation.x = -0.45;
     this.group.add(takeLbl);
 
-    this.audioLever = new Lever(scope, 2, 0.36, { arm: this.emissive(0x47f0a6, 1.0) });
-    this.audioLever.group.position.set(0.75, 1.03, -1.93);
+    this.audioLever = new Lever(scope, 2, 0.32, { arm: this.emissive(0x47f0a6, 1.1) });
+    this.audioLever.group.position.set(0.75, 0.59, -1.76);
     this.group.add(this.audioLever.group);
-    const audLbl = buildLabel(scope, 'AUDIO', 0.42, 0.28);
-    audLbl.position.set(0.75, 1.14, -1.64);
-    audLbl.rotation.x = -0.35;
+    const audLbl = buildLabel(scope, 'AUDIO', 0.42, 0.24);
+    audLbl.position.set(0.75, 0.65, -1.48);
+    audLbl.rotation.x = -0.45;
     this.group.add(audLbl);
 
     const resetPuck = this.mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.08, 12), brass);
-    resetPuck.position.set(1.16, 1.04, -1.93);
+    resetPuck.position.set(1.16, 0.6, -1.76);
+    const rstLbl = buildLabel(scope, 'RESET', 0.36, 0.24);
+    rstLbl.position.set(1.16, 0.65, -1.48);
+    rstLbl.rotation.x = -0.45;
+    this.group.add(rstLbl);
 
-    // Wall plaque & reading lectern
+    // Symmetrical Wall Plaque & Reading Lectern
     const plaque = buildPlaque(scope, this.ctx.record);
-    plaque.position.set(-4.1, 2.35, -7.25);
+    plaque.position.set(-3.85, 2.25, -4.45);
+    plaque.rotation.y = 0.46;
     this.group.add(plaque);
 
     const lectern = buildLectern(scope, this.ctx.record, this.ctx.projects);
-    lectern.position.set(3.55, 0, -4.4);
-    lectern.rotation.y = -0.45;
+    lectern.position.set(3.85, 0, -4.4);
+    lectern.rotation.y = -0.46;
     this.group.add(lectern);
 
     // ── Register 5 Accessible Controls ────────────────────────────────────────
@@ -220,19 +297,57 @@ export class DisobedientOrchestraExhibit extends ExhibitBase {
   private syncVisuals(): void {
     const scope = this.ctx.scope;
     const dirIdx = DIRECTIVES.findIndex((d) => d.id === this.state.directive);
+    const strict = this.state.steering === 'strict_cues';
+
     this.directiveDial.value = Math.max(0, dirIdx);
-    this.cueLever.value = this.state.steering === 'strict_cues' ? 1 : 0;
+    this.cueLever.value = strict ? 1 : 0;
     this.audioLever.value = this.state.audioEnabled ? 1 : 0;
+
+    // Bracket-Cue Overhead Bridge glows cerulean-gold when strict meta-tags hold structure
+    if (strict) {
+      this.cueArcMat.color.setHex(0x52e0c4);
+      this.cueArcMat.emissive.setHex(0x3ad18c);
+      this.cueArcMat.emissiveIntensity = 1.45;
+    } else {
+      this.cueArcMat.color.setHex(0x6b7285);
+      this.cueArcMat.emissive.setHex(0x2a2f3b);
+      this.cueArcMat.emissiveIntensity = 0.45;
+    }
+
+    // Harmonic waveform color reflects drift lock
+    if (this.state.totalDrift <= 1) {
+      this.waveMat.color.setHex(0x52e0c4);
+      this.waveMat.emissive.setHex(0x2fb899);
+    } else {
+      this.waveMat.color.setHex(0xff784f);
+      this.waveMat.emissive.setHex(0xe83b28);
+    }
 
     for (let i = 0; i < 4; i++) {
       const layer = this.state.layers[i];
-      this.targetRings[i].position.y = 0.72 + layer.intended * 0.45;
+      const intendedY = STAGE_Y + 0.35 + layer.intended * 0.42;
+      const observedY = STAGE_Y + 0.35 + layer.observed * 0.42;
+      this.targetRings[i].position.y = intendedY;
+
       const err = Math.abs(layer.observed - layer.intended);
-      this.observedMats[i].emissiveIntensity = err === 0 ? 0.95 : 1.35 + err * 0.25;
+      this.observedMats[i].emissiveIntensity = err === 0 ? 1.05 : 1.35 + err * 0.25;
+
+      // Update error tether between Intended Ring and Observed Column top
+      const x = LAYER_XS[i];
+      const z = LAYER_ZS[i];
+      this.tetherStart.set(x, intendedY, z);
+      this.tetherEnd.set(x, observedY, z);
+      this.tetherMid.set(x + (i < 2 ? -0.22 : 0.22), (intendedY + observedY) * 0.5, z + 0.28);
+      this.diffTethers[i].follow(this.tetherCurve);
+      this.diffTethers[i].group.visible = err > 0;
+      if (err > 0) {
+        this.diffMats[i].color.setHex(err >= 2 ? 0xff3e33 : 0xf2c86b);
+        this.diffMats[i].emissive.setHex(err >= 2 ? 0xff1e10 : 0xd49b28);
+      }
     }
 
     const dirSpec = DIRECTIVES.find((d) => d.id === this.state.directive) ?? DIRECTIVES[0];
-    const cueTag = this.state.steering === 'strict_cues' ? 'STRICT CUES' : 'RAW PROMPT';
+    const cueTag = strict ? '[STRICT META-CUES]' : 'RAW PROMPT (IGNORED ADJECTIVES)';
     updateLabel(
       scope,
       this.topBanner,
@@ -309,7 +424,7 @@ export class DisobedientOrchestraExhibit extends ExhibitBase {
 
     for (let i = 0; i < 4; i++) {
       const layer = this.state.layers[i];
-      const targetH = Math.max(0.18, 0.25 + layer.observed * 0.45);
+      const targetH = Math.max(0.18, 0.22 + layer.observed * 0.42);
       if (instant) {
         this.observedHeights[i] = targetH;
       } else {
@@ -317,11 +432,29 @@ export class DisobedientOrchestraExhibit extends ExhibitBase {
       }
       const h = this.observedHeights[i];
       this.observedColumns[i].scale.y = h;
-      this.observedColumns[i].position.y = 0.62 + h * 0.5;
-      this.orbitPucks[i].position.y = 0.72 + h + 0.22;
+      this.observedColumns[i].position.y = STAGE_Y + 0.13 + h * 0.5;
+      this.orbitPucks[i].position.y = STAGE_Y + 0.18 + h + 0.22;
       if (!instant) {
         this.orbitPucks[i].rotation.y += dt * (0.6 + layer.observed * 0.45);
       }
+    }
+
+    // Silent-mode live harmonic wave summed across 4 observed layers (zero allocations)
+    const nBars = this.waveBars.length;
+    const t = instant ? 0.35 : this.elapsed;
+    const driftJagged = this.state.totalDrift > 1 ? 0.18 : 0;
+    for (let b = 0; b < nBars; b++) {
+      const nx = b / Math.max(1, nBars - 1);
+      let sum = 0;
+      let w = 0;
+      for (let i = 0; i < 4; i++) {
+        const amp = Math.max(0.1, this.state.layers[i].observed * 0.25);
+        sum += Math.sin((nx * LAYER_RATIOS[i] * 5 + t * (1 + i * 0.35)) * Math.PI) * amp;
+        w += amp;
+      }
+      const jitter = driftJagged * Math.sin(b * 3.7 + t * 5.0);
+      const barH = Math.max(0.12, Math.abs(sum / Math.max(0.1, w) + jitter) * 0.72 + 0.12);
+      this.waveBars[b].scale.y = barH;
     }
   }
 
@@ -341,7 +474,7 @@ export class DisobedientOrchestraExhibit extends ExhibitBase {
     this.state = createInitialOrchestraState();
     this.stopAudio();
     for (let i = 0; i < 4; i++) {
-      this.observedHeights[i] = Math.max(0.18, 0.25 + this.state.layers[i].observed * 0.45);
+      this.observedHeights[i] = Math.max(0.18, 0.22 + this.state.layers[i].observed * 0.42);
     }
     if (this.built) {
       this.syncVisuals();
