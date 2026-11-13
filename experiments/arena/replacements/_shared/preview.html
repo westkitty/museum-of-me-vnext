@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>Museum of Me — Arena Bay Preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0f1218;
+        --panel: rgba(20, 24, 32, 0.94);
+        --border: #2e3646;
+        --text: #eef1f6;
+        --muted: #98a2b3;
+        --accent: #e8c65a;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      .shell {
+        display: grid;
+        grid-template-rows: minmax(360px, 1fr) auto;
+        height: 100vh;
+      }
+      #viewport {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      #hud {
+        background: var(--panel);
+        border-top: 1px solid var(--border);
+        padding: 12px 16px;
+        max-height: 44vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .hud-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .hud-header h1 {
+        margin: 4px 0 0;
+        font-size: 1.05rem;
+        font-weight: 600;
+      }
+      .slot-pill {
+        display: inline-block;
+        font-size: 0.72rem;
+        letter-spacing: 0.06em;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(232, 198, 90, 0.16);
+        color: var(--accent);
+        border: 1px solid rgba(232, 198, 90, 0.4);
+      }
+      .header-actions, .toolbar, .controls-grid {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      button {
+        background: #202734;
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px 11px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        min-height: 36px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      button:hover { border-color: var(--accent); }
+      button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      button[aria-pressed="true"] {
+        background: rgba(232, 198, 90, 0.2);
+        border-color: var(--accent);
+      }
+      .key-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        font-size: 0.72rem;
+        background: #12161f;
+        color: var(--accent);
+        border: 1px solid var(--border);
+      }
+      .state-box {
+        background: #141923;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px 10px;
+        font-size: 0.88rem;
+      }
+      .metrics {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+      .metrics strong { color: var(--text); }
+      .deep-panel {
+        background: #11151d;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 10px 12px;
+        font-size: 0.84rem;
+        line-height: 1.45;
+      }
+      .deep-panel p { margin: 0 0 6px; }
+      .log {
+        margin: 0;
+        padding-left: 18px;
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+      .error {
+        background: rgba(217, 84, 58, 0.2);
+        border: 1px solid #d9543a;
+        border-radius: 6px;
+        padding: 8px 10px;
+        color: #ffd5cd;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div id="viewport" aria-label="3D Exhibit Bay Viewport"></div>
+      <aside id="hud" aria-label="Exhibit Preview Controls"></aside>
+    </div>
+    <div id="live-region" class="sr-only" aria-live="polite"></div>
+    <script type="module" src="./previewHost.ts"></script>
+  </body>
+</html>
