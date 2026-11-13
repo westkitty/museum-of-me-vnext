@@ -4,6 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { builderModel } from '../src/workshop/builderAssetCatalog';
 import { KIT_TEMPLATES, kitWorldTransform } from '../src/workshop/ExhibitKits';
+import { STAR_CHART_SIZE } from '../src/workshop/StarChart';
 
 /**
  * The kit templates are judged on the real bundled model files, not on their
@@ -38,8 +39,38 @@ beforeAll(async () => {
 });
 
 describe('Exhibit Kit models as bundled', () => {
-  it('uses only library models for every slot', () => {
-    for (const { template, slot } of slots) expect(`${template.id}/${slot.slot}:${slot.record.prefab}`).toBe(`${template.id}/${slot.slot}:catalog-model`);
+  it('uses only library models for every slot, apart from the star chart sheet', () => {
+    for (const { template, slot } of slots) {
+      const expected = slot.slot === 'star-chart' ? 'star-chart' : 'catalog-model';
+      expect(`${template.id}/${slot.slot}:${slot.record.prefab}`).toBe(`${template.id}/${slot.slot}:${expected}`);
+    }
+  });
+
+  it('mounts the star chart flush on the easel canvas, inside its edges', () => {
+    const template = KIT_TEMPLATES['observatory-workstation'];
+    const easelSlot = template.slots.find((slot) => slot.slot === 'chart-easel')!;
+    const chartSlot = template.slots.find((slot) => slot.slot === 'star-chart')!;
+    expect(chartSlot.record.collision).toBe('none');
+    // The easel's canvas is its widest thin upright part (the white board).
+    const canvas = parts.get(easelSlot.record.assetId!)!
+      .filter((mesh) => mesh.box.max.x - mesh.box.min.x > 0.5 && mesh.box.max.z - mesh.box.min.z < 0.06 && mesh.box.max.y - mesh.box.min.y > 0.5)[0];
+    expect(canvas, 'easel canvas part').toBeTruthy();
+    // Express the chart's corners in the easel's own frame.
+    const toMatrix = (slot: typeof easelSlot) => {
+      const world = kitWorldTransform({ position: [0, 0, 0], rotationY: 0 }, slot);
+      return new THREE.Matrix4().compose(new THREE.Vector3(...world.position),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(...world.rotation)), new THREE.Vector3(...world.scale));
+    };
+    const chartToEasel = toMatrix(easelSlot).invert().multiply(toMatrix(chartSlot));
+    const { width, height, thickness } = STAR_CHART_SIZE;
+    const sheet = new THREE.Box3(new THREE.Vector3(-width / 2, 0, 0), new THREE.Vector3(width / 2, height, thickness)).applyMatrix4(chartToEasel);
+    const front = canvas.box.max.z;
+    expect(sheet.min.z - front, 'gap between canvas face and chart back').toBeGreaterThanOrEqual(0);
+    expect(sheet.min.z - front, 'gap between canvas face and chart back').toBeLessThanOrEqual(0.002);
+    expect(sheet.min.x).toBeGreaterThanOrEqual(canvas.box.min.x);
+    expect(sheet.max.x).toBeLessThanOrEqual(canvas.box.max.x);
+    expect(sheet.min.y).toBeGreaterThanOrEqual(canvas.box.min.y);
+    expect(sheet.max.y).toBeLessThanOrEqual(canvas.box.max.y);
   });
 
   it('has no hovering or detached part in any kit model: each part touches the model base or a part connected to it', () => {
@@ -67,7 +98,7 @@ describe('Exhibit Kit models as bundled', () => {
 
   it('stands every part on the floor, except one resting on the top of another part of the same kit', () => {
     for (const template of Object.values(KIT_TEMPLATES)) {
-      const placed = template.slots.map((slot) => {
+      const placed = template.slots.filter((slot) => slot.record.prefab === 'catalog-model').map((slot) => {
         const world = kitWorldTransform({ position: [0, 0, 0], rotationY: 0 }, slot);
         const matrix = new THREE.Matrix4().compose(new THREE.Vector3(...world.position),
           new THREE.Quaternion().setFromEuler(new THREE.Euler(...world.rotation)), new THREE.Vector3(...world.scale));

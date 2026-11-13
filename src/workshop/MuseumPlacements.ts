@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { STAR_CHART_SIZE, createStarChartTexture } from './StarChart';
 import { ResourceScope } from '../assets/ResourceScope';
 import { WorkshopSurfaces, type WorkshopSurfaceSelection } from './WorkshopSurfaces';
 import { resolveBuilderResourceUrl } from './builderAssetCatalog';
@@ -27,6 +28,7 @@ interface PlacementMaterials {
   dark: THREE.MeshStandardMaterial;
   wood: THREE.MeshStandardMaterial;
   accent: THREE.MeshStandardMaterial;
+  starChart: THREE.MeshStandardMaterial;
 }
 
 /** One mesh's geometry bounds and its transform relative to the placement root. */
@@ -834,6 +836,11 @@ export class MuseumPlacements {
         roughness: 0.48,
         metalness: 0.18,
       })),
+      starChart: this.scope.track(new THREE.MeshStandardMaterial({
+        map: this.scope.track(createStarChartTexture()),
+        roughness: 0.9,
+        metalness: 0,
+      })),
     };
   }
 
@@ -900,6 +907,13 @@ export class MuseumPlacements {
         surface.name = 'workshop-art-surface';
         surface.userData.workshopImageSurface = true;
         root.add(surface);
+        break;
+      }
+      case 'star-chart': {
+        // Origin at the bottom edge of the back face, so the sheet stands on a
+        // floor or ledge and its back sits flush against whatever holds it.
+        const { width, height, thickness } = STAR_CHART_SIZE;
+        root.add(this.mesh(new THREE.BoxGeometry(width, height, thickness), materials.starChart, [0, height / 2, thickness / 2]));
         break;
       }
       case 'wall-panel': {

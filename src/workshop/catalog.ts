@@ -30,6 +30,11 @@ export const WORKSHOP_PREFABS = [
     description: 'Thin wall finish overlay that can be colored, sized and surface-mounted.',
   },
   {
+    id: 'star-chart',
+    label: 'Star chart',
+    description: 'Procedurally drawn celestial chart sheet (0.86 × 0.66 m) to stand or mount on an easel; non-colliding.',
+  },
+  {
     id: 'artifact-table',
     label: 'Artifact table',
     description: 'Non-colliding display table for small objects and exhibit dressing.',

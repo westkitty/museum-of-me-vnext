@@ -22,11 +22,23 @@ export interface KitTemplate {
 
 const model = (assetId: string) => ({ prefab: 'catalog-model' as const, anchor: 'floor' as const, assetId, collision: 'solid' as const });
 const ONE: WorkshopVec3 = [1, 1, 1];
+const OBSERVATORY_EASEL = { position: [-1.5, 0, 0.1] as WorkshopVec3, rotationY: 0.3 };
+
+/** A point given in the easel's own frame, expressed in the kit frame with the easel's facing. */
+function onEasel(easel: { position: WorkshopVec3; rotationY: number }, local: WorkshopVec3): { position: WorkshopVec3; rotation: WorkshopVec3 } {
+  const sin = Math.sin(easel.rotationY);
+  const cos = Math.cos(easel.rotationY);
+  return {
+    position: [easel.position[0] + local[0] * cos + local[2] * sin, easel.position[1] + local[1], easel.position[2] - local[0] * sin + local[2] * cos],
+    rotation: [0, easel.rotationY, 0],
+  };
+}
 
 /**
  * Arrangements built only from the bundled, licensed Builder library, in its
- * shared light-wood palette. Every part stands on the floor except the
- * computer: `openlife:computer_basic` is modelled with its base at desk height
+ * shared light-wood palette, plus the procedurally drawn `star-chart` sheet
+ * mounted flush on the Observatory easel's blank canvas. Every model stands on
+ * the floor except the computer: `openlife:computer_basic` is modelled with its base at desk height
  * (0.73 m), so it belongs on the `openlife:desk_basic` top (0.71–0.77 m) and
  * floats if stood on the floor beside it. `openlife:bookshelf_basic` is not
  * used: its solid outer box encloses its shelves and books, so it renders as a
@@ -54,7 +66,9 @@ export const KIT_TEMPLATES: Readonly<Record<WorkshopKitTemplateId, KitTemplate>>
     id: 'observatory-workstation', label: 'Observatory Workstation',
     description: 'An observing desk with a logging computer and bench, a star chart on an easel, and a chest of charts.',
     slots: [
-      { slot: 'chart-easel', label: 'Star chart easel', record: model('openlife:easel_basic'), position: [-1.5, 0, 0.1], rotation: [0, 0.3, 0], scale: ONE },
+      { slot: 'chart-easel', label: 'Star chart easel', record: model('openlife:easel_basic'), position: OBSERVATORY_EASEL.position, rotation: [0, OBSERVATORY_EASEL.rotationY, 0], scale: ONE },
+      // Flush on the easel's canvas: the bundled easel's white board spans x ±0.45, y 0.65–1.35, with its front face at z = 0.07.
+      { slot: 'star-chart', label: 'Star chart', record: { prefab: 'star-chart', anchor: 'free', collision: 'none' }, ...onEasel(OBSERVATORY_EASEL, [0, 0.67, 0.071]), scale: ONE },
       { slot: 'desk', label: 'Observing desk', record: model('openlife:desk_basic'), position: [0.4, 0, 0], rotation: [0, 0, 0], scale: ONE },
       { slot: 'chair', label: 'Observer bench', record: model('openlife:park_bench'), position: [0.4, 0, 0.75], rotation: [0, Math.PI, 0], scale: ONE },
       // On the desk top. The model's screen is on its +z side, so a half turn puts the screen at the back and the keyboard toward the chair.

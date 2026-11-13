@@ -1,6 +1,8 @@
 # Intelligent Museum Builder mission state
 
-Mission: MUSEUM-INTELLIGENT-BUILDER. Status: NOT COMPLETE; Phase 0 in progress.
+Mission: MUSEUM-INTELLIGENT-BUILDER. Status: integrated into main; not release-ready (see "Current state" at the end).
+
+> The bullets below are the chronological record. Statements in them such as "PR #50 is open/draft" or "do not merge" were true when written and are superseded by "Current state (2026-11-13)" at the end of this file.
 
 - Draft integration candidate [PR #50](https://github.com/westkitty/museum-of-me-vnext/pull/50) is open against main; do not merge while mission requirements remain incomplete. Exact-head CI [run 43282465379](https://github.com/westkitty/museum-of-me-vnext/actions/runs/43282465379) targeted `e0d3f27057e0bbd06cb871af914697fc942b5bb6`: gate, standalone and visitor browser passed, but Workshop failed waiting for the editor while software rendering continued. The affected test now pauses rendering after real app boot before waiting for the editor; its focused local Chromium rerun passed. Subsequent commits require new exact-head checks.
 - 2026-11-12 (Claude Code takeover): PR head `d28d8b4` had exact-head CI [run 43286736530](https://github.com/westkitty/museum-of-me-vnext/actions/runs/43286736530) green on all four jobs. The three checkpoint commits (`2451e46`, `0f62365`, `f561564`) were reviewed as a clean fast-forward descendant and integrated into `feat/intelligent-builder-20261111` by non-forced push together with the per-placement ownership commit below; that combined head needs its own exact-head CI before any claim. Branch `checkpoint/intelligent-builder-history-20261112` is retained unchanged.
@@ -103,4 +105,25 @@ Mission: MUSEUM-INTELLIGENT-BUILDER. Status: NOT COMPLETE; Phase 0 in progress.
 - New test: `tests/exhibit-kit-models.test.ts` (4 checks on the real GLBs). All four checks fail on the old templates.
 - Kit unit tests: three slot references were renamed, and one test that pins the chair's offset changed from 0.9 to 0.75 m.
 
-Next action: full Workshop browser suite on the merged tree, then exact-head CI after push; remaining: Bible continuity entries, the first interior entry hitch measured on the M1/8 GB (0.3–0.8 s worst frame), in-place review of any kit when it is installed in a bay, and in-place artistic review of any Featured model before installation. The island path reroute is done. PR stays draft; no merge to main or deploy.
+- **Star chart on the Observatory easel (2026-11-13):** `docs/evidence/star-chart-easel-2026-11-13/`. A new non-colliding `star-chart` prefab, drawn procedurally with no image file, sits flush on the easel's canvas. This closes the plain-white-canvas caveat. A test measures the real easel GLB canvas to verify the mounting.
+
+## Current state (2026-11-13)
+
+- **On main, flattened:** each PR is one squash commit.
+  - `6b6fdad`: Intelligent Builder, PR #50; its 58 branch commits were squashed.
+  - `ac09e58`: source handoff docs, PR #49.
+  - `1fb4926`: completion passes 1–7 plus the doorway hold fix, PR #51.
+  - `7608223`: development-only DevTools hook, PR #52.
+  - PR #50 was first merged with a merge commit (`3781ea0`). Main was then rewritten to the single squash commit `6b6fdad`, with the same tree, by a lease-guarded force push. The 58 commits remain on `feat/intelligent-builder-20261111`.
+- **Doorway fix (#51):** the doorway now holds the visitor until a constructed interior's entrance prewarm is ready. Previously the visitor could walk past the portal window in the exterior world. This was the intermittent "admits DexGPT only after entry" CI failure.
+- **Hardening (this change):**
+  - Main is protected: squash-only merges, the four CI checks required, and linear history.
+  - Workshop browser tests read pinned CC0 source files from `tests/fixtures/tge-mirror/` instead of GitHub.
+- **Not deployed:** `pages-preview` remains `ce1f33e`.
+- **Remaining before release:**
+  - The first interior entry hitch on the M1/8 GB (0.3–0.8 s worst frame). The owner is handling this.
+  - In-place review of any kit when it is installed in a bay.
+  - In-place artistic review of any Featured model before installation.
+  - Device coverage gaps.
+  - Release and authority gates.
+- **Known local-only failure:** `tests/workshop-browser/tge-import.workshop.e2e.ts` stalls at "Checking local installation…" when run locally with system Chrome. It does so on unmodified main too, with the network. It passes in CI.

@@ -39,5 +39,8 @@ export default defineConfig({
     url: 'http://127.0.0.1:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
+    // Source-catalog imports read the exact pinned files from a committed
+    // mirror instead of GitHub, so CI never depends on the network.
+    env: { MUSEUM_TGE_SOURCE_MIRROR: 'tests/fixtures/tge-mirror' },
   },
 });

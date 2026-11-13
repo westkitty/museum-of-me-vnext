@@ -143,13 +143,14 @@ describe('Exhibit Kits', () => {
     const dispose = vi.spyOn(geometry, 'dispose');
     const loader = vi.fn(async () => { const root = new THREE.Group(); root.add(new THREE.Mesh(geometry, new THREE.MeshStandardMaterial())); return root; });
     const placements = new MuseumPlacements(empty, null, loader);
+    const slotCount = KIT_TEMPLATES['observatory-workstation'].slots.length;
     const history = new WorkshopHistory();
     const before = placements.captureManifest();
     const placed = placements.replaceManifest(placeKit(before, 'observatory-workstation', origin).manifest);
     history.push('Place kit', before, placed);
     await new Promise<void>((done) => setTimeout(done, 0));
-    expect(placements.objectCount).toBe(5);
-    expect(placements.residentCount).toBe(5);
+    expect(placements.objectCount).toBe(slotCount);
+    expect(placements.residentCount).toBe(slotCount);
     expect(placements.captureManifest().kits).toHaveLength(1);
 
     // Removing one member through the normal path also drops its kit membership.
@@ -167,11 +168,11 @@ describe('Exhibit Kits', () => {
 
     // Undo restores the kit step by step.
     placements.replaceManifest(history.undo()!.manifest);
-    expect(placements.captureManifest().kits?.[0].members).toHaveLength(4);
-    expect(placements.objectCount).toBe(4);
+    expect(placements.captureManifest().kits?.[0].members).toHaveLength(slotCount - 1);
+    expect(placements.objectCount).toBe(slotCount - 1);
     placements.replaceManifest(history.undo()!.manifest);
-    expect(placements.captureManifest().kits?.[0].members).toHaveLength(5);
-    expect(placements.objectCount).toBe(5);
+    expect(placements.captureManifest().kits?.[0].members).toHaveLength(slotCount);
+    expect(placements.objectCount).toBe(slotCount);
     placements.dispose();
   });
 });

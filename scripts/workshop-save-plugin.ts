@@ -5,6 +5,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { tgeThumbnail } from './tge-thumbnail';
 import { findCachedTgeModel, importTgeModel } from './tge-model';
+import { tgeSourceFetch } from './tge-source';
 import {
   conservationErrors,
   validateWorkshopConservation,
@@ -373,7 +374,7 @@ export function museumWorkshopSavePlugin(): Plugin {
               || Object.keys(value).length !== 1 || typeof (value as { id?: unknown }).id !== 'string') {
               return json(res, 400, { ok: false, error: 'A single source ID is required' });
             }
-            const imported = await importTgeModel((value as { id: string }).id, process.cwd(), hasValidLocalGLB);
+            const imported = await importTgeModel((value as { id: string }).id, process.cwd(), hasValidLocalGLB, tgeSourceFetch());
             json(res, 200, { ok: true, ...imported });
           } catch (error) {
             if (!req.destroyed) json(res, 400, { ok: false, error: error instanceof Error ? error.message : 'Source import failed' });
@@ -387,7 +388,7 @@ export function museumWorkshopSavePlugin(): Plugin {
           }
           const id = new URL(req.url ?? '', 'http://localhost').searchParams.get('id') ?? '';
           try {
-            const bytes = await tgeThumbnail(id, process.cwd());
+            const bytes = await tgeThumbnail(id, process.cwd(), tgeSourceFetch());
             res.setHeader('Content-Type', 'image/webp');
             res.setHeader('Cache-Control', 'private, max-age=86400');
             res.end(bytes);
