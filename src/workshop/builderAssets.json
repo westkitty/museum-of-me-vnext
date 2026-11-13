@@ -61,14 +61,17 @@
       "sourcePath": "assets/generated/models/bookshelf_basic.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "46b12ccccd2e560d3118176dc24b7fcca51e5002598667e1445b54329c7fb1c0",
-      "bytes": 7108,
+      "sha256": "2e006d1d5443e9792405b3f2d8200cc4931c4354993fb232eb046079e61e586e",
+      "bytes": 7464,
       "nominalSize": [
         1.05,
         1.85,
         0.4
       ],
-      "path": "builder-assets/openlife/bookshelf_basic.glb"
+      "path": "builder-assets/openlife/bookshelf_basic.glb",
+      "sourceSha256": "46b12ccccd2e560d3118176dc24b7fcca51e5002598667e1445b54329c7fb1c0",
+      "sourceBytes": 7108,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:cat_tree",
@@ -83,14 +86,17 @@
       "sourcePath": "assets/generated/models/cat_tree.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "f02c0b72213dd156f4a17c1ca827df4d0cd6367a9b6f8582ca85a6f28f59cf63",
-      "bytes": 4924,
+      "sha256": "8ff07026ee1b335744d3ef05dd41a03eba42c93a419a4a100b96be636bde00df",
+      "bytes": 5076,
       "nominalSize": [
         1.2,
         1.9,
         1.2
       ],
-      "path": "builder-assets/openlife/cat_tree.glb"
+      "path": "builder-assets/openlife/cat_tree.glb",
+      "sourceSha256": "f02c0b72213dd156f4a17c1ca827df4d0cd6367a9b6f8582ca85a6f28f59cf63",
+      "sourceBytes": 4924,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:chess_table",
@@ -125,14 +131,17 @@
       "sourcePath": "assets/generated/models/dog_bed.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "ef2d2464ab698d9b5cc0731b4042d0e710f0005a510c6c5c56f7aa9dcdf54b36",
-      "bytes": 4428,
+      "sha256": "936401927351f9592a20d8c9063b67e173329af51d41050f86d00b7eca6349ec",
+      "bytes": 4588,
       "nominalSize": [
         1.4,
         0.4,
         1.4
       ],
-      "path": "builder-assets/openlife/dog_bed.glb"
+      "path": "builder-assets/openlife/dog_bed.glb",
+      "sourceSha256": "ef2d2464ab698d9b5cc0731b4042d0e710f0005a510c6c5c56f7aa9dcdf54b36",
+      "sourceBytes": 4428,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:easel_basic",
@@ -185,14 +194,17 @@
       "sourcePath": "assets/generated/models/flower_bed.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "8148e2c0c7e523f53f04dfa3c542891301723955196a06dba32a4e251d878fa8",
-      "bytes": 4792,
+      "sha256": "1d1a11d0dc3e0358eefc0b89a7edcc3f69390f8917d5c3d77aff5c1c72b608b2",
+      "bytes": 4888,
       "nominalSize": [
         0.2,
         0.4,
         0.2
       ],
-      "path": "builder-assets/openlife/flower_bed.glb"
+      "path": "builder-assets/openlife/flower_bed.glb",
+      "sourceSha256": "8148e2c0c7e523f53f04dfa3c542891301723955196a06dba32a4e251d878fa8",
+      "sourceBytes": 4792,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:garden_planter",
@@ -206,14 +218,17 @@
       "sourcePath": "assets/generated/models/garden_planter.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "0791b5d56acc95abcc8381ec871260ed908447d3da211fa80243b0867fef9486",
-      "bytes": 5516,
+      "sha256": "a98b3c9e99e23e8f76b28e906b494d61d353774c26183cfd2925f44ad4bc7b1f",
+      "bytes": 5504,
       "nominalSize": [
         0.55,
         0.95,
         0.55
       ],
-      "path": "builder-assets/openlife/garden_planter.glb"
+      "path": "builder-assets/openlife/garden_planter.glb",
+      "sourceSha256": "0791b5d56acc95abcc8381ec871260ed908447d3da211fa80243b0867fef9486",
+      "sourceBytes": 5516,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:gem_display",
@@ -251,14 +266,17 @@
       "sourcePath": "assets/generated/models/movie_prop_statue.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "2d6d406247251acc8d307eca3ef28950586b99e207a54a8296b6a442b11a3d65",
-      "bytes": 12700,
+      "sha256": "19e8a45814f8ac0abcc5c76cf6f2693fd34dffbe3d38284a832afc0aec3f25f8",
+      "bytes": 12932,
       "nominalSize": [
         1.2,
         2.4,
         1.2
       ],
-      "path": "builder-assets/openlife/movie_prop_statue.glb"
+      "path": "builder-assets/openlife/movie_prop_statue.glb",
+      "sourceSha256": "2d6d406247251acc8d307eca3ef28950586b99e207a54a8296b6a442b11a3d65",
+      "sourceBytes": 12700,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:park_bench",
@@ -293,14 +311,17 @@
       "sourcePath": "assets/generated/models/performance_stage.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "e3657eef603933eb9f8fc0e295e8c77f5b1e59ba2fafb53d9d79fa17773c3d2c",
-      "bytes": 8460,
+      "sha256": "83afa7ce43a0ba6ec0f2535d0ad3bc084e0382d15d02c1b3cd38e910084e7d9a",
+      "bytes": 8744,
       "nominalSize": [
         4.8,
         3,
         3.8
       ],
-      "path": "builder-assets/openlife/performance_stage.glb"
+      "path": "builder-assets/openlife/performance_stage.glb",
+      "sourceSha256": "e3657eef603933eb9f8fc0e295e8c77f5b1e59ba2fafb53d9d79fa17773c3d2c",
+      "sourceBytes": 8460,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:piano_upright",
@@ -336,14 +357,17 @@
       "sourcePath": "assets/generated/models/potted_plant.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "0791b5d56acc95abcc8381ec871260ed908447d3da211fa80243b0867fef9486",
-      "bytes": 5516,
+      "sha256": "a98b3c9e99e23e8f76b28e906b494d61d353774c26183cfd2925f44ad4bc7b1f",
+      "bytes": 5504,
       "nominalSize": [
         0.55,
         0.95,
         0.55
       ],
-      "path": "builder-assets/openlife/potted_plant.glb"
+      "path": "builder-assets/openlife/potted_plant.glb",
+      "sourceSha256": "0791b5d56acc95abcc8381ec871260ed908447d3da211fa80243b0867fef9486",
+      "sourceBytes": 5516,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:rock_cluster",
@@ -378,14 +402,17 @@
       "sourcePath": "assets/generated/models/sculpting_station.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "1ecb681426fdcf520fdaeee72e36f52b8712b4120f203b944d0a7d755bf621ff",
-      "bytes": 3440,
+      "sha256": "28d6bfba4de29d49d7dd5c80af5a0eac8281a31808d87d8f85b758814b592fee",
+      "bytes": 3516,
       "nominalSize": [
         1.4,
         2,
         1.2
       ],
-      "path": "builder-assets/openlife/sculpting_station.glb"
+      "path": "builder-assets/openlife/sculpting_station.glb",
+      "sourceSha256": "1ecb681426fdcf520fdaeee72e36f52b8712b4120f203b944d0a7d755bf621ff",
+      "sourceBytes": 3440,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:streetlight",
@@ -398,14 +425,17 @@
       "sourcePath": "assets/generated/models/streetlight.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "f51d1a20de5ca11b2e05c3b4525c420ee250280ec36853e0a1e228cfa49eb8d1",
-      "bytes": 4592,
+      "sha256": "524bbfbe15b969a6973b4f253cf41e828e27e40cb9df7bedc90c746f2dd36455",
+      "bytes": 4748,
       "nominalSize": [
         1,
         3.5,
         0.3
       ],
-      "path": "builder-assets/openlife/streetlight.glb"
+      "path": "builder-assets/openlife/streetlight.glb",
+      "sourceSha256": "f51d1a20de5ca11b2e05c3b4525c420ee250280ec36853e0a1e228cfa49eb8d1",
+      "sourceBytes": 4592,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:telescope_basic",
@@ -419,14 +449,17 @@
       "sourcePath": "assets/generated/models/telescope_basic.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "fb4ac1c4e8ca0ba4ae16b353d3390b2250534b3637c424b7602b330e31152bd9",
-      "bytes": 4212,
+      "sha256": "7dbfa72d3974d1a43e256efb98327c9c53d1750e773f381af6f73abab0e64c02",
+      "bytes": 4276,
       "nominalSize": [
         0.9,
         2.2,
         0.9
       ],
-      "path": "builder-assets/openlife/telescope_basic.glb"
+      "path": "builder-assets/openlife/telescope_basic.glb",
+      "sourceSha256": "fb4ac1c4e8ca0ba4ae16b353d3390b2250534b3637c424b7602b330e31152bd9",
+      "sourceBytes": 4212,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:tree_pine",
@@ -440,14 +473,17 @@
       "sourcePath": "assets/generated/models/tree_pine.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "b125424f20851908de3b76d330414f208dbf47907a077d9676c48ef1b07aaf03",
-      "bytes": 4552,
+      "sha256": "770cea47815305048318258996bc8e9afc489456cf20c5332e98437cc8911202",
+      "bytes": 4852,
       "nominalSize": [
         3.2,
         5.8,
         3.2
       ],
-      "path": "builder-assets/openlife/tree_pine.glb"
+      "path": "builder-assets/openlife/tree_pine.glb",
+      "sourceSha256": "b125424f20851908de3b76d330414f208dbf47907a077d9676c48ef1b07aaf03",
+      "sourceBytes": 4552,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:future_workbench",
@@ -462,14 +498,17 @@
       "sourcePath": "assets/generated/models/future_workbench.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "a1fe3a4c29d0b352273ee85ae9979d716d18eb5521a7d010e11fd3a19673c801",
-      "bytes": 15612,
+      "sha256": "a413b81913ea26f6790c3b6cf1d94e4a988ae470e49f44a4e789009c8d219c96",
+      "bytes": 15788,
       "nominalSize": [
         2.2,
         1.9,
         1.25
       ],
-      "path": "builder-assets/openlife/future_workbench.glb"
+      "path": "builder-assets/openlife/future_workbench.glb",
+      "sourceSha256": "a1fe3a4c29d0b352273ee85ae9979d716d18eb5521a7d010e11fd3a19673c801",
+      "sourceBytes": 15612,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:house_blue",
@@ -484,14 +523,17 @@
       "sourcePath": "assets/generated/models/house_blue.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "8f02402bcf30053980d82c19e0a0e37f80b5f5420428a36527c1055bd51c250e",
-      "bytes": 43616,
+      "sha256": "965a8db07d1bb64ef577d7a0fa004dc61d57fa900ad26a8c0181bbb275fcd5ec",
+      "bytes": 43700,
       "nominalSize": [
         12,
         8,
         12
       ],
-      "path": "builder-assets/openlife/house_blue.glb"
+      "path": "builder-assets/openlife/house_blue.glb",
+      "sourceSha256": "8f02402bcf30053980d82c19e0a0e37f80b5f5420428a36527c1055bd51c250e",
+      "sourceBytes": 43616,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:bathtub_basic",
@@ -505,14 +547,17 @@
       "sourcePath": "assets/generated/models/bathtub_basic.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "f3a2e71b136ebfc014c2131caf61676eecce58b4c19cc24e39841dbf0dd5d0a5",
-      "bytes": 3548,
+      "sha256": "670a4874968a44f4ed44d118334e2545ce6fdf293a6fe3c5f333dbedcba03aee",
+      "bytes": 3648,
       "nominalSize": [
         1.7,
         0.8,
         0.8
       ],
-      "path": "builder-assets/openlife/bathtub_basic.glb"
+      "path": "builder-assets/openlife/bathtub_basic.glb",
+      "sourceSha256": "f3a2e71b136ebfc014c2131caf61676eecce58b4c19cc24e39841dbf0dd5d0a5",
+      "sourceBytes": 3548,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:bed_double",
@@ -526,14 +571,17 @@
       "sourcePath": "assets/generated/models/bed_double.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "4de6cdfa99f28532afc5cfcca04e58dc5ecb46d9ef46659095802ae07a6f1a66",
-      "bytes": 8784,
+      "sha256": "118a327fc6abb091288f5614e7ef261671940ba3f0ad2d3dd83cbbb2d8b7f8ce",
+      "bytes": 9084,
       "nominalSize": [
         2.1,
         1,
         1.7
       ],
-      "path": "builder-assets/openlife/bed_double.glb"
+      "path": "builder-assets/openlife/bed_double.glb",
+      "sourceSha256": "4de6cdfa99f28532afc5cfcca04e58dc5ecb46d9ef46659095802ae07a6f1a66",
+      "sourceBytes": 8784,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:birthday_cake",
@@ -637,14 +685,17 @@
       "sourcePath": "assets/generated/models/candy_floor_lamp.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "28da2c3fb719de76c22f9e44af1a662dd2c10b400779a7626a78df7e83867305",
-      "bytes": 6312,
+      "sha256": "b071c38dc2e955dc0daafa833bc18adbba99f93556c8bdcdfc595af1282700ef",
+      "bytes": 6552,
       "nominalSize": [
         0.4,
         1.7,
         0.4
       ],
-      "path": "builder-assets/openlife/candy_floor_lamp.glb"
+      "path": "builder-assets/openlife/candy_floor_lamp.glb",
+      "sourceSha256": "28da2c3fb719de76c22f9e44af1a662dd2c10b400779a7626a78df7e83867305",
+      "sourceBytes": 6312,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:coffee_maker",
@@ -745,14 +796,17 @@
       "sourcePath": "assets/generated/models/crib_basic.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "8a127d59da1995db205039bfcb7985c871e021531a484b572a04af28047383dd",
-      "bytes": 10080,
+      "sha256": "d77b0cca872ddfacd29c5e55819e81e312e366bd39e051381ad78f427ce3a748",
+      "bytes": 11080,
       "nominalSize": [
         1.2,
         1.2,
         1.9
       ],
-      "path": "builder-assets/openlife/crib_basic.glb"
+      "path": "builder-assets/openlife/crib_basic.glb",
+      "sourceSha256": "8a127d59da1995db205039bfcb7985c871e021531a484b572a04af28047383dd",
+      "sourceBytes": 10080,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:desk_basic",
@@ -787,14 +841,17 @@
       "sourcePath": "assets/generated/models/dining_chair.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "b810eff951c58d064413dd7ea689a91285d2dcae89a9f69e430463edf3edd1cd",
-      "bytes": 6496,
+      "sha256": "b9daca22f63c499a71e41ad18b4b92a2c8644deae2405dd27de63948d8e2a6d1",
+      "bytes": 6844,
       "nominalSize": [
         0.55,
         1.1,
         0.55
       ],
-      "path": "builder-assets/openlife/dining_chair.glb"
+      "path": "builder-assets/openlife/dining_chair.glb",
+      "sourceSha256": "b810eff951c58d064413dd7ea689a91285d2dcae89a9f69e430463edf3edd1cd",
+      "sourceBytes": 6496,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:dining_table",
@@ -852,14 +909,17 @@
       "sourcePath": "assets/generated/models/diving_buoy.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "6648eb9eb0318543dfce9e6c58306a980d3049c3b24287d5a60250375149e7d5",
-      "bytes": 9804,
+      "sha256": "997a3e5a2252d86b878dedf4eafe90387c1f852ff33a66994bfc0bd0a5c5a505",
+      "bytes": 9956,
       "nominalSize": [
         1.2,
         2.1,
         1.2
       ],
-      "path": "builder-assets/openlife/diving_buoy.glb"
+      "path": "builder-assets/openlife/diving_buoy.glb",
+      "sourceSha256": "6648eb9eb0318543dfce9e6c58306a980d3049c3b24287d5a60250375149e7d5",
+      "sourceBytes": 9804,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:dream_pod",
@@ -875,14 +935,17 @@
       "sourcePath": "assets/generated/models/dream_pod.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "c3aa2c8f8295a4591c6aa48c9ebb3db0a9a21e4f29ddbc127b1e1d680bfdc9b6",
-      "bytes": 2672,
+      "sha256": "f2df79b335077bfb5c27b957b5961232b8adbf66fa1ffe6773746d1db63f688d",
+      "bytes": 2684,
       "nominalSize": [
         1.5,
         1.4,
         2.4
       ],
-      "path": "builder-assets/openlife/dream_pod.glb"
+      "path": "builder-assets/openlife/dream_pod.glb",
+      "sourceSha256": "c3aa2c8f8295a4591c6aa48c9ebb3db0a9a21e4f29ddbc127b1e1d680bfdc9b6",
+      "sourceBytes": 2672,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:dresser_basic",
@@ -942,14 +1005,17 @@
       "sourcePath": "assets/generated/models/festival_booth.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "a25c71a8dd71b6ee21b4939eafaa0aec1633c35cb6f8f5af060ecac7ccf2c4f6",
-      "bytes": 6628,
+      "sha256": "df629d3cc5e71ab8bef5e98adbc1ebb9580799b3b8a1f99aba2bb181ac064dec",
+      "bytes": 6740,
       "nominalSize": [
         3,
         2.6,
         1.7
       ],
-      "path": "builder-assets/openlife/festival_booth.glb"
+      "path": "builder-assets/openlife/festival_booth.glb",
+      "sourceSha256": "a25c71a8dd71b6ee21b4939eafaa0aec1633c35cb6f8f5af060ecac7ccf2c4f6",
+      "sourceBytes": 6628,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:fishing_sign",
@@ -1030,14 +1096,17 @@
       "sourcePath": "assets/generated/models/grill_basic.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "40c9ba58bcdc1a2dc1ce6a3221998facdff876079ea89f355b9290a6baf045f7",
-      "bytes": 6532,
+      "sha256": "f616a43819815525913e1f69d01f6c1428678d4519757ecd81ec7686ab8bc923",
+      "bytes": 6860,
       "nominalSize": [
         0.75,
         1,
         0.55
       ],
-      "path": "builder-assets/openlife/grill_basic.glb"
+      "path": "builder-assets/openlife/grill_basic.glb",
+      "sourceSha256": "40c9ba58bcdc1a2dc1ce6a3221998facdff876079ea89f355b9290a6baf045f7",
+      "sourceBytes": 6532,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:guitar_basic",
@@ -1052,14 +1121,17 @@
       "sourcePath": "assets/generated/models/guitar_basic.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "344b8e756203e3fbf95736fe5b430158eae2b099d023df5b16f603518753bcbc",
-      "bytes": 12124,
+      "sha256": "37a21ee189de618c2a8255bcf932ce97926050df0226a6af5bd07e170acb6cf7",
+      "bytes": 12136,
       "nominalSize": [
         0.8,
         1.7,
         0.5
       ],
-      "path": "builder-assets/openlife/guitar_basic.glb"
+      "path": "builder-assets/openlife/guitar_basic.glb",
+      "sourceSha256": "344b8e756203e3fbf95736fe5b430158eae2b099d023df5b16f603518753bcbc",
+      "sourceBytes": 12124,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:gym_treadmill",
@@ -1074,14 +1146,17 @@
       "sourcePath": "assets/generated/models/gym_treadmill.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "fe6950c586b30a4b36a38d93e4a549ce6b229a64a35bb60f1a8b4dfce05a3de2",
-      "bytes": 4348,
+      "sha256": "29645b4523b1cb18ef682ac459fbbd73377db7693617d6f04221585ebf0bfbcd",
+      "bytes": 4508,
       "nominalSize": [
         1.1,
         1.55,
         2
       ],
-      "path": "builder-assets/openlife/gym_treadmill.glb"
+      "path": "builder-assets/openlife/gym_treadmill.glb",
+      "sourceSha256": "fe6950c586b30a4b36a38d93e4a549ce6b229a64a35bb60f1a8b4dfce05a3de2",
+      "sourceBytes": 4348,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:highchair",
@@ -1097,14 +1172,17 @@
       "sourcePath": "assets/generated/models/highchair.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "c7eed8b22834334621553b67443602888ee9e8164099410fbc961032a104729e",
-      "bytes": 6456,
+      "sha256": "eb289d6fa051c4499393dd9c7a51d9d5de61888c56ba6a3cf0a01364c840b64b",
+      "bytes": 6620,
       "nominalSize": [
         0.9,
         1.5,
         0.9
       ],
-      "path": "builder-assets/openlife/highchair.glb"
+      "path": "builder-assets/openlife/highchair.glb",
+      "sourceSha256": "c7eed8b22834334621553b67443602888ee9e8164099410fbc961032a104729e",
+      "sourceBytes": 6456,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:horse_trough",
@@ -1141,14 +1219,17 @@
       "sourcePath": "assets/generated/models/hospital_rabbit_hole.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "45c71d068fd44df815173f74146845cf4443a33df2dbd9cc4bad5826982b3e07",
-      "bytes": 4564,
+      "sha256": "5c7ee30ba6a06675656b06cb49d91d7da2def76c757e0a5f859308d3d8d19cc9",
+      "bytes": 4596,
       "nominalSize": [
         16,
         7,
         10
       ],
-      "path": "builder-assets/openlife/hospital_rabbit_hole.glb"
+      "path": "builder-assets/openlife/hospital_rabbit_hole.glb",
+      "sourceSha256": "45c71d068fd44df815173f74146845cf4443a33df2dbd9cc4bad5826982b3e07",
+      "sourceBytes": 4564,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:hot_tub",
@@ -1187,14 +1268,17 @@
       "sourcePath": "assets/generated/models/house_founders.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "0a47fc72f270eb11a464bf8cc8e4ef65f9615f165e0ce26c1bdf149330a96edf",
-      "bytes": 41580,
+      "sha256": "d01b1d205d44ee095daf87c6376b846a5ffd3ed7b40e5bd44671e5739c59ff06",
+      "bytes": 41672,
       "nominalSize": [
         12,
         8,
         12
       ],
-      "path": "builder-assets/openlife/house_founders.glb"
+      "path": "builder-assets/openlife/house_founders.glb",
+      "sourceSha256": "0a47fc72f270eb11a464bf8cc8e4ef65f9615f165e0ce26c1bdf149330a96edf",
+      "sourceBytes": 41580,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:house_rose",
@@ -1210,14 +1294,17 @@
       "sourcePath": "assets/generated/models/house_rose.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "d1147d3b87a56c8e56f9e6a0a2152aeebf059f3e0751200c2f633476438f0c7e",
-      "bytes": 43628,
+      "sha256": "780a5a7e3c5397008b9831290888ec2f7975181b0ad15f6b170c7a26370c512c",
+      "bytes": 43780,
       "nominalSize": [
         12,
         8,
         12
       ],
-      "path": "builder-assets/openlife/house_rose.glb"
+      "path": "builder-assets/openlife/house_rose.glb",
+      "sourceSha256": "d1147d3b87a56c8e56f9e6a0a2152aeebf059f3e0751200c2f633476438f0c7e",
+      "sourceBytes": 43628,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:industrial_coffee_table",
@@ -1254,14 +1341,17 @@
       "sourcePath": "assets/generated/models/inventing_bench.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "e62bd0c983564c3815ce56b912d2c33c227378d183cd18f44611d2f154ee0e90",
-      "bytes": 4288,
+      "sha256": "c56b8dcd5adb71a730f288a0a76be3da1b60bdce74197f3c525fb3c7475b1724",
+      "bytes": 4348,
       "nominalSize": [
         2.1,
         1.7,
         1.1
       ],
-      "path": "builder-assets/openlife/inventing_bench.glb"
+      "path": "builder-assets/openlife/inventing_bench.glb",
+      "sourceSha256": "e62bd0c983564c3815ce56b912d2c33c227378d183cd18f44611d2f154ee0e90",
+      "sourceBytes": 4288,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:karaoke_machine",
@@ -1298,14 +1388,17 @@
       "sourcePath": "assets/generated/models/kitchen_sink.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "909336205610b964620dd31b4c4c6e4b4869726e074a48c53024ecf0aff4352c",
-      "bytes": 4812,
+      "sha256": "17c82ca9fe126264ba30f64e1106dc0f6506d95ca3221803e284cb1b2da303d6",
+      "bytes": 4912,
       "nominalSize": [
         0.95,
         1.2,
         0.65
       ],
-      "path": "builder-assets/openlife/kitchen_sink.glb"
+      "path": "builder-assets/openlife/kitchen_sink.glb",
+      "sourceSha256": "909336205610b964620dd31b4c4c6e4b4869726e074a48c53024ecf0aff4352c",
+      "sourceBytes": 4812,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:kitchen_stove",
@@ -1365,14 +1458,17 @@
       "sourcePath": "assets/generated/models/luxury_lounge_chair.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "2eab4fcdc6198d4f37394d0cff45d3b593eb00211691b9d3ce6a5721e8cf5f4c",
-      "bytes": 6484,
+      "sha256": "af398b7e8548491803ae4cc1cfc299f7f57ec4407579bd69134b6903abd01529",
+      "bytes": 6828,
       "nominalSize": [
         1.1,
         1.3,
         1.1
       ],
-      "path": "builder-assets/openlife/luxury_lounge_chair.glb"
+      "path": "builder-assets/openlife/luxury_lounge_chair.glb",
+      "sourceSha256": "2eab4fcdc6198d4f37394d0cff45d3b593eb00211691b9d3ce6a5721e8cf5f4c",
+      "sourceBytes": 6484,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:mailbox_basic",
@@ -1386,14 +1482,17 @@
       "sourcePath": "assets/generated/models/mailbox_basic.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "f9a063f02b7b7749205657231ee8233715ca0c6996eaa470c8799a53878f81ee",
-      "bytes": 4288,
+      "sha256": "09bfc07eb58685c34e1f9692329b36b2ae603dc2c1b03066fbb0b09994a1a89d",
+      "bytes": 4356,
       "nominalSize": [
         0.4,
         1.4,
         0.25
       ],
-      "path": "builder-assets/openlife/mailbox_basic.glb"
+      "path": "builder-assets/openlife/mailbox_basic.glb",
+      "sourceSha256": "f9a063f02b7b7749205657231ee8233715ca0c6996eaa470c8799a53878f81ee",
+      "sourceBytes": 4288,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:martial_arts_dummy",
@@ -1409,14 +1508,17 @@
       "sourcePath": "assets/generated/models/martial_arts_dummy.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "e42edbd84c3b746797afb350b5e40d728ed3a6b24cd11fc0d5f20242ef90fde5",
-      "bytes": 4568,
+      "sha256": "8fe3a90c98f769542720b55e55f46427c5c3034a20653f5ea49604e4d3b7c56b",
+      "bytes": 4636,
       "nominalSize": [
         1.2,
         2,
         1.2
       ],
-      "path": "builder-assets/openlife/martial_arts_dummy.glb"
+      "path": "builder-assets/openlife/martial_arts_dummy.glb",
+      "sourceSha256": "e42edbd84c3b746797afb350b5e40d728ed3a6b24cd11fc0d5f20242ef90fde5",
+      "sourceBytes": 4568,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:microwave",
@@ -1455,14 +1557,17 @@
       "sourcePath": "assets/generated/models/mixology_bar.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "5094b9b3f2d68b8d270d764b170a1e4a9052eb2b84c9d6ab7741a4bd7fa0ef13",
-      "bytes": 7756,
+      "sha256": "3693d30def7e875d42c6bd6bf88ddc5c2cb1a77581e74d0cf13f76cf26e3497c",
+      "bytes": 8140,
       "nominalSize": [
         2.8,
         1.7,
         1.2
       ],
-      "path": "builder-assets/openlife/mixology_bar.glb"
+      "path": "builder-assets/openlife/mixology_bar.glb",
+      "sourceSha256": "5094b9b3f2d68b8d270d764b170a1e4a9052eb2b84c9d6ab7741a4bd7fa0ef13",
+      "sourceBytes": 7756,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:nectar_maker",
@@ -1478,14 +1583,17 @@
       "sourcePath": "assets/generated/models/nectar_maker.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "971e50cc3386ae79ef875b12d83d0399804a5078becd3e1b816363c860b26776",
-      "bytes": 4564,
+      "sha256": "50d80c65e4b698fea6e4fc05b9469cf005f1ca723cc9f4f81d15cdebcac12a91",
+      "bytes": 4732,
       "nominalSize": [
         1.5,
         1.8,
         1.1
       ],
-      "path": "builder-assets/openlife/nectar_maker.glb"
+      "path": "builder-assets/openlife/nectar_maker.glb",
+      "sourceSha256": "971e50cc3386ae79ef875b12d83d0399804a5078becd3e1b816363c860b26776",
+      "sourceBytes": 4564,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:pet_bowl",
@@ -1500,14 +1608,17 @@
       "sourcePath": "assets/generated/models/pet_bowl.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "4925ecf2d46333337a8660ea987852f4eea2d05549cf20c65cc1138b397e5325",
-      "bytes": 3488,
+      "sha256": "153b970bf3ec9083e206e64b4b1789354b9197e334e94cf9c12825e05e0e1db0",
+      "bytes": 3648,
       "nominalSize": [
         0.8,
         0.25,
         0.8
       ],
-      "path": "builder-assets/openlife/pet_bowl.glb"
+      "path": "builder-assets/openlife/pet_bowl.glb",
+      "sourceSha256": "4925ecf2d46333337a8660ea987852f4eea2d05549cf20c65cc1138b397e5325",
+      "sourceBytes": 3488,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:pet_cat",
@@ -1542,14 +1653,17 @@
       "sourcePath": "assets/generated/models/pet_dog.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "77e8fb394d7fda5feef9c06d0f15b3d61d0081f01413f57fcd4a1b17b7e5046a",
-      "bytes": 9224,
+      "sha256": "e6c9c28582a9d8a23930ef1bb1b8367edb6898ce6917e8b84ad1c5bfd4dc3ae4",
+      "bytes": 9684,
       "nominalSize": [
         0.7,
         0.55,
         0.35
       ],
-      "path": "builder-assets/openlife/pet_dog.glb"
+      "path": "builder-assets/openlife/pet_dog.glb",
+      "sourceSha256": "77e8fb394d7fda5feef9c06d0f15b3d61d0081f01413f57fcd4a1b17b7e5046a",
+      "sourceBytes": 9224,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:pet_horse",
@@ -1563,14 +1677,17 @@
       "sourcePath": "assets/generated/models/pet_horse.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "4ae9da307f7aca5f80226bde8ab4efca2d674eca4d3729a041cbe270c9265f28",
-      "bytes": 8884,
+      "sha256": "03b2de4d62cb77d4c6f3db725dc7315ca6c168cdba05d3083d840bd573e1c2d3",
+      "bytes": 9288,
       "nominalSize": [
         1.5,
         1.6,
         0.5
       ],
-      "path": "builder-assets/openlife/pet_horse.glb"
+      "path": "builder-assets/openlife/pet_horse.glb",
+      "sourceSha256": "4ae9da307f7aca5f80226bde8ab4efca2d674eca4d3729a041cbe270c9265f28",
+      "sourceBytes": 8884,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:photo_booth",
@@ -1739,14 +1856,17 @@
       "sourcePath": "assets/generated/models/shrub.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "16d8d6c1e3ac3220fe4d2fe8adf41f0387a59ad7b5633dfc0c555eea61f44348",
-      "bytes": 5352,
+      "sha256": "2846533d112d3a46647c4c1779e6970288614d8a1075c822940bcbc58f99fcbd",
+      "bytes": 5340,
       "nominalSize": [
         1.9,
         1.5,
         1.8
       ],
-      "path": "builder-assets/openlife/shrub.glb"
+      "path": "builder-assets/openlife/shrub.glb",
+      "sourceSha256": "16d8d6c1e3ac3220fe4d2fe8adf41f0387a59ad7b5633dfc0c555eea61f44348",
+      "sourceBytes": 5352,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_adult_athletic",
@@ -1761,14 +1881,17 @@
       "sourcePath": "assets/generated/models/sim_adult_athletic.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "b54d96cde1b8aa5fd1fa7b2a9e1df06797ebd7f1179be405195253944d45ac8f",
-      "bytes": 15112,
+      "sha256": "9460ac50cb40c535e69a0cd4de36ffef78afbf32ca1041d13d90eb9b0d21f3b4",
+      "bytes": 15468,
       "nominalSize": [
         0.63,
         1.785,
         0.42000000000000004
       ],
-      "path": "builder-assets/openlife/sim_adult_athletic.glb"
+      "path": "builder-assets/openlife/sim_adult_athletic.glb",
+      "sourceSha256": "b54d96cde1b8aa5fd1fa7b2a9e1df06797ebd7f1179be405195253944d45ac8f",
+      "sourceBytes": 15112,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_adult_average",
@@ -1783,14 +1906,17 @@
       "sourcePath": "assets/generated/models/sim_adult_average.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "d468967bd508086cee556b2fc5f0da384f0a79050eb80820eae20ba4abc02bd0",
-      "bytes": 14980,
+      "sha256": "96e690a519d6856ec19b86fa7da2a0f4d99968fc73a66a4544ef917cb0222a60",
+      "bytes": 15296,
       "nominalSize": [
         0.6,
         1.7,
         0.4
       ],
-      "path": "builder-assets/openlife/sim_adult_average.glb"
+      "path": "builder-assets/openlife/sim_adult_average.glb",
+      "sourceSha256": "d468967bd508086cee556b2fc5f0da384f0a79050eb80820eae20ba4abc02bd0",
+      "sourceBytes": 14980,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_adult_slender",
@@ -1805,14 +1931,17 @@
       "sourcePath": "assets/generated/models/sim_adult_slender.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "ffd4593269b031edb04a50125ecec1b61a4bf4f251127aea2907abeba3fc86c3",
-      "bytes": 16104,
+      "sha256": "317158e5c9ab59cfcc37e5e0dc668a1a10e7d87b0b4296da756d3a4c0a4f2de7",
+      "bytes": 16436,
       "nominalSize": [
         0.57,
         1.615,
         0.38
       ],
-      "path": "builder-assets/openlife/sim_adult_slender.glb"
+      "path": "builder-assets/openlife/sim_adult_slender.glb",
+      "sourceSha256": "ffd4593269b031edb04a50125ecec1b61a4bf4f251127aea2907abeba3fc86c3",
+      "sourceBytes": 16104,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_adult_soft",
@@ -1829,14 +1958,17 @@
       "sourcePath": "assets/generated/models/sim_adult_soft.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "ffd4593269b031edb04a50125ecec1b61a4bf4f251127aea2907abeba3fc86c3",
-      "bytes": 16104,
+      "sha256": "317158e5c9ab59cfcc37e5e0dc668a1a10e7d87b0b4296da756d3a4c0a4f2de7",
+      "bytes": 16436,
       "nominalSize": [
         1.2,
         2.4,
         0.8
       ],
-      "path": "builder-assets/openlife/sim_adult_soft.glb"
+      "path": "builder-assets/openlife/sim_adult_soft.glb",
+      "sourceSha256": "ffd4593269b031edb04a50125ecec1b61a4bf4f251127aea2907abeba3fc86c3",
+      "sourceBytes": 16104,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_avatar_reference",
@@ -1851,14 +1983,17 @@
       "sourcePath": "assets/generated/models/sim_avatar_reference.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "d468967bd508086cee556b2fc5f0da384f0a79050eb80820eae20ba4abc02bd0",
-      "bytes": 14980,
+      "sha256": "96e690a519d6856ec19b86fa7da2a0f4d99968fc73a66a4544ef917cb0222a60",
+      "bytes": 15296,
       "nominalSize": [
         0.6,
         1.7,
         0.4
       ],
-      "path": "builder-assets/openlife/sim_avatar_reference.glb"
+      "path": "builder-assets/openlife/sim_avatar_reference.glb",
+      "sourceSha256": "d468967bd508086cee556b2fc5f0da384f0a79050eb80820eae20ba4abc02bd0",
+      "sourceBytes": 14980,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_baby_athletic",
@@ -1871,14 +2006,17 @@
       "sourcePath": "assets/generated/models/sim_baby_athletic.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
-      "bytes": 16116,
+      "sha256": "0acec1cddec210b5fbb59d3d31d4e69b4c9d8d660afb36755fbec3ae6cd0a20f",
+      "bytes": 16448,
       "nominalSize": [
         1,
         1,
         1
       ],
-      "path": "builder-assets/openlife/sim_baby_athletic.glb"
+      "path": "builder-assets/openlife/sim_baby_athletic.glb",
+      "sourceSha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "sourceBytes": 16116,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_baby_average",
@@ -1891,14 +2029,17 @@
       "sourcePath": "assets/generated/models/sim_baby_average.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
-      "bytes": 16116,
+      "sha256": "0acec1cddec210b5fbb59d3d31d4e69b4c9d8d660afb36755fbec3ae6cd0a20f",
+      "bytes": 16448,
       "nominalSize": [
         1,
         1,
         1
       ],
-      "path": "builder-assets/openlife/sim_baby_average.glb"
+      "path": "builder-assets/openlife/sim_baby_average.glb",
+      "sourceSha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "sourceBytes": 16116,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_baby_slender",
@@ -1911,14 +2052,17 @@
       "sourcePath": "assets/generated/models/sim_baby_slender.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
-      "bytes": 16116,
+      "sha256": "0acec1cddec210b5fbb59d3d31d4e69b4c9d8d660afb36755fbec3ae6cd0a20f",
+      "bytes": 16448,
       "nominalSize": [
         1,
         1,
         1
       ],
-      "path": "builder-assets/openlife/sim_baby_slender.glb"
+      "path": "builder-assets/openlife/sim_baby_slender.glb",
+      "sourceSha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "sourceBytes": 16116,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_baby_soft",
@@ -1931,14 +2075,17 @@
       "sourcePath": "assets/generated/models/sim_baby_soft.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
-      "bytes": 16116,
+      "sha256": "0acec1cddec210b5fbb59d3d31d4e69b4c9d8d660afb36755fbec3ae6cd0a20f",
+      "bytes": 16448,
       "nominalSize": [
         1,
         1,
         1
       ],
-      "path": "builder-assets/openlife/sim_baby_soft.glb"
+      "path": "builder-assets/openlife/sim_baby_soft.glb",
+      "sourceSha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "sourceBytes": 16116,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_child_athletic",
@@ -1953,14 +2100,17 @@
       "sourcePath": "assets/generated/models/sim_child_athletic.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "3363df108212f3ce9b109099277ecc36ba876a0c4667c4cdc5deab3d93b4faea",
-      "bytes": 15132,
+      "sha256": "8cc6479b8dddf0ccfb47f7658be1c2cc75cc54d57910b8c34f11c21a41932f01",
+      "bytes": 15456,
       "nominalSize": [
         0.42,
         1.19,
         0.27999999999999997
       ],
-      "path": "builder-assets/openlife/sim_child_athletic.glb"
+      "path": "builder-assets/openlife/sim_child_athletic.glb",
+      "sourceSha256": "3363df108212f3ce9b109099277ecc36ba876a0c4667c4cdc5deab3d93b4faea",
+      "sourceBytes": 15132,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_child_average",
@@ -1977,14 +2127,17 @@
       "sourcePath": "assets/generated/models/sim_child_average.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
-      "bytes": 16116,
+      "sha256": "0acec1cddec210b5fbb59d3d31d4e69b4c9d8d660afb36755fbec3ae6cd0a20f",
+      "bytes": 16448,
       "nominalSize": [
         0.864,
         1.728,
         0.576
       ],
-      "path": "builder-assets/openlife/sim_child_average.glb"
+      "path": "builder-assets/openlife/sim_child_average.glb",
+      "sourceSha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "sourceBytes": 16116,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_child_slender",
@@ -2001,14 +2154,17 @@
       "sourcePath": "assets/generated/models/sim_child_slender.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
-      "bytes": 16116,
+      "sha256": "0acec1cddec210b5fbb59d3d31d4e69b4c9d8d660afb36755fbec3ae6cd0a20f",
+      "bytes": 16448,
       "nominalSize": [
         0.864,
         1.728,
         0.576
       ],
-      "path": "builder-assets/openlife/sim_child_slender.glb"
+      "path": "builder-assets/openlife/sim_child_slender.glb",
+      "sourceSha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "sourceBytes": 16116,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_child_soft",
@@ -2023,14 +2179,17 @@
       "sourcePath": "assets/generated/models/sim_child_soft.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
-      "bytes": 16116,
+      "sha256": "0acec1cddec210b5fbb59d3d31d4e69b4c9d8d660afb36755fbec3ae6cd0a20f",
+      "bytes": 16448,
       "nominalSize": [
         0.39,
         1.105,
         0.26
       ],
-      "path": "builder-assets/openlife/sim_child_soft.glb"
+      "path": "builder-assets/openlife/sim_child_soft.glb",
+      "sourceSha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "sourceBytes": 16116,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_elder_athletic",
@@ -2045,14 +2204,17 @@
       "sourcePath": "assets/generated/models/sim_elder_athletic.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "9c7aeec6854736bcf51ea1f567f3a9a82a871de2bb248f42a1051a735282f228",
-      "bytes": 14980,
+      "sha256": "3e57e4f6573cf07438c5d0c521bc1ef0f02c11bfebf8221c1a634592f1e6cfde",
+      "bytes": 15296,
       "nominalSize": [
         0.6,
         1.7,
         0.4
       ],
-      "path": "builder-assets/openlife/sim_elder_athletic.glb"
+      "path": "builder-assets/openlife/sim_elder_athletic.glb",
+      "sourceSha256": "9c7aeec6854736bcf51ea1f567f3a9a82a871de2bb248f42a1051a735282f228",
+      "sourceBytes": 14980,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_elder_average",
@@ -2067,14 +2229,17 @@
       "sourcePath": "assets/generated/models/sim_elder_average.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "84b6452bb3e15a04f56271fba0967453b50a7896ed916ea60f2085c5a3d33d9c",
-      "bytes": 15752,
+      "sha256": "42b55a65162e3814cf655eae067b7f8d1a470aed6a6093b1c72215f4400005d5",
+      "bytes": 16084,
       "nominalSize": [
         0.57,
         1.615,
         0.38
       ],
-      "path": "builder-assets/openlife/sim_elder_average.glb"
+      "path": "builder-assets/openlife/sim_elder_average.glb",
+      "sourceSha256": "84b6452bb3e15a04f56271fba0967453b50a7896ed916ea60f2085c5a3d33d9c",
+      "sourceBytes": 15752,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_elder_slender",
@@ -2091,14 +2256,17 @@
       "sourcePath": "assets/generated/models/sim_elder_slender.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "84b6452bb3e15a04f56271fba0967453b50a7896ed916ea60f2085c5a3d33d9c",
-      "bytes": 15752,
+      "sha256": "42b55a65162e3814cf655eae067b7f8d1a470aed6a6093b1c72215f4400005d5",
+      "bytes": 16084,
       "nominalSize": [
         1.176,
         2.352,
         0.784
       ],
-      "path": "builder-assets/openlife/sim_elder_slender.glb"
+      "path": "builder-assets/openlife/sim_elder_slender.glb",
+      "sourceSha256": "84b6452bb3e15a04f56271fba0967453b50a7896ed916ea60f2085c5a3d33d9c",
+      "sourceBytes": 15752,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_elder_soft",
@@ -2115,14 +2283,17 @@
       "sourcePath": "assets/generated/models/sim_elder_soft.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "84b6452bb3e15a04f56271fba0967453b50a7896ed916ea60f2085c5a3d33d9c",
-      "bytes": 15752,
+      "sha256": "42b55a65162e3814cf655eae067b7f8d1a470aed6a6093b1c72215f4400005d5",
+      "bytes": 16084,
       "nominalSize": [
         1.176,
         2.352,
         0.784
       ],
-      "path": "builder-assets/openlife/sim_elder_soft.glb"
+      "path": "builder-assets/openlife/sim_elder_soft.glb",
+      "sourceSha256": "84b6452bb3e15a04f56271fba0967453b50a7896ed916ea60f2085c5a3d33d9c",
+      "sourceBytes": 15752,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_teen_athletic",
@@ -2139,14 +2310,17 @@
       "sourcePath": "assets/generated/models/sim_teen_athletic.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "b54d96cde1b8aa5fd1fa7b2a9e1df06797ebd7f1179be405195253944d45ac8f",
-      "bytes": 15112,
+      "sha256": "9460ac50cb40c535e69a0cd4de36ffef78afbf32ca1041d13d90eb9b0d21f3b4",
+      "bytes": 15468,
       "nominalSize": [
         1.08,
         2.16,
         0.7200000000000001
       ],
-      "path": "builder-assets/openlife/sim_teen_athletic.glb"
+      "path": "builder-assets/openlife/sim_teen_athletic.glb",
+      "sourceSha256": "b54d96cde1b8aa5fd1fa7b2a9e1df06797ebd7f1179be405195253944d45ac8f",
+      "sourceBytes": 15112,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_teen_average",
@@ -2163,14 +2337,17 @@
       "sourcePath": "assets/generated/models/sim_teen_average.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "681fd67ffe078c144ec435477dec06342d2c5a5198bb336adb2268d10b60f524",
-      "bytes": 15676,
+      "sha256": "ecf6fc8f5da0e9aef54a991c67e6fa2fbefa0734ab0fb26ca8c2c458c1ac08d7",
+      "bytes": 16000,
       "nominalSize": [
         1.08,
         2.16,
         0.7200000000000001
       ],
-      "path": "builder-assets/openlife/sim_teen_average.glb"
+      "path": "builder-assets/openlife/sim_teen_average.glb",
+      "sourceSha256": "681fd67ffe078c144ec435477dec06342d2c5a5198bb336adb2268d10b60f524",
+      "sourceBytes": 15676,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_teen_slender",
@@ -2187,14 +2364,17 @@
       "sourcePath": "assets/generated/models/sim_teen_slender.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "681fd67ffe078c144ec435477dec06342d2c5a5198bb336adb2268d10b60f524",
-      "bytes": 15676,
+      "sha256": "ecf6fc8f5da0e9aef54a991c67e6fa2fbefa0734ab0fb26ca8c2c458c1ac08d7",
+      "bytes": 16000,
       "nominalSize": [
         1.08,
         2.16,
         0.7200000000000001
       ],
-      "path": "builder-assets/openlife/sim_teen_slender.glb"
+      "path": "builder-assets/openlife/sim_teen_slender.glb",
+      "sourceSha256": "681fd67ffe078c144ec435477dec06342d2c5a5198bb336adb2268d10b60f524",
+      "sourceBytes": 15676,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_teen_soft",
@@ -2209,14 +2389,17 @@
       "sourcePath": "assets/generated/models/sim_teen_soft.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "681fd67ffe078c144ec435477dec06342d2c5a5198bb336adb2268d10b60f524",
-      "bytes": 15676,
+      "sha256": "ecf6fc8f5da0e9aef54a991c67e6fa2fbefa0734ab0fb26ca8c2c458c1ac08d7",
+      "bytes": 16000,
       "nominalSize": [
         0.54,
         1.53,
         0.36000000000000004
       ],
-      "path": "builder-assets/openlife/sim_teen_soft.glb"
+      "path": "builder-assets/openlife/sim_teen_soft.glb",
+      "sourceSha256": "681fd67ffe078c144ec435477dec06342d2c5a5198bb336adb2268d10b60f524",
+      "sourceBytes": 15676,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_toddler_athletic",
@@ -2229,14 +2412,17 @@
       "sourcePath": "assets/generated/models/sim_toddler_athletic.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "3363df108212f3ce9b109099277ecc36ba876a0c4667c4cdc5deab3d93b4faea",
-      "bytes": 15132,
+      "sha256": "8cc6479b8dddf0ccfb47f7658be1c2cc75cc54d57910b8c34f11c21a41932f01",
+      "bytes": 15456,
       "nominalSize": [
         1,
         1,
         1
       ],
-      "path": "builder-assets/openlife/sim_toddler_athletic.glb"
+      "path": "builder-assets/openlife/sim_toddler_athletic.glb",
+      "sourceSha256": "3363df108212f3ce9b109099277ecc36ba876a0c4667c4cdc5deab3d93b4faea",
+      "sourceBytes": 15132,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_toddler_average",
@@ -2249,14 +2435,17 @@
       "sourcePath": "assets/generated/models/sim_toddler_average.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
-      "bytes": 16116,
+      "sha256": "0acec1cddec210b5fbb59d3d31d4e69b4c9d8d660afb36755fbec3ae6cd0a20f",
+      "bytes": 16448,
       "nominalSize": [
         1,
         1,
         1
       ],
-      "path": "builder-assets/openlife/sim_toddler_average.glb"
+      "path": "builder-assets/openlife/sim_toddler_average.glb",
+      "sourceSha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "sourceBytes": 16116,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_toddler_slender",
@@ -2269,14 +2458,17 @@
       "sourcePath": "assets/generated/models/sim_toddler_slender.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
-      "bytes": 16116,
+      "sha256": "0acec1cddec210b5fbb59d3d31d4e69b4c9d8d660afb36755fbec3ae6cd0a20f",
+      "bytes": 16448,
       "nominalSize": [
         1,
         1,
         1
       ],
-      "path": "builder-assets/openlife/sim_toddler_slender.glb"
+      "path": "builder-assets/openlife/sim_toddler_slender.glb",
+      "sourceSha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "sourceBytes": 16116,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sim_toddler_soft",
@@ -2289,14 +2481,17 @@
       "sourcePath": "assets/generated/models/sim_toddler_soft.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
-      "bytes": 16116,
+      "sha256": "0acec1cddec210b5fbb59d3d31d4e69b4c9d8d660afb36755fbec3ae6cd0a20f",
+      "bytes": 16448,
       "nominalSize": [
         1,
         1,
         1
       ],
-      "path": "builder-assets/openlife/sim_toddler_soft.glb"
+      "path": "builder-assets/openlife/sim_toddler_soft.glb",
+      "sourceSha256": "6ea4ddba123fee008110cd7e9f7868526b2c0f2a73cb1b1ea9d31d373f93ae6d",
+      "sourceBytes": 16116,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sofa_basic",
@@ -2332,14 +2527,17 @@
       "sourcePath": "assets/generated/models/spa_vanity.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "6b472f2379b6046f3b0b577ec94bbdada7389fa2a8ce30a01760837929395cfb",
-      "bytes": 5156,
+      "sha256": "07c568f0a274441be5eea561aea1852cd380202133efdf89e28a0bcb27096dc7",
+      "bytes": 5276,
       "nominalSize": [
         0.95,
         2,
         0.55
       ],
-      "path": "builder-assets/openlife/spa_vanity.glb"
+      "path": "builder-assets/openlife/spa_vanity.glb",
+      "sourceSha256": "6b472f2379b6046f3b0b577ec94bbdada7389fa2a8ce30a01760837929395cfb",
+      "sourceBytes": 5156,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:sport_car_display",
@@ -2376,14 +2574,17 @@
       "sourcePath": "assets/generated/models/stereo_basic.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "e049f75e092b7413141e32f7005a7973ea828fbbdf8852b43f25e77f4d12256b",
-      "bytes": 2656,
+      "sha256": "52010e6b111db88738d64343ac61d47751e7c274e936148315ec8ffd8d40abe9",
+      "bytes": 2696,
       "nominalSize": [
         1.45,
         1.3,
         0.5
       ],
-      "path": "builder-assets/openlife/stereo_basic.glb"
+      "path": "builder-assets/openlife/stereo_basic.glb",
+      "sourceSha256": "e049f75e092b7413141e32f7005a7973ea828fbbdf8852b43f25e77f4d12256b",
+      "sourceBytes": 2656,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:tattoo_chair",
@@ -2399,14 +2600,17 @@
       "sourcePath": "assets/generated/models/tattoo_chair.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "542915a628a7a864d29ca530fd4174ebbd0e21a8dc54d69d230f5f888ba68b8d",
-      "bytes": 4212,
+      "sha256": "36c92e7e6cea0fcea6c0c8162332c7fd853d84beceaa3597bb641a92f4062362",
+      "bytes": 4288,
       "nominalSize": [
         1.1,
         1.5,
         1.8
       ],
-      "path": "builder-assets/openlife/tattoo_chair.glb"
+      "path": "builder-assets/openlife/tattoo_chair.glb",
+      "sourceSha256": "542915a628a7a864d29ca530fd4174ebbd0e21a8dc54d69d230f5f888ba68b8d",
+      "sourceBytes": 4212,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:television_basic",
@@ -2444,14 +2648,17 @@
       "sourcePath": "assets/generated/models/time_portal.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "5ff7282f14512117a5d5d2a320957fa28f51a93c0e8cda926f34db344d2ea519",
-      "bytes": 11212,
+      "sha256": "4cb8c7ea1425258fba94494990127b82371b51640b5cbea3747e681ff342a5d0",
+      "bytes": 11348,
       "nominalSize": [
         2.5,
         3.2,
         1
       ],
-      "path": "builder-assets/openlife/time_portal.glb"
+      "path": "builder-assets/openlife/time_portal.glb",
+      "sourceSha256": "5ff7282f14512117a5d5d2a320957fa28f51a93c0e8cda926f34db344d2ea519",
+      "sourceBytes": 11212,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:toilet_basic",
@@ -2486,14 +2693,17 @@
       "sourcePath": "assets/generated/models/trash_bin.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "b665cab01b7079b78b821774daa4f1b35880aa8f6f53f1243d91b7788b7e396f",
-      "bytes": 2652,
+      "sha256": "0b79f69d108349346556d66fc9f5595e5f9d15a09ea27f242a1c71a326a1cbdf",
+      "bytes": 2732,
       "nominalSize": [
         0.6,
         0.8,
         0.6
       ],
-      "path": "builder-assets/openlife/trash_bin.glb"
+      "path": "builder-assets/openlife/trash_bin.glb",
+      "sourceSha256": "b665cab01b7079b78b821774daa4f1b35880aa8f6f53f1243d91b7788b7e396f",
+      "sourceBytes": 2652,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:trash_can",
@@ -2508,14 +2718,17 @@
       "sourcePath": "assets/generated/models/trash_can.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "991643a8e368a06ad018b913ba5881ed2beeebb6c2756511565dcc6f870175fb",
-      "bytes": 4876,
+      "sha256": "bfa4c52941fce531b5299662c2844c217deeceac322ba0ecd58089e14718bf49",
+      "bytes": 5040,
       "nominalSize": [
         1,
         1.1,
         1
       ],
-      "path": "builder-assets/openlife/trash_can.glb"
+      "path": "builder-assets/openlife/trash_can.glb",
+      "sourceSha256": "991643a8e368a06ad018b913ba5881ed2beeebb6c2756511565dcc6f870175fb",
+      "sourceBytes": 4876,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:tree_deciduous",
@@ -2529,14 +2742,17 @@
       "sourcePath": "assets/generated/models/tree_deciduous.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "0198fba13e6726c891a709a5ed8de12eafe8c2cf23d6e547748d01ac15697207",
-      "bytes": 12284,
+      "sha256": "63cd6da1402b49cf5c8449819235912a7f87af118128177034cc44d092b30021",
+      "bytes": 12348,
       "nominalSize": [
         3.5,
         5.2,
         3.5
       ],
-      "path": "builder-assets/openlife/tree_deciduous.glb"
+      "path": "builder-assets/openlife/tree_deciduous.glb",
+      "sourceSha256": "0198fba13e6726c891a709a5ed8de12eafe8c2cf23d6e547748d01ac15697207",
+      "sourceBytes": 12284,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:treehouse",
@@ -2552,14 +2768,17 @@
       "sourcePath": "assets/generated/models/treehouse.glb",
       "license": "MIT — OpenLife contributors",
       "srcRevision": "2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b",
-      "sha256": "292ad286aa9241352bdd2b2678d7a4f2d29648cab07a44ff88eef6136dd8095f",
-      "bytes": 8836,
+      "sha256": "d49a5cd5607a6f014da7a14491f8d121ffb37e14566e7eb5293082527602fcd7",
+      "bytes": 9900,
       "nominalSize": [
         3,
         4.2,
         2.8
       ],
-      "path": "builder-assets/openlife/treehouse.glb"
+      "path": "builder-assets/openlife/treehouse.glb",
+      "sourceSha256": "292ad286aa9241352bdd2b2678d7a4f2d29648cab07a44ff88eef6136dd8095f",
+      "sourceBytes": 8836,
+      "repair": "scripts/openlife-repair-plan.json"
     },
     {
       "id": "openlife:university_podium",

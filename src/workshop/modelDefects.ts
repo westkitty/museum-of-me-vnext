@@ -5,6 +5,12 @@ export interface MeshBounds {
   readonly name: string;
   readonly min: readonly [number, number, number];
   readonly max: readonly [number, number, number];
+  /**
+   * False when the mesh is not its own bounding box (a sphere, a cone, a roof
+   * prism). Only a box-shaped part can hide another part entirely: a part
+   * inside a sphere's bounds may still show through its curved surface.
+   */
+  readonly boxy?: boolean;
 }
 
 /** Parts closer than this are treated as touching. */
@@ -22,11 +28,12 @@ const sealedIn = (inner: MeshBounds, outer: MeshBounds) => [0, 1, 2].every((axis
  * Visible defects a visitor would notice, judged from the real mesh bounds:
  * - a part that touches neither the model's base nor any part connected to it
  *   floats (a hovering chair seat, a detached telescope tube);
- * - a part hidden entirely inside another part of the same model is sealed
- *   (books inside a bookcase's solid box).
+ * - a part hidden entirely inside a box-shaped part of the same model is
+ *   sealed (books inside a bookcase's solid box).
+ * Parts named in `floating` hover by design and are not reported.
  * The base is the model's lowest level, so desk-top models are not defects.
  */
-export function findModelDefects(meshes: readonly MeshBounds[]): string[] {
+export function findModelDefects(meshes: readonly MeshBounds[], options: { floating?: readonly string[] } = {}): string[] {
   if (!meshes.length) return ['has no meshes'];
   const defects: string[] = [];
   const base = Math.min(...meshes.map((mesh) => mesh.min[1]));
@@ -40,9 +47,12 @@ export function findModelDefects(meshes: readonly MeshBounds[]): string[] {
       }
     }
   }
-  for (const mesh of meshes) if (!connected.has(mesh)) defects.push(`part ${mesh.name} floats, detached from the rest of the model`);
+  const intended = new Set(options.floating ?? []);
+  for (const mesh of meshes) {
+    if (!connected.has(mesh) && !intended.has(mesh.name)) defects.push(`part ${mesh.name} floats, detached from the rest of the model`);
+  }
   for (const inner of meshes) for (const outer of meshes) {
-    if (inner !== outer && sealedIn(inner, outer)) defects.push(`part ${inner.name} is hidden inside ${outer.name}`);
+    if (inner !== outer && outer.boxy !== false && sealedIn(inner, outer)) defects.push(`part ${inner.name} is hidden inside ${outer.name}`);
   }
   return defects;
 }

@@ -1,0 +1,687 @@
+{
+  "bathtub_basic": {
+    "why": "The faucet hovered over the rim, and the water sat sealed inside the solid tub; it now shows 1 cm above the rim.",
+    "move": {
+      "p002": [
+        0,
+        -0.05,
+        0
+      ],
+      "p001": [
+        0,
+        0.05,
+        0
+      ]
+    }
+  },
+  "bed_double": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "bookshelf_basic": {
+    "why": "The frame was one solid box sealing in the shelves and books. It becomes a back panel, two sides, a top and a plinth; one book hovered 4 cm over its shelf.",
+    "place": {
+      "p000": {
+        "min": [
+          -0.5,
+          0,
+          -0.175
+        ],
+        "max": [
+          0.5,
+          1.8,
+          -0.15
+        ]
+      }
+    },
+    "copies": {
+      "side_left": {
+        "of": "p000",
+        "min": [
+          -0.5,
+          0,
+          -0.175
+        ],
+        "max": [
+          -0.475,
+          1.8,
+          0.175
+        ]
+      },
+      "side_right": {
+        "of": "p000",
+        "min": [
+          0.475,
+          0,
+          -0.175
+        ],
+        "max": [
+          0.5,
+          1.8,
+          0.175
+        ]
+      },
+      "top": {
+        "of": "p000",
+        "min": [
+          -0.5,
+          1.775,
+          -0.175
+        ],
+        "max": [
+          0.5,
+          1.8,
+          0.175
+        ]
+      },
+      "plinth": {
+        "of": "p000",
+        "min": [
+          -0.5,
+          0,
+          -0.175
+        ],
+        "max": [
+          0.5,
+          0.06,
+          0.175
+        ]
+      }
+    },
+    "move": {
+      "p007": [
+        0,
+        -0.04,
+        0
+      ]
+    }
+  },
+  "candy_floor_lamp": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "cat_tree": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "crib_basic": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "dining_chair": {
+    "why": "The back's top rail sat inside the back; it now stands 1 cm proud.",
+    "move": {
+      "p006": [
+        0,
+        0,
+        0.02
+      ]
+    }
+  },
+  "diving_buoy": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "dog_bed": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "dream_pod": {
+    "why": "The canopy hovered 13 cm above the pod.",
+    "move": {
+      "part_02": [
+        0,
+        -0.13,
+        0
+      ]
+    }
+  },
+  "festival_booth": {
+    "why": "The sausages lie on the counter by design; the counter top and sausages hovered above the booth.",
+    "keep": [
+      "part_03",
+      "part_04",
+      "part_05",
+      "part_06"
+    ],
+    "move": {
+      "part_01": [
+        0,
+        -0.11,
+        0
+      ],
+      "part_03": [
+        0,
+        -0.31,
+        0
+      ],
+      "part_04": [
+        0,
+        -0.31,
+        0
+      ],
+      "part_05": [
+        0,
+        -0.31,
+        0
+      ],
+      "part_06": [
+        0,
+        -0.31,
+        0
+      ]
+    }
+  },
+  "flower_bed": {
+    "why": "The flower's centre sat inside the bloom.",
+    "move": {
+      "p002": [
+        0,
+        0.06,
+        0
+      ]
+    }
+  },
+  "future_workbench": {
+    "why": "The screen hovered 32 cm above the bench top.",
+    "move": {
+      "part_04": [
+        0,
+        -0.315,
+        0
+      ]
+    }
+  },
+  "garden_planter": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "grill_basic": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "guitar_basic": {
+    "why": "The sound hole faces forward by design and sat inside the body; it now sits on the front.",
+    "keep": [
+      "part_03"
+    ],
+    "move": {
+      "part_03": [
+        0,
+        0,
+        0.195
+      ]
+    }
+  },
+  "gym_treadmill": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "highchair": {
+    "why": "The tray hovered in front of the seat; two posts copied from a leg now hold it. Its grab bar was never flagged and keeps its original orientation.",
+    "copies": {
+      "tray_post_left": {
+        "of": "part_02",
+        "min": [
+          -0.29,
+          0.58,
+          0.2
+        ],
+        "max": [
+          -0.22,
+          0.98,
+          0.27
+        ]
+      },
+      "tray_post_right": {
+        "of": "part_02",
+        "min": [
+          0.22,
+          0.58,
+          0.2
+        ],
+        "max": [
+          0.29,
+          0.98,
+          0.27
+        ]
+      }
+    },
+    "keep": [
+      "part_07"
+    ]
+  },
+  "hospital_rabbit_hole": {
+    "why": "The roof cross hovered 27 cm above the roof.",
+    "move": {
+      "p004": [
+        0,
+        -0.275,
+        0
+      ],
+      "p005": [
+        0,
+        -0.275,
+        0
+      ]
+    }
+  },
+  "house_blue": {
+    "why": "Interior trim inside the solid house body and a window behind the annex could never be seen.",
+    "remove": [
+      "p042",
+      "p050",
+      "p056"
+    ]
+  },
+  "house_founders": {
+    "why": "Interior trim inside the solid house body could never be seen.",
+    "remove": [
+      "p042",
+      "p050"
+    ]
+  },
+  "house_rose": {
+    "why": "Interior trim inside the solid house body could never be seen, and a solid porch block hid the front door; the porch becomes a canopy.",
+    "remove": [
+      "p042",
+      "p050"
+    ],
+    "place": {
+      "p075": {
+        "min": [
+          -1.4,
+          2.5,
+          4.2
+        ],
+        "max": [
+          1.4,
+          2.6,
+          5.8
+        ]
+      }
+    }
+  },
+  "inventing_bench": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "kitchen_sink": {
+    "why": "The spout stopped 3 cm short of the upright faucet.",
+    "move": {
+      "p004": [
+        0,
+        0,
+        -0.03
+      ]
+    }
+  },
+  "luxury_lounge_chair": {
+    "why": "With the legs upright, the seat sat 6 cm above them.",
+    "move": {
+      "part_00": [
+        0,
+        -0.06,
+        0
+      ]
+    }
+  },
+  "mailbox_basic": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "martial_arts_dummy": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "mixology_bar": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "movie_prop_statue": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "nectar_maker": {
+    "why": "The spout pointed forward from a point beside the tank; it now sticks out of the tank's side.",
+    "place": {
+      "part_02": {
+        "turn": "x",
+        "min": [
+          0.38,
+          1.27,
+          -0.08
+        ],
+        "max": [
+          0.78,
+          1.43,
+          0.08
+        ]
+      }
+    }
+  },
+  "performance_stage": {
+    "why": "With the light poles upright, the middle light hung in the air; a crossbar copied from a pole now joins the poles.",
+    "copies": {
+      "truss": {
+        "of": "part_02",
+        "turn": "x",
+        "min": [
+          -1.98,
+          2.775,
+          -1.53
+        ],
+        "max": [
+          1.98,
+          2.935,
+          -1.37
+        ]
+      }
+    }
+  },
+  "pet_bowl": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "pet_dog": {
+    "why": "The eyes sat just inside the head.",
+    "move": {
+      "p007": [
+        0.07,
+        0,
+        0
+      ],
+      "p008": [
+        0.07,
+        0,
+        0
+      ]
+    }
+  },
+  "pet_horse": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "potted_plant": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sculpting_station": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "shrub": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_adult_athletic": {
+    "why": "The nose sat just inside the head.",
+    "move": {
+      "p007": [
+        0,
+        0,
+        0.07
+      ]
+    }
+  },
+  "sim_adult_average": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_adult_slender": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_adult_soft": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_avatar_reference": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_baby_athletic": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_baby_average": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_baby_slender": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_baby_soft": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_child_athletic": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_child_average": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_child_slender": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_child_soft": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_elder_athletic": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_elder_average": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_elder_slender": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_elder_soft": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_teen_athletic": {
+    "why": "The nose sat just inside the head.",
+    "move": {
+      "p007": [
+        0,
+        0,
+        0.07
+      ]
+    }
+  },
+  "sim_teen_average": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_teen_slender": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_teen_soft": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_toddler_athletic": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_toddler_average": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_toddler_slender": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "sim_toddler_soft": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "spa_vanity": {
+    "why": "The mirror hovered above the cabinet; it now stands on the cabinet top.",
+    "move": {
+      "p003": [
+        0,
+        -0.3,
+        0
+      ],
+      "p004": [
+        0,
+        -0.3,
+        0
+      ]
+    }
+  },
+  "stereo_basic": {
+    "why": "The speaker panel hovered above the base.",
+    "move": {
+      "p001": [
+        0,
+        -0.125,
+        0
+      ],
+      "p002": [
+        0,
+        -0.125,
+        0
+      ]
+    }
+  },
+  "streetlight": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "tattoo_chair": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "telescope_basic": {
+    "why": "The tube and barrel are meant to point forward, so they stay horizontal; the tripod legs move in to hold the tube and the barrel rests on it.",
+    "keep": [
+      "part_00",
+      "part_01"
+    ],
+    "move": {
+      "part_02": [
+        0.15,
+        0,
+        0
+      ],
+      "part_03": [
+        -0.15,
+        0,
+        0
+      ],
+      "part_01": [
+        0,
+        -0.12,
+        0
+      ]
+    }
+  },
+  "time_portal": {
+    "why": "The orb hovers inside the portal by design.",
+    "floating": {
+      "part_04": "the time portal's orb hovers between the pillars"
+    }
+  },
+  "trash_bin": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "trash_can": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "tree_deciduous": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "tree_pine": {
+    "why": "Round parts stood on their side; they are stood upright."
+  },
+  "treehouse": {
+    "why": "With the trunk upright, the nine slats laid out side by side become ladder rungs up the trunk to the house.",
+    "place": {
+      "part_03": {
+        "turn": "x",
+        "min": [
+          -0.4,
+          0.15,
+          0.443
+        ],
+        "max": [
+          0.4,
+          0.21,
+          0.563
+        ]
+      },
+      "part_04": {
+        "turn": "x",
+        "min": [
+          -0.4,
+          0.35,
+          0.443
+        ],
+        "max": [
+          0.4,
+          0.41,
+          0.563
+        ]
+      },
+      "part_05": {
+        "turn": "x",
+        "min": [
+          -0.4,
+          0.55,
+          0.443
+        ],
+        "max": [
+          0.4,
+          0.61,
+          0.563
+        ]
+      },
+      "part_06": {
+        "turn": "x",
+        "min": [
+          -0.4,
+          0.75,
+          0.443
+        ],
+        "max": [
+          0.4,
+          0.81,
+          0.563
+        ]
+      },
+      "part_07": {
+        "turn": "x",
+        "min": [
+          -0.4,
+          0.95,
+          0.443
+        ],
+        "max": [
+          0.4,
+          1.01,
+          0.563
+        ]
+      },
+      "part_08": {
+        "turn": "x",
+        "min": [
+          -0.4,
+          1.15,
+          0.443
+        ],
+        "max": [
+          0.4,
+          1.21,
+          0.563
+        ]
+      },
+      "part_09": {
+        "turn": "x",
+        "min": [
+          -0.4,
+          1.35,
+          0.443
+        ],
+        "max": [
+          0.4,
+          1.41,
+          0.563
+        ]
+      },
+      "part_10": {
+        "turn": "x",
+        "min": [
+          -0.4,
+          1.55,
+          0.443
+        ],
+        "max": [
+          0.4,
+          1.61,
+          0.563
+        ]
+      },
+      "part_11": {
+        "turn": "x",
+        "min": [
+          -0.4,
+          1.75,
+          0.443
+        ],
+        "max": [
+          0.4,
+          1.81,
+          0.563
+        ]
+      }
+    }
+  }
+}

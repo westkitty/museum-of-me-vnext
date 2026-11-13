@@ -3,29 +3,27 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { describe, expect, it } from 'vitest';
 import { BUILDER_MODELS } from '../src/workshop/builderAssetCatalog';
+import { modelMeshBounds } from '../src/workshop/modelBounds';
 import { findModelDefects, type MeshBounds } from '../src/workshop/modelDefects';
 
 const REPORT = 'src/workshop/catalog-data/builder-model-defects.json';
 
-async function meshBounds(path: string): Promise<MeshBounds[]> {
-  const bytes = readFileSync(`public/${path}`);
+const PLANS = JSON.parse(readFileSync('scripts/openlife-repair-plan.json', 'utf8')) as Record<string, { floating?: Record<string, string> }>;
+
+async function meshBounds(file: string): Promise<MeshBounds[]> {
+  const bytes = readFileSync(file);
   const gltf = await new Promise<{ scene: THREE.Object3D }>((resolve, reject) =>
     new GLTFLoader().parse(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), '', resolve, reject));
-  gltf.scene.updateMatrixWorld(true);
-  const meshes: MeshBounds[] = [];
-  gltf.scene.traverse((object) => {
-    if (!(object as THREE.Mesh).isMesh) return;
-    const box = new THREE.Box3().setFromObject(object);
-    meshes.push({ name: object.name || `mesh-${meshes.length}`, min: box.min.toArray(), max: box.max.toArray() });
-  });
-  return meshes;
+  return modelMeshBounds(gltf.scene);
 }
+
+const floatingFor = (id: string) => ({ floating: Object.keys(PLANS[id.replace('openlife:', '')]?.floating ?? {}) });
 
 describe('bundled Builder library models', () => {
   it('match the committed defect report (regenerate with npm run lint:models)', async () => {
     const defects: Record<string, string[]> = {};
     for (const model of BUILDER_MODELS) {
-      const found = findModelDefects(await meshBounds(model.path));
+      const found = findModelDefects(await meshBounds(`public/${model.path}`), floatingFor(model.id));
       if (found.length) defects[model.id] = found;
     }
     const current = { generatedBy: 'npm run lint:models', checked: BUILDER_MODELS.length, defects };
@@ -34,16 +32,14 @@ describe('bundled Builder library models', () => {
     expect(JSON.parse(readFileSync(REPORT, 'utf8'))).toEqual(current);
   }, 120_000);
 
-  it('flags the three defects found by hand in the Exhibit Kit review', async () => {
+  it('finds the hand-found defects in the pinned sources, and none after repair', async () => {
+    const source = async (id: string) => findModelDefects(await meshBounds(`assets-source/openlife/${id}.glb`), floatingFor(id)).join(' ');
+    expect(await source('bookshelf_basic')).toMatch(/hidden inside/);
+    expect(await source('dining_chair')).toMatch(/floats/);
+    expect(await source('telescope_basic')).toMatch(/floats/);
     const report = JSON.parse(readFileSync(REPORT, 'utf8')) as { defects: Record<string, string[]> };
-    expect(report.defects['openlife:bookshelf_basic']?.join(' ')).toMatch(/hidden inside/);
-    expect(report.defects['openlife:dining_chair']?.join(' ')).toMatch(/floats/);
-    expect(report.defects['openlife:telescope_basic']?.join(' ')).toMatch(/floats/);
-    // Models the kits rely on are clean, including the desk-top computer.
-    for (const id of ['openlife:desk_basic', 'openlife:computer_basic', 'openlife:easel_basic', 'openlife:dresser_basic', 'openlife:park_bench', 'openlife:dining_table']) {
-      expect(report.defects[id], id).toBeUndefined();
-    }
-  });
+    expect(report.defects).toEqual({});
+  }, 60_000);
 
   it('judges a hovering part and a sealed part correctly', () => {
     const leg = { name: 'leg', min: [0, 0, 0], max: [0.1, 0.4, 0.1] } as const;
