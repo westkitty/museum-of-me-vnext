@@ -63,7 +63,7 @@ describe('two-corner Museum Builder room', () => {
         collision: 'none', worldId: 'exterior',
       },
     ];
-    const manifest: WorkshopPlacementManifest = { schemaVersion: 1, objects: records };
+    const manifest: WorkshopPlacementManifest = { schemaVersion: 2, objects: records };
     const parsed = validateWorkshopManifest(manifest);
     expect(parsed.ok).toBe(true);
     expect(parsed.value?.objects).toHaveLength(6);
@@ -78,6 +78,6 @@ describe('two-corner Museum Builder room', () => {
       position: wall.position, rotation: wall.rotation, scale: wall.scale,
       collision: 'solid', worldId: 'interior',
     }));
-    expect(validateWorkshopConservation({ schemaVersion: 1, objects: records }).ok).toBe(false);
+    expect(validateWorkshopConservation({ schemaVersion: 2, objects: records }).ok).toBe(false);
   });
 });

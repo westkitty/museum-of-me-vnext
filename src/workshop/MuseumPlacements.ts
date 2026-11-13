@@ -4,12 +4,17 @@ import { WorkshopSurfaces, type WorkshopSurfaceSelection } from './WorkshopSurfa
 import { resolveBuilderResourceUrl } from './builderAssetCatalog';
 import { defaultOpening, wallOpeningSegments } from './WallOpenings';
 import { createWorkshopActivation } from './BuilderEvents';
+import { MEANINGFUL_ACTIONS } from './MeaningfulObjects';
+import { ModelHandleReleasedError, ModelTemplateCache } from './ModelTemplateCache';
+import { constructionColliders } from './ConstructionCollision';
 import type { CollisionWorld } from '../world/CollisionWorld';
+import { ZONES, zoneAtXYZ, type ZoneId } from '../world/layout';
 import type { InteractionManager } from '../interaction/InteractionManager';
 import { AuthorableSceneRegistry, type AuthorableSceneTransform } from './AuthorableSceneRegistry';
 import { validateWorkshopManifestForMuseum } from './conservation';
 import {
   canonicalizeWorkshopManifest,
+  validateWorkshopManifest,
   WORKSHOP_SCHEMA_VERSION,
   type WorkshopPlacementManifest,
   type WorkshopPlacementRecord,
@@ -24,23 +29,80 @@ interface PlacementMaterials {
   accent: THREE.MeshStandardMaterial;
 }
 
+/** One mesh's geometry bounds and its transform relative to the placement root. */
+interface LocalBounds { readonly box: THREE.Box3; readonly matrix: THREE.Matrix4 }
+
+/**
+ * Residency bounds. Manifests at or below MAX_RESIDENT_PLACEMENTS keep every
+ * placement live (the historical behaviour). Larger manifests keep only the
+ * nearest active-world placements within RESIDENT_RADIUS of the focus live;
+ * the rest stay as records whose solid collision is derived from cached prefab
+ * bounds, so navigation never depends on whether a visual is loaded.
+ */
+export const MAX_RESIDENT_PLACEMENTS = 384;
+export const RESIDENT_RADIUS = 60;
+const RESIDENCY_STEP_SQ = 4 * 4;
+const ZONE_NEIGHBOURS = new Map<ZoneId, ReadonlySet<ZoneId>>(
+  ZONES.map((zone) => [zone.id, new Set<ZoneId>(zone.neighbours as readonly ZoneId[])]));
+/** Records are immutable once validated, so each record's zone is computed once. */
+const recordZones = new WeakMap<WorkshopPlacementRecord, ZoneId>();
+function recordZone(record: WorkshopPlacementRecord): ZoneId {
+  let zone = recordZones.get(record);
+  if (!zone) {
+    zone = zoneAtXYZ(record.position[0], record.position[1], record.position[2]);
+    recordZones.set(record, zone);
+  }
+  return zone;
+}
+
+interface ManagedModel {
+  readonly root: THREE.Group;
+  readonly placeholder: THREE.Object3D;
+  readonly scope: ResourceScope;
+  loading: boolean;
+  failed: boolean;
+}
+
+async function defaultModelLoader(assetId: string): Promise<THREE.Object3D> {
+  const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+  return (await new GLTFLoader().loadAsync(resolveBuilderResourceUrl(assetId))).scene;
+}
+
 export class MuseumPlacements {
   readonly group = new THREE.Group();
   readonly surfaces = new WorkshopSurfaces();
 
   private readonly roots = new Map<string, THREE.Group>();
+  private readonly recordsById = new Map<string, WorkshopPlacementRecord>();
   private readonly scope = new ResourceScope('museum-placements');
+  private readonly recordScopes = new Map<string, ResourceScope>();
+  private materials: PlacementMaterials | null = null;
   private readonly registry: AuthorableSceneRegistry | null;
   private manifest: WorkshopPlacementManifest;
   private readonly boundCollisions = new Map<CollisionWorld, Set<string>>();
-  private readonly interactionDisposers: Array<() => void> = [];
+  private readonly interactionDisposers = new Map<string, () => void>();
   private interaction: InteractionManager | null = null;
   private onAnnounce: ((message: string) => void) | null = null;
+  /** Routes an allowlisted Meaningful Object action to the real exhibit control. */
+  private meaningTrigger: ((installation: string, code: string) => boolean) | null = null;
   private comparingOriginal = false;
   private readonly comparisonSceneTransforms = new Map<string, AuthorableSceneTransform>();
   private rebuildRevision = 0;
+  private activeWorld: 'exterior' | 'interior' | null = null;
+  private readonly managedModels = new Map<string, ManagedModel>();
+  private managedLoadsInFlight = 0;
+  /** Root-relative mesh bounds per prefab shape, and per catalog asset once loaded. */
+  private readonly shapeBounds = new Map<string, readonly LocalBounds[]>();
+  private readonly residencyFocus = new THREE.Vector3();
+  private hasResidencyFocus = false;
+  private pinnedId: string | null = null;
+  /** One decoded template per model asset, shared by reference count across placements. */
+  private readonly models: ModelTemplateCache;
+  private focusZone: ZoneId | null = null;
 
-  constructor(rawManifest: unknown, registry: AuthorableSceneRegistry | null = null) {
+  constructor(rawManifest: unknown, registry: AuthorableSceneRegistry | null = null,
+    modelLoader: (assetId: string) => Promise<THREE.Object3D> = defaultModelLoader) {
+    this.models = new ModelTemplateCache(modelLoader);
     this.group.name = 'museum-authored-placements';
     this.registry = registry;
     const parsed = validateWorkshopManifestForMuseum(rawManifest, registry?.entries() ?? []);
@@ -51,7 +113,19 @@ export class MuseumPlacements {
     this.rebuild();
   }
 
-  get objectCount(): number { return this.roots.size; }
+  /** Saved placement records, whether or not they are currently live. */
+  get objectCount(): number { return this.recordsById.size; }
+  /** Placements that currently have a live root in the scene. */
+  get residentCount(): number { return this.roots.size; }
+
+  /**
+   * Keep one placement live regardless of distance (the editor's selection).
+   * Pass null to release the pin; the next residency pass may then unload it.
+   */
+  setPinned(id: string | null): void {
+    this.pinnedId = id;
+    if (id) this.getObject(id);
+  }
   get isComparingOriginal(): boolean { return this.comparingOriginal; }
 
   /**
@@ -79,6 +153,12 @@ export class MuseumPlacements {
     this.surfaces.setRevealOriginal(active);
   }
 
+  /** Connect Meaningful Objects to the exhibits' own control path (SourceInstallations.key). */
+  bindMeaningfulActions(trigger: (installation: string, code: string) => boolean): void {
+    this.meaningTrigger = trigger;
+    this.rebuild();
+  }
+
   bindInteractions(manager: InteractionManager, announce: (message: string) => void): void {
     this.interaction = manager;
     this.onAnnounce = announce;
@@ -92,13 +172,30 @@ export class MuseumPlacements {
     interior?: CollisionWorld,
     exteriorRoot?: THREE.Object3D,
     interiorRoot?: THREE.Object3D,
+    focus?: THREE.Vector3,
   ): void {
+    const changedWorld = this.activeWorld !== world;
+    this.activeWorld = world;
     if (exteriorRoot) this.surfaces.bind('exterior', exteriorRoot);
     if (interiorRoot) this.surfaces.bind('interior', interiorRoot);
-    for (const record of this.manifest.objects) {
-      const root = this.roots.get(record.id);
-      if (root) root.visible = !record.worldId || record.worldId === 'shared' || record.worldId === world;
+    if (changedWorld) {
+      for (const record of this.manifest.objects) {
+        const root = this.roots.get(record.id);
+        if (root) root.visible = !record.worldId || record.worldId === 'shared' || record.worldId === world;
+      }
     }
+    const zoned = world === 'interior' && this.recordsById.size > MAX_RESIDENT_PLACEMENTS;
+    const zoneChanged = Boolean(focus) && zoned
+      && zoneAtXYZ(focus!.x, focus!.y, focus!.z) !== this.focusZone;
+    if (focus && (!this.hasResidencyFocus || changedWorld || zoneChanged
+      || focus.distanceToSquared(this.residencyFocus) >= RESIDENCY_STEP_SQ)) {
+      this.residencyFocus.copy(focus);
+      this.hasResidencyFocus = true;
+      this.updateResidency();
+    } else if (changedWorld && this.recordsById.size > MAX_RESIDENT_PLACEMENTS) {
+      this.updateResidency();
+    }
+    if (changedWorld) this.syncManagedModels(world);
     this.syncCollision(exterior, 'exterior');
     if (interior) this.syncCollision(interior, 'interior');
   }
@@ -127,57 +224,75 @@ export class MuseumPlacements {
       if (record.collision !== 'solid') continue;
       if (record.worldId && record.worldId !== 'shared' && record.worldId !== world) continue;
       const root = this.roots.get(record.id);
-      if (!root) continue;
-      root.updateWorldMatrix(true, true);
-      const box = new THREE.Box3().setFromObject(root);
-      if (box.isEmpty()) continue;
-      if (record.prefab === 'floor-slab') {
-        ids.add(record.id);
-        const inverse = root.matrixWorld.clone().invert();
-        const point = new THREE.Vector3();
-        target.setDynamicFloor(record.id, {
-          kind: 'floor', minX: box.min.x, maxX: box.max.x,
-          minZ: box.min.z, maxZ: box.max.z, y: box.max.y,
-          contains: (x, z) => {
-            point.set(x, box.max.y, z).applyMatrix4(inverse);
-            return Math.abs(point.x) <= 1.0001 && Math.abs(point.z) <= 1.0001;
-          },
-        });
-      } else if (record.prefab === 'partition-wall') {
-        // Each visible solid segment receives its own oriented collider.
-        // A doorway is not silently blocked by the old full-wall AABB.
-        for (const [index, node] of root.children.entries()) {
-          if (!(node instanceof THREE.Mesh) || !(node.geometry instanceof THREE.BoxGeometry)) continue;
-          node.updateWorldMatrix(true, false);
-          const bounds = new THREE.Box3().setFromObject(node);
-          const center = node.getWorldPosition(new THREE.Vector3());
-          const params = node.geometry.parameters;
-          const id = `${record.id}:segment-${index}`;
+      if (record.prefab === 'floor-slab' || record.prefab === 'partition-wall') {
+        root?.updateWorldMatrix(true, true);
+        for (const { id, collider } of constructionColliders(record, root?.matrixWorld)) {
           ids.add(id);
-          target.setDynamicWall(id, {
-            kind: 'wall',
-            minX: bounds.min.x, maxX: bounds.max.x, minY: bounds.min.y, maxY: bounds.max.y,
-            minZ: bounds.min.z, maxZ: bounds.max.z,
-            oriented: {
-              centerX: center.x, centerZ: center.z,
-              halfX: Math.abs(params.width * root.scale.x * node.scale.x) / 2,
-              halfZ: Math.abs(params.depth * root.scale.z * node.scale.z) / 2,
-              yaw: root.rotation.y,
-            },
-          });
+          if (collider.kind === 'floor') target.setDynamicFloor(id, collider);
+          else target.setDynamicWall(id, collider);
         }
-      } else {
-        ids.add(record.id);
-        target.setDynamicWall(record.id, {
-          kind: 'wall', minX: box.min.x, maxX: box.max.x, minY: box.min.y,
-          maxY: box.max.y, minZ: box.min.z, maxZ: box.max.z,
-        });
+        continue;
       }
+      const box = new THREE.Box3();
+      if (root) {
+        root.updateWorldMatrix(true, true);
+        box.setFromObject(root);
+      } else if (!this.recordBounds(record, box)) {
+        continue;
+      }
+      if (box.isEmpty()) continue;
+      ids.add(record.id);
+      target.setDynamicWall(record.id, {
+        kind: 'wall', minX: box.min.x, maxX: box.max.x, minY: box.min.y,
+        maxY: box.max.y, minZ: box.min.z, maxZ: box.max.z,
+      });
     }
   }
 
+  /** Returns a live root, materializing a dormant placement on demand. */
   getObject(id: string): THREE.Object3D | null {
-    return this.roots.get(id) ?? this.registry?.get(id)?.root ?? null;
+    const live = this.roots.get(id);
+    if (live) return live;
+    const record = this.recordsById.get(id);
+    if (record && this.materials) {
+      this.addPlacement(record, this.materials, this.rebuildRevision);
+      this.sortRoots();
+      return this.roots.get(id) ?? null;
+    }
+    return this.registry?.get(id)?.root ?? null;
+  }
+
+  /** Whether a placement currently has a live root in the scene. */
+  isResident(id: string): boolean { return this.roots.has(id); }
+
+  /**
+   * World-space bounds of one placement without materializing it: the live
+   * root when resident, otherwise derived from its record and cached shape.
+   * Null for unknown ids and for models whose bounds are not yet known.
+   */
+  placementBounds(id: string): THREE.Box3 | null {
+    const root = this.roots.get(id);
+    if (root) {
+      root.updateWorldMatrix(true, true);
+      const box = new THREE.Box3().setFromObject(root);
+      return box.isEmpty() ? null : box;
+    }
+    const record = this.recordsById.get(id);
+    const box = new THREE.Box3();
+    return record && this.recordBounds(record, box) && !box.isEmpty() ? box : null;
+  }
+
+  /** Read one current placement without serializing and sorting the entire manifest. */
+  getRecord(id: string): WorkshopPlacementRecord | null {
+    const record = this.recordsById.get(id);
+    if (!record) return null;
+    const root = this.roots.get(id);
+    const current = root ? { ...record,
+      position: root.position.toArray() as [number, number, number],
+      rotation: [root.rotation.x, root.rotation.y, root.rotation.z] as [number, number, number],
+      scale: root.scale.toArray() as [number, number, number],
+    } : record;
+    return canonicalizeWorkshopManifest({ schemaVersion: WORKSHOP_SCHEMA_VERSION, objects: [current] }).objects[0] ?? null;
   }
 
   getSceneEntry(id: string) {
@@ -242,17 +357,71 @@ export class MuseumPlacements {
     return canonicalizeWorkshopManifest({
       schemaVersion: WORKSHOP_SCHEMA_VERSION, objects, sceneOverrides,
       surfaceOverrides: this.manifest.surfaceOverrides,
+      ...(this.manifest.curator ? { curator: this.manifest.curator } : {}),
+      ...(this.manifest.kits ? { kits: this.manifest.kits } : {}),
     });
   }
 
-  replaceManifest(rawManifest: unknown): WorkshopPlacementManifest {
+  /**
+   * `history` restores a state the editor already held live. Such a state may
+   * break conservation (live transforms are not gated), so only the schema is
+   * checked; conservation is still enforced at save and reported by Museum Health.
+   */
+  replaceManifest(rawManifest: unknown, options: { history?: boolean } = {}): WorkshopPlacementManifest {
     this.setOriginalComparison(false);
-    const parsed = validateWorkshopManifestForMuseum(rawManifest, this.registry?.entries() ?? []);
+    const parsed = options.history ? validateWorkshopManifest(rawManifest)
+      : validateWorkshopManifestForMuseum(rawManifest, this.registry?.entries() ?? []);
     if (!parsed.ok || !parsed.value) {
       throw new Error(`Museum Workshop placement manifest is invalid: ${parsed.errors.join('; ')}`);
     }
+    const previous = this.manifest;
     this.manifest = parsed.value;
-    this.rebuild();
+    const oldById = new Map(previous.objects.map((record) => [record.id, record]));
+    const newById = new Map(parsed.value.objects.map((record) => [record.id, record]));
+    const canReconcile = this.materials !== null;
+    if (canReconcile) {
+      // Keep prefab resources when only transforms, surfaces or scene overrides change.
+      // Reapply even an unchanged saved transform: a live gizmo may have moved its root.
+      let collisionDirty = false;
+      for (const old of previous.objects) {
+        const replacement = newById.get(old.id);
+        if (!replacement || !samePlacementDefinition(old, replacement)) {
+          if (old.collision === 'solid' || replacement?.collision === 'solid') collisionDirty = true;
+          this.releasePlacement(old.id);
+          oldById.delete(old.id);
+          if (this.pinnedId === old.id && !replacement) this.pinnedId = null;
+        }
+      }
+      for (const record of parsed.value.objects) {
+        const root = this.roots.get(record.id);
+        const old = oldById.get(record.id);
+        if (!old) {
+          if (record.collision === 'solid') collisionDirty = true;
+        } else if (!root) {
+          if (record.collision === 'solid' && !sameTransform(old, record)) collisionDirty = true;
+        } else {
+          const current = { position: root.position.toArray(), rotation: [root.rotation.x, root.rotation.y, root.rotation.z],
+            scale: root.scale.toArray() };
+          if (record.collision === 'solid' && (JSON.stringify(current) !== JSON.stringify({ position: record.position, rotation: record.rotation, scale: record.scale })
+            || JSON.stringify({ position: old.position, rotation: old.rotation, scale: old.scale })
+              !== JSON.stringify({ position: record.position, rotation: record.rotation, scale: record.scale }))) collisionDirty = true;
+          root.position.set(...record.position); root.rotation.set(...record.rotation); root.scale.set(...record.scale);
+        }
+        this.recordsById.set(record.id, record);
+      }
+      this.updateResidency();
+      if (collisionDirty) this.invalidateCollisions();
+      // Live scene roots may have moved since the saved override, even when
+      // the requested manifest is byte-for-byte identical to the old one.
+      for (const entry of this.registry?.entries() ?? []) this.registry?.apply(entry.id, entry.baseline);
+      for (const override of parsed.value.sceneOverrides ?? []) this.registry?.apply(override.id, override);
+      if (JSON.stringify(previous.surfaceOverrides ?? []) !== JSON.stringify(parsed.value.surfaceOverrides ?? [])) {
+        this.surfaces.apply(parsed.value.surfaceOverrides ?? []);
+      }
+      if (this.activeWorld) this.syncManagedModels(this.activeWorld);
+    } else {
+      this.rebuild();
+    }
     return this.captureManifest();
   }
 
@@ -265,6 +434,8 @@ export class MuseumPlacements {
       objects,
       sceneOverrides: current.sceneOverrides,
       surfaceOverrides: current.surfaceOverrides,
+      ...(current.curator ? { curator: current.curator } : {}),
+      ...(current.kits ? { kits: current.kits } : {}),
     });
   }
 
@@ -277,6 +448,8 @@ export class MuseumPlacements {
     return this.replaceManifest({
       schemaVersion: WORKSHOP_SCHEMA_VERSION, objects: current.objects,
       sceneOverrides, surfaceOverrides: current.surfaceOverrides,
+      ...(current.curator ? { curator: current.curator } : {}),
+      ...(current.kits ? { kits: current.kits } : {}),
     });
   }
 
@@ -287,14 +460,21 @@ export class MuseumPlacements {
       objects: current.objects.filter((record) => record.id !== id),
       sceneOverrides: current.sceneOverrides,
       surfaceOverrides: current.surfaceOverrides,
+      // A deleted object can no longer be locked; its past decisions remain as history.
+      ...(current.curator ? { curator: { ...current.curator, locks: current.curator.locks.filter((lock) => lock !== id) } } : {}),
+      ...(current.kits ? { kits: current.kits.map((kit) => ({ ...kit, members: kit.members.filter((member) => member.id !== id) })) } : {}),
     });
   }
 
   dispose(): void {
     this.setOriginalComparison(false);
     this.rebuildRevision++;
+    this.releaseManagedModels();
     this.surfaces.dispose();
-    for (const release of this.interactionDisposers.splice(0)) release();
+    for (const release of this.interactionDisposers.values()) release();
+    this.interactionDisposers.clear();
+    for (const scope of this.recordScopes.values()) scope.dispose();
+    this.recordScopes.clear();
     for (const [target, ids] of this.boundCollisions) {
       for (const id of ids) {
         target.setDynamicWall(id, null);
@@ -305,12 +485,20 @@ export class MuseumPlacements {
     this.group.removeFromParent();
     this.group.clear();
     this.roots.clear();
+    this.recordsById.clear();
     this.scope.dispose();
+    this.models.dispose();
+    this.materials = null;
+    this.pinnedId = null;
   }
 
   private rebuild(): void {
-    const revision = ++this.rebuildRevision;
-    for (const release of this.interactionDisposers.splice(0)) release();
+    ++this.rebuildRevision;
+    this.releaseManagedModels();
+    for (const release of this.interactionDisposers.values()) release();
+    this.interactionDisposers.clear();
+    for (const scope of this.recordScopes.values()) scope.dispose();
+    this.recordScopes.clear();
     for (const [target, ids] of this.boundCollisions) {
       for (const id of ids) {
         target.setDynamicWall(id, null);
@@ -320,12 +508,22 @@ export class MuseumPlacements {
     this.boundCollisions.clear();
     this.group.clear();
     this.roots.clear();
+    this.recordsById.clear();
     this.scope.releaseAll();
     for (const entry of this.registry?.entries() ?? []) this.registry?.apply(entry.id, entry.baseline);
     for (const override of this.manifest.sceneOverrides ?? []) this.registry?.apply(override.id, override);
-    const materials = this.createMaterials();
+    this.materials = this.createMaterials();
 
-    for (const record of this.manifest.objects) {
+    for (const record of this.manifest.objects) this.recordsById.set(record.id, record);
+    this.updateResidency();
+    this.surfaces.apply(this.manifest.surfaceOverrides ?? []);
+    if (this.activeWorld) this.syncManagedModels(this.activeWorld);
+  }
+
+  private addPlacement(record: WorkshopPlacementRecord, materials: PlacementMaterials, revision: number): void {
+      this.recordsById.set(record.id, record);
+      const recordScope = new ResourceScope(`workshop-placement:${record.id}`);
+      this.recordScopes.set(record.id, recordScope);
       const root = this.buildPrefab(record, materials);
       if (record.color) {
         root.traverse((node) => {
@@ -333,12 +531,13 @@ export class MuseumPlacements {
           if (!mesh.isMesh || mesh.userData.workshopImageSurface) return;
           const material = mesh.material;
           if (material instanceof THREE.MeshStandardMaterial) {
-            mesh.material = this.scope.track(material.clone());
+            mesh.material = recordScope.track(material.clone());
             (mesh.material as THREE.MeshStandardMaterial).color.set(record.color!);
           }
         });
       }
       root.name = `workshop:${record.id}`;
+      root.visible = !this.activeWorld || !record.worldId || record.worldId === 'shared' || record.worldId === this.activeWorld;
       root.userData.workshopId = record.id;
       root.userData.workshopPrefab = record.prefab;
       root.position.set(...record.position);
@@ -347,54 +546,240 @@ export class MuseumPlacements {
       root.traverse((node) => {
         node.userData.workshopId = record.id;
       });
-      this.scope.trackObject(root);
+      root.traverse((node) => {
+        const mesh = node as THREE.Mesh;
+        if (mesh.isMesh && mesh.geometry) recordScope.track(mesh.geometry);
+      });
       this.group.add(root);
       this.roots.set(record.id, root);
-      if (record.event && record.event !== 'none' && this.interaction) {
-        const activate = createWorkshopActivation(
+      const hasEvent = Boolean(record.event && record.event !== 'none');
+      if ((hasEvent || record.meaning) && this.interaction) {
+        const reaction = hasEvent ? createWorkshopActivation(
           record, root,
-          (material) => this.scope.track(material),
+          (material) => recordScope.track(material),
           (message) => this.onAnnounce?.(message),
-        );
+        ) : null;
+        const meaning = record.meaning ? MEANINGFUL_ACTIONS[record.meaning] : null;
+        const activate = () => {
+          reaction?.();
+          if (!meaning) return;
+          // Only the allowlisted control code reaches the exhibit; if the interior is not loaded, say so.
+          if (!this.meaningTrigger?.(meaning.installation, meaning.code)) this.onAnnounce?.(`${record.label}: ${meaning.exhibit} is not responding here.`);
+        };
         const release = this.interaction.register(`workshop:${record.id}`, {
           object: root,
-          label: () => `${record.event === 'announce' ? 'Inspect' : 'Activate'} ${record.label}`,
+          label: () => meaning ? `${meaning.label} (${record.label})` : `${record.event === 'announce' ? 'Inspect' : 'Activate'} ${record.label}`,
           description: `Interact with authored museum object ${record.label}`,
           activate,
         });
-        this.interactionDisposers.push(release);
+        this.interactionDisposers.set(record.id, release);
       }
       if (record.prefab === 'catalog-model' && record.assetId) {
-        void this.loadCatalogModel(root, record, revision);
+        if (record.collision === 'solid' || (record.event && record.event !== 'none') || record.meaning) {
+          void this.loadCatalogModel(root, record, revision, recordScope);
+        }
       } else if (record.texture) {
-        this.applyRecordFinish(root, record);
+        this.applyRecordFinish(root, record, recordScope);
       }
       if (record.prefab === 'wall-art' && record.image) {
         const surface = root.getObjectByName('workshop-art-surface') as THREE.Mesh | undefined;
         if (surface) {
           const url = resolveWorkshopMediaUrl(record.image);
-          const texture = this.scope.track(new THREE.TextureLoader().load(url, undefined, undefined, () => {
+          const texture = recordScope.track(new THREE.TextureLoader().load(url, undefined, undefined, () => {
             console.warn('[Museum Builder] artwork missing:', record.image);
           }));
           texture.colorSpace = THREE.SRGBColorSpace;
-          surface.material = this.scope.track(new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
+          surface.material = recordScope.track(new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
         }
       }
-    }
-    this.surfaces.apply(this.manifest.surfaceOverrides ?? []);
   }
 
-  private applyRecordFinish(root: THREE.Object3D, record: WorkshopPlacementRecord): void {
+  private releasePlacement(id: string): void {
+    this.evictPlacement(id);
+    this.recordsById.delete(id);
+  }
+
+  /** Drop a placement's live root and resources while keeping its saved record. */
+  private evictPlacement(id: string): void {
+    const managed = this.managedModels.get(id);
+    if (managed) { managed.scope.dispose(); this.managedModels.delete(id); }
+    this.interactionDisposers.get(id)?.();
+    this.interactionDisposers.delete(id);
+    this.recordScopes.get(id)?.dispose();
+    this.recordScopes.delete(id);
+    this.roots.get(id)?.removeFromParent();
+    this.roots.delete(id);
+  }
+
+  private sortRoots(): void {
+    const order = new Map(this.manifest.objects.map((record, index) => [record.id, index]));
+    this.group.children.sort((a, b) => (order.get(a.userData.workshopId as string) ?? 0)
+      - (order.get(b.userData.workshopId as string) ?? 0));
+  }
+
+  /**
+   * Choose which placements are live. Small manifests stay fully live. For
+   * large ones, keep the pinned placement, any root moved by a live edit that
+   * the manifest has not yet captured, solid models whose bounds are not yet
+   * known, and the nearest active-world placements within RESIDENT_RADIUS.
+   */
+  private updateResidency(): void {
+    const materials = this.materials;
+    if (!materials) return;
+    const records = this.manifest.objects;
+    const keep = new Set<string>();
+    if (records.length <= MAX_RESIDENT_PLACEMENTS) {
+      for (const record of records) keep.add(record.id);
+    } else {
+      if (this.pinnedId) keep.add(this.pinnedId);
+      // Indoors, walls separate zones: favour the visitor's own zone, then its
+      // neighbours, and leave non-adjacent zones dormant even when nearby.
+      const zoned = this.activeWorld === 'interior' && this.hasResidencyFocus;
+      const here = zoned ? zoneAtXYZ(this.residencyFocus.x, this.residencyFocus.y, this.residencyFocus.z) : null;
+      this.focusZone = here;
+      const near = here ? ZONE_NEIGHBOURS.get(here) : undefined;
+      const candidates: { id: string; distanceSq: number }[] = [];
+      for (const record of records) {
+        const root = this.roots.get(record.id);
+        if (root && !rootMatchesRecord(root, record)) { keep.add(record.id); continue; }
+        if (record.collision === 'solid' && !this.hasShapeBounds(record)) { keep.add(record.id); continue; }
+        if (!this.hasResidencyFocus) continue;
+        if (this.activeWorld && record.worldId && record.worldId !== 'shared' && record.worldId !== this.activeWorld) continue;
+        const dx = record.position[0] - this.residencyFocus.x;
+        const dy = record.position[1] - this.residencyFocus.y;
+        const dz = record.position[2] - this.residencyFocus.z;
+        const distanceSq = dx * dx + dy * dy + dz * dz;
+        if (here) {
+          const zone = recordZone(record);
+          // The whole current zone is eligible and sorts ahead of every neighbour.
+          if (zone === here) { candidates.push({ id: record.id, distanceSq: distanceSq - 1e9 }); continue; }
+          if (!near?.has(zone)) continue;
+        }
+        if (distanceSq <= RESIDENT_RADIUS * RESIDENT_RADIUS) candidates.push({ id: record.id, distanceSq });
+      }
+      candidates.sort((a, b) => a.distanceSq - b.distanceSq || a.id.localeCompare(b.id));
+      for (const candidate of candidates) {
+        if (keep.size >= MAX_RESIDENT_PLACEMENTS) break;
+        keep.add(candidate.id);
+      }
+    }
+    for (const id of [...this.roots.keys()]) if (!keep.has(id)) this.evictPlacement(id);
+    let added = false;
+    for (const record of records) {
+      if (!keep.has(record.id) || this.roots.has(record.id)) continue;
+      this.addPlacement(record, materials, this.rebuildRevision);
+      added = true;
+    }
+    if (added) this.sortRoots();
+  }
+
+  private shapeKey(record: WorkshopPlacementRecord): string {
+    if (record.prefab === 'catalog-model') return `model:${record.assetId ?? ''}`;
+    return JSON.stringify([record.prefab, record.depth ?? null, record.opening ?? null,
+      record.openingWidth ?? null, record.openingHeight ?? null, record.openingSill ?? null]);
+  }
+
+  private hasShapeBounds(record: WorkshopPlacementRecord): boolean {
+    return record.prefab !== 'catalog-model' || this.shapeBounds.has(this.shapeKey(record));
+  }
+
+  /** Root-relative mesh bounds for a placement's shape, built once per shape. */
+  private localBounds(record: WorkshopPlacementRecord): readonly LocalBounds[] | null {
+    const key = this.shapeKey(record);
+    const cached = this.shapeBounds.get(key);
+    if (cached) return cached;
+    if (record.prefab === 'catalog-model' || !this.materials) return null;
+    const probe = this.buildPrefab(record, this.materials);
+    const bounds = collectLocalBounds(probe);
+    probe.traverse((node) => { (node as THREE.Mesh).geometry?.dispose(); });
+    this.shapeBounds.set(key, bounds);
+    return bounds;
+  }
+
+  /** World AABB of a placement from its record alone, matching Box3.setFromObject on its root. */
+  private recordBounds(record: WorkshopPlacementRecord, out: THREE.Box3): boolean {
+    const bounds = this.localBounds(record);
+    if (!bounds) return false;
+    const rootMatrix = new THREE.Matrix4().compose(
+      new THREE.Vector3(...record.position),
+      new THREE.Quaternion().setFromEuler(new THREE.Euler(...record.rotation)),
+      new THREE.Vector3(...record.scale),
+    );
+    const matrix = new THREE.Matrix4();
+    const box = new THREE.Box3();
+    out.makeEmpty();
+    for (const entry of bounds) {
+      out.union(box.copy(entry.box).applyMatrix4(matrix.multiplyMatrices(rootMatrix, entry.matrix)));
+    }
+    return true;
+  }
+
+  /** Release decoded assets while retaining their lightweight editable roots and saved transforms. */
+  private releaseManagedModels(): void {
+    for (const state of this.managedModels.values()) {
+      state.scope.dispose();
+      state.root.clear();
+      state.root.add(state.placeholder);
+    }
+    this.managedModels.clear();
+  }
+
+  private syncManagedModels(world: 'exterior' | 'interior'): void {
+    const records = this.manifest.objects.filter((record) => record.prefab === 'catalog-model' && record.assetId
+      && record.collision !== 'solid' && (!record.event || record.event === 'none'));
+    const eligible = new Set(records.filter((record) => !record.worldId || record.worldId === 'shared' || record.worldId === world)
+      .map((record) => record.id));
+    for (const [id, state] of this.managedModels) {
+      if (eligible.has(id)) continue;
+      state.scope.dispose();
+      state.root.clear();
+      state.root.add(state.placeholder);
+      this.managedModels.delete(id);
+    }
+    for (const record of records) {
+      if (this.managedLoadsInFlight >= 2) break;
+      if (!eligible.has(record.id) || this.managedModels.has(record.id)) continue;
+      const root = this.roots.get(record.id);
+      const placeholder = root?.children[0];
+      if (!root || !placeholder) continue;
+      const state: ManagedModel = { root, placeholder, scope: new ResourceScope(`workshop-model:${record.id}`),
+        loading: true, failed: false };
+      this.managedModels.set(record.id, state);
+      this.managedLoadsInFlight++;
+      const handle = this.models.acquire(record.assetId!);
+      state.scope.track({ dispose: handle.release });
+      void handle.ready.then((object) => {
+        // A stale handle was already released when its scope was disposed.
+        if (state.scope.isDisposed || this.managedModels.get(record.id) !== state) return;
+        object.traverse((node) => { node.userData.workshopId = record.id; });
+        if (record.color || record.texture) this.applyRecordFinish(object, record, state.scope);
+        root.clear(); root.add(object);
+      }).catch((error: unknown) => {
+        if (error instanceof ModelHandleReleasedError) return;
+        if (!state.scope.isDisposed) {
+          state.failed = true;
+          state.scope.dispose();
+          console.warn('[Museum Builder] model could not be loaded:', record.assetId, error);
+        }
+      }).finally(() => {
+        state.loading = false;
+        this.managedLoadsInFlight--;
+        if (!this.scope.isDisposed && this.activeWorld) this.syncManagedModels(this.activeWorld);
+      });
+    }
+  }
+
+  private applyRecordFinish(root: THREE.Object3D, record: WorkshopPlacementRecord, scope = this.scope): void {
     const url = record.texture ? resolveBuilderResourceUrl(record.texture) : null;
     root.traverse((node) => {
       const mesh = node as THREE.Mesh;
       if (!mesh.isMesh || mesh.userData.workshopImageSurface) return;
       const incoming = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
       const cloned = incoming.map((material) => {
-        const mat = this.scope.track(material.clone()) as THREE.MeshStandardMaterial;
+        const mat = scope.track(material.clone()) as THREE.MeshStandardMaterial;
         if ('color' in mat && mat.color?.isColor) mat.color.set(record.color ?? '#ffffff');
         if (url && 'map' in mat) {
-          const texture = this.scope.track(new THREE.TextureLoader().load(url, undefined, undefined,
+          const texture = scope.track(new THREE.TextureLoader().load(url, undefined, undefined,
             (error) => console.warn('[Museum Builder] model finish failed', record.texture, error)));
           texture.colorSpace = THREE.SRGBColorSpace;
           texture.wrapS = THREE.RepeatWrapping;
@@ -408,22 +793,20 @@ export class MuseumPlacements {
     });
   }
 
-  private async loadCatalogModel(root: THREE.Group, record: WorkshopPlacementRecord, revision: number): Promise<void> {
+  private async loadCatalogModel(root: THREE.Group, record: WorkshopPlacementRecord, revision: number, recordScope: ResourceScope): Promise<void> {
+    const handle = this.models.acquire(record.assetId!);
+    recordScope.track({ dispose: handle.release });
     try {
-      const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
-      const url = resolveBuilderResourceUrl(record.assetId!);
-      const gltf = await new GLTFLoader().loadAsync(url);
-      if (revision !== this.rebuildRevision || this.scope.isDisposed) {
-        const stale = new ResourceScope('stale-builder-model');
-        stale.trackObject(gltf.scene);
-        stale.dispose();
+      const object = await handle.ready;
+      if (revision !== this.rebuildRevision || recordScope.isDisposed) {
+        handle.release();
         return;
       }
       root.clear();
-      gltf.scene.traverse((node) => { node.userData.workshopId = record.id; });
-      root.add(gltf.scene);
-      this.scope.trackObject(gltf.scene);
-      if (record.color || record.texture) this.applyRecordFinish(gltf.scene, record);
+      object.traverse((node) => { node.userData.workshopId = record.id; });
+      root.add(object);
+      if (record.color || record.texture) this.applyRecordFinish(object, record, recordScope);
+      if (!this.shapeBounds.has(this.shapeKey(record))) this.shapeBounds.set(this.shapeKey(record), collectLocalBounds(root));
       // The true model bounds become available only after the asynchronous
       // load; invalidate old dynamic boxes and let the normal App tick rebind.
       for (const [world, ids] of this.boundCollisions) {
@@ -434,6 +817,7 @@ export class MuseumPlacements {
       }
       this.boundCollisions.clear();
     } catch (error) {
+      if (error instanceof ModelHandleReleasedError) return;
       console.warn('[Museum Builder] model could not be loaded:', record.assetId, error);
     }
   }
@@ -580,4 +964,40 @@ function transformsEqual(a: AuthorableSceneTransform, b: AuthorableSceneTransfor
   return a.position.every((value, index) => value === b.position[index])
     && a.rotation.every((value, index) => value === b.rotation[index])
     && a.scale.every((value, index) => value === b.scale[index]);
+}
+
+function samePlacementDefinition(a: WorkshopPlacementRecord, b: WorkshopPlacementRecord | undefined): boolean {
+  if (!b) return false;
+  return JSON.stringify({ ...a, position: null, rotation: null, scale: null })
+    === JSON.stringify({ ...b, position: null, rotation: null, scale: null });
+}
+
+function sameTransform(a: WorkshopPlacementRecord, b: WorkshopPlacementRecord): boolean {
+  return a.position.every((value, index) => value === b.position[index])
+    && a.rotation.every((value, index) => value === b.rotation[index])
+    && a.scale.every((value, index) => value === b.scale[index]);
+}
+
+function rootMatchesRecord(root: THREE.Object3D, record: WorkshopPlacementRecord): boolean {
+  return root.position.x === record.position[0] && root.position.y === record.position[1]
+    && root.position.z === record.position[2]
+    && root.rotation.x === record.rotation[0] && root.rotation.y === record.rotation[1]
+    && root.rotation.z === record.rotation[2]
+    && root.scale.x === record.scale[0] && root.scale.y === record.scale[1] && root.scale.z === record.scale[2];
+}
+
+/** Geometry bounds of every mesh under root, expressed relative to root itself. */
+function collectLocalBounds(root: THREE.Object3D): LocalBounds[] {
+  const inverseRoot = new THREE.Matrix4();
+  root.updateWorldMatrix(true, true);
+  inverseRoot.copy(root.matrixWorld).invert();
+  const out: LocalBounds[] = [];
+  root.traverse((node) => {
+    const mesh = node as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.geometry) return;
+    if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+    out.push({ box: mesh.geometry.boundingBox!.clone(),
+      matrix: new THREE.Matrix4().multiplyMatrices(inverseRoot, mesh.matrixWorld) });
+  });
+  return out;
 }

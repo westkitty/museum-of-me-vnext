@@ -1,0 +1,11 @@
+import { defineConfig } from '@playwright/test';
+export default defineConfig({
+  testDir: '.', testMatch: process.env.PERF_MATCH ?? '*.perf.ts', workers: 1, retries: 0, timeout: 600_000, reporter: 'list',
+  outputDir: 'out',
+  use: { channel: 'chrome', headless: false, viewport: { width: 1440, height: 900 },
+    launchOptions: { args: ['--ignore-gpu-blocklist', '--enable-gpu-rasterization', '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'] } },
+  webServer: [
+    { command: 'npx vite preview --host 127.0.0.1 --port 4180 --strictPort', cwd: '../..', url: 'http://127.0.0.1:4180', reuseExistingServer: false, timeout: 60_000 },
+    { command: 'npx vite --host 127.0.0.1 --port 5180 --strictPort', cwd: '../..', url: 'http://127.0.0.1:5180', reuseExistingServer: false, timeout: 60_000 },
+  ],
+});

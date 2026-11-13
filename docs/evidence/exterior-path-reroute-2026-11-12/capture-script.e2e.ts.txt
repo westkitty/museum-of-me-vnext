@@ -1,0 +1,85 @@
+import { expect, test } from '@playwright/test';
+import * as THREE from 'three';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { PATH_CENTERLINES } from '../../src/world/exterior/IslandSiteLayout';
+
+const folder = 'test-results/path-reroute-review-2026-11-12';
+// Ribbon-following waypoints: the same centripetal spline the landscape renders, every ~3 m.
+const routes = PATH_CENTERLINES.map((points) => {
+  const curve = new THREE.CatmullRomCurve3(points.map(([x, z]) => new THREE.Vector3(x, 0, z)), false, 'centripetal');
+  const n = Math.ceil(curve.getLength() / 3);
+  return curve.getSpacedPoints(n).map((p) => [p.x, p.z] as [number, number]);
+});
+const views: [string, [number, number, number], [number, number, number]][] = [
+  ['01-topdown-museum-ring', [0, 230, 10.1], [0, 0, 10]],
+  ['02-oblique-east-side', [95, 60, 70], [44, 0, 20]],
+  ['03-oblique-north-promenade', [0, 55, -165], [0, 0, -105]],
+  ['04-oblique-west-side', [-100, 60, 60], [-46, 0, 30]],
+  ['05-oblique-pier-junctions', [0, 70, 240], [0, 0, 165]],
+  ['06-eye-east-path-heading-north', [46, 1.1, 40], [46, 1, -20]],
+  ['07-eye-north-promenade-heading-west', [36, 1.1, -110], [-10, 1, -109.5]],
+  ['08-eye-west-path-heading-south', [-47, 1.1, 90], [-44, 1, 140]],
+  ['09-eye-ne-corner', [45, 1.1, -80], [38, 1, -110]],
+  ['10-oblique-west-junction-p4-p5', [-95, 35, 55], [-56, 0, 88]],
+  ['11-eye-pier-side-exit-east', [0, 1.6, 190], [24, 1, 170]],
+];
+
+test('rerouted island paths: real player walks every path and frames are captured', async ({ page }) => {
+  test.setTimeout(600_000);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/?qa=1', { waitUntil: 'commit' });
+  await page.waitForFunction(() => Boolean(window.__museum));
+  const walks = await page.evaluate((all) => {
+    const app = window.__museum!;
+    app.stop();
+    return all.map((route, k) => {
+      const [sx, sz] = route[0];
+      app.player.teleport([sx, 0, sz]);
+      for (let i = 0; i < 30; i++) app.fixedUpdate(1 / 60);
+      let steps = 0; let maxOff = 0; let stuckAt: number[] | null = null; let minY = Infinity; let airborne = 0;
+      for (let w = 1; w < route.length && !stuckAt; w++) {
+        const [tx, tz] = route[w];
+        let budget = 60 * 6;
+        while (Math.hypot(app.player.position.x - tx, app.player.position.z - tz) > 1.0) {
+          const dx = tx - app.player.position.x; const dz = tz - app.player.position.z;
+          app.player.yaw = Math.atan2(-dx, -dz);
+          app.input.touchMoveY = -1; app.input.touchMoveX = 0;
+          app.fixedUpdate(1 / 60); steps++;
+          minY = Math.min(minY, app.player.position.y);
+          if (!app.player.grounded) airborne++;
+          const [ax, az] = route[w - 1];
+          const len = Math.hypot(tx - ax, tz - az) || 1;
+          const off = Math.abs(((app.player.position.x - ax) * (tz - az) - (app.player.position.z - az) * (tx - ax)) / len);
+          maxOff = Math.max(maxOff, off);
+          if (--budget <= 0) { stuckAt = [app.player.position.x, app.player.position.z, w]; break; }
+        }
+      }
+      app.input.touchMoveY = 0;
+      for (let i = 0; i < 30; i++) app.fixedUpdate(1 / 60);
+      const end = route[route.length - 1];
+      return { path: k + 1, waypoints: route.length, steps, seconds: +(steps / 60).toFixed(1), maxOffLine: +maxOff.toFixed(2), minY: +minY.toFixed(2), airborneSteps: airborne,
+        stuckAt, endDistance: +Math.hypot(app.player.position.x - end[0], app.player.position.z - end[1]).toFixed(2) };
+    });
+  }, routes);
+  await mkdir(folder, { recursive: true });
+  await writeFile(join(folder, 'real-player-walks.json'), JSON.stringify(walks, null, 2));
+  console.log(JSON.stringify(walks));
+  await page.addStyleTag({ content: '#a11y-root, #ui-root, .cinematic-arrival { display: none !important; }' });
+  for (const [id, p, t] of views) {
+    await page.evaluate(({ p, t }) => {
+      const app = window.__museum!;
+      app.renderer.camera.position.set(p[0], p[1], p[2]);
+      app.renderer.camera.lookAt(t[0], t[1], t[2]);
+      app.sky.follow(app.renderer.camera);
+      app.lighting.update(p);
+      app.exteriorWorld.variableUpdate(0, p, 'plaza');
+      app.arrivalGarden.update(0, app.preferences.reducedMotion);
+      app.renderer.render();
+    }, { p, t });
+    await page.locator('#museum-canvas').screenshot({ path: join(folder, `${id}.png`), timeout: 60_000 });
+  }
+  expect(errors).toEqual([]);
+  for (const walk of walks) expect(walk).toMatchObject({ stuckAt: null });
+});

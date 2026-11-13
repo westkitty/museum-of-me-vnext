@@ -86,6 +86,19 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   });
   await page.keyboard.press('F');
   await expect(workshop).toBeVisible({ timeout: 30_000 });
+  await workshop.getByRole('button', { name: 'Browse source catalog' }).click();
+  await expect(workshop.locator('[data-workshop="source-count"]')).toContainText('1883 source candidates');
+  await workshop.getByLabel('Search source candidates').fill('blaster-kit/blaster-a');
+  const candidate = workshop.locator('[data-source-id="blaster-kit/blaster-a"]');
+  await expect(candidate).toBeEnabled({ timeout: 30_000 });
+  await candidate.click();
+  await expect(workshop.locator('[data-workshop="source-inspector"]')).toContainText(/Not installed|Installed locally/);
+  await workshop.getByLabel('Search source candidates').fill('');
+  await workshop.getByLabel('Collection').selectOption('featured');
+  await expect(workshop.locator('[data-workshop="source-count"]')).toContainText('200 source candidates');
+  await workshop.getByLabel('Source pack').selectOption('space-kit');
+  await workshop.getByLabel('Featured target wing').selectOption('north / Starsilk & Drakken');
+  await expect(workshop.locator('[data-workshop="source-count"]')).toContainText('27 source candidates');
   await expect(workshop.locator('[data-workshop="selection-title"]')).toHaveText('Arrival garden shrub 1');
   await expect(workshop.locator('[data-workshop="keymap"]')).toContainText('Select/Edit object');
   await page.mouse.click(640, 360);
@@ -185,7 +198,14 @@ test('Museum Workshop authors safe objects and persists through the dev-only sav
   const saveResponse = page.waitForResponse((response) =>
     response.url().endsWith('/__museum-workshop/save') && response.request().method() === 'POST');
   await workshop.getByRole('button', { name: 'Save to build' }).click();
-  expect((await saveResponse).status()).toBe(200);
+  const saved = await saveResponse;
+  expect(saved.status()).toBe(200);
+  const staleSave = await request.post('/__museum-workshop/save', {
+    headers: { 'Content-Type': 'application/json',
+      'X-Workshop-Revision': saved.request().headers()['x-workshop-revision'] },
+    data: saved.request().postDataJSON(),
+  });
+  expect(staleSave.status()).toBe(409);
 
   // Read the atomically-written source directly. Full-page reload is owned by
   // the standalone verifier below; under SwiftShader it can close the browser

@@ -1,8 +1,10 @@
-import { lstat, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
+import { tgeThumbnail } from './tge-thumbnail';
+import { findCachedTgeModel, importTgeModel } from './tge-model';
 import {
   conservationErrors,
   validateWorkshopConservation,
@@ -17,6 +19,9 @@ import {
 const ENDPOINT = '/__museum-workshop/save';
 const MEDIA_ENDPOINT = '/__museum-workshop/media';
 const MODEL_ENDPOINT = '/__museum-workshop/model';
+const THUMBNAIL_ENDPOINT = '/__museum-workshop/tge-thumbnail';
+const SOURCE_IMPORT_ENDPOINT = '/__museum-workshop/tge-import';
+const SOURCE_STATUS_ENDPOINT = '/__museum-workshop/tge-status';
 const MAX_MODEL_BYTES = 8 * 1024 * 1024;
 const MAX_MEDIA_BYTES = 3 * 1024 * 1024;
 
@@ -113,7 +118,8 @@ export async function validateLocalWorkshopMedia(
   }
   return errors;
 }
-const MAX_BODY_BYTES = 256 * 1024;
+// Sized for WORKSHOP_MAX_OBJECTS pretty-printed records plus overrides.
+const MAX_BODY_BYTES = 4 * 1024 * 1024;
 
 function isLoopback(address: string | undefined): boolean {
   return address === '127.0.0.1'
@@ -219,10 +225,54 @@ export interface WorkshopSaveResult {
   readonly manifest?: WorkshopPlacementManifest;
   readonly errors?: readonly string[];
   readonly violations?: readonly WorkshopConservationViolation[];
+  readonly revision?: string;
 }
 
-/** Validate before opening the target and atomically replace it only on success. */
-export async function writeWorkshopManifest(raw: unknown, target: string): Promise<WorkshopSaveResult> {
+/** Preserve the exact previous bytes outside the public tree before replacement. */
+async function backupWorkshopManifest(target: string): Promise<void> {
+  let previous: Buffer;
+  try {
+    previous = await readFile(target);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+    throw error;
+  }
+  const directory = resolve(dirname(target), '.workshop-backups');
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  if (!(await lstat(directory)).isDirectory()) throw new Error('Workshop backup path is not a directory');
+  const digest = createHash('sha256').update(previous).digest('hex');
+  const backup = resolve(directory, `${digest}.json`);
+  try {
+    await writeFile(backup, previous, { flag: 'wx', mode: 0o600 });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+    const stat = await lstat(backup);
+    if (!stat.isFile() || !(await readFile(backup)).equals(previous)) {
+      throw new Error('Existing Workshop backup does not match the original manifest');
+    }
+  }
+}
+
+const pendingSaves = new Map<string, Promise<void>>();
+
+/** Serialize same-target saves so each successful replacement has a backup. */
+export async function writeWorkshopManifest(raw: unknown, target: string, expectedRevision?: string): Promise<WorkshopSaveResult> {
+  const key = resolve(target);
+  const previous = pendingSaves.get(key) ?? Promise.resolve();
+  let release!: () => void;
+  const current = new Promise<void>((resolveSave) => { release = resolveSave; });
+  pendingSaves.set(key, current);
+  await previous;
+  try {
+    return await writeWorkshopManifestLocked(raw, key, expectedRevision);
+  } finally {
+    if (pendingSaves.get(key) === current) pendingSaves.delete(key);
+    release();
+  }
+}
+
+/** Validate, preserve the old bytes, then atomically replace the target. */
+async function writeWorkshopManifestLocked(raw: unknown, target: string, expectedRevision?: string): Promise<WorkshopSaveResult> {
   const parsed = validateWorkshopManifest(raw);
   if (!parsed.ok || !parsed.value) {
     return { ok: false, status: 400, errors: parsed.errors };
@@ -240,20 +290,112 @@ export async function writeWorkshopManifest(raw: unknown, target: string): Promi
   if (mediaErrors.length) return { ok: false, status: 400, errors: mediaErrors };
   const modelErrors = await validateLocalWorkshopModels(parsed.value, target);
   if (modelErrors.length) return { ok: false, status: 400, errors: modelErrors };
-  const temp = `${target}.tmp-${process.pid}`;
+  // A newer or damaged on-disk file cannot be reconstructed from the editor's
+  // older view. Never overwrite it merely because the incoming payload is valid.
+  let current: Buffer | undefined;
+  try {
+    current = await readFile(target);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+  if (current !== undefined) {
+    let existing: unknown;
+    try {
+      existing = JSON.parse(current.toString('utf8')) as unknown;
+    } catch {
+      return { ok: false, status: 409, errors: ['Existing Workshop manifest is corrupt; save refused to preserve its bytes'] };
+    }
+    const checked = validateWorkshopManifest(existing);
+    if (!checked.ok) {
+      return { ok: false, status: 409, errors: ['Existing Workshop manifest is unsupported or invalid; save refused', ...checked.errors] };
+    }
+    if (expectedRevision !== undefined && checked.value) {
+      const revision = createHash('sha256').update(current).digest('hex');
+      if (revision !== expectedRevision) {
+        return { ok: false, status: 409, errors: ['The Workshop manifest changed since this editor loaded or last saved. Preserve your work and reload before saving.'] };
+      }
+    }
+  } else if (expectedRevision !== undefined) {
+    return { ok: false, status: 409, errors: ['The Workshop manifest was removed since this editor loaded; save refused'] };
+  }
+  const temp = `${target}.tmp-${randomUUID()}`;
   await mkdir(dirname(target), { recursive: true });
-  await writeFile(temp, serializeWorkshopManifest(parsed.value), 'utf8');
-  await rename(temp, target);
-  return { ok: true, status: 200, manifest: parsed.value };
+  await backupWorkshopManifest(target);
+  const serialized = serializeWorkshopManifest(parsed.value);
+  try {
+    await writeFile(temp, serialized, { encoding: 'utf8', flag: 'wx' });
+    await rename(temp, target);
+  } finally {
+    await unlink(temp).catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== 'ENOENT') throw error;
+    });
+  }
+  return { ok: true, status: 200, manifest: parsed.value,
+    revision: createHash('sha256').update(serialized).digest('hex') };
 }
 
 export function museumWorkshopSavePlugin(): Plugin {
   return {
     name: 'museum-workshop-save',
     apply: 'serve',
+    async transformIndexHtml() {
+      const source = await readFile(resolve(process.cwd(), 'data/workshop-placements.json'));
+      return [{ tag: 'script', attrs: { id: 'museum-workshop-source', type: 'application/json',
+        'data-sha256': createHash('sha256').update(source).digest('hex') },
+      children: source.toString('base64'), injectTo: 'head' }];
+    },
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const url = req.url?.split('?')[0] ?? '';
+        if (url === SOURCE_STATUS_ENDPOINT) {
+          if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'GET required' });
+          if (!isLoopback(req.socket.remoteAddress) || !isSameOriginRequest(req)) {
+            return json(res, 403, { ok: false, error: 'Local, same-origin authoring only' });
+          }
+          const id = new URL(req.url ?? '', 'http://localhost').searchParams.get('id') ?? '';
+          try {
+            const cached = await findCachedTgeModel(id, process.cwd(), hasValidLocalGLB);
+            json(res, 200, { ok: true, installed: Boolean(cached) });
+          } catch {
+            json(res, 400, { ok: false, error: 'Unable to inspect source candidate.' });
+          }
+          return;
+        }
+        if (url === SOURCE_IMPORT_ENDPOINT) {
+          if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'POST required' });
+          if (!isLoopback(req.socket.remoteAddress) || !isSameOriginRequest(req)) {
+            return json(res, 403, { ok: false, error: 'Local, same-origin authoring only' });
+          }
+          if (req.headers['content-type'] !== 'application/json') return json(res, 415, { ok: false, error: 'JSON required' });
+          try {
+            const value: unknown = JSON.parse(await readBody(req));
+            if (!value || typeof value !== 'object' || Array.isArray(value)
+              || Object.keys(value).length !== 1 || typeof (value as { id?: unknown }).id !== 'string') {
+              return json(res, 400, { ok: false, error: 'A single source ID is required' });
+            }
+            const imported = await importTgeModel((value as { id: string }).id, process.cwd(), hasValidLocalGLB);
+            json(res, 200, { ok: true, ...imported });
+          } catch (error) {
+            if (!req.destroyed) json(res, 400, { ok: false, error: error instanceof Error ? error.message : 'Source import failed' });
+          }
+          return;
+        }
+        if (url === THUMBNAIL_ENDPOINT) {
+          if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'GET required' });
+          if (!isLoopback(req.socket.remoteAddress) || !isSameOriginRequest(req)) {
+            return json(res, 403, { ok: false, error: 'Local, same-origin authoring only' });
+          }
+          const id = new URL(req.url ?? '', 'http://localhost').searchParams.get('id') ?? '';
+          try {
+            const bytes = await tgeThumbnail(id, process.cwd());
+            res.setHeader('Content-Type', 'image/webp');
+            res.setHeader('Cache-Control', 'private, max-age=86400');
+            res.end(bytes);
+          } catch {
+            json(res, 404, { ok: false, error: 'Thumbnail unavailable or failed integrity verification.' });
+          }
+          return;
+        }
         if (url === MODEL_ENDPOINT) {
           if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'POST required' });
           if (!isLoopback(req.socket.remoteAddress) || !isSameOriginRequest(req)) {
@@ -333,11 +475,16 @@ export function museumWorkshopSavePlugin(): Plugin {
           json(res, 415, { ok: false, error: 'application/json required' });
           return;
         }
+        const expectedRevision = req.headers['x-workshop-revision'];
+        if (typeof expectedRevision !== 'string' || !/^[a-f0-9]{64}$/.test(expectedRevision)) {
+          json(res, 428, { ok: false, error: 'Workshop save requires the revision loaded by the editor.' });
+          return;
+        }
 
         try {
           const raw = JSON.parse(await readBody(req)) as unknown;
           const target = resolve(process.cwd(), 'data/workshop-placements.json');
-          const result = await writeWorkshopManifest(raw, target);
+          const result = await writeWorkshopManifest(raw, target, expectedRevision);
           if (!result.ok || !result.manifest) {
             json(res, result.status, {
               ok: false,
@@ -352,6 +499,7 @@ export function museumWorkshopSavePlugin(): Plugin {
             ok: true,
             path: 'data/workshop-placements.json',
             objects: result.manifest.objects.length,
+            revision: result.revision,
           });
         } catch (error) {
           json(res, 500, {
