@@ -22,7 +22,7 @@ Verified on `arena/eight-replacements` prior to candidate builds (`npm run typec
 
 | Slot | Candidate Path | Source Readiness | Authored Experience | Unit / Lifecycle | Browser Preview | Accessibility | Disposal | Performance vs Incumbent | Comparative Verdict | Blockers | Integration |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| `E30` | `experiments/arena/replacements/E30-the-spell-that-leaves-a-scar/` | Grounded (`P053`) | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | None | `NOT AUTHORIZED` |
+| `E30` | `experiments/arena/replacements/E30-the-spell-that-leaves-a-scar/` | Grounded (`P053`) | PASS (Causal scar matrix + refraction + undo) | PASS (3/3 Vitest) | PASS (Chromium WebGL, 0 console errors) | PASS (5 controls, live announcements, reducedMotion) | PASS (0 leaks on remount) | 173 res / 111 meshes / 7,874 tris / 0 plinth hits (vs 4 incumbent plinth hits) | `ACCEPT FOR REVIEW` | None | `NOT AUTHORIZED` |
 | `E28` | `experiments/arena/replacements/E28-ninety-seconds-to-vacuum/` | Grounded (`P051`) | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | None | `NOT AUTHORIZED` |
 | `E26` | `experiments/arena/replacements/E26-reality-becomes-a-cartridge/` | Grounded (`P037`, `P038`) | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | None | `NOT AUTHORIZED` |
 | `E25` | `experiments/arena/replacements/E25-the-battlefield-inside-the-table/` | Grounded (`P015`) | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | None | `NOT AUTHORIZED` |

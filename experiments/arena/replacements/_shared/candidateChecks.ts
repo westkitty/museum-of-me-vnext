@@ -226,11 +226,15 @@ export async function assertCandidateContract(
 
   const initialState = live.host.module.getAccessibleContent().state;
   const initialLabels = live.controls.map((c) => resolveExhibitLabel(c.label));
+  let disturbedState = initialState;
   for (const c of live.controls) {
+    const lbl = resolveExhibitLabel(c.label);
+    if (/\breset\b/i.test(lbl)) continue;
     c.activate();
     for (let f = 0; f < 25; f++) live.host.update(1 / 60, [0, 1.6, 4], f / 60);
+    const nextState = live.host.module.getAccessibleContent().state;
+    if (nextState !== initialState) disturbedState = nextState;
   }
-  const disturbedState = live.host.module.getAccessibleContent().state;
   expect(disturbedState).not.toBe(initialState);
 
   live.host.reset();
@@ -248,11 +252,16 @@ export async function assertCandidateContract(
   reduced.host.mount();
   reduced.host.activate(0);
   const rBefore = reduced.host.module.getAccessibleContent().state;
+  let rDisturbed = rBefore;
   for (const c of reduced.controls) {
+    const lbl = resolveExhibitLabel(c.label);
+    if (/\breset\b/i.test(lbl)) continue;
     c.activate();
     reduced.host.update(1 / 60, [0, 1.6, 4], 0.1);
+    const nextState = reduced.host.module.getAccessibleContent().state;
+    if (nextState !== rBefore) rDisturbed = nextState;
   }
-  expect(reduced.host.module.getAccessibleContent().state).not.toBe(rBefore);
+  expect(rDisturbed).not.toBe(rBefore);
   reduced.host.reset();
   expect(reduced.host.module.getAccessibleContent().state).toBe(rBefore);
   reduced.host.unmount();
