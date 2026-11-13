@@ -22,3 +22,6 @@ validation/reports/*.json
 # Private manual Sentinel diagnostics; never a production/public artifact.
 .sentinel/
 .sentinel.json
+
+# Device performance runs (npm run perf:device)
+perf-results/

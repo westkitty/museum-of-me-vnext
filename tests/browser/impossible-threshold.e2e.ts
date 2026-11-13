@@ -391,6 +391,8 @@ test.describe('P2 Minimum viable impossible threshold and reversible world switc
       }
     }
 
+    // Every phase change in all 30 switches followed the declared state machine.
+    expect(await page.evaluate(() => window.__museum!.worldDirector.illegalTransitions)).toEqual([]);
     expect(errors).toEqual([]);
   });
 

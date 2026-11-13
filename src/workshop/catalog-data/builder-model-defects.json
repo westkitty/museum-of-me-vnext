@@ -1,0 +1,472 @@
+{
+  "generatedBy": "npm run lint:models",
+  "checked": 119,
+  "defects": {
+    "openlife:bookshelf_basic": [
+      "part p001 is hidden inside p000",
+      "part p002 is hidden inside p000",
+      "part p003 is hidden inside p000",
+      "part p004 is hidden inside p000",
+      "part p005 is hidden inside p000",
+      "part p006 is hidden inside p000",
+      "part p007 is hidden inside p000",
+      "part p008 is hidden inside p000",
+      "part p009 is hidden inside p000"
+    ],
+    "openlife:cat_tree": [
+      "part part_01 floats, detached from the rest of the model",
+      "part part_03 floats, detached from the rest of the model"
+    ],
+    "openlife:dog_bed": [
+      "part part_01 is hidden inside part_00"
+    ],
+    "openlife:flower_bed": [
+      "part p001 floats, detached from the rest of the model",
+      "part p002 floats, detached from the rest of the model",
+      "part p002 is hidden inside p001"
+    ],
+    "openlife:garden_planter": [
+      "part p003 is hidden inside p001"
+    ],
+    "openlife:movie_prop_statue": [
+      "part part_02 floats, detached from the rest of the model",
+      "part part_03 floats, detached from the rest of the model",
+      "part part_04 floats, detached from the rest of the model"
+    ],
+    "openlife:performance_stage": [
+      "part part_05 floats, detached from the rest of the model"
+    ],
+    "openlife:potted_plant": [
+      "part p003 is hidden inside p001"
+    ],
+    "openlife:sculpting_station": [
+      "part part_01 floats, detached from the rest of the model",
+      "part part_02 floats, detached from the rest of the model"
+    ],
+    "openlife:streetlight": [
+      "part p001 floats, detached from the rest of the model",
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model"
+    ],
+    "openlife:telescope_basic": [
+      "part part_00 floats, detached from the rest of the model",
+      "part part_01 floats, detached from the rest of the model"
+    ],
+    "openlife:tree_pine": [
+      "part p001 floats, detached from the rest of the model",
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model"
+    ],
+    "openlife:future_workbench": [
+      "part part_02 floats, detached from the rest of the model",
+      "part part_03 floats, detached from the rest of the model",
+      "part part_04 floats, detached from the rest of the model",
+      "part part_05 floats, detached from the rest of the model",
+      "part part_06 floats, detached from the rest of the model"
+    ],
+    "openlife:house_blue": [
+      "part p008 floats, detached from the rest of the model",
+      "part p009 floats, detached from the rest of the model",
+      "part p042 is hidden inside p000",
+      "part p050 is hidden inside p000",
+      "part p056 is hidden inside p072"
+    ],
+    "openlife:bathtub_basic": [
+      "part p002 floats, detached from the rest of the model",
+      "part p001 is hidden inside p000"
+    ],
+    "openlife:bed_double": [
+      "part p000 floats, detached from the rest of the model",
+      "part p001 floats, detached from the rest of the model",
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model"
+    ],
+    "openlife:candy_floor_lamp": [
+      "part p001 floats, detached from the rest of the model",
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model"
+    ],
+    "openlife:crib_basic": [
+      "part part_01 floats, detached from the rest of the model",
+      "part part_02 floats, detached from the rest of the model",
+      "part part_03 floats, detached from the rest of the model",
+      "part part_04 floats, detached from the rest of the model",
+      "part part_05 floats, detached from the rest of the model",
+      "part part_06 floats, detached from the rest of the model",
+      "part part_07 floats, detached from the rest of the model",
+      "part part_08 floats, detached from the rest of the model",
+      "part part_09 floats, detached from the rest of the model",
+      "part part_10 floats, detached from the rest of the model",
+      "part part_11 floats, detached from the rest of the model",
+      "part part_12 floats, detached from the rest of the model"
+    ],
+    "openlife:dining_chair": [
+      "part p000 floats, detached from the rest of the model",
+      "part p001 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p006 is hidden inside p001"
+    ],
+    "openlife:diving_buoy": [
+      "part part_01 floats, detached from the rest of the model",
+      "part part_02 floats, detached from the rest of the model"
+    ],
+    "openlife:dream_pod": [
+      "part part_02 floats, detached from the rest of the model"
+    ],
+    "openlife:festival_booth": [
+      "part part_01 floats, detached from the rest of the model",
+      "part part_02 floats, detached from the rest of the model",
+      "part part_03 floats, detached from the rest of the model",
+      "part part_04 floats, detached from the rest of the model",
+      "part part_05 floats, detached from the rest of the model",
+      "part part_06 floats, detached from the rest of the model"
+    ],
+    "openlife:grill_basic": [
+      "part p000 floats, detached from the rest of the model",
+      "part p001 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model"
+    ],
+    "openlife:guitar_basic": [
+      "part part_03 is hidden inside part_01"
+    ],
+    "openlife:gym_treadmill": [
+      "part part_02 floats, detached from the rest of the model",
+      "part part_03 floats, detached from the rest of the model",
+      "part part_04 floats, detached from the rest of the model"
+    ],
+    "openlife:highchair": [
+      "part part_06 floats, detached from the rest of the model"
+    ],
+    "openlife:hospital_rabbit_hole": [
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model"
+    ],
+    "openlife:house_founders": [
+      "part p008 floats, detached from the rest of the model",
+      "part p009 floats, detached from the rest of the model",
+      "part p042 is hidden inside p000",
+      "part p050 is hidden inside p000"
+    ],
+    "openlife:house_rose": [
+      "part p008 floats, detached from the rest of the model",
+      "part p009 floats, detached from the rest of the model",
+      "part p016 is hidden inside p075",
+      "part p017 is hidden inside p075",
+      "part p018 is hidden inside p075",
+      "part p042 is hidden inside p000",
+      "part p050 is hidden inside p000",
+      "part p072 is hidden inside p003",
+      "part p074 is hidden inside p003"
+    ],
+    "openlife:inventing_bench": [
+      "part part_02 floats, detached from the rest of the model"
+    ],
+    "openlife:kitchen_sink": [
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model"
+    ],
+    "openlife:luxury_lounge_chair": [
+      "part part_00 floats, detached from the rest of the model",
+      "part part_01 floats, detached from the rest of the model",
+      "part part_02 floats, detached from the rest of the model",
+      "part part_03 floats, detached from the rest of the model"
+    ],
+    "openlife:mailbox_basic": [
+      "part p000 floats, detached from the rest of the model",
+      "part p001 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model"
+    ],
+    "openlife:martial_arts_dummy": [
+      "part part_00 floats, detached from the rest of the model",
+      "part part_01 floats, detached from the rest of the model",
+      "part part_02 floats, detached from the rest of the model"
+    ],
+    "openlife:mixology_bar": [
+      "part part_02 floats, detached from the rest of the model",
+      "part part_03 floats, detached from the rest of the model",
+      "part part_04 floats, detached from the rest of the model",
+      "part part_05 floats, detached from the rest of the model",
+      "part part_06 floats, detached from the rest of the model"
+    ],
+    "openlife:nectar_maker": [
+      "part part_02 floats, detached from the rest of the model"
+    ],
+    "openlife:pet_bowl": [
+      "part part_01 is hidden inside part_00"
+    ],
+    "openlife:pet_dog": [
+      "part p007 is hidden inside p001",
+      "part p008 is hidden inside p001"
+    ],
+    "openlife:pet_horse": [
+      "part p000 floats, detached from the rest of the model",
+      "part p001 floats, detached from the rest of the model",
+      "part p002 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model"
+    ],
+    "openlife:shrub": [
+      "part p003 is hidden inside p001"
+    ],
+    "openlife:sim_adult_athletic": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p007 is hidden inside p006"
+    ],
+    "openlife:sim_adult_average": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_adult_slender": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_adult_soft": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_avatar_reference": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_baby_athletic": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_baby_average": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_baby_slender": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_baby_soft": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_child_athletic": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_child_average": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_child_slender": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_child_soft": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_elder_athletic": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_elder_average": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_elder_slender": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_elder_soft": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_teen_athletic": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p007 is hidden inside p006"
+    ],
+    "openlife:sim_teen_average": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_teen_slender": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_teen_soft": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_toddler_athletic": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_toddler_average": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_toddler_slender": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:sim_toddler_soft": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p005 floats, detached from the rest of the model",
+      "part p006 floats, detached from the rest of the model",
+      "part p007 floats, detached from the rest of the model",
+      "part p008 floats, detached from the rest of the model"
+    ],
+    "openlife:spa_vanity": [
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model"
+    ],
+    "openlife:stereo_basic": [
+      "part p001 floats, detached from the rest of the model",
+      "part p002 floats, detached from the rest of the model"
+    ],
+    "openlife:tattoo_chair": [
+      "part part_00 floats, detached from the rest of the model",
+      "part part_01 floats, detached from the rest of the model",
+      "part part_02 floats, detached from the rest of the model"
+    ],
+    "openlife:time_portal": [
+      "part part_00 floats, detached from the rest of the model",
+      "part part_01 floats, detached from the rest of the model",
+      "part part_02 floats, detached from the rest of the model",
+      "part part_04 floats, detached from the rest of the model"
+    ],
+    "openlife:trash_bin": [
+      "part p001 floats, detached from the rest of the model"
+    ],
+    "openlife:trash_can": [
+      "part part_02 is hidden inside part_01"
+    ],
+    "openlife:tree_deciduous": [
+      "part p001 floats, detached from the rest of the model",
+      "part p002 floats, detached from the rest of the model",
+      "part p003 floats, detached from the rest of the model",
+      "part p004 floats, detached from the rest of the model",
+      "part p003 is hidden inside p001",
+      "part p004 is hidden inside p001"
+    ],
+    "openlife:treehouse": [
+      "part part_00 floats, detached from the rest of the model",
+      "part part_01 floats, detached from the rest of the model",
+      "part part_02 floats, detached from the rest of the model"
+    ]
+  }
+}

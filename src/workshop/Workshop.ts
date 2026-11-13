@@ -10,6 +10,7 @@ import { measureWall, snapWallPoint, type WallPoint } from './WallSketch';
 import { measureRoom } from './RoomSketch';
 import { defaultOpening } from './WallOpenings';
 import { BUILDER_MODELS, BUILDER_FINISHES, searchBuilderLibrary, builderModel } from './builderAssetCatalog';
+import { builderModelDefects } from './modelDefects';
 import { conservationErrors, validateWorkshopConservation } from './conservation';
 import { WorkshopHistory } from './history';
 import { filterSourceCatalog, sourceAvailability, type SourceAvailability, type SourceAvailabilityInfo } from './sourceCatalog';
@@ -22,6 +23,7 @@ import { MEANINGFUL_ACTIONS, MEANING_MAX_DISTANCE } from './MeaningfulObjects';
 import { applyCurateSuggestions, autoCurate, rejectCurateSuggestion, type CurateDensity, type CurateMode, type CurateSuggestion } from './AutoCurate';
 import { NARRATIVE_GRAVITY_PILOTS, applyGravitySuggestions, narrativeGravity, rejectGravitySuggestion, type GravitySuggestion, type NarrativeGravityPilot } from './NarrativeGravity';
 import { ZONES } from '../world/layout';
+import { islandPathSolids, scanIslandPaths } from './IslandPathClearance';
 import { KIT_TEMPLATES, duplicateKit, kitFollowMember, kitOf, kitOverrides, placeKit, removeKit, resetKitSlot } from './ExhibitKits';
 import { addEmptyRegion, isLocked, latestDecision, recordDecision, removeEmptyRegion, setLocked } from './CuratorMemory';
 import {
@@ -256,6 +258,7 @@ export class Workshop {
   update(): void {
     if (this.openState) {
       this.app.ui.hud.setWorkshopCue(null);
+      if (this.islandPathsLive() && this.history.revision !== this.islandPathsRevision) this.scanIslandPaths();
       return;
     }
     const hit = this.authorableHit(true);
@@ -291,6 +294,8 @@ export class Workshop {
     this.el<HTMLButtonElement>('scene-index-refresh').addEventListener('click', () => this.refreshSceneIndex());
     this.el<HTMLButtonElement>('clearance-scan').addEventListener('click', () => this.scanClearance());
     this.el<HTMLButtonElement>('walkways-scan').addEventListener('click', () => this.scanWalkways());
+    this.el<HTMLButtonElement>('island-paths-scan').addEventListener('click', () => this.scanIslandPaths());
+    this.islandPathsLiveInput = this.el<HTMLInputElement>('island-paths-live');
     this.el<HTMLButtonElement>('health-run').addEventListener('click', () => this.checkHealth());
     this.el<HTMLButtonElement>('jury-run').addEventListener('click', () => this.runJury());
     this.el<HTMLSelectElement>('meaning').addEventListener('change', () => this.commitMeaning());
@@ -484,9 +489,12 @@ export class Workshop {
       const title = document.createElement('strong');
       title.textContent = item.label;
       const detail = document.createElement('small');
-      detail.textContent = item.category + ' · ' + item.source + ' · ' + item.license;
+      const defects = builderModelDefects(item.id);
+      detail.textContent = item.category + ' · ' + item.source + ' · ' + item.license + (defects.length ? ' · ⚠ Model defect' : '');
       button.append(title, detail);
-      button.title = item.tags.join(', ') + ' · ' + item.bytes + ' bytes';
+      button.title = item.tags.join(', ') + ' · ' + item.bytes + ' bytes'
+        + (defects.length ? `\nKnown model defect (npm run lint:models): ${defects.join('; ')}` : '');
+      if (defects.length) button.dataset.modelDefect = String(defects.length);
       button.addEventListener('click', () => this.addModel(item.id, item.label));
       this.assetResults.append(button);
     }
@@ -524,6 +532,38 @@ export class Workshop {
     this.el('scene-index-detail').textContent = `${exhibit.id} · ${exhibit.wing} · anchor (${point(exhibit.anchor)}) · doorway (${point(exhibit.doorway)}) · visitor position (${point(exhibit.visitorSpot)}) · bounds half-extents (${point(exhibit.bounds.h)}) metres.`
       + ` Within 3 m of the visitor position: ${querySceneIndex(index).near(exhibit.visitorSpot, 3)
         .filter((hit) => hit.kind !== 'route').map((hit) => `${hit.kind} ${hit.id}`).join(', ') || 'nothing indexed'}.`;
+  }
+
+  private islandPathsRevision = -1;
+  private islandPathsLiveInput: HTMLInputElement | null = null;
+
+  private islandPathsLive(): boolean {
+    return this.islandPathsLiveInput?.checked ?? false;
+  }
+
+  /** Island path ribbons against exterior colliders, including placed objects that collide. */
+  private scanIslandPaths(): void {
+    this.islandPathsRevision = this.history.revision;
+    this.placements.invalidateCollisions();
+    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+      this.app.exteriorWorld.root, this.app.museum?.root);
+    const index = buildMuseumSceneIndex(this.placements.captureManifest(), { exterior: this.app.exteriorWorld.collision },
+      { placements: this.placements });
+    const { solids, building } = islandPathSolids(index);
+    const results = scanIslandPaths(solids, building);
+    const blocked = results.filter((result) => result.problems.length);
+    this.el('island-paths-status').textContent = blocked.length
+      ? `${blocked.length} of ${results.length} island paths are obstructed or leave the land.`
+      : `All ${results.length} island paths are clear: on land, off the lagoon, and clear of ${solids.length} solid colliders.`;
+    const list = this.el('island-paths-results');
+    list.replaceChildren();
+    for (const result of blocked) {
+      const item = document.createElement('p');
+      item.dataset.islandPath = String(result.path);
+      const shown = result.problems.slice(0, 5).join('; ');
+      item.textContent = `Path ${result.path}: ${shown}${result.problems.length > 5 ? `; and ${result.problems.length - 5} more` : ''}.`;
+      list.append(item);
+    }
   }
 
   private scanClearance(): void {
@@ -2384,6 +2424,12 @@ const WORKSHOP_HTML = `
     <button type="button" data-workshop="clearance-scan">Scan authored route obstructions</button>
     <p data-workshop="clearance-status" role="status" class="workshop-muted">Not tested.</p>
     <div data-workshop="clearance-results" class="workshop-outliner"></div>
+  </section>
+  <section><h3>Island paths</h3>
+    <button type="button" data-workshop="island-paths-scan">Check island paths</button>
+    <label><input type="checkbox" data-workshop="island-paths-live"> Re-check after every edit</label>
+    <p data-workshop="island-paths-status" role="status" class="workshop-muted">Not tested.</p>
+    <div data-workshop="island-paths-results" class="workshop-outliner"></div>
   </section>
   <section><h3>Clear walkways</h3>
     <button type="button" data-workshop="walkways-scan">Scan walkways and suggest moves</button>

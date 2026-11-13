@@ -29,6 +29,7 @@
   border:1px solid #385260;border-radius:6px;text-align:left;line-height:1.3;
 }
 .museum-workshop .workshop-asset strong{font-size:12px}
+.museum-workshop .workshop-asset[data-model-defect] small{color:#f0b35a}
 .museum-workshop .workshop-asset small{font-size:10px;color:#b0bdc5;line-height:1.3}
 .museum-workshop .workshop-asset:hover{border-color:#6bd2f7;background:#193644}
 .museum-workshop .workshop-asset:focus-visible{outline:2px solid #f5c86c;outline-offset:1px}
