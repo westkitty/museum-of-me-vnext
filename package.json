@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "lint:models": "UPDATE_MODEL_DEFECTS=1 vitest run tests/builder-model-defects.test.ts",
+    "build:openlife-repairs": "vite-node scripts/build-openlife-repairs.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

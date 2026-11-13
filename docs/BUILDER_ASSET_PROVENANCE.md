@@ -20,6 +20,26 @@ model source hashes on CI. The source commit was pinned as
 For the complete MIT license see:
 https://github.com/westkitty/Life_Sim/blob/2e8255d6743ebfbb8e51ab7b8dc3f9ca1e665d3b/LICENSE
 
+## Repaired derivatives (modified copies)
+
+The OpenLife generator never turned its round primitives Y-up, so cylinders and
+cones in many models lay on their side, and a few parts floated or were sealed
+inside other parts. 73 of the 119 shelf models are therefore **modified
+derivatives** of the OpenLife originals, still under the same MIT license and
+copyright notice. The other 46 remain byte-identical to the source.
+
+- The unmodified source bytes are pinned in `assets-source/openlife/` (not
+  served). Life_Sim itself is not changed.
+- `scripts/openlife-repair.ts` applies `scripts/openlife-repair-plan.json`: it
+  only adds node transforms (and drops or copies whole nodes) in the glTF JSON;
+  vertex data is untouched. Each plan entry says why the model was changed.
+- `npm run build:openlife-repairs` regenerates `public/builder-assets/openlife/`
+  and records, for each repaired model in `src/workshop/builderAssets.json`,
+  both the source `sourceSha256`/`sourceBytes` and the served `sha256`/`bytes`.
+- `tests/openlife-repair.test.ts` checks every served file is exactly the plan
+  applied to its pinned source, and `npm run lint:models` must report no
+  defects (`src/workshop/catalog-data/builder-model-defects.json`).
+
 ## Import and publication rules
 
 - Builder searches the embedded verified catalog. It does **not** scrape other

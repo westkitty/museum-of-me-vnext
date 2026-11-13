@@ -13,6 +13,11 @@ export interface BuilderLibraryModel {
   readonly bytes: number;
   readonly nominalSize: readonly [number, number, number];
   readonly path: string;
+  /** Present when the file is a repaired derivative: the pinned source file's SHA-256 and size. */
+  readonly sourceSha256?: string;
+  readonly sourceBytes?: number;
+  /** The repair plan that produced the file from the pinned source. */
+  readonly repair?: string;
 }
 
 export interface BuilderFinish {
