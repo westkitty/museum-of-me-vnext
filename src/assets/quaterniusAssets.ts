@@ -31,8 +31,8 @@ export function registerQuaterniusAssets(): void {
     license: 'CC0 1.0 Universal; official Quaternius distribution.',
     url: menCasualUrl,
     sourceHash: '55c654d09a2a5ff6e3bd6158d4a1b462f181cd6f1e12a0f5e9d959f9c3abc438',
-    processedHash: 'cb5a335837288e2a2be7a9d3e1e7f0755723384f6e8763acdd24a55f49fe2779',
-    budgetKB: 2528, streamingGroup: 'shell',
+    processedHash: '6755bdabf7bed733a015925dc78866063322827234cea701b12d14e1fd221288',
+    budgetKB: 800, streamingGroup: 'shell',
     attribution: 'Quaternius — Ultimate Modular Men Pack (CC0).',
   });
   registerAsset({
@@ -42,8 +42,8 @@ export function registerQuaterniusAssets(): void {
     license: 'CC0 1.0 Universal; official Quaternius distribution.',
     url: womenCasualUrl,
     sourceHash: 'b0fe6e92219cd71808844a20a1a8b960fd1cf640a6546dc6362b5add6604e87c',
-    processedHash: '6e20483dad0a557b294844f299438278a8c9fa8d894fdebe39fac44dde8ba8a5',
-    budgetKB: 2568, streamingGroup: 'shell',
+    processedHash: 'b82b19f54251b677ac58d711434944ee23bb1c8b22c7ff005cb70d2755b3c003',
+    budgetKB: 852, streamingGroup: 'shell',
     attribution: 'Quaternius — Ultimate Modular Women Pack (CC0).',
   });
   registerAsset({

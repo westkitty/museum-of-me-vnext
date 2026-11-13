@@ -65,14 +65,13 @@ export function createTextTexture(
     if (opts.fitTitle) {
       const available = height - paddingY * 2;
       const maxWidth = width - paddingX * 2;
-      const fits = () => {
+      const fitsAt = (size: number) => {
+        ctx.font = `600 ${size}px ${font}`;
         const lines = countWrappedLines(ctx, opts.title!, maxWidth);
-        return lines.count * titleSize * 1.15 <= available && lines.widest <= maxWidth;
+        return lines.count * size * 1.15 <= available && lines.widest <= maxWidth;
       };
-      while (titleSize > 22 && !fits()) {
-        titleSize -= 2;
-        ctx.font = `600 ${titleSize}px ${font}`;
-      }
+      titleSize = largestFittingTitleSize(titleSize, fitsAt);
+      ctx.font = `600 ${titleSize}px ${font}`;
       const used = countWrappedLines(ctx, opts.title, maxWidth).count * titleSize * 1.15;
       y = paddingY + Math.max(0, (available - used) / 2);
     }
@@ -99,6 +98,22 @@ export function createTextTexture(
   texture.anisotropy = 4;
   texture.needsUpdate = true;
   return scope.track(texture);
+}
+
+/**
+ * The title size a 2 px step-down from `start` settles on: the first size that
+ * fits, or the first size <= 22. Found by binary search (fit is monotonic in
+ * size), because a large plate used to re-wrap its caption up to ~100 times.
+ */
+export function largestFittingTitleSize(start: number, fitsAt: (size: number) => boolean): number {
+  let lo = 0;
+  let hi = Math.max(0, Math.ceil((start - 22) / 2));
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (fitsAt(start - mid * 2)) hi = mid;
+    else lo = mid + 1;
+  }
+  return start - lo * 2;
 }
 
 /** How many lines `drawWrapped` will use, and the widest of them. Respects explicit newlines. */

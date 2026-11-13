@@ -37,6 +37,7 @@ export class HUD {
 
   private subtitleTimer = 0;
   private lastZone: ZoneId | null = null;
+  private lastOutsideLabel: string | undefined;
 
   constructor(
     onRequestLock: (touch: boolean) => void | boolean,
@@ -240,15 +241,17 @@ export class HUD {
     this.threadStatus.textContent = label ?? '';
   }
 
-  setLocation(zone: ZoneId): void {
-    if (zone === this.lastZone) return;
+  /** `outsideLabel` is set while the visitor is in the exterior world. */
+  setLocation(zone: ZoneId, outsideLabel?: string): void {
+    if (zone === this.lastZone && outsideLabel === this.lastOutsideLabel) return;
     this.lastZone = zone;
-    this.location.dataset.zone = zone;
+    this.lastOutsideLabel = outsideLabel;
+    this.location.dataset.zone = outsideLabel ? 'exterior' : zone;
     const record = ZONE_BY_ID.get(zone);
-    const wing = WINGS_BY_ID.get(zone as never);
+    const wing = outsideLabel ? undefined : WINGS_BY_ID.get(zone as never);
     this.location.replaceChildren(
       el('span', { text: wing ? wing.subtitle : 'Museum of Me' }),
-      el('strong', { text: wing ? wing.name : (record?.label ?? 'Museum') }),
+      el('strong', { text: outsideLabel ?? (wing ? wing.name : (record?.label ?? 'Museum')) }),
     );
   }
 

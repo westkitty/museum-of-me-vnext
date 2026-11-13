@@ -76,11 +76,13 @@ const conversions = [
     source: resolve(sourceRoot, 'ultimate-modular-men/selected/Casual_2.gltf'),
     output: resolve(outputRoot, 'quaternius-men-casual.glb'),
     load: parseGltf,
+    clips: ['Walk'],
   },
   {
     source: resolve(sourceRoot, 'ultimate-modular-women/selected/Casual.gltf'),
     output: resolve(outputRoot, 'quaternius-women-casual.glb'),
     load: parseGltf,
+    clips: ['Walk'],
   },
   {
     source: resolve(sourceRoot, 'background-posed-humans/selected/Female_Sitting.fbx'),
@@ -92,7 +94,12 @@ const conversions = [
 for (const conversion of conversions) {
   const loaded = await conversion.load(conversion.source);
   const scene = loaded.scene ?? loaded;
-  const animations = loaded.animations ?? [];
+  // Only the clips the museum plays ship: parsing all 24 source clips (2,696
+  // channels) cost ~100 ms of main-thread time every time a walker loaded.
+  const animations = (loaded.animations ?? []).filter((clip) => !conversion.clips || conversion.clips.includes(clip.name));
+  if (conversion.clips && animations.length !== conversion.clips.length) {
+    throw new Error(`${conversion.source}: expected clips ${conversion.clips.join(', ')}`);
+  }
   const glb = await exportGlb(scene, animations);
   if (!(glb instanceof ArrayBuffer)) throw new Error(`Expected binary GLB from ${conversion.source}`);
   await writeFile(conversion.output, new Uint8Array(glb));

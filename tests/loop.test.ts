@@ -97,4 +97,27 @@ describe('Loop', () => {
     harness.advance(16);
     expect(render.mock.calls.length).toBe(callsAfterStop);
   });
+
+  it('presents every frame under a 60 fps cap when the 60 Hz display delivers frames a little early', () => {
+    const render = vi.fn();
+    const loop = new Loop({ fixedUpdate: vi.fn(), variableUpdate: vi.fn(), render });
+    loop.setFrameCap(60);
+    loop.start();
+    // A real display jitters around 16.67 ms; 16.6 ms used to be skipped and
+    // shown 33 ms late.
+    for (let i = 0; i < 120; i++) harness.advance(i % 2 ? 16.6 : 16.74);
+    expect(render).toHaveBeenCalledTimes(120);
+    loop.stop();
+  });
+
+  it('keeps a 30 fps cap at every other frame of a slightly fast 60 Hz display', () => {
+    const render = vi.fn();
+    const loop = new Loop({ fixedUpdate: vi.fn(), variableUpdate: vi.fn(), render });
+    loop.setFrameCap(30);
+    loop.start();
+    for (let i = 0; i < 240; i++) harness.advance(16.6);
+    expect(render.mock.calls.length).toBeGreaterThanOrEqual(119);
+    expect(render.mock.calls.length).toBeLessThanOrEqual(121);
+    loop.stop();
+  });
 });

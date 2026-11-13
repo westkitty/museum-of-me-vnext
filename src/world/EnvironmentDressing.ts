@@ -51,10 +51,22 @@ export class EnvironmentDressing {
   }
 
   build(): THREE.Group {
+    for (const step of this.buildSteps()) void step;
+    return this.group;
+  }
+
+  /** The same build in short steps, so the lazy interior path can yield between them. */
+  *buildSteps(): Generator<void, THREE.Group> {
     this.buildFacade();
+    yield;
     this.buildNeutralVestibule();
+    yield;
     this.buildRotundaWelcome();
-    this.buildWingFurnishings();
+    yield;
+    for (const wing of WINGS) {
+      this.buildWingFurnishings(wing);
+      yield;
+    }
     return this.group;
   }
 
@@ -186,8 +198,8 @@ export class EnvironmentDressing {
     this.simpleBench([-7.4, GROUND_Y, -6.6], -Math.PI / 4);
   }
 
-  private buildWingFurnishings(): void {
-    for (const wing of WINGS) {
+  private buildWingFurnishings(only?: (typeof WINGS)[number]): void {
+    for (const wing of only ? [only] : WINGS) {
       const d = faceDirection(wing.face);
       const r = rightOf(d);
       const y = wing.floorY;

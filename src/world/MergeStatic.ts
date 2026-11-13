@@ -39,6 +39,26 @@ interface Bucket {
  * Collision remains authored before this rendering-only pass.
  */
 export function mergeStatic(root: THREE.Object3D, scope: ResourceScope, options: MergeOptions = {}): MergeReport {
+  const steps = mergeStaticSteps(root, scope, options);
+  for (;;) {
+    const next = steps.next();
+    if (next.done) return next.value;
+  }
+}
+
+/** Same merge, yielding to the event loop between buckets so no slice grows long. */
+export async function mergeStaticCooperatively(
+  root: THREE.Object3D, scope: ResourceScope, options: MergeOptions, yieldControl: () => Promise<void>,
+): Promise<MergeReport> {
+  const steps = mergeStaticSteps(root, scope, options);
+  for (;;) {
+    const next = steps.next();
+    if (next.done) return next.value;
+    await yieldControl();
+  }
+}
+
+function* mergeStaticSteps(root: THREE.Object3D, scope: ResourceScope, options: MergeOptions): Generator<void, MergeReport> {
   const cellSize = options.cellSize ?? 192;
   const heightSize = 24;
   const byMaterial = new Map<THREE.Material, Map<string, Bucket>>();
@@ -142,6 +162,7 @@ export function mergeStatic(root: THREE.Object3D, scope: ResourceScope, options:
       mergedMesh.matrixWorldAutoUpdate = false;
       for (const mesh of entry.meshes) mesh.removeFromParent();
       merged += entry.meshes.length;
+      yield;
     }
   }
 

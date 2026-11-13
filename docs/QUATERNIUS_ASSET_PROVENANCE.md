@@ -43,12 +43,15 @@ The source files were converted locally with the installed Three.js r185
 is `node scripts/convert-quaternius-assets.mjs`. The exporter closes each
 selected scene into a standalone GLB; no manual binary edits are made. The
 utility supplies Node-compatible `FileReader` and `ProgressEvent` shims only.
-It adds no dependency and produces no external URIs.
+It adds no dependency and produces no external URIs. The two walker GLBs keep
+only the `Walk` clip, the one the museum plays (2026-11-13): the other 23 source
+clips cost about 100 ms of main-thread parsing per load and were never used. The
+converter fails if a listed clip is missing.
 
 | Runtime artifact | Source | Runtime path | Bytes | SHA-256 |
 |---|---|---|---:|---|
-| `quaternius-men-casual.glb` | `Casual_2.gltf` | `src/assets/npc/quaternius-men-casual.glb` | 2,588,348 | `cb5a335837288e2a2be7a9d3e1e7f0755723384f6e8763acdd24a55f49fe2779` |
-| `quaternius-women-casual.glb` | `Casual.gltf` | `src/assets/npc/quaternius-women-casual.glb` | 2,628,220 | `6e20483dad0a557b294844f299438278a8c9fa8d894fdebe39fac44dde8ba8a5` |
+| `quaternius-men-casual.glb` | `Casual_2.gltf` | `src/assets/npc/quaternius-men-casual.glb` | 819,184 | `6755bdabf7bed733a015925dc78866063322827234cea701b12d14e1fd221288` |
+| `quaternius-women-casual.glb` | `Casual.gltf` | `src/assets/npc/quaternius-women-casual.glb` | 872,120 | `b82b19f54251b677ac58d711434944ee23bb1c8b22c7ff005cb70d2755b3c003` |
 | `quaternius-posed-sitting.glb` | `Female_Sitting.fbx` | `src/assets/npc/quaternius-posed-sitting.glb` | 164,772 | `06e2962f7b965121f9d83aff843db4ca858d8a1edfaca99b9a79eaf09c8acf2f` |
 
 ## Runtime ownership

@@ -85,6 +85,8 @@ export class MapPanel extends Panel {
     private readonly getYaw: () => number,
     private readonly getPreferences: () => Pick<VisitorPreferences, 'showMapVisitors' | 'showTooltips'>,
     private readonly getVisitors: () => readonly MapVisitorMarker[],
+    /** Outside, the plan of the interior must not show the visitor's position. */
+    private readonly isOutside: () => boolean = () => false,
   ) {
     super('map', 'Museum map', 'Where you are');
   }
@@ -240,16 +242,21 @@ export class MapPanel extends Panel {
       plan.append(marker);
     }
 
-    const [px, py] = toSvg(position);
-    const forwardX = -Math.sin(yaw);
-    const forwardZ = -Math.cos(yaw);
-    plan.append(svg('line', {
-      class: 'you-heading',
-      x1: px, y1: py, x2: px + forwardX * 8, y2: py + forwardZ * 8,
-    }));
-    plan.append(svg('circle', { class: 'you', cx: px, cy: py, r: 2.6 }));
-    const halo = svg('circle', { cx: px, cy: py, r: 5.2, fill: 'none', stroke: '#e8c65a', 'stroke-width': 0.8, 'stroke-opacity': '0.6' });
-    plan.append(halo);
+    // The exterior shares X/Z with this interior plan; a marker drawn from
+    // outside would claim the visitor is in a wing they are walking behind.
+    const outside = this.isOutside();
+    if (!outside) {
+      const [px, py] = toSvg(position);
+      const forwardX = -Math.sin(yaw);
+      const forwardZ = -Math.cos(yaw);
+      plan.append(svg('line', {
+        class: 'you-heading',
+        x1: px, y1: py, x2: px + forwardX * 8, y2: py + forwardZ * 8,
+      }));
+      plan.append(svg('circle', { class: 'you', cx: px, cy: py, r: 2.6 }));
+      const halo = svg('circle', { cx: px, cy: py, r: 5.2, fill: 'none', stroke: '#e8c65a', 'stroke-width': 0.8, 'stroke-opacity': '0.6' });
+      plan.append(halo);
+    }
 
     const thread = this.getThread();
     const list = el('div', {});
@@ -308,7 +315,9 @@ export class MapPanel extends Panel {
         el(
           'div',
           {},
-          el('p', { text: `You are in the ${this.getZone()}, facing ${heading}. Selecting an exhibit marks it on the map and shows a direction cue — it never moves you there.` }),
+          el('p', { text: `${outside
+            ? `You are outside the museum (${this.getZone()}), facing ${heading}. The plan shows the inside of the building and marks your position once you enter.`
+            : `You are in the ${this.getZone()}, facing ${heading}.`} Selecting an exhibit marks it on the map and shows a direction cue — it never moves you there.` }),
           this.target
             ? el('p', { class: 'panel__note map__wayfinding', role: 'status', text: `Wayfinding to ${EXHIBITS_BY_ID.get(this.target)?.title} · ${Math.round(this.distanceTo(this.target))} m away. Select it again to clear.` })
             : el('p', { class: 'panel__note map__wayfinding', role: 'status', text: `${this.journal.visitedCount} of 35 exhibits visited. There is no score.` }),

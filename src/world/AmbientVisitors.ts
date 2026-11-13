@@ -92,6 +92,15 @@ export class AmbientVisitors {
     }
   }
 
+  /**
+   * Fetches and parses the visitor models ahead of time, without adding anyone
+   * to the scene, so populating on entry does not parse 5 MB of GLB mid-walk.
+   */
+  async preloadPrototypes(loader: AmbientAssetLoader): Promise<readonly THREE.Object3D[]> {
+    this.prototypes ??= await this.loadPrototypes(loader);
+    return [this.prototypes.men.object, this.prototypes.women.object, this.prototypes.posed.object];
+  }
+
   /** Called from the existing single owner loop. */
   update(dt: number, reducedMotion: boolean, viewerX?: number, viewerZ?: number): void {
     if (this.motionFrozen !== reducedMotion) this.setMotionFrozen(reducedMotion);

@@ -4,14 +4,38 @@
     {
       "name": "museum",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 5173
     },
     {
       "name": "museum-production",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "preview", "--", "--host", "127.0.0.1"],
+      "runtimeArgs": [
+        "run",
+        "preview",
+        "--",
+        "--host",
+        "127.0.0.1"
+      ],
       "port": 4173
+    },
+    {
+      "name": "museum-isolated",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5199",
+        "--strictPort"
+      ],
+      "port": 5199
     }
   ]
 }

@@ -29,7 +29,7 @@ import { Lighting } from '../render/Lighting';
 import { AtmosphereDirector } from '../render/AtmosphereDirector';
 import { InputManager } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
-import { zoneAtXYZ, ZONE_BY_ID, isOnFlightPad, type ZoneId } from '../world/layout';
+import { zoneAtXYZ, ZONE_BY_ID, isOnFlightPad, exteriorLocationLabel, EXTERIOR_PLAZA_LABEL, type ZoneId } from '../world/layout';
 import { START_POSITION } from '../world/start';
 import type { StreamingManager } from '../exhibits/StreamingManager';
 
@@ -45,6 +45,7 @@ import type { FlightPadAtmosphere } from '../world/FlightPadAtmosphere';
 import { UILayer } from './UILayer';
 import { ExteriorWorld } from '../world/exterior/ExteriorWorld';
 import type { InteriorWorld } from '../world/InteriorWorld';
+import { LongFrameRecorder } from './LongFrameRecorder';
 import { WorldDirector, type WorldId } from './WorldDirector';
 import type { AuthorableSceneRegistry } from '../workshop/AuthorableSceneRegistry';
 
@@ -74,6 +75,8 @@ export class App implements LoopCallbacks {
   readonly exteriorWorld: ExteriorWorld;
   interiorWorld: InteriorWorld | null = null;
   readonly worldDirector: WorldDirector;
+  /** Frames over 50 ms, with the world and phase they happened in (local only). */
+  readonly longFrames = new LongFrameRecorder(() => ({ world: this.activeWorld, phase: this.worldDirector?.phase ?? 'starting' }));
   sceneRegistry: AuthorableSceneRegistry | null = null;
 
   readonly lighting: Lighting;
@@ -91,6 +94,10 @@ export class App implements LoopCallbacks {
 
   /** Zone the visitor is currently standing in. Drives audio and streaming. */
   currentZone: ZoneId = 'plaza';
+  /** False while the interior's shaders and geometry are still being prepared off-screen. */
+  interiorWorldWarmed: boolean | undefined;
+  private exteriorLabel = EXTERIOR_PLAZA_LABEL;
+  private zoneWasOutside = true;
 
   readonly uiRoot: HTMLElement;
   readonly a11yRoot: HTMLElement;
@@ -186,6 +193,8 @@ export class App implements LoopCallbacks {
     this.player.teleport(this.exteriorWorld.spawnPosition, this.exteriorWorld.spawnYaw);
 
     this.worldDirector = new WorldDirector(this);
+    this.longFrames.start();
+    this.adaptiveResolution.setBasePixelRatio(this.renderer.basePixelRatio);
 
     // File-backed loaders
     this.assets.attachRenderer(this.renderer.renderer);
@@ -235,6 +244,13 @@ export class App implements LoopCallbacks {
         interior.root.visible = this.activeWorld === 'interior';
         interior.setActive(this.activeWorld === 'interior');
         this.renderer.scene.add(interior.root);
+        this.interiorWorldWarmed = false;
+        const warmed = this.renderer.warmWorld(interior.root)
+          .catch((error) => console.warn('[App] interior warm-up incomplete', error))
+          .finally(() => { this.interiorWorldWarmed = true; });
+        // Visitors join only once the visitor is inside; parse and compile their
+        // models now so that moment is not a stall. The doorway does not wait for it.
+        void warmed.then(() => this.preloadAmbientVisitors(interior!));
         this.worldDirector.interiorConstructed = true;
         this.scheduleAmbientPopulation(true);
         return interior;
@@ -339,7 +355,13 @@ export class App implements LoopCallbacks {
 
   /** Human-readable name of the space the visitor is in. */
   get zoneLabel(): string {
+    if (this.isOutside) return this.exteriorLabel;
     return ZONE_BY_ID.get(this.currentZone)?.label ?? this.currentZone;
+  }
+
+  /** True while the visitor is in the exterior world. Interior zones are never reported then. */
+  get isOutside(): boolean {
+    return this.worldDirector.activeWorld === 'exterior';
   }
 
   /** The exhibit the visitor is currently standing in, if any. */
@@ -392,11 +414,43 @@ export class App implements LoopCallbacks {
     this.preferences.quality = tier;
     this.renderer.setQuality(tier === 'auto' ? detectQualityTier() : tier);
     this.adaptiveResolution.reset();
+    this.adaptiveResolution.setBasePixelRatio(this.renderer.basePixelRatio);
     const radius = this.renderer.quality.exhibitStreamRadius;
     this.streaming?.setRadii(radius + 14, radius + 30, radius);
     this.exteriorWorld.setQuality(this.renderer.quality.tier);
     this.scheduleAmbientPopulation(false);
     savePreferences(this.preferences);
+  }
+
+  /**
+   * The exterior shares X/Z with the interior plan, so outside the visitor is
+   * told which side of the building they are on, never an interior zone.
+   */
+  private updateLocationAnnouncement(eye: readonly [number, number, number], zoneChanged: boolean): void {
+    const outside = this.isOutside;
+    const worldChanged = outside !== this.zoneWasOutside;
+    this.zoneWasOutside = outside;
+    if (outside) {
+      const label = exteriorLocationLabel(eye[0], this.player.position.y + 0.1, eye[2]);
+      if (label === this.exteriorLabel && !worldChanged) return;
+      this.exteriorLabel = label;
+      this.ui?.mirror.announce(worldChanged ? `Entering ${label}.` : `${label}.`);
+    } else if (zoneChanged || worldChanged) {
+      this.ui?.mirror.announce(`Entering ${this.zoneLabel}.`);
+    }
+  }
+
+  private async preloadAmbientVisitors(interior: InteriorWorld): Promise<void> {
+    if (this.renderer.quality.ambientVisitors <= 0) return;
+    try {
+      for (const prototype of await interior.visitors.preloadPrototypes(this.assets)) {
+        await this.renderer.prewarmObject(prototype);
+        await this.renderer.uploadObject(prototype);
+      }
+    } catch (error) {
+      // setPopulation reports a real failure when it runs; this is only a head start.
+      console.warn('[App] ambient visitor preload skipped', error);
+    }
   }
 
   private scheduleAmbientPopulation(announceFailure: boolean): void {
@@ -546,12 +600,13 @@ export class App implements LoopCallbacks {
     }
 
     const eye = this.player.writeEyePosition(this.eyePositionScratch);
+    // currentZone is spatial: culling, streaming and atmosphere key off it in
+    // both worlds. What the visitor is told is decided after the world switch.
     const zone = zoneAtXYZ(eye[0], this.player.position.y + 0.1, eye[2]);
-    if (zone !== this.currentZone) {
+    const zoneChanged = zone !== this.currentZone;
+    if (zoneChanged) {
       this.currentZone = zone;
       this.audio.setZone(zone);
-      const label = ZONE_BY_ID.get(zone)?.label;
-      if (label) this.ui?.mirror.announce(`Entering ${label}.`);
     }
 
     this.atmosphere.update(zone, dt, this.preferences.reducedMotion);
@@ -561,6 +616,7 @@ export class App implements LoopCallbacks {
     this.developerOverlay?.update();
 
     this.worldDirector.update(this.player.position);
+    this.updateLocationAnnouncement(eye, zoneChanged);
 
     if (this.interiorWorld) {
       if (this.activeWorld === 'interior') {
@@ -583,7 +639,7 @@ export class App implements LoopCallbacks {
     diagnosticPosition[0] = Math.round(this.player.position.x * 10) / 10;
     diagnosticPosition[1] = Math.round(this.player.position.y * 10) / 10;
     diagnosticPosition[2] = Math.round(this.player.position.z * 10) / 10;
-    this.diagnostics.stats.wing = ZONE_BY_ID.get(this.currentZone as never)?.label ?? this.currentZone;
+    this.diagnostics.stats.wing = this.zoneLabel;
 
     if (this.wayfinding) {
       this.wayfinding.updateXYZ(
@@ -640,6 +696,7 @@ export class App implements LoopCallbacks {
     if (this.disposed) return;
     this.disposed = true;
     this.loop.stop();
+    this.longFrames.stop();
     this.developmentTool?.dispose();
     this.developmentTool = null;
     this.developerOverlay?.dispose();

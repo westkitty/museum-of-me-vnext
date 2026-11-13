@@ -61,6 +61,17 @@ describe('performance optimization contract', () => {
     expect(policy.currentScale).toBe(1);
   });
 
+  it('may drop further on a high-density screen, but never below one device pixel per CSS pixel', () => {
+    const oneX = new AdaptiveResolution();
+    for (let i = 0; i < 6000; i++) oneX.update(40, 2);
+    expect(oneX.currentScale).toBeCloseTo(0.75);
+    const retina = new AdaptiveResolution();
+    retina.setBasePixelRatio(1.5);
+    for (let i = 0; i < 6000; i++) retina.update(40, 2);
+    expect(retina.currentScale).toBeCloseTo(1 / 1.5);
+    expect(retina.currentScale * 1.5).toBeGreaterThanOrEqual(0.999);
+  });
+
   it('retains cullable material batches instead of merging geometry across distant cells', () => {
     const scope = new ResourceScope('spatial');
     const root = new THREE.Group();

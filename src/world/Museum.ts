@@ -4,7 +4,7 @@ import { PaletteSet } from './palette';
 import { CollisionWorld } from './CollisionWorld';
 import { Detailing } from './Detailing';
 import { GalleryPlinthKit } from './GalleryPlinth';
-import { mergeStatic, type MergeReport } from './MergeStatic';
+import { mergeStatic, mergeStaticCooperatively, type MergeReport } from './MergeStatic';
 import type { ResourceScope } from '../assets/ResourceScope';
 import {
   ROTUNDA_APOTHEM, ROTUNDA_WALL, LEVEL_1_Y, BALCONY_INNER_APOTHEM,
@@ -117,7 +117,9 @@ export class Museum {
     await step('rotunda', () => this.buildRotunda());
     await step('balcony', () => this.buildBalcony());
     await step('stairs', () => this.buildStairs());
-    await step('wings', () => { for (const wing of WINGS) this.buildWing(wing); });
+    // One step per wing: building all of them at once overran the slice budget.
+    for (const wing of WINGS) await step(`wing:${wing.id}`, () => this.buildWing(wing));
+    this.buildStageMs.wings = WINGS.reduce((total, wing) => total + (this.buildStageMs[`wing:${wing.id}`] ?? 0), 0);
     await step('entrance', () => this.buildEntrance());
     await step('sanctuary', () => this.buildSanctuary());
 
@@ -136,9 +138,9 @@ export class Museum {
     let mergeCpuMs = 0;
     for (const child of [...this.root.children]) {
       const mergeStarted = performance.now();
-      const report = mergeStatic(this.root, this.scope, {
+      const report = await mergeStaticCooperatively(this.root, this.scope, {
         preserveTopLevel: true, cellSize: 192, onlyTopLevel: child,
-      });
+      }, yieldControl);
       mergeCpuMs += performance.now() - mergeStarted;
       mergeTotals.before += report.before;
       mergeTotals.after += report.after;

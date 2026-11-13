@@ -173,6 +173,7 @@ export class QACapture {
       `audio=${this.app.audio.isRunning ? 'on' : 'off'}`,
       `pointer=${this.app.input.pointerLocked ? 'locked' : 'free'}`,
       `exhibit=${this.app.currentExhibitId ?? '—'}`,
+      `longFrames=${this.app.longFrames.summary()}`,
     ].join(' | ');
     this.snapshots.push(line);
     this.snapshotsNode.textContent = this.snapshots.join('\n');
