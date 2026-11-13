@@ -77,6 +77,7 @@ const PREFAB_BOUNDS: Record<WorkshopPrefabId, PrefabBounds> = {
   'display-plinth': { halfX: 0.88, halfY: 0.55, halfZ: 0.88, minY: 0, maxY: 1.1 },
   'museum-bench': { halfX: 1.1, halfY: 0.385, halfZ: 0.36, minY: 0, maxY: 0.77 },
   'sign-post': { halfX: 0.625, halfY: 0.89, halfZ: 0.26, minY: 0, maxY: 1.78 },
+  'star-chart': { halfX: 0.43, halfY: 0.33, halfZ: 0.005, minY: 0, maxY: 0.66 },
   'artifact-table': { halfX: 0.825, halfY: 0.5, halfZ: 0.5, minY: 0, maxY: 1 },
   'sculpture-sphere': { halfX: 0.5, halfY: 0.5, halfZ: 0.5, minY: -0.5, maxY: 0.5 },
   'wall-art': { halfX: 0.5, halfY: 0.5, halfZ: 0.05, minY: -0.5, maxY: 0.5 },
