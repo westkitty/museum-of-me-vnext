@@ -6,11 +6,11 @@ This is the one place to look first. The table below is generated from primary s
 
 | Fact | Value |
 |---|---|
-| `main` | `0262e9c` |
-| Latest CI on `main` | success on `0262e9c` ([run 43405498504](https://github.com/westkitty/museum-of-me-vnext/actions/runs/43405498504), 2026-11-13T09:58:24Z) |
-| `pages-preview` | `ce1f33e` (ancestor of `main`: yes) |
-| Latest Pages deploy | success on `ce1f33e` ([run 43134601183](https://github.com/westkitty/museum-of-me-vnext/actions/runs/43134601183), 2026-11-12T01:27:11Z) |
-| Hosted build | `ce1f33e` at https://westkitty.github.io/museum-of-me-vnext/ |
+| `main` | `2d176b6` |
+| Latest CI on `main` | success on `2d176b6` ([run 43423245214](https://github.com/westkitty/museum-of-me-vnext/actions/runs/43423245214), 2026-11-13T12:12:42Z) |
+| `pages-preview` | `2d176b6` (ancestor of `main`: yes) |
+| Latest Pages deploy | success on `2d176b6` ([run 43423279636](https://github.com/westkitty/museum-of-me-vnext/actions/runs/43423279636), 2026-11-13T12:12:57Z) |
+| Hosted build | `2d176b6` at https://westkitty.github.io/museum-of-me-vnext/ |
 | Open pull requests | none |
 
 <!-- status:end -->

@@ -348,6 +348,22 @@ export function museumWorkshopSavePlugin(): Plugin {
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const url = req.url?.split('?')[0] ?? '';
+        // Vite serves public/ files only once its watcher has added them to a cached
+        // set, so a model imported a moment ago can fall through to index.html. Serve
+        // content-addressed Workshop models straight from disk instead.
+        const model = req.method === 'GET' ? /\/workshop-models\/([a-f0-9]{64})\.glb$/.exec(url) : null;
+        if (model) {
+          try {
+            const bytes = await readFile(resolve(process.cwd(), 'public/workshop-models', model[1] + '.glb'));
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'model/gltf-binary');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.end(bytes);
+          } catch {
+            next();
+          }
+          return;
+        }
         if (url === SOURCE_STATUS_ENDPOINT) {
           if (req.method !== 'GET') return json(res, 405, { ok: false, error: 'GET required' });
           if (!isLoopback(req.socket.remoteAddress) || !isSameOriginRequest(req)) {
