@@ -105,8 +105,14 @@ test('filters the full pinned catalog, refuses unsupported models, and saves and
 
   const saveResponse = page.waitForResponse((response) =>
     response.url().endsWith('/__museum-workshop/save') && response.request().method() === 'POST');
+  // Saving rewrites data/workshop-placements.json, which the dev server answers
+  // with its own full-page reload. Let that settle before reloading ourselves,
+  // or the two navigations race (bounded: a server that does not reload is fine).
+  const devServerReload = page.waitForEvent('framenavigated', { timeout: 20_000 }).catch(() => null);
   await workshop.getByRole('button', { name: 'Save to build' }).click();
   expect((await saveResponse).status()).toBe(200);
+  await devServerReload;
+  await page.waitForLoadState('load');
   const persisted = await (await request.get('/data/workshop-placements.json')).json() as {
     objects: { id: string; assetId?: string; position: number[] }[];
   };
