@@ -43,7 +43,7 @@ export interface NarrativeGravityReport {
 }
 
 /** Whether segment a→b passes through box (slab test). */
-function segmentHitsBox(a: Vec3, b: Vec3, box: SceneBounds): boolean {
+export function segmentHitsBox(a: Vec3, b: Vec3, box: SceneBounds): boolean {
   let t0 = 0, t1 = 1;
   for (let k = 0; k < 3; k++) {
     const d = b[k] - a[k];

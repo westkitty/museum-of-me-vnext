@@ -17,6 +17,7 @@ import { buildMuseumSceneIndex, querySceneIndex } from './SceneIndex';
 import { scanAuthoredRouteClearance } from './RouteClearance';
 import { applyWalkwayProposals, clearWalkways, type WalkwayProposal } from './ClearWalkways';
 import { museumHealth } from './MuseumHealth';
+import { visitorJury, type JuryCheck, type VisitorJuryReport } from './VisitorJury';
 import { MEANINGFUL_ACTIONS, MEANING_MAX_DISTANCE } from './MeaningfulObjects';
 import { applyCurateSuggestions, autoCurate, rejectCurateSuggestion, type CurateDensity, type CurateMode, type CurateSuggestion } from './AutoCurate';
 import { NARRATIVE_GRAVITY_PILOTS, applyGravitySuggestions, narrativeGravity, rejectGravitySuggestion, type GravitySuggestion, type NarrativeGravityPilot } from './NarrativeGravity';
@@ -291,6 +292,7 @@ export class Workshop {
     this.el<HTMLButtonElement>('clearance-scan').addEventListener('click', () => this.scanClearance());
     this.el<HTMLButtonElement>('walkways-scan').addEventListener('click', () => this.scanWalkways());
     this.el<HTMLButtonElement>('health-run').addEventListener('click', () => this.checkHealth());
+    this.el<HTMLButtonElement>('jury-run').addEventListener('click', () => this.runJury());
     this.el<HTMLSelectElement>('meaning').addEventListener('change', () => this.commitMeaning());
     this.el<HTMLButtonElement>('curate-run').addEventListener('click', () => this.runCurate());
     this.el<HTMLButtonElement>('curate-approve-all').addEventListener('click', () => this.curateAction(this.curateSuggestions, 'approve'));
@@ -707,7 +709,9 @@ export class Workshop {
     const manifest = this.placements.captureManifest();
     const index = buildMuseumSceneIndex(manifest, { exterior: this.app.exteriorWorld.collision, interior: this.app.museum?.collision },
       { placements: this.placements });
-    const report = museumHealth(index, manifest, { sceneEntries: this.placements.sceneEntries(), runtime: true });
+    // Only a jury run against this exact manifest may stand in for the jury check.
+    const jury = this.lastJury?.manifest === JSON.stringify(manifest) ? this.lastJury.report : undefined;
+    const report = museumHealth(index, manifest, { sceneEntries: this.placements.sceneEntries(), runtime: true, jury });
     const counts = (Object.entries(report.counts) as [string, number][]).filter(([, n]) => n).map(([status, n]) => `${n} ${status}`).join(' · ');
     this.el('health-status').textContent = `${report.status}: ${counts}.`;
     const results = this.el('health-results');
@@ -741,6 +745,53 @@ export class Workshop {
         row.append(more);
       }
       results.append(row);
+    }
+  }
+
+  private lastJury: { report: VisitorJuryReport; manifest: string } | null = null;
+
+  /** Walk simulated visitors through the live interior collision world; read-only, nothing moves or saves. */
+  private runJury(): void {
+    this.placements.invalidateCollisions();
+    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+      this.app.exteriorWorld.root, this.app.museum?.root);
+    const manifest = this.placements.captureManifest();
+    const interior = this.app.museum?.collision ?? null;
+    const started = performance.now();
+    const report = visitorJury(buildMuseumSceneIndex(manifest, { exterior: this.app.exteriorWorld.collision, interior: interior ?? undefined },
+      { placements: this.placements }), manifest, interior);
+    this.lastJury = { report, manifest: JSON.stringify(manifest) };
+    this.el('jury-status').textContent = `${report.status}: ${report.summary} (${Math.round(performance.now() - started)} ms)`;
+    const results = this.el('jury-results');
+    results.replaceChildren();
+    const row = (status: string, text: string, checks: readonly JuryCheck[]) => {
+      const item = document.createElement('div');
+      item.dataset.juryStatus = status;
+      const line = document.createElement('p');
+      line.textContent = text;
+      item.append(line);
+      for (const check of checks.filter((entry) => entry.status !== 'PASS')) {
+        const detail = document.createElement('p');
+        detail.textContent = `${check.status}: ${check.detail}`;
+        item.append(detail);
+        for (const subject of check.affected.filter((entry) => entry.kind === 'placement').slice(0, 5)) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.dataset.jurySubject = subject.id;
+          button.textContent = `${subject.label}${subject.position ? ` at (${subject.position.map((v) => v.toFixed(1)).join(', ')})` : ''}`;
+          button.addEventListener('click', () => this.focusPlacement(subject.id));
+          item.append(button);
+        }
+      }
+      results.append(item);
+      return item;
+    };
+    for (const route of [...report.routes, ...report.stairs, report.sanctuary]) {
+      row(route.status, `${route.status} · ${route.label} (${route.legs} legs)`, [route]).dataset.juryRoute = route.id;
+    }
+    for (const exhibit of report.exhibits) {
+      row(exhibit.status, `${exhibit.exhibitId} · ${exhibit.status} · reached ${exhibit.reached.status} · hero ${exhibit.visible.status} · return ${exhibit.returns.status}`,
+        [exhibit.reached, exhibit.visible, exhibit.returns]).dataset.juryExhibit = exhibit.exhibitId;
     }
   }
 
@@ -2335,6 +2386,12 @@ const WORKSHOP_HTML = `
     <button type="button" data-workshop="health-run">Check museum health</button>
     <p data-workshop="health-status" role="status" class="workshop-muted">Not tested.</p>
     <div data-workshop="health-results" class="workshop-outliner"></div>
+  </section>
+  <section><h3>Virtual visitor jury</h3>
+    <p class="workshop-muted">Simulated visitors walk every exhibit, both floors, the stairs and the Sanctuary through the real collision world. Read-only.</p>
+    <button type="button" data-workshop="jury-run">Run visitor jury</button>
+    <p data-workshop="jury-status" role="status" class="workshop-muted">Not tested.</p>
+    <div data-workshop="jury-results" class="workshop-outliner"></div>
   </section>
   <section><h3>Curator's memory</h3>
     <button type="button" data-workshop="curator-lock" disabled>Lock against automation</button>
