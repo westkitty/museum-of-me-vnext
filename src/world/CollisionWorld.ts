@@ -49,15 +49,97 @@ export interface Ramp {
 }
 
 export type Collider = Wall | Floor | Ramp;
+export type ColliderSnapshot =
+  | (Wall & { readonly id: string; readonly ownership: 'static' | 'dynamic' })
+  | (Omit<Floor, 'contains'> & { readonly id: string; readonly ownership: 'static' | 'dynamic'; readonly hasMask: boolean })
+  | (Ramp & { readonly id: string; readonly ownership: 'static' | 'dynamic' });
+
+function snapshotCollider(id: string, ownership: 'static' | 'dynamic', collider: Collider): ColliderSnapshot {
+  if (collider.kind === 'floor') {
+    return { id, ownership, kind: 'floor', minX: collider.minX, maxX: collider.maxX,
+      minZ: collider.minZ, maxZ: collider.maxZ, y: collider.y, hasMask: Boolean(collider.contains) };
+  }
+  if (collider.kind === 'wall') return { ...collider, id, ownership,
+    ...(collider.oriented ? { oriented: { ...collider.oriented } } : {}) };
+  return { ...collider, id, ownership };
+}
 
 const CELL = 12;
+
+/** Spatial index for mutable authored colliders, independent of visual residency. */
+class DynamicColliderIndex<T extends Wall | Floor> {
+  private readonly entries = new Map<string, { collider: T; cells: string[]; order: number }>();
+  private readonly cells = new Map<string, Set<string>>();
+  private readonly candidateIds = new Set<string>();
+  private readonly candidates: { collider: T; cells: string[]; order: number }[] = [];
+  private nextOrder = 0;
+
+  get size(): number { return this.entries.size; }
+
+  snapshot(): readonly { id: string; collider: T }[] {
+    return [...this.entries].map(([id, entry]) => ({ id, collider: entry.collider }))
+      .sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  }
+
+  set(id: string, collider: T | null): void {
+    if (collider && (![collider.minX, collider.maxX, collider.minZ, collider.maxZ].every(Number.isFinite)
+      || collider.minX > collider.maxX || collider.minZ > collider.maxZ)) {
+      throw new Error('Dynamic collider has invalid bounds');
+    }
+    const previous = this.entries.get(id);
+    if (previous) {
+      for (const cell of previous.cells) {
+        const bucket = this.cells.get(cell)!;
+        bucket.delete(id);
+        if (!bucket.size) this.cells.delete(cell);
+      }
+      this.entries.delete(id);
+    }
+    if (!collider) return;
+    const cells: string[] = [];
+    for (let x = Math.floor(collider.minX / CELL); x <= Math.floor(collider.maxX / CELL); x++) {
+      for (let z = Math.floor(collider.minZ / CELL); z <= Math.floor(collider.maxZ / CELL); z++) {
+        const key = `${x},${z}`;
+        let bucket = this.cells.get(key);
+        if (!bucket) this.cells.set(key, (bucket = new Set()));
+        bucket.add(id);
+        cells.push(key);
+      }
+    }
+    this.entries.set(id, { collider, cells, order: previous?.order ?? this.nextOrder++ });
+  }
+
+  appendNearby(out: Collider[], x: number, z: number, radius: number): void {
+    const ids = this.candidateIds;
+    ids.clear();
+    for (let cx = Math.floor((x - radius) / CELL); cx <= Math.floor((x + radius) / CELL); cx++) {
+      for (let cz = Math.floor((z - radius) / CELL); cz <= Math.floor((z + radius) / CELL); cz++) {
+        const bucket = this.cells.get(`${cx},${cz}`);
+        if (bucket) for (const id of bucket) ids.add(id);
+      }
+    }
+    const candidates = this.candidates;
+    candidates.length = 0;
+    for (const id of ids) candidates.push(this.entries.get(id)!);
+    candidates.sort((a, b) => a.order - b.order);
+    for (const { collider } of candidates) {
+      if (collider.minX <= x + radius && collider.maxX >= x - radius
+        && collider.minZ <= z + radius && collider.maxZ >= z - radius) out.push(collider);
+    }
+  }
+
+  clear(): void {
+    this.entries.clear(); this.cells.clear(); this.candidateIds.clear();
+    this.candidates.length = 0; this.nextOrder = 0;
+  }
+}
 
 export class CollisionWorld {
   private readonly colliders: Collider[] = [];
   /** Small authored objects are dynamic, so edits never mutate static architecture. */
-  private readonly dynamicWalls = new Map<string, Wall>();
+  private readonly dynamicWalls = new DynamicColliderIndex<Wall>();
   /** Authored floors support walking without changing static museum floors. */
-  private readonly dynamicFloors = new Map<string, Floor>();
+  private readonly dynamicFloors = new DynamicColliderIndex<Floor>();
   private readonly grid = new Map<string, number[]>();
   private readonly nearby: Collider[] = [];
   private seen = new Uint32Array(1024);
@@ -71,14 +153,21 @@ export class CollisionWorld {
     return this.colliders.length + this.dynamicWalls.size + this.dynamicFloors.size;
   }
 
+  /** Detached diagnostic snapshot. Static ordinals are local to this built world. */
+  snapshot(): readonly ColliderSnapshot[] {
+    return [
+      ...this.colliders.map((collider, index) => snapshotCollider(`static:${index}`, 'static', collider)),
+      ...this.dynamicWalls.snapshot().map(({ id, collider }) => snapshotCollider(`wall:${id}`, 'dynamic', collider)),
+      ...this.dynamicFloors.snapshot().map(({ id, collider }) => snapshotCollider(`floor:${id}`, 'dynamic', collider)),
+    ];
+  }
+
   setDynamicWall(id: string, wall: Wall | null): void {
-    if (wall) this.dynamicWalls.set(id, wall);
-    else this.dynamicWalls.delete(id);
+    this.dynamicWalls.set(id, wall);
   }
 
   setDynamicFloor(id: string, floor: Floor | null): void {
-    if (floor) this.dynamicFloors.set(id, floor);
-    else this.dynamicFloors.delete(id);
+    this.dynamicFloors.set(id, floor);
   }
 
   add(c: Collider): void {
@@ -153,14 +242,8 @@ export class CollisionWorld {
         }
       }
     }
-    for (const wall of this.dynamicWalls.values()) {
-      if (wall.minX <= x + radius && wall.maxX >= x - radius
-        && wall.minZ <= z + radius && wall.maxZ >= z - radius) out.push(wall);
-    }
-    for (const floor of this.dynamicFloors.values()) {
-      if (floor.minX <= x + radius && floor.maxX >= x - radius
-        && floor.minZ <= z + radius && floor.maxZ >= z - radius) out.push(floor);
-    }
+    this.dynamicWalls.appendNearby(out, x, z, radius);
+    this.dynamicFloors.appendNearby(out, x, z, radius);
     return out;
   }
 

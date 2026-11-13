@@ -58,7 +58,7 @@ test('App quality transitions replace landscape detail without collision or reso
   for (const tiers of result.rounds) {
     for (const [index, tier] of tiers.entries()) {
       expect(tier.batches['perimeter-woodland-trunks'].count).toBe([68, 112, 176][index]);
-      expect(tier.batches['woodland-forest-belt'].count).toBe([901, 1469, 2111][index]);
+      expect(tier.batches['woodland-forest-belt'].count).toBe([893, 1463, 2103][index]);
       expect(tier.batches['island-wildflower-glades'].count).toBe([64, 144, 240][index]);
       expect(tier.wildlife).toEqual([[12, 6, 8], [30, 12, 18], [48, 18, 32]][index]);
       expect(tier.physicalUnchanged && tier.pierUnchanged && tier.shellUnchanged).toBe(true);

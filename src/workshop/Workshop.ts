@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ResourceScope } from '../assets/ResourceScope';
 import { TransformControls, type TransformControlsMode } from 'three/examples/jsm/controls/TransformControls.js';
 import type { App } from '../app/App';
 import type { MuseumPlacements } from './MuseumPlacements';
@@ -11,10 +12,25 @@ import { defaultOpening } from './WallOpenings';
 import { BUILDER_MODELS, BUILDER_FINISHES, searchBuilderLibrary, builderModel } from './builderAssetCatalog';
 import { conservationErrors, validateWorkshopConservation } from './conservation';
 import { WorkshopHistory } from './history';
+import { filterSourceCatalog, sourceAvailability, type SourceAvailability, type SourceAvailabilityInfo } from './sourceCatalog';
+import { buildMuseumSceneIndex, querySceneIndex } from './SceneIndex';
+import { scanAuthoredRouteClearance } from './RouteClearance';
+import { applyWalkwayProposals, clearWalkways, type WalkwayProposal } from './ClearWalkways';
+import { museumHealth } from './MuseumHealth';
+import { exteriorJury, visitorJury, type ExteriorJuryReport, type JuryCheck, type VisitorJuryReport } from './VisitorJury';
+import { MEANINGFUL_ACTIONS, MEANING_MAX_DISTANCE } from './MeaningfulObjects';
+import { applyCurateSuggestions, autoCurate, rejectCurateSuggestion, type CurateDensity, type CurateMode, type CurateSuggestion } from './AutoCurate';
+import { NARRATIVE_GRAVITY_PILOTS, applyGravitySuggestions, narrativeGravity, rejectGravitySuggestion, type GravitySuggestion, type NarrativeGravityPilot } from './NarrativeGravity';
+import { ZONES } from '../world/layout';
+import { KIT_TEMPLATES, duplicateKit, kitFollowMember, kitOf, kitOverrides, placeKit, removeKit, resetKitSlot } from './ExhibitKits';
+import { addEmptyRegion, isLocked, latestDecision, recordDecision, removeEmptyRegion, setLocked } from './CuratorMemory';
 import {
   type WorkshopAnchor,
   type WorkshopPlacementManifest,
   type WorkshopPlacementRecord,
+  type MeaningfulActionId,
+  type WorkshopKitTemplateId,
+  type WorkshopVec3,
 } from './schema';
 import './workshop.css';
 
@@ -29,6 +45,11 @@ type InputKey = (typeof INPUT_KEYS)[number];
 
 /** Development-only authoring UI. Production receives only MuseumPlacements. */
 export class Workshop {
+  private savedRevision: string;
+  private sourceCatalog: typeof import('./catalog-data/tge-index.json').models | null = null;
+  private sourceSelection: (typeof import('./catalog-data/tge-index.json').models)[number] | null = null;
+  private sourcePage = 0;
+  private sourceAvailability: (id: string) => SourceAvailabilityInfo = sourceAvailability(null);
   private readonly root = document.createElement('div');
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
@@ -67,6 +88,7 @@ export class Workshop {
   private savedVisitorWorld: 'interior' | 'exterior' = 'exterior';
   private readonly helper: THREE.Object3D;
   private readonly history = new WorkshopHistory();
+  private walkwayGhost: THREE.Box3Helper | null = null;
   private readonly inputs = {} as Record<InputKey, HTMLInputElement>;
   private readonly labelInput: HTMLInputElement;
   private readonly anchorInput: HTMLSelectElement;
@@ -84,6 +106,7 @@ export class Workshop {
   private openState = false;
 
   constructor(private readonly app: App, private readonly placements: MuseumPlacements) {
+    this.savedRevision = document.getElementById('museum-workshop-source')?.dataset.sha256 ?? '';
     this.root.className = 'museum-workshop';
     this.root.hidden = true;
     this.root.innerHTML = WORKSHOP_HTML;
@@ -265,6 +288,32 @@ export class Workshop {
   }
 
   private bindUi(): void {
+    this.el<HTMLButtonElement>('scene-index-refresh').addEventListener('click', () => this.refreshSceneIndex());
+    this.el<HTMLButtonElement>('clearance-scan').addEventListener('click', () => this.scanClearance());
+    this.el<HTMLButtonElement>('walkways-scan').addEventListener('click', () => this.scanWalkways());
+    this.el<HTMLButtonElement>('health-run').addEventListener('click', () => this.checkHealth());
+    this.el<HTMLButtonElement>('jury-run').addEventListener('click', () => this.runJury());
+    this.el<HTMLSelectElement>('meaning').addEventListener('change', () => this.commitMeaning());
+    this.el<HTMLButtonElement>('curate-run').addEventListener('click', () => this.runCurate());
+    this.el<HTMLButtonElement>('curate-approve-all').addEventListener('click', () => this.curateAction(this.curateSuggestions, 'approve'));
+    this.el<HTMLButtonElement>('gravity-run').addEventListener('click', () => this.runGravity());
+    this.el<HTMLButtonElement>('kit-place').addEventListener('click', () => this.placeKitInView());
+    this.el<HTMLButtonElement>('kit-duplicate').addEventListener('click', () => this.kitAction('duplicate'));
+    this.el<HTMLButtonElement>('kit-reset').addEventListener('click', () => this.kitAction('reset'));
+    this.el<HTMLButtonElement>('kit-ungroup').addEventListener('click', () => this.kitAction('ungroup'));
+    this.el<HTMLButtonElement>('kit-delete').addEventListener('click', () => this.kitAction('delete'));
+    this.el<HTMLButtonElement>('curator-lock').addEventListener('click', () => { if (this.selectedId) this.toggleLock(this.selectedId); });
+    this.el<HTMLButtonElement>('curator-empty').addEventListener('click', () => this.keepAreaEmpty());
+    this.el<HTMLSelectElement>('scene-index-exhibit').addEventListener('change', () => this.describeSceneExhibit());
+    this.el<HTMLButtonElement>('source-load').addEventListener('click', () => void this.loadSourceCatalog());
+    this.el<HTMLButtonElement>('source-import').addEventListener('click', () => void this.importSourceCandidate());
+    this.el<HTMLInputElement>('source-search').addEventListener('input', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
+    this.el<HTMLSelectElement>('source-featured').addEventListener('change', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
+    this.el<HTMLSelectElement>('source-pack').addEventListener('change', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
+    this.el<HTMLSelectElement>('source-wing').addEventListener('change', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
+    this.el<HTMLSelectElement>('source-availability').addEventListener('change', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
+    this.el<HTMLButtonElement>('source-prev').addEventListener('click', () => { this.sourcePage--; this.refreshSourceCatalog(); });
+    this.el<HTMLButtonElement>('source-next').addEventListener('click', () => { this.sourcePage++; this.refreshSourceCatalog(); });
     this.root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((button) => {
       button.addEventListener('click', () => this.setMode(button.dataset.mode as TransformControlsMode));
     });
@@ -447,6 +496,697 @@ export class Workshop {
       empty.textContent = 'No matching assets. Search another category or import a local GLB.';
       this.assetResults.append(empty);
     }
+  }
+
+  private refreshSceneIndex(): void {
+    const index = buildMuseumSceneIndex(this.placements.captureManifest(), {
+      exterior: this.app.exteriorWorld.collision, interior: this.app.museum?.collision,
+    }, { placements: this.placements });
+    const select = this.el<HTMLSelectElement>('scene-index-exhibit');
+    const selected = select.value;
+    select.replaceChildren();
+    for (const exhibit of index.exhibits) {
+      const option = document.createElement('option');
+      option.value = exhibit.id; option.textContent = `${exhibit.id} · ${exhibit.wing}`;
+      select.append(option);
+    }
+    if (index.exhibits.some((item) => item.id === selected)) select.value = selected;
+    this.el('scene-index-summary').textContent = `${index.wings.length} wings · ${index.exhibits.length} exhibits · ${index.stairs.length} stairs · ${index.installations.length} source installations · ${index.authored.length} authored objects (${index.authored.filter((item) => item.resident).length} live) · ${index.sceneObjects?.filter((item) => item.moved).length ?? 0} moved original objects · ${index.collisions.exterior?.length ?? 'unknown'} exterior and ${index.collisions.interior?.length ?? 'unknown'} interior colliders. Snapshot derived from layout and live collision worlds.`;
+    this.el('scene-index-unavailable').textContent = `Not indexed: ${index.unavailable.join(', ')}.`;
+    this.describeSceneExhibit();
+  }
+
+  private describeSceneExhibit(): void {
+    const index = buildMuseumSceneIndex(this.placements.captureManifest(), {}, { placements: this.placements });
+    const exhibit = index.exhibits.find((item) => item.id === this.el<HTMLSelectElement>('scene-index-exhibit').value);
+    if (!exhibit) return;
+    const point = (values: readonly number[]) => values.map((value) => value.toFixed(1)).join(', ');
+    this.el('scene-index-detail').textContent = `${exhibit.id} · ${exhibit.wing} · anchor (${point(exhibit.anchor)}) · doorway (${point(exhibit.doorway)}) · visitor position (${point(exhibit.visitorSpot)}) · bounds half-extents (${point(exhibit.bounds.h)}) metres.`
+      + ` Within 3 m of the visitor position: ${querySceneIndex(index).near(exhibit.visitorSpot, 3)
+        .filter((hit) => hit.kind !== 'route').map((hit) => `${hit.kind} ${hit.id}`).join(', ') || 'nothing indexed'}.`;
+  }
+
+  private scanClearance(): void {
+    this.placements.invalidateCollisions();
+    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+      this.app.exteriorWorld.root, this.app.museum?.root);
+    const report = scanAuthoredRouteClearance(buildMuseumSceneIndex(this.placements.captureManifest(), {
+      exterior: this.app.exteriorWorld.collision, interior: this.app.museum?.collision,
+    }, { placements: this.placements }));
+    this.el('clearance-status').textContent = `${report.status}: ${report.findings.length} potential authored or unknown obstruction(s). ${report.limitations.join(' ')}`;
+    const results = this.el('clearance-results');
+    results.replaceChildren();
+    for (const finding of report.findings) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = `${finding.objectId ?? finding.colliderId} · ${finding.authority} authority · ${finding.world} · ${finding.routeFrom} → ${finding.routeTo}`;
+      button.disabled = !finding.objectId;
+      button.title = finding.explanation;
+      button.addEventListener('click', () => {
+        if (this.app.activeWorld !== finding.world) {
+          this.note(`Switch to ${finding.world} to inspect ${finding.objectId}.`, 'warn');
+          return;
+        }
+        this.select(finding.objectId);
+        const object = finding.objectId ? this.placements.getObject(finding.objectId) : null;
+        if (object) this.camera.focus(object);
+      });
+      results.append(button);
+    }
+  }
+
+  private curateSuggestions: readonly CurateSuggestion[] = [];
+  /** Bumped on every source selection and import; a status reply for an older request is ignored. */
+  private sourceStatusRequest = 0;
+
+  /** Suggestions only: preview shows a ghost, approval applies as one undoable step, rejection is remembered. */
+  private runCurate(): void {
+    this.setWalkwayGhost(null);
+    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+      this.app.exteriorWorld.root, this.app.museum?.root);
+    const manifest = this.placements.captureManifest();
+    const scopeValue = this.el<HTMLSelectElement>('curate-scope').value;
+    const report = autoCurate(buildMuseumSceneIndex(manifest, { exterior: this.app.exteriorWorld.collision, interior: this.app.museum?.collision },
+      { placements: this.placements }), manifest, {
+      mode: this.el<HTMLSelectElement>('curate-mode').value as CurateMode,
+      density: this.el<HTMLSelectElement>('curate-density').value as CurateDensity,
+      scope: scopeValue === 'museum' ? { kind: 'museum' } : { kind: 'zone', zone: scopeValue as (typeof ZONES)[number]['id'] },
+    });
+    this.curateSuggestions = report.suggestions;
+    this.el<HTMLButtonElement>('curate-approve-all').disabled = !report.suggestions.length;
+    this.el('curate-status').textContent = `${report.suggestions.length} suggestion(s), ${report.skipped.length} skipped. Nothing changes until you approve. ${report.limitations.join(' ')}`;
+    const results = this.el('curate-results');
+    results.replaceChildren();
+    for (const suggestion of report.suggestions) {
+      const row = document.createElement('div');
+      row.dataset.curateSuggestion = suggestion.id;
+      row.dataset.curateKind = suggestion.kind;
+      const text = document.createElement('p');
+      text.textContent = `${suggestion.kind === 'add' ? 'Add' : 'Move'} ${suggestion.label} · ${suggestion.zone}: ${suggestion.reason}`;
+      row.append(text);
+      for (const [action, label] of [['preview', 'Preview'], ['approve', 'Approve'], ['reject', 'Reject']] as const) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.curateAction = action;
+        button.textContent = label;
+        button.addEventListener('click', () => {
+          if (action === 'preview') {
+            this.setWalkwayGhost(new THREE.Box3(new THREE.Vector3(...suggestion.bounds.min), new THREE.Vector3(...suggestion.bounds.max)));
+            if (suggestion.kind === 'move') this.focusPlacement(suggestion.id);
+          } else this.curateAction([suggestion], action);
+        });
+        row.append(button);
+      }
+      results.append(row);
+    }
+    for (const item of report.skipped.slice(0, 20)) {
+      const note = document.createElement('p');
+      note.className = 'workshop-muted';
+      note.dataset.curateSkipped = item.id;
+      note.textContent = `${item.id}: ${item.reason}`;
+      results.append(note);
+    }
+  }
+
+  private curateAction(suggestions: readonly CurateSuggestion[], action: 'approve' | 'reject'): void {
+    if (!suggestions.length) return;
+    const before = this.placements.captureManifest();
+    try {
+      const next = action === 'approve'
+        ? applyCurateSuggestions(before, suggestions, new Set(suggestions.map((suggestion) => suggestion.id)))
+        : suggestions.reduce((manifest, suggestion) => rejectCurateSuggestion(manifest, suggestion), before);
+      const after = this.placements.replaceManifest(next);
+      this.history.push(`${action === 'approve' ? 'Approve' : 'Reject'} ${suggestions.length} curation suggestion(s)`, before, after);
+      this.placements.invalidateCollisions();
+      this.note(action === 'approve' ? `${suggestions.length} suggestion(s) applied as one undoable step.` : 'Suggestion rejected and remembered.', 'ok');
+    } catch (error) {
+      this.placements.replaceManifest(before);
+      this.note(error instanceof Error ? error.message : 'Suggestion rejected by Museum conservation.', 'error');
+    }
+    this.refresh();
+    this.runCurate();
+  }
+
+  /** Pilot read of an exhibit's composition; NO CHANGE is a valid outcome and nothing moves without approval. */
+  private runGravity(): void {
+    this.setWalkwayGhost(null);
+    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+      this.app.exteriorWorld.root, this.app.museum?.root);
+    const manifest = this.placements.captureManifest();
+    const exhibit = this.el<HTMLSelectElement>('gravity-exhibit').value as NarrativeGravityPilot;
+    const report = narrativeGravity(buildMuseumSceneIndex(manifest, { exterior: this.app.exteriorWorld.collision, interior: this.app.museum?.collision },
+      { placements: this.placements }), manifest, exhibit);
+    const status = this.el('gravity-status');
+    status.dataset.gravityVerdict = report.verdict;
+    status.textContent = `${exhibit}: ${report.verdict}. ${report.verdict === 'NO CHANGE'
+      ? 'The sightline from the visitor position is clear and nothing competes with the hero; nothing is proposed.'
+      : `${report.suggestions.length} suggestion(s), ${report.competing.length} to review, ${report.unresolved.length} unresolved. Nothing changes until you approve.`}`;
+    const results = this.el('gravity-results');
+    results.replaceChildren();
+    for (const suggestion of report.suggestions) {
+      const row = document.createElement('div');
+      row.dataset.gravitySuggestion = suggestion.objectId;
+      const text = document.createElement('p');
+      text.textContent = `Move ${suggestion.label}: ${suggestion.reason}`;
+      row.append(text);
+      for (const [action, label] of [['preview', 'Preview'], ['approve', 'Approve'], ['reject', 'Reject']] as const) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.gravityAction = action;
+        button.textContent = label;
+        button.addEventListener('click', () => {
+          if (action === 'preview') {
+            this.setWalkwayGhost(new THREE.Box3(new THREE.Vector3(...suggestion.bounds.min), new THREE.Vector3(...suggestion.bounds.max)));
+            this.focusPlacement(suggestion.objectId);
+          } else this.gravityAction(suggestion, action);
+        });
+        row.append(button);
+      }
+      results.append(row);
+    }
+    const notes: [string, string, string][] = [
+      ...report.competing.map((item) => ['competing', item.objectId, `${item.label}: ${item.reason}`] as [string, string, string]),
+      ...report.unresolved.map((item) => ['unresolved', item.objectId, `${item.objectId}: ${item.reason}`] as [string, string, string]),
+    ];
+    for (const [kind, id, message] of notes) {
+      const note = document.createElement('p');
+      note.className = 'workshop-muted';
+      note.dataset.gravityNote = kind;
+      note.dataset.gravitySubject = id;
+      note.textContent = message;
+      results.append(note);
+    }
+    const preserved = document.createElement('p');
+    preserved.className = 'workshop-muted';
+    preserved.dataset.gravityPreserved = '';
+    preserved.textContent = `Never moved: ${report.preserved.join('; ')}. ${report.limitations.join(' ')}`;
+    results.append(preserved);
+  }
+
+  private gravityAction(suggestion: GravitySuggestion, action: 'approve' | 'reject'): void {
+    const before = this.placements.captureManifest();
+    try {
+      const next = action === 'approve'
+        ? applyGravitySuggestions(before, [suggestion], new Set([suggestion.objectId]))
+        : rejectGravitySuggestion(before, suggestion);
+      const after = this.placements.replaceManifest(next);
+      this.history.push(`${action === 'approve' ? 'Approve' : 'Reject'} narrative gravity move`, before, after);
+      this.placements.invalidateCollisions();
+      this.note(action === 'approve' ? `${suggestion.label} moved out of the sightline as one undoable step.` : 'Suggestion rejected and remembered.', 'ok');
+    } catch (error) {
+      this.placements.replaceManifest(before);
+      this.note(error instanceof Error ? error.message : 'Suggestion rejected by Museum conservation.', 'error');
+    }
+    this.refresh();
+    this.runGravity();
+  }
+
+  /** Read-only health report; affected placements link to the object, nothing is changed. */
+  private checkHealth(): void {
+    this.placements.invalidateCollisions();
+    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+      this.app.exteriorWorld.root, this.app.museum?.root);
+    const manifest = this.placements.captureManifest();
+    const index = buildMuseumSceneIndex(manifest, { exterior: this.app.exteriorWorld.collision, interior: this.app.museum?.collision },
+      { placements: this.placements });
+    // Only a jury run against this exact manifest may stand in for the jury check.
+    const current = this.lastJury?.manifest === JSON.stringify(manifest) ? this.lastJury : null;
+    const report = museumHealth(index, manifest, { sceneEntries: this.placements.sceneEntries(), runtime: true,
+      jury: current?.report, exteriorJury: current?.exterior });
+    const counts = (Object.entries(report.counts) as [string, number][]).filter(([, n]) => n).map(([status, n]) => `${n} ${status}`).join(' · ');
+    this.el('health-status').textContent = `${report.status}: ${counts}.`;
+    const results = this.el('health-results');
+    results.replaceChildren();
+    for (const check of report.checks) {
+      const row = document.createElement('div');
+      row.dataset.healthCheck = check.id;
+      row.dataset.healthStatus = check.status;
+      const text = document.createElement('p');
+      text.textContent = `${check.status} · ${check.title}: ${check.detail}`;
+      row.append(text);
+      for (const subject of check.affected.slice(0, 20)) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.healthSubject = subject.id;
+        const where = subject.position ? ` at (${subject.position.map((v) => v.toFixed(1)).join(', ')})` : '';
+        button.textContent = `${subject.label}${subject.world ? ` · ${subject.world}` : ''}${where}`;
+        button.disabled = subject.kind !== 'placement';
+        button.addEventListener('click', () => {
+          if (subject.world && subject.world !== 'shared' && subject.world !== this.app.activeWorld) {
+            this.note(`Switch to ${subject.world} to inspect ${subject.label}.`, 'warn');
+            return;
+          }
+          this.focusPlacement(subject.id);
+        });
+        row.append(button);
+      }
+      if (check.affected.length > 20) {
+        const more = document.createElement('p');
+        more.textContent = `…and ${check.affected.length - 20} more.`;
+        row.append(more);
+      }
+      results.append(row);
+    }
+  }
+
+  private lastJury: { report: VisitorJuryReport; exterior: ExteriorJuryReport; manifest: string } | null = null;
+
+  /** Walk simulated visitors through the live interior collision world; read-only, nothing moves or saves. */
+  private runJury(): void {
+    this.placements.invalidateCollisions();
+    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+      this.app.exteriorWorld.root, this.app.museum?.root);
+    const manifest = this.placements.captureManifest();
+    const interior = this.app.museum?.collision ?? null;
+    const started = performance.now();
+    const index = buildMuseumSceneIndex(manifest, { exterior: this.app.exteriorWorld.collision, interior: interior ?? undefined },
+      { placements: this.placements });
+    const report = visitorJury(index, manifest, interior);
+    const exterior = exteriorJury(index, manifest, this.app.exteriorWorld.collision);
+    this.lastJury = { report, exterior, manifest: JSON.stringify(manifest) };
+    this.el('jury-status').textContent = `${report.status}: ${report.summary} (${Math.round(performance.now() - started)} ms)`;
+    this.el('jury-exterior-status').textContent = `Exterior ${exterior.status}: ${exterior.summary}`;
+    const results = this.el('jury-results');
+    results.replaceChildren();
+    const row = (status: string, text: string, checks: readonly JuryCheck[]) => {
+      const item = document.createElement('div');
+      item.dataset.juryStatus = status;
+      const line = document.createElement('p');
+      line.textContent = text;
+      item.append(line);
+      for (const check of checks.filter((entry) => entry.status !== 'PASS')) {
+        const detail = document.createElement('p');
+        detail.textContent = `${check.status}: ${check.detail}`;
+        item.append(detail);
+        for (const subject of check.affected.filter((entry) => entry.kind === 'placement').slice(0, 5)) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.dataset.jurySubject = subject.id;
+          button.textContent = `${subject.label}${subject.position ? ` at (${subject.position.map((v) => v.toFixed(1)).join(', ')})` : ''}`;
+          button.addEventListener('click', () => this.focusPlacement(subject.id));
+          item.append(button);
+        }
+      }
+      results.append(item);
+      return item;
+    };
+    for (const route of [...report.routes, ...report.stairs, report.sanctuary, ...exterior.routes]) {
+      row(route.status, `${route.status} · ${route.label} (${route.legs} legs)`, [route]).dataset.juryRoute = route.id;
+    }
+    for (const exhibit of report.exhibits) {
+      row(exhibit.status, `${exhibit.exhibitId} · ${exhibit.status} · reached ${exhibit.reached.status} · hero ${exhibit.visible.status} · return ${exhibit.returns.status}`,
+        [exhibit.reached, exhibit.visible, exhibit.returns]).dataset.juryExhibit = exhibit.exhibitId;
+    }
+  }
+
+  /** Audit protected walkways; suggestions are previewed and applied only on approval, as one undoable step each. */
+  private scanWalkways(): void {
+    this.setWalkwayGhost(null);
+    const manifest = this.placements.captureManifest();
+    const report = clearWalkways(buildMuseumSceneIndex(manifest, {}, { placements: this.placements }), manifest);
+    const proposals = report.proposals;
+    this.el('walkways-status').textContent = `${report.status}: ${report.findings.length} obstruction(s) across ${report.walkways} protected walkways · ${proposals.length} suggested move(s) · ${report.unresolved.length} unresolved. ${report.limitations.join(' ')}`;
+    const results = this.el('walkways-results');
+    results.replaceChildren();
+    for (const finding of report.findings) {
+      const row = document.createElement('div');
+      row.dataset.walkwayFinding = finding.objectId;
+      const label = document.createElement('button');
+      label.type = 'button';
+      label.textContent = `${finding.severity} · ${finding.label} · ${finding.walkways.map((walkway) => `${walkway.label} (${walkway.intrusion.toFixed(2)} m)`).join(', ')}`;
+      label.addEventListener('click', () => this.focusPlacement(finding.objectId));
+      row.append(label);
+      const proposal = proposals.find((item) => item.objectId === finding.objectId);
+      const reason = report.unresolved.find((item) => item.objectId === finding.objectId)?.reason ?? null;
+      const lock = document.createElement('button');
+      lock.type = 'button';
+      lock.dataset.walkwayAction = 'lock';
+      lock.textContent = finding.locked ? 'Unlock' : 'Lock';
+      lock.addEventListener('click', () => this.toggleLock(finding.objectId));
+      row.append(lock);
+      if (proposal) {
+        for (const [action, text] of [['preview', `Preview move ${proposal.distance.toFixed(2)} m`], ['approve', 'Approve'], ['reject', 'Reject']] as const) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.dataset.walkwayAction = action;
+          button.textContent = text;
+          button.addEventListener('click', () => this.walkwayAction(action, proposal));
+          row.append(button);
+        }
+      } else if (reason) {
+        const note = document.createElement('p');
+        note.className = 'workshop-muted';
+        note.textContent = reason;
+        row.append(note);
+      }
+      results.append(row);
+    }
+  }
+
+  private walkwayAction(action: 'preview' | 'approve' | 'reject', proposal: WalkwayProposal): void {
+    if (action === 'preview') {
+      const bounds = this.placements.placementBounds(proposal.objectId);
+      if (!bounds) { this.note('Bounds are not available for this object yet.', 'warn'); return; }
+      const offset = new THREE.Vector3(proposal.to[0] - proposal.from[0], 0, proposal.to[2] - proposal.from[2]);
+      this.setWalkwayGhost(bounds.translate(offset));
+      this.focusPlacement(proposal.objectId);
+      return;
+    }
+    const before = this.placements.captureManifest();
+    if (action === 'reject') {
+      const after = this.placements.replaceManifest(recordDecision(before, { kind: 'walkway-move', objectId: proposal.objectId,
+        outcome: 'rejected', position: [...proposal.from] as WorkshopVec3 }));
+      this.history.push(`Reject walkway suggestion for ${proposal.objectId}`, before, after);
+      this.note(`Suggestion for ${proposal.objectId} rejected and remembered; the object was not moved.`, 'ok');
+      this.refresh();
+      this.scanWalkways();
+      return;
+    }
+    const moved = applyWalkwayProposals(before, [proposal], new Set([proposal.objectId]));
+    const after = this.placements.replaceManifest(recordDecision(moved, { kind: 'walkway-move', objectId: proposal.objectId,
+      outcome: 'approved', position: [...proposal.to] as WorkshopVec3 }));
+    this.history.push(`Clear walkway: move ${proposal.objectId}`, before, after);
+    this.placements.invalidateCollisions();
+    this.note(`Moved ${proposal.objectId} ${proposal.distance.toFixed(2)} m to clear the walkway. Undo restores it.`, 'ok');
+    this.refresh();
+    this.scanWalkways();
+  }
+
+  /** With "Move as kit" on, an edit of one part moves the whole kit; otherwise the part becomes an override. */
+  private followKit(before: WorkshopPlacementManifest, id: string, after: WorkshopPlacementManifest): WorkshopPlacementManifest {
+    const kit = kitOf(before, id);
+    const moved = after.objects.find((item) => item.id === id);
+    if (!kit || !moved || !this.el<HTMLInputElement>('kit-move-together').checked) return after;
+    return this.placements.replaceManifest(kitFollowMember({ ...before, curator: after.curator ?? before.curator }, kit.id, id, moved));
+  }
+
+  private placeKitInView(): void {
+    if (this.placements.isComparingOriginal) return;
+    const template = this.el<HTMLSelectElement>('kit-template').value as WorkshopKitTemplateId;
+    const direction = new THREE.Vector3();
+    this.app.camera.getWorldDirection(direction);
+    const x = this.app.camera.position.x + direction.x * 5;
+    const z = this.app.camera.position.z + direction.z * 5;
+    const collision = this.app.museum?.collision ?? this.app.player.collisionWorld;
+    const y = collision.supportHeight(x, z, this.app.player.position.y, 1.5) ?? this.app.player.position.y;
+    const before = this.placements.captureManifest();
+    try {
+      const { manifest, kit } = placeKit(before, template, { position: [x, y, z], rotationY: Math.atan2(-direction.x, -direction.z),
+        worldId: this.app.activeWorld });
+      const after = this.placements.replaceManifest(manifest);
+      this.history.push(`Place ${kit.label}`, before, after);
+      this.select(kit.members[0]?.id ?? null);
+      this.note(`${kit.label} placed as ${kit.members.length} parts.`, 'ok');
+    } catch (error) {
+      this.note(error instanceof Error ? error.message : 'Kit would intersect protected museum geometry.', 'error');
+    }
+    this.refresh();
+  }
+
+  private kitAction(action: 'duplicate' | 'reset' | 'ungroup' | 'delete'): void {
+    const record = this.record();
+    const before = this.placements.captureManifest();
+    const kit = record ? kitOf(before, record.id) : null;
+    if (!record || !kit) return;
+    try {
+      let after: WorkshopPlacementManifest;
+      if (action === 'duplicate') {
+        const copy = duplicateKit(before, kit.id, { position: [kit.position[0] + 3, kit.position[1], kit.position[2] + 3], rotationY: kit.rotationY });
+        after = this.placements.replaceManifest(copy.manifest);
+        this.select(copy.kit.members.find((member) => member.slot === kit.members.find((m) => m.id === record.id)?.slot)?.id ?? null);
+      } else if (action === 'reset') {
+        const slot = kit.members.find((member) => member.id === record.id)!.slot;
+        after = this.placements.replaceManifest(resetKitSlot(before, kit.id, slot));
+      } else {
+        after = this.placements.replaceManifest(removeKit(before, kit.id, { keepMembers: action === 'ungroup' }));
+        if (action === 'delete') this.select(null);
+      }
+      const verb = { duplicate: 'Duplicate', reset: 'Reset part of', ungroup: 'Ungroup', delete: 'Delete' }[action];
+      this.history.push(`${verb} ${kit.label}`, before, after);
+      this.note(`${verb} ${kit.label}.`, action === 'delete' ? 'warn' : 'ok');
+    } catch (error) {
+      this.placements.replaceManifest(before);
+      this.note(error instanceof Error ? error.message : 'Kit change rejected by Museum conservation.', 'error');
+    }
+    this.refresh();
+  }
+
+  private refreshKit(): void {
+    const manifest = this.placements.captureManifest();
+    const record = this.record();
+    const kit = record ? kitOf(manifest, record.id) : null;
+    for (const key of ['kit-duplicate', 'kit-reset', 'kit-ungroup', 'kit-delete'] as const) this.el<HTMLButtonElement>(key).disabled = !kit;
+    if (!kit || !record) {
+      this.el('kit-status').textContent = `${manifest.kits?.length ?? 0} kit(s) placed. Select a part of a kit to edit it.`;
+      return;
+    }
+    const slot = kit.members.find((member) => member.id === record.id)!.slot;
+    const { overridden, removed } = kitOverrides(manifest, kit.id);
+    this.el('kit-status').textContent = `${record.label} is the "${slot}" part of ${kit.label} (${kit.members.length} parts).`
+      + ` ${overridden.length ? `Changed from the kit: ${overridden.join(', ')}.` : 'No parts changed from the kit.'}`
+      + `${removed.length ? ` Removed: ${removed.join(', ')}.` : ''}`;
+  }
+
+  /** A hand move after an automated suggestion becomes the curator's standing decision for that object. */
+  private rememberManualMove(id: string, after: WorkshopPlacementManifest): WorkshopPlacementManifest {
+    const decision = latestDecision(after, 'walkway-move', id);
+    const position = after.objects.find((item) => item.id === id)?.position;
+    if (!decision || !position || decision.position.every((value, index) => Math.abs(value - position[index]) < 1e-4)) return after;
+    return this.placements.replaceManifest(recordDecision(after, { kind: 'walkway-move', objectId: id, outcome: 'user-override', position }));
+  }
+
+  private toggleLock(id: string): void {
+    const before = this.placements.captureManifest();
+    const locked = !isLocked(before, id);
+    const after = this.placements.replaceManifest(setLocked(before, id, locked));
+    this.history.push(`${locked ? 'Lock' : 'Unlock'} ${id}`, before, after);
+    this.note(locked ? `${id} is locked: automated tools will never move it.` : `${id} is unlocked.`, 'ok');
+    this.refresh();
+    this.refreshCuratorMemory();
+    if (this.el('walkways-results').childElementCount) this.scanWalkways();
+  }
+
+  /** Keep the floor area under the selection, plus 0.5 m, free of automated placement. */
+  private keepAreaEmpty(): void {
+    const record = this.record();
+    const bounds = record ? this.placements.placementBounds(record.id) : null;
+    if (!record || !bounds) { this.note('Select a placed object to mark the area around it as deliberately empty.', 'warn'); return; }
+    const before = this.placements.captureManifest();
+    let n = 1;
+    while (before.curator?.emptyRegions.some((region) => region.id === `empty-${n}`)) n++;
+    const round = (v: number) => Math.round(v * 100) / 100;
+    const after = this.placements.replaceManifest(addEmptyRegion(before, { id: `empty-${n}`, label: `Kept empty near ${record.label}`.slice(0, 80),
+      worldId: record.worldId ?? 'shared', min: [round(bounds.min.x - 0.5), round(bounds.min.z - 0.5)], max: [round(bounds.max.x + 0.5), round(bounds.max.z + 0.5)] }));
+    this.history.push(`Keep area empty near ${record.label}`, before, after);
+    this.note(`Area around ${record.label} will be kept empty by automated tools.`, 'ok');
+    this.refreshCuratorMemory();
+  }
+
+  private refreshCuratorMemory(): void {
+    const manifest = this.placements.captureManifest();
+    const memory = manifest.curator;
+    const record = this.record();
+    const lockButton = this.el<HTMLButtonElement>('curator-lock');
+    lockButton.disabled = !record;
+    lockButton.textContent = record && isLocked(manifest, record.id) ? 'Unlock for automation' : 'Lock against automation';
+    this.el('curator-summary').textContent = `${memory?.locks.length ?? 0} locked · ${memory?.decisions.length ?? 0} remembered decision(s) · ${memory?.emptyRegions.length ?? 0} empty region(s). Saved with the placements.`;
+    const list = this.el('curator-regions');
+    list.replaceChildren();
+    for (const region of memory?.emptyRegions ?? []) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.curatorRegion = region.id;
+      button.textContent = `Forget empty region: ${region.label}`;
+      button.addEventListener('click', () => {
+        const before = this.placements.captureManifest();
+        const after = this.placements.replaceManifest(removeEmptyRegion(before, region.id));
+        this.history.push(`Forget empty region ${region.label}`, before, after);
+        this.refreshCuratorMemory();
+      });
+      list.append(button);
+    }
+  }
+
+  private focusPlacement(id: string): void {
+    this.select(id);
+    const object = this.placements.getObject(id);
+    if (object) this.camera.focus(object);
+  }
+
+  private setWalkwayGhost(bounds: THREE.Box3 | null): void {
+    if (this.walkwayGhost) {
+      this.walkwayGhost.removeFromParent();
+      this.walkwayGhost.geometry.dispose();
+      (this.walkwayGhost.material as THREE.Material).dispose();
+      this.walkwayGhost = null;
+    }
+    if (!bounds) return;
+    this.walkwayGhost = new THREE.Box3Helper(bounds, 0x3ddc84);
+    this.walkwayGhost.name = 'workshop-walkway-ghost';
+    this.app.scene.add(this.walkwayGhost);
+  }
+
+  private async loadSourceCatalog(): Promise<void> {
+    const button = this.el<HTMLButtonElement>('source-load');
+    button.disabled = true;
+    try {
+      const [catalog, report] = await Promise.all([import('./catalog-data/tge-index.json'),
+        import('./catalog-data/tge-verification.json')]);
+      this.sourceCatalog = catalog.default.models;
+      // Only IDs whose bytes the committed verification report lists as verified are importable.
+      this.sourceAvailability = sourceAvailability(report.default.sourceRevision === catalog.default.sourceRevision ? report.default : null);
+      const packs = new Map(this.sourceCatalog.map((item) => [item.pack, item.packName]));
+      const packSelect = this.el<HTMLSelectElement>('source-pack');
+      for (const [id, label] of [...packs].sort((a, b) => a[1].localeCompare(b[1]))) {
+        const option = document.createElement('option'); option.value = id; option.textContent = label; packSelect.append(option);
+      }
+      const wings = [...new Set(this.sourceCatalog.flatMap((item) => item.featured ? [item.featured.wing] : []))].sort();
+      const wingSelect = this.el<HTMLSelectElement>('source-wing');
+      for (const wing of wings) {
+        const option = document.createElement('option'); option.value = wing; option.textContent = wing; wingSelect.append(option);
+      }
+      this.el('source-controls').hidden = false;
+      button.hidden = true;
+      this.refreshSourceCatalog();
+    } catch {
+      button.disabled = false;
+      this.el('source-count').textContent = 'Source catalog could not be loaded.';
+    }
+  }
+
+  private refreshSourceCatalog(): void {
+    if (!this.sourceCatalog) return;
+    const matches = filterSourceCatalog(this.sourceCatalog, {
+      query: this.el<HTMLInputElement>('source-search').value,
+      featuredOnly: this.el<HTMLSelectElement>('source-featured').value === 'featured',
+      pack: this.el<HTMLSelectElement>('source-pack').value,
+      wing: this.el<HTMLSelectElement>('source-wing').value,
+      availability: this.el<HTMLSelectElement>('source-availability').value as SourceAvailability | '',
+    }, this.sourceAvailability);
+    const pages = Math.max(1, Math.ceil(matches.length / 24));
+    this.sourcePage = Math.max(0, Math.min(this.sourcePage, pages - 1));
+    this.el('source-count').textContent = `${matches.length} source candidates · page ${this.sourcePage + 1} of ${pages}`;
+    this.el<HTMLButtonElement>('source-prev').disabled = this.sourcePage === 0;
+    this.el<HTMLButtonElement>('source-next').disabled = this.sourcePage >= pages - 1;
+    const results = this.el('source-results');
+    this.cancelSourceThumbnails();
+    results.replaceChildren();
+    for (const item of matches.slice(this.sourcePage * 24, this.sourcePage * 24 + 24)) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'workshop-asset';
+      button.disabled = true;
+      button.dataset.sourceId = item.id;
+      const availability = this.sourceAvailability(item.id);
+      button.dataset.sourceAvailability = availability.state;
+      const img = document.createElement('img');
+      img.alt = '';
+      img.width = 96; img.height = 96;
+      this.queueSourceThumbnail(img, `/__museum-workshop/tge-thumbnail?id=${encodeURIComponent(item.id)}`,
+        () => { button.disabled = false; }, () => { detail.textContent = 'Thumbnail unavailable'; });
+      const title = document.createElement('strong'); title.textContent = item.name;
+      const detail = document.createElement('small');
+      detail.textContent = `${item.packName} · ${item.license}${availability.state === 'importable' ? '' : availability.state === 'unsupported' ? ' · Not importable' : ' · Unverified'}`;
+      if (availability.state !== 'importable') button.title = availability.reason;
+      button.append(img, title, detail);
+      button.addEventListener('click', () => {
+        this.sourceSelection = item;
+        const importable = availability.state === 'importable';
+        this.el<HTMLButtonElement>('source-import').disabled = !importable;
+        this.el<HTMLButtonElement>('source-import').textContent = 'Import and place selected model';
+        const details = `${item.name} · ${item.id} · ${item.bytes} bytes · ${item.license} · ${item.author} · source revision ${this.sourceCatalogRevision()} · ${item.featured?.role ?? 'Unassigned candidate'}`;
+        if (!importable) {
+          ++this.sourceStatusRequest;
+          this.el('source-inspector').textContent = `${details} · ${availability.state === 'unsupported' ? 'Not importable' : 'Not importable until verified'}: ${availability.reason}.`;
+          return;
+        }
+        this.el('source-inspector').textContent = `${details} · Checking local installation…`;
+        const request = ++this.sourceStatusRequest;
+        const current = () => this.sourceSelection === item && this.sourceStatusRequest === request;
+        void fetch(`/__museum-workshop/tge-status?id=${encodeURIComponent(item.id)}`)
+          .then(async (response) => {
+            if (!response.ok) throw new Error('Local status unavailable');
+            return await response.json() as { installed?: boolean };
+          })
+          .then((status) => {
+            if (!current()) return;
+            this.el('source-inspector').textContent = `${details} · ${status.installed ? 'Installed locally' : 'Not installed'}; visual review required.`;
+            this.el<HTMLButtonElement>('source-import').textContent = status.installed ? 'Place cached model' : 'Import and place selected model';
+          })
+          .catch(() => {
+            if (current()) this.el('source-inspector').textContent = `${details} · Local installation status unavailable.`;
+          });
+      });
+      results.append(button);
+    }
+  }
+
+  /**
+   * Thumbnails can take seconds each on a cold cache (the server fetches them from
+   * the pinned source). Load at most two at a time so imports, status checks and
+   * model downloads always have a browser connection, and drop stale ones when the
+   * grid is re-rendered.
+   */
+  private sourceThumbnailQueue: (() => void)[] = [];
+  private sourceThumbnailsActive = new Set<HTMLImageElement>();
+
+  private queueSourceThumbnail(img: HTMLImageElement, src: string, onLoad: () => void, onError: () => void): void {
+    const start = () => {
+      this.sourceThumbnailsActive.add(img);
+      const finish = (ok: boolean) => {
+        if (!this.sourceThumbnailsActive.delete(img)) return;
+        if (ok) onLoad(); else onError();
+        this.sourceThumbnailQueue.shift()?.();
+      };
+      img.addEventListener('load', () => finish(true), { once: true });
+      img.addEventListener('error', () => finish(false), { once: true });
+      img.src = src;
+    };
+    if (this.sourceThumbnailsActive.size < 2) start();
+    else this.sourceThumbnailQueue.push(start);
+  }
+
+  private cancelSourceThumbnails(): void {
+    this.sourceThumbnailQueue = [];
+    for (const img of this.sourceThumbnailsActive) img.removeAttribute('src');
+    this.sourceThumbnailsActive.clear();
+  }
+
+  private sourceCatalogRevision(): string { return '3ddcc695adbba9fb918cf31b7c139b3f95b76910'; }
+
+  private async importSourceCandidate(): Promise<void> {
+    const selected = this.sourceSelection;
+    if (!selected || this.placements.isComparingOriginal || this.sourceAvailability(selected.id).state !== 'importable') return;
+    const button = this.el<HTMLButtonElement>('source-import');
+    button.disabled = true;
+    // A status check still in flight must not overwrite this import's result.
+    this.sourceStatusRequest++;
+    try {
+      this.note(`Importing ${selected.name} from the pinned source…`, 'ok');
+      const response = await fetch('/__museum-workshop/tge-import', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: selected.id }),
+      });
+      const result = await response.json() as { ok?: boolean; assetId?: string; error?: string };
+      if (!response.ok || !result.ok || !result.assetId) throw new Error(result.error || 'Source import failed');
+      const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+      const gltf = await new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}${result.assetId}`);
+      const inspection = new ResourceScope('source-model-inspection');
+      inspection.trackObject(gltf.scene);
+      let dimensions: THREE.Vector3;
+      let center: THREE.Vector3;
+      try {
+        const bounds = new THREE.Box3().setFromObject(gltf.scene);
+        if (bounds.isEmpty() || ![...bounds.min.toArray(), ...bounds.max.toArray()].every(Number.isFinite)) {
+          throw new Error('Imported model has empty or invalid bounds');
+        }
+        dimensions = bounds.getSize(new THREE.Vector3());
+        center = bounds.getCenter(new THREE.Vector3());
+      } finally { inspection.dispose(); }
+      this.addModel(result.assetId, selected.name);
+      this.el('source-inspector').textContent = `${selected.name} · locally imported from ${selected.id} · ${selected.license} · bounds ${dimensions.toArray().map((n) => n.toFixed(2)).join(' × ')} m · bounding center from origin ${center.toArray().map((n) => n.toFixed(2)).join(', ')} m · visual review required.`;
+    } catch (error) {
+      this.note(error instanceof Error ? error.message : 'Source import failed.', 'error');
+    } finally { button.disabled = !this.sourceSelection || this.sourceAvailability(this.sourceSelection.id).state !== 'importable'; }
   }
 
   private addModel(assetId: string, label: string): void {
@@ -846,6 +1586,24 @@ export class Workshop {
     this.refresh();
   }
 
+  /** Bind or unbind an allowlisted exhibit action; refused (and reported) unless the object stands in that exhibit's bay. */
+  private commitMeaning(): void {
+    const record = this.record();
+    if (!record) return;
+    const value = this.el<HTMLSelectElement>('meaning').value as MeaningfulActionId | '';
+    const { meaning: _previous, ...rest } = record;
+    const before = this.placements.captureManifest();
+    try {
+      const after = this.placements.setRecord(value ? { ...rest, meaning: value } : rest);
+      this.history.push(value ? `Bind ${record.label} to ${MEANINGFUL_ACTIONS[value].exhibit}` : `Unbind ${record.label}`, before, after);
+      this.note(value ? `${record.label} now ${MEANINGFUL_ACTIONS[value].label.toLowerCase()} at ${MEANINGFUL_ACTIONS[value].exhibit}.` : `${record.label} no longer acts on an exhibit.`, 'ok');
+    } catch (error) {
+      this.placements.replaceManifest(before);
+      this.note(error instanceof Error ? error.message : 'Binding refused.', 'error');
+    }
+    this.refresh();
+  }
+
   private commitMetadata(): void {
     const record = this.record();
     if (!record) return;
@@ -900,6 +1658,7 @@ export class Workshop {
       this.refresh();
       return;
     }
+    if (record) after = this.rememberManualMove(record.id, this.followKit(before, record.id, after));
     this.history.push(`Transform ${label}`, before, after);
     if (record?.collision === 'solid') this.placements.invalidateCollisions();
     this.selectionBox?.update();
@@ -1071,7 +1830,7 @@ export class Workshop {
     if (!result) return;
     const id = this.selectedId;
     const surfaceId = this.selectedSurfaceId;
-    this.placements.replaceManifest(result.manifest);
+    this.placements.replaceManifest(result.manifest, { history: true });
     if (surfaceId) this.selectSurface(surfaceId);
     else this.select(id && this.placements.getObject(id) ? id : null);
     this.note(`${verb}: ${result.label}`, 'ok');
@@ -1083,6 +1842,7 @@ export class Workshop {
     this.note('Writing validated placement source…', 'ok');
     try {
       const manifest = this.placements.captureManifest();
+      if (!/^[a-f0-9]{64}$/.test(this.savedRevision)) throw new Error('The initial save revision is missing; reload the editor.');
       const conservation = validateWorkshopConservation(manifest);
       if (!conservation.ok) {
         this.note(conservationErrors(conservation.violations).slice(0, 2).join('; '), 'error');
@@ -1090,11 +1850,14 @@ export class Workshop {
       }
       const response = await fetch(SAVE_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Workshop-Revision': this.savedRevision },
         body: JSON.stringify(manifest),
       });
-      const payload = await response.json() as { ok?: boolean; path?: string; objects?: number; error?: string; details?: string[] };
-      if (!response.ok || !payload.ok) throw new Error(payload.details?.join('; ') || payload.error || `HTTP ${response.status}`);
+      const payload = await response.json() as { ok?: boolean; path?: string; objects?: number; revision?: string; error?: string; details?: string[] };
+      if (!response.ok || !payload.ok || !payload.revision || !/^[a-f0-9]{64}$/.test(payload.revision)) {
+        throw new Error(payload.details?.join('; ') || payload.error || `HTTP ${response.status}: missing save revision`);
+      }
+      this.savedRevision = payload.revision;
       this.note(`Saved ${payload.objects ?? 0} objects to ${payload.path ?? 'the build manifest'}.`, 'ok');
     } catch (error) {
       this.note(error instanceof Error ? error.message : 'Workshop save failed.', 'error');
@@ -1110,6 +1873,8 @@ export class Workshop {
     this.helper.visible = false;
     this.clearSelectionBox();
     const object = id ? this.placements.getObject(id) : null;
+    // Keep the selected placement live even if the editor camera moves away.
+    this.placements.setPinned(object ? id : null);
     if (!object) {
       this.selectedId = null;
       this.refreshInspector();
@@ -1140,9 +1905,7 @@ export class Workshop {
 
   private object(): THREE.Object3D | null { return this.selectedId ? this.placements.getObject(this.selectedId) : null; }
   private record(): WorkshopPlacementRecord | null {
-    return this.selectedId
-      ? this.placements.captureManifest().objects.find((item) => item.id === this.selectedId) ?? null
-      : null;
+    return this.selectedId ? this.placements.getRecord(this.selectedId) : null;
   }
 
   private sceneEntry(): AuthorableSceneEntry | null {
@@ -1238,9 +2001,10 @@ export class Workshop {
     this.dragBefore = null;
     if (before && (record || sceneEntry)) {
       try {
-        const after = sceneEntry
+        let after = sceneEntry
           ? this.placements.setSceneOverride(sceneEntry.id, this.captureTransform(this.object()!))
           : this.placements.captureManifest();
+        if (record) after = this.rememberManualMove(record.id, this.followKit(before, record.id, after));
         this.history.push(`Transform ${record?.label ?? sceneEntry?.label ?? 'object'}`, before, after);
         if (record?.collision === 'solid') this.placements.invalidateCollisions();
       } catch (error) {
@@ -1359,6 +2123,8 @@ export class Workshop {
   }
 
   private refreshInspector(): void {
+    this.refreshCuratorMemory();
+    this.refreshKit();
     const record = this.record();
     const sceneEntry = this.sceneEntry();
     const object = this.object();
@@ -1380,6 +2146,7 @@ export class Workshop {
     this.openingSillInput.disabled = notWall || locked || record?.opening !== 'window';
     this.collisionInput.disabled = !record || locked;
     this.eventInput.disabled = !record || locked;
+    this.el<HTMLSelectElement>('meaning').disabled = !record || locked;
     const hasAuthoredReaction = record?.event === 'message'
       || record?.event === 'toggle-glow' || record?.event === 'toggle-tint';
     this.eventMessageInput.disabled = !record || locked || !hasAuthoredReaction;
@@ -1440,6 +2207,7 @@ export class Workshop {
     this.openingSillInput.value = String(Math.round((record?.openingSill ?? fallback.sill) * 100));
     this.collisionInput.value = record?.collision ?? 'none';
     this.eventInput.value = record?.event ?? 'none';
+    this.el<HTMLSelectElement>('meaning').value = record?.meaning ?? '';
     this.eventMessageInput.value = record?.eventMessage ?? '';
     this.eventColorInput.value = record?.eventColor ?? '#ffc96b';
     const values: Record<InputKey, number> = {
@@ -1573,6 +2341,9 @@ const WORKSHOP_HTML = `
     <label>On interact<select data-workshop="event"><option value="none">No action</option><option value="announce">Announce object name</option><option value="message">Show a custom message</option><option value="toggle-glow">Toggle glow</option><option value="toggle-tint">Toggle color tint</option></select></label>
     <label>Event message<input data-workshop="event-message" type="text" maxlength="160" placeholder="What should visitors see?" aria-label="Interaction message"></label>
     <label>Reaction color<input data-workshop="event-color" type="color" value="#ffc96b" aria-label="Interaction reaction color"></label>
+    <label>Exhibit action<select data-workshop="meaning" aria-label="Exhibit action"><option value="">None</option>${Object.values(MEANINGFUL_ACTIONS)
+      .map((action) => `<option value="${action.id}">${action.exhibit}: ${action.label}</option>`).join('')}</select></label>
+    <p class="workshop-muted">Exhibit actions use the exhibit's own controls; the object must stand in that exhibit's bay within ${MEANING_MAX_DISTANCE} m of it.</p>
     <p class="workshop-muted">Visitor actions are limited to authored text, reversible emissive light or material tint. No user-supplied JavaScript is evaluated.</p>
     <p class="workshop-muted">Protected geometry and routes remain locked. No arbitrary scripts are executed.</p>
   </section>
@@ -1584,8 +2355,85 @@ const WORKSHOP_HTML = `
     <div class="workshop-asset-results" data-workshop="asset-results" role="group" aria-label="Searchable asset models"></div>
     <label>Import GLB<input data-workshop="model-import" type="file" accept=".glb,model/gltf-binary" aria-label="Import local GLB model"></label>
     <p class="workshop-muted">Self-contained GLB, up to 8 MB. Local-only import; review rights and assets before publication.</p>
+    <h4>External source candidates</h4>
+    <p class="workshop-muted">Browse verified source records. Thumbnails are fetched on demand and cached locally; models require a separate import and review.</p>
+    <button type="button" data-workshop="source-load">Browse source catalog</button>
+    <div data-workshop="source-controls" hidden>
+      <label>Search source<input data-workshop="source-search" type="search" aria-label="Search source candidates"></label>
+      <label>Collection<select data-workshop="source-featured"><option value="all">All 3D candidates</option><option value="featured">Featured 200</option></select></label>
+      <label>Source pack<select data-workshop="source-pack"><option value="">All packs</option></select></label>
+      <label>Featured target wing<select data-workshop="source-wing"><option value="">All wings</option></select></label>
+      <label>Import status<select data-workshop="source-availability"><option value="">All statuses</option><option value="importable">Verified, importable</option><option value="unsupported">Not importable</option><option value="unchecked">Not yet verified</option></select></label>
+      <p data-workshop="source-count" role="status"></p>
+      <div data-workshop="source-results" class="workshop-asset-results" role="group" aria-label="Source candidates"></div>
+      <button type="button" data-workshop="source-prev">Previous candidates</button>
+      <button type="button" data-workshop="source-next">Next candidates</button>
+      <p data-workshop="source-inspector" class="workshop-muted">Select a loaded thumbnail for source details.</p>
+      <button type="button" data-workshop="source-import" disabled>Import and place selected model</button>
+    </div>
   </section>
   <section><h3>Primitive objects & fixtures</h3><div class="workshop-palette" data-workshop="palette"></div></section>
+  <section><h3>Scene index</h3>
+    <button type="button" data-workshop="scene-index-refresh">Inspect current scene data</button>
+    <p data-workshop="scene-index-summary" class="workshop-muted">Refresh to inspect authoritative layout data.</p>
+    <label>Exhibit<select data-workshop="scene-index-exhibit" aria-label="Scene index exhibit"></select></label>
+    <p data-workshop="scene-index-detail" class="workshop-muted"></p>
+    <p data-workshop="scene-index-unavailable" class="workshop-muted"></p>
+  </section>
+  <section><h3>Route clearance</h3>
+    <button type="button" data-workshop="clearance-scan">Scan authored route obstructions</button>
+    <p data-workshop="clearance-status" role="status" class="workshop-muted">Not tested.</p>
+    <div data-workshop="clearance-results" class="workshop-outliner"></div>
+  </section>
+  <section><h3>Clear walkways</h3>
+    <button type="button" data-workshop="walkways-scan">Scan walkways and suggest moves</button>
+    <p data-workshop="walkways-status" role="status" class="workshop-muted">Not tested.</p>
+    <div data-workshop="walkways-results" class="workshop-outliner"></div>
+  </section>
+  <section><h3>Exhibit kits</h3>
+    <div class="workshop-row"><select data-workshop="kit-template" aria-label="Kit">${Object.values(KIT_TEMPLATES)
+      .map((template) => `<option value="${template.id}">${template.label}</option>`).join('')}</select>
+      <button type="button" data-workshop="kit-place">Place kit in view</button></div>
+    <label><input type="checkbox" data-workshop="kit-move-together" checked> Move as kit (untick to adjust one part)</label>
+    <p data-workshop="kit-status" class="workshop-muted"></p>
+    <div class="workshop-row"><button type="button" data-workshop="kit-duplicate" disabled>Copy whole kit</button>
+      <button type="button" data-workshop="kit-reset" disabled>Reset this part</button>
+      <button type="button" data-workshop="kit-ungroup" disabled>Ungroup</button>
+      <button type="button" data-workshop="kit-delete" disabled>Delete kit</button></div>
+  </section>
+  <section><h3>Auto-curate &amp; clear</h3>
+    <div class="workshop-row"><select data-workshop="curate-mode" aria-label="Curation mode"><option value="clear">Clear walkways</option><option value="furnish">Furnish</option><option value="both">Clear and furnish</option></select>
+      <select data-workshop="curate-density" aria-label="Density"><option value="minimal">Minimal</option><option value="restrained" selected>Restrained</option><option value="rich">Rich</option></select>
+      <select data-workshop="curate-scope" aria-label="Scope"><option value="museum">Whole museum</option>${ZONES.map((zone) => `<option value="${zone.id}">${zone.label}</option>`).join('')}</select></div>
+    <div class="workshop-row"><button type="button" data-workshop="curate-run">Suggest</button><button type="button" data-workshop="curate-approve-all" disabled>Approve all shown</button></div>
+    <p data-workshop="curate-status" role="status" class="workshop-muted">No suggestions yet. Nothing changes until you approve.</p>
+    <div data-workshop="curate-results" class="workshop-outliner"></div>
+  </section>
+  <section><h3>Narrative gravity</h3>
+    <p class="workshop-muted">Pilot exhibits only. Keeps the visitor's view of the hero clear; exhibit content is never moved, and NO CHANGE is a valid answer.</p>
+    <div class="workshop-row"><select data-workshop="gravity-exhibit" aria-label="Exhibit">${NARRATIVE_GRAVITY_PILOTS.map((id) => `<option value="${id}">${id}</option>`).join('')}</select>
+      <button type="button" data-workshop="gravity-run">Read composition</button></div>
+    <p data-workshop="gravity-status" role="status" class="workshop-muted">Not read yet.</p>
+    <div data-workshop="gravity-results" class="workshop-outliner"></div>
+  </section>
+  <section><h3>Museum health</h3>
+    <button type="button" data-workshop="health-run">Check museum health</button>
+    <p data-workshop="health-status" role="status" class="workshop-muted">Not tested.</p>
+    <div data-workshop="health-results" class="workshop-outliner"></div>
+  </section>
+  <section><h3>Virtual visitor jury</h3>
+    <p class="workshop-muted">Simulated visitors walk every exhibit, both floors, the stairs and the Sanctuary through the real collision world, then the arrival, pier and island paths outside. Read-only.</p>
+    <button type="button" data-workshop="jury-run">Run visitor jury</button>
+    <p data-workshop="jury-status" role="status" class="workshop-muted">Not tested.</p>
+    <p data-workshop="jury-exterior-status" role="status" class="workshop-muted">Exterior not tested.</p>
+    <div data-workshop="jury-results" class="workshop-outliner"></div>
+  </section>
+  <section><h3>Curator's memory</h3>
+    <button type="button" data-workshop="curator-lock" disabled>Lock against automation</button>
+    <button type="button" data-workshop="curator-empty">Keep area around selection empty</button>
+    <p data-workshop="curator-summary" class="workshop-muted"></p>
+    <div data-workshop="curator-regions" class="workshop-outliner"></div>
+  </section>
   <section><h3>Placed objects</h3><div class="workshop-outliner" data-workshop="outliner"></div></section>
   <p data-workshop="world-indicator" class="workshop-muted">Editing: Island</p>
   <div class="workshop-status" data-workshop="status" role="status" aria-live="polite"></div>

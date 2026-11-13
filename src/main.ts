@@ -40,7 +40,16 @@ try {
   // Museum Workshop writes only this declarative placement source. The normal
   // runtime consumes it in every build; the development editor itself is loaded
   // separately and is stripped from production output.
-  placements = new MuseumPlacements(placementManifest, sceneRegistry);
+  let source: unknown = placementManifest;
+  if (import.meta.env.DEV) {
+    const script = document.getElementById('museum-workshop-source');
+    if (!script?.textContent || !/^[a-f0-9]{64}$/.test(script.dataset.sha256 ?? '')) {
+      throw new Error('The local Workshop source snapshot is missing; refusing to load an unversioned editor.');
+    }
+    const bytes = Uint8Array.from(atob(script.textContent), (character) => character.charCodeAt(0));
+    source = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as unknown;
+  }
+  placements = new MuseumPlacements(source, sceneRegistry);
   app.scene.add(placements.group);
 } catch (err) {
   fail(
@@ -62,10 +71,15 @@ if (new URLSearchParams(window.location.search).has('qa')) {
   }));
 }
 placements.bindInteractions(app.interaction, (message) => app.ui.hud.announce(message));
+// Meaningful Objects reach exhibits only through their existing visitor control path.
+placements.bindMeaningfulActions((installation, code) => app.sourceInstallations?.key(installation, code) ?? false);
 const syncBuilderPlacements = () => placements.syncWorld(
   app.activeWorld, app.exteriorWorld.collision, app.museum?.collision,
-  app.exteriorWorld.root, app.museum?.root,
+  app.exteriorWorld.root, app.museum?.root, app.camera.position,
 );
+// Establish the initial world before the first frame, including when a test or
+// embedding host pauses the application immediately after boot.
+syncBuilderPlacements();
 app.setWorkshopUpdate(syncBuilderPlacements);
 app.start();
 mountCinematicArrival(app);

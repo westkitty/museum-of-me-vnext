@@ -1,0 +1,245 @@
+[
+  {
+    "run": 1,
+    "entry": {
+      "prepareMs": 254,
+      "committed": false,
+      "commitMs": 0,
+      "world": "interior",
+      "framesSeen": 239,
+      "wallMs": 5309,
+      "worst5": [
+        835,
+        284,
+        234,
+        18,
+        18
+      ],
+      "over50": 3
+    },
+    "exitBack": {
+      "world": "exterior",
+      "worst3": [
+        18,
+        17,
+        17
+      ]
+    },
+    "secondEntry": {
+      "world": "interior",
+      "worst3": [
+        18,
+        18,
+        18
+      ]
+    },
+    "gcAfter0_5_10RoundTrips": [
+      {
+        "domNodes": 701,
+        "jsHeapUsedMB": 33,
+        "listeners": 123,
+        "docs": 1
+      },
+      {
+        "domNodes": 701,
+        "jsHeapUsedMB": 33.3,
+        "listeners": 123,
+        "docs": 1
+      },
+      {
+        "domNodes": 701,
+        "jsHeapUsedMB": 33.3,
+        "listeners": 123,
+        "docs": 1
+      }
+    ],
+    "topDomParents": [
+      [
+        "P",
+        70
+      ],
+      [
+        "LI",
+        42
+      ],
+      [
+        "BUTTON",
+        35
+      ],
+      [
+        "a11y-root",
+        31
+      ],
+      [
+        "panel__body",
+        20
+      ],
+      [
+        "panel__head",
+        20
+      ]
+    ]
+  },
+  {
+    "run": 2,
+    "entry": {
+      "prepareMs": 813,
+      "committed": false,
+      "commitMs": 0,
+      "world": "interior",
+      "framesSeen": 239,
+      "wallMs": 5921,
+      "worst5": [
+        585,
+        401,
+        200,
+        117,
+        51
+      ],
+      "over50": 5
+    },
+    "exitBack": {
+      "world": "exterior",
+      "worst3": [
+        18,
+        18,
+        18
+      ]
+    },
+    "secondEntry": {
+      "world": "interior",
+      "worst3": [
+        34,
+        34,
+        34
+      ]
+    },
+    "gcAfter0_5_10RoundTrips": [
+      {
+        "domNodes": 702,
+        "jsHeapUsedMB": 33.4,
+        "listeners": 123,
+        "docs": 1
+      },
+      {
+        "domNodes": 701,
+        "jsHeapUsedMB": 33.4,
+        "listeners": 123,
+        "docs": 1
+      },
+      {
+        "domNodes": 702,
+        "jsHeapUsedMB": 33.6,
+        "listeners": 123,
+        "docs": 1
+      }
+    ],
+    "topDomParents": [
+      [
+        "P",
+        70
+      ],
+      [
+        "LI",
+        42
+      ],
+      [
+        "BUTTON",
+        35
+      ],
+      [
+        "a11y-root",
+        31
+      ],
+      [
+        "panel__body",
+        20
+      ],
+      [
+        "panel__head",
+        20
+      ]
+    ]
+  },
+  {
+    "run": 3,
+    "entry": {
+      "prepareMs": 385,
+      "committed": false,
+      "commitMs": 0,
+      "world": "interior",
+      "framesSeen": 239,
+      "wallMs": 5032,
+      "worst5": [
+        334,
+        317,
+        133,
+        100,
+        50
+      ],
+      "over50": 4
+    },
+    "exitBack": {
+      "world": "exterior",
+      "worst3": [
+        34,
+        34,
+        33
+      ]
+    },
+    "secondEntry": {
+      "world": "interior",
+      "worst3": [
+        18,
+        18,
+        18
+      ]
+    },
+    "gcAfter0_5_10RoundTrips": [
+      {
+        "domNodes": 701,
+        "jsHeapUsedMB": 33,
+        "listeners": 123,
+        "docs": 1
+      },
+      {
+        "domNodes": 701,
+        "jsHeapUsedMB": 33.3,
+        "listeners": 123,
+        "docs": 1
+      },
+      {
+        "domNodes": 701,
+        "jsHeapUsedMB": 33.5,
+        "listeners": 123,
+        "docs": 1
+      }
+    ],
+    "topDomParents": [
+      [
+        "P",
+        70
+      ],
+      [
+        "LI",
+        42
+      ],
+      [
+        "BUTTON",
+        35
+      ],
+      [
+        "a11y-root",
+        31
+      ],
+      [
+        "panel__body",
+        20
+      ],
+      [
+        "panel__head",
+        20
+      ]
+    ]
+  }
+]

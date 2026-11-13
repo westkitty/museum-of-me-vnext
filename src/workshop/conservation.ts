@@ -31,6 +31,7 @@ import {
 } from './schema';
 import type { WorkshopPrefabId } from './catalog';
 import { builderModel } from './builderAssetCatalog';
+import { meaningProblem } from './MeaningfulObjects';
 import {
   AUTHORABLE_SCENE_DEFINITIONS,
   type AuthorableSceneEntry,
@@ -234,6 +235,11 @@ function protectedAreas(): readonly ProtectedArea[] {
 
 const PROTECTED_AREAS = protectedAreas();
 
+/** Nominal half extents of a placement before scale and rotation, as conservation assesses it. */
+export function workshopPlacementExtents(record: WorkshopPlacementRecord): Readonly<PrefabBounds> {
+  return placementBounds(record);
+}
+
 function placementBounds(record: WorkshopPlacementRecord): PrefabBounds {
   if (record.prefab !== 'catalog-model') return PREFAB_BOUNDS[record.prefab];
   const size = record.assetId ? builderModel(record.assetId)?.nominalSize : null;
@@ -291,6 +297,9 @@ export function validateWorkshopConservation(
       });
       break;
     }
+    const meaning = meaningProblem(record);
+    if (meaning) violations.push({ placementId: record.id, placementLabel: record.label, protectedArea: 'Meaningful object binding',
+      rule: 'meaning-proximity', reason: meaning });
   }
 
   const entriesById = new Map(sceneEntries.map((entry) => [entry.id, entry]));
