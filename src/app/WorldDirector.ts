@@ -242,10 +242,10 @@ export class WorldDirector {
 
     const inApproach = isApproachingEntrance(playerPosition);
     if (!inApproach) this.thresholdPromptDismissed = false;
-    // The architecture's own shaders and buffers must be warm too, not only the
-    // entrance exhibits; otherwise the first interior frames compile them.
-    const rawEntranceReady = Boolean(this.app.interiorWorld?.streaming.telemetry.prewarmReady)
-      && this.app.interiorWorldWarmed !== false;
+    // The doorway opens on the entrance exhibits alone. The rest of the
+    // building warms in the background (App.interiorWorldWarmed) and is normally
+    // done long before the visitor reaches the door; it never holds them there.
+    const rawEntranceReady = Boolean(this.app.interiorWorld?.streaming.telemetry.prewarmReady);
     if (rawEntranceReady && this.app.interiorLoadTelemetry.entranceReadyAtMs === null) {
       this.app.interiorLoadTelemetry.entranceReadyAtMs = performance.now();
     }

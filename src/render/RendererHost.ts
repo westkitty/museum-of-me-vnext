@@ -182,7 +182,7 @@ export class RendererHost {
       } finally {
         this.scene.environment = previous;
       }
-      if (performance.now() - sliceStart > 6) { await this.nextFrame(); sliceStart = performance.now(); }
+      if (performance.now() - sliceStart > this.warmSliceMs) { await this.nextFrame(); sliceStart = performance.now(); }
     }
     for (let frames = 0; frames < 600; frames++) {
       const programs = (this.renderer.info.programs ?? []) as unknown as { isReady?: () => boolean }[];
@@ -280,7 +280,7 @@ export class RendererHost {
     let sliceStart = performance.now();
     for (const texture of textures) {
       this.renderer.initTexture(texture);
-      if (performance.now() - sliceStart > 6) { await this.nextFrame(); sliceStart = performance.now(); }
+      if (performance.now() - sliceStart > this.warmSliceMs) { await this.nextFrame(); sliceStart = performance.now(); }
     }
     // Many materials share one program (every caption plate, for instance), so
     // compile synchronously in short slices and yield a frame only when the
@@ -291,7 +291,7 @@ export class RendererHost {
       const before = this.renderer.info.programs?.length ?? 0;
       this.renderer.compile(object, this.camera, this.scene);
       this.warmTelemetry.worldPrograms += Math.max(0, (this.renderer.info.programs?.length ?? 0) - before);
-      if (performance.now() - sliceStart > 6) { await this.nextFrame(); sliceStart = performance.now(); }
+      if (performance.now() - sliceStart > this.warmSliceMs) { await this.nextFrame(); sliceStart = performance.now(); }
     }
     // Wait, a frame at a time, until the driver reports every program linked.
     // (A final compileAsync(root) would re-walk the whole world in one task.)
@@ -394,8 +394,17 @@ export class RendererHost {
   }
 
   /** Resolves after the next frame the single app loop draws (the only frame loop). */
+  /**
+   * Warm-up work per frame: 6 ms, or half the time the last awaited frame took
+   * when frames are slow (capped), so slow devices still finish warming.
+   */
+  private warmSliceMs = 6;
+
   private nextFrame(): Promise<void> {
-    return new Promise((resolve) => this.frameWaiters.push(resolve));
+    const waitStarted = performance.now();
+    return new Promise<void>((resolve) => this.frameWaiters.push(resolve)).then(() => {
+      this.warmSliceMs = Math.min(250, Math.max(6, (performance.now() - waitStarted) * 0.5));
+    });
   }
 
   render(): void {

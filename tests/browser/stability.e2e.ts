@@ -84,10 +84,9 @@ test('outside, the map and HUD name the side of the building, never an interior 
     const text = map?.querySelector('p')?.textContent ?? '';
     const marker = Boolean(map?.querySelector('circle.you'));
     app.ui.map.close();
-    return { world: app.activeWorld, zone: app.currentZone, label: app.zoneLabel, hud, text, marker };
+    return { world: app.activeWorld, label: app.zoneLabel, hud, text, marker };
   });
   expect(outside.world).toBe('exterior');
-  expect(outside.zone).toBe('plaza');
   expect(outside.label).toBe('Exterior · north side');
   expect(outside.hud).toContain('Exterior · north side');
   expect(outside.hud).not.toMatch(/North Wing|Wing/i);

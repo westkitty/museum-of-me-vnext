@@ -594,6 +594,9 @@ export const EXTERIOR_PLAZA_LABEL = 'Exterior · Arrival Plaza';
  */
 export function exteriorLocationLabel(x: number, y: number, zPos: number): string {
   if (ZONE_BY_ID.get('plaza')!.shapes.some((shape) => shapeContainsXYZ(shape, x, y, zPos))) return EXTERIOR_PLAZA_LABEL;
+  // The arrival drive continues straight out from the plaza: anywhere in front
+  // of the entrance, on the entrance axis, is still the arrival.
+  if (zPos > VESTIBULE_TO && Math.abs(x) <= PLAZA_HALF_WIDTH + 6) return EXTERIOR_PLAZA_LABEL;
   const degrees = (Math.atan2(x, -zPos) * 180 / Math.PI + 360) % 360;
   return EXTERIOR_LABELS[Math.round(degrees / 45) % 8];
 }

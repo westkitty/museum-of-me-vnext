@@ -141,7 +141,7 @@ export class UILayer {
     this.visitThread = new VisitThreadPanel(
       app.visitThread,
       app.journal,
-      () => WINGS_BY_ID.has(app.currentZone as WingId) ? app.currentZone as WingId : null,
+      () => !app.isOutside && WINGS_BY_ID.has(app.currentZone as WingId) ? app.currentZone as WingId : null,
       (id) => this.mapGuide(id),
       (message) => this.hud.announce(message),
     );

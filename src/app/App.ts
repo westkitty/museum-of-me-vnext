@@ -422,6 +422,24 @@ export class App implements LoopCallbacks {
     savePreferences(this.preferences);
   }
 
+  /**
+   * The exterior shares X/Z with the interior plan, so outside the visitor is
+   * told which side of the building they are on, never an interior zone.
+   */
+  private updateLocationAnnouncement(eye: readonly [number, number, number], zoneChanged: boolean): void {
+    const outside = this.isOutside;
+    const worldChanged = outside !== this.zoneWasOutside;
+    this.zoneWasOutside = outside;
+    if (outside) {
+      const label = exteriorLocationLabel(eye[0], this.player.position.y + 0.1, eye[2]);
+      if (label === this.exteriorLabel && !worldChanged) return;
+      this.exteriorLabel = label;
+      this.ui?.mirror.announce(worldChanged ? `Entering ${label}.` : `${label}.`);
+    } else if (zoneChanged || worldChanged) {
+      this.ui?.mirror.announce(`Entering ${this.zoneLabel}.`);
+    }
+  }
+
   private async preloadAmbientVisitors(interior: InteriorWorld): Promise<void> {
     if (this.renderer.quality.ambientVisitors <= 0) return;
     try {
@@ -582,22 +600,13 @@ export class App implements LoopCallbacks {
     }
 
     const eye = this.player.writeEyePosition(this.eyePositionScratch);
-    // The exterior shares X/Z with the interior plan: outside, the visitor is
-    // always in the exterior ('plaza') zone, labelled by side of the building.
-    const outside = this.isOutside;
-    const zone = outside ? 'plaza' : zoneAtXYZ(eye[0], this.player.position.y + 0.1, eye[2]);
-    if (outside) {
-      const label = exteriorLocationLabel(eye[0], this.player.position.y + 0.1, eye[2]);
-      if (label !== this.exteriorLabel) {
-        this.exteriorLabel = label;
-        if (this.currentZone === zone) this.ui?.mirror.announce(`${label}.`);
-      }
-    }
-    if (zone !== this.currentZone || outside !== this.zoneWasOutside) {
+    // currentZone is spatial: culling, streaming and atmosphere key off it in
+    // both worlds. What the visitor is told is decided after the world switch.
+    const zone = zoneAtXYZ(eye[0], this.player.position.y + 0.1, eye[2]);
+    const zoneChanged = zone !== this.currentZone;
+    if (zoneChanged) {
       this.currentZone = zone;
-      this.zoneWasOutside = outside;
       this.audio.setZone(zone);
-      this.ui?.mirror.announce(`Entering ${this.zoneLabel}.`);
     }
 
     this.atmosphere.update(zone, dt, this.preferences.reducedMotion);
@@ -607,6 +616,7 @@ export class App implements LoopCallbacks {
     this.developerOverlay?.update();
 
     this.worldDirector.update(this.player.position);
+    this.updateLocationAnnouncement(eye, zoneChanged);
 
     if (this.interiorWorld) {
       if (this.activeWorld === 'interior') {

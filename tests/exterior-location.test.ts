@@ -16,5 +16,8 @@ describe('exterior location labels', () => {
     expect(exteriorLocationLabel(60, 0, -60)).toBe('Exterior · north-east side');
     const plaza = ZONE_BY_ID.get('plaza')!.center;
     expect(exteriorLocationLabel(plaza[0], plaza[1] + 0.1, plaza[2])).toBe(EXTERIOR_PLAZA_LABEL);
+    // The exterior arrival point, far down the drive, is still the arrival.
+    expect(exteriorLocationLabel(0, -0.5, 196)).toBe(EXTERIOR_PLAZA_LABEL);
+    expect(exteriorLocationLabel(120, 0, 196)).toBe('Exterior · south-east side');
   });
 });

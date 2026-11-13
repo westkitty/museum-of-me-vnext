@@ -114,7 +114,8 @@ test('boots at the exterior arrival and keyboard input reaches the real controll
   await page.locator('#qa-check-0').selectOption('pass');
   await expect(page.getByText('1 passed · 0 needs work · 8 pending')).toBeVisible();
   await page.getByRole('button', { name: 'Capture telemetry snapshot' }).click();
-  await expect(page.locator('.qa-capture pre')).toContainText('zone=Arrival Plaza');
+  // Outside, the location is always named as exterior, never as an interior zone.
+  await expect(page.locator('.qa-capture pre')).toContainText('zone=Exterior · Arrival Plaza');
   await page.getByRole('button', { name: 'Generate Markdown report' }).click();
   const report = page.getByRole('textbox', { name: 'Generated human QA Markdown report' });
   await expect(report).toHaveValue(/Museum of Me vNext — Human QA Evidence/);
@@ -157,6 +158,31 @@ test('operates the visual map and reduced-motion setting with the keyboard', asy
   await page.evaluate(async () => {
     await window.__museum?.ensureInteriorLoaded();
   });
+
+  // Outside, the interior plan must not place the visitor inside a wing.
+  await page.keyboard.press('m');
+  await expect(page.getByRole('dialog', { name: 'Museum map' })).toBeVisible();
+  await expect(page.locator('.map__plan .you-heading')).toHaveCount(0);
+  await expect(page.locator('#panel-map')).toContainText('outside the museum');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Museum map' })).toBeHidden();
+
+  // Walk in through the south doorway, driving the real controller while the
+  // render loop is stopped (as the DexGPT entry test does).
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.down('w');
+  const entered = await page.evaluate(async () => {
+    const app = window.__museum!;
+    for (let frames = 0; frames < 2400; frames++) {
+      app.fixedUpdate(1 / 60);
+      app.variableUpdate(1 / 60);
+      if (frames % 120 === 0) await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      if (app.activeWorld === 'interior' && app.currentZone === 'south') break;
+    }
+    return app.activeWorld;
+  });
+  await page.keyboard.up('w');
+  expect(entered).toBe('interior');
 
   await page.keyboard.press('m');
   await expect(page.getByRole('dialog', { name: 'Museum map' })).toBeVisible();
