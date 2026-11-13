@@ -5,6 +5,7 @@ import { validateWorkshopConservation } from './conservation';
 import { overlapsEmptyRegion } from './CuratorMemory';
 import { scanAuthoredRouteClearance } from './RouteClearance';
 import type { MuseumSceneIndex } from './SceneIndex';
+import { juryAffected, type VisitorJuryReport } from './VisitorJury';
 import { WORKSHOP_MAX_OBJECTS, type WorkshopPlacementManifest } from './schema';
 
 export type HealthStatus = 'PASS' | 'FAIL' | 'WARNING' | 'NOT TESTED' | 'UNKNOWN';
@@ -45,6 +46,8 @@ export interface MuseumHealthOptions {
   readonly sceneEntries?: readonly AuthorableSceneEntry[];
   /** True when the index was built with live placement bounds (a runtime was supplied). */
   readonly runtime?: boolean;
+  /** A Virtual Visitor Jury run for this same manifest; without one the jury check stays NOT TESTED. */
+  readonly jury?: VisitorJuryReport;
 }
 
 /**
@@ -144,8 +147,15 @@ export function museumHealth(index: MuseumSceneIndex, manifest: WorkshopPlacemen
   // 8–9. Honest gaps: never inferred, never fabricated.
   checks.push({ id: 'performance', title: 'Device frame time', status: 'NOT TESTED',
     detail: 'No device frame-time measurement has been recorded for this scene.', affected: [] });
-  checks.push({ id: 'visitor-jury', title: 'Virtual Visitor Jury', status: 'NOT TESTED',
-    detail: 'Simulated visitor walkthroughs are not available yet.', affected: [] });
+  if (!options.jury) {
+    checks.push({ id: 'visitor-jury', title: 'Virtual Visitor Jury', status: 'NOT TESTED',
+      detail: 'No Virtual Visitor Jury has been run for this scene; run it to walk simulated visitors.', affected: [] });
+  } else {
+    const kinds = { placement: 'placement', collider: 'collider', exhibit: 'exhibit', stair: 'stair', waypoint: 'region' } as const;
+    checks.push({ id: 'visitor-jury', title: 'Virtual Visitor Jury', status: options.jury.status, detail: options.jury.summary,
+      affected: juryAffected(options.jury).map((item) => item.kind === 'placement' ? placementSubject(item.id)
+        : { kind: kinds[item.kind], id: item.id, label: item.label, world: 'interior' as const, position: item.position }) });
+  }
 
   const counts = { PASS: 0, FAIL: 0, WARNING: 0, 'NOT TESTED': 0, UNKNOWN: 0 } as Record<HealthStatus, number>;
   for (const check of checks) counts[check.status]++;
