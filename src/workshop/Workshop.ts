@@ -12,6 +12,7 @@ import { defaultOpening } from './WallOpenings';
 import { BUILDER_MODELS, BUILDER_FINISHES, searchBuilderLibrary, builderModel } from './builderAssetCatalog';
 import { conservationErrors, validateWorkshopConservation } from './conservation';
 import { WorkshopHistory } from './history';
+import { filterSourceCatalog, sourceAvailability, type SourceAvailability, type SourceAvailabilityInfo } from './sourceCatalog';
 import { buildMuseumSceneIndex, querySceneIndex } from './SceneIndex';
 import { scanAuthoredRouteClearance } from './RouteClearance';
 import { applyWalkwayProposals, clearWalkways, type WalkwayProposal } from './ClearWalkways';
@@ -47,6 +48,7 @@ export class Workshop {
   private sourceCatalog: typeof import('./catalog-data/tge-index.json').models | null = null;
   private sourceSelection: (typeof import('./catalog-data/tge-index.json').models)[number] | null = null;
   private sourcePage = 0;
+  private sourceAvailability: (id: string) => SourceAvailabilityInfo = sourceAvailability(null);
   private readonly root = document.createElement('div');
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
@@ -307,6 +309,7 @@ export class Workshop {
     this.el<HTMLSelectElement>('source-featured').addEventListener('change', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
     this.el<HTMLSelectElement>('source-pack').addEventListener('change', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
     this.el<HTMLSelectElement>('source-wing').addEventListener('change', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
+    this.el<HTMLSelectElement>('source-availability').addEventListener('change', () => { this.sourcePage = 0; this.refreshSourceCatalog(); });
     this.el<HTMLButtonElement>('source-prev').addEventListener('click', () => { this.sourcePage--; this.refreshSourceCatalog(); });
     this.el<HTMLButtonElement>('source-next').addEventListener('click', () => { this.sourcePage++; this.refreshSourceCatalog(); });
     this.root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((button) => {
@@ -972,7 +975,11 @@ export class Workshop {
     const button = this.el<HTMLButtonElement>('source-load');
     button.disabled = true;
     try {
-      this.sourceCatalog = (await import('./catalog-data/tge-index.json')).default.models;
+      const [catalog, report] = await Promise.all([import('./catalog-data/tge-index.json'),
+        import('./catalog-data/tge-verification.json')]);
+      this.sourceCatalog = catalog.default.models;
+      // Only IDs whose bytes the committed verification report lists as verified are importable.
+      this.sourceAvailability = sourceAvailability(report.default.sourceRevision === catalog.default.sourceRevision ? report.default : null);
       const packs = new Map(this.sourceCatalog.map((item) => [item.pack, item.packName]));
       const packSelect = this.el<HTMLSelectElement>('source-pack');
       for (const [id, label] of [...packs].sort((a, b) => a[1].localeCompare(b[1]))) {
@@ -994,14 +1001,13 @@ export class Workshop {
 
   private refreshSourceCatalog(): void {
     if (!this.sourceCatalog) return;
-    const query = this.el<HTMLInputElement>('source-search').value.trim().toLowerCase();
-    const featuredOnly = this.el<HTMLSelectElement>('source-featured').value === 'featured';
-    const pack = this.el<HTMLSelectElement>('source-pack').value;
-    const wing = this.el<HTMLSelectElement>('source-wing').value;
-    const matches = this.sourceCatalog.filter((item) => (!featuredOnly || Boolean(item.featured))
-      && (!pack || item.pack === pack) && (!wing || item.featured?.wing === wing)
-      && (!query || [item.name, item.id, item.packName, item.featured?.target ?? '',
-        item.featured?.wing ?? '', item.featured?.role ?? ''].some((field) => field.toLowerCase().includes(query))));
+    const matches = filterSourceCatalog(this.sourceCatalog, {
+      query: this.el<HTMLInputElement>('source-search').value,
+      featuredOnly: this.el<HTMLSelectElement>('source-featured').value === 'featured',
+      pack: this.el<HTMLSelectElement>('source-pack').value,
+      wing: this.el<HTMLSelectElement>('source-wing').value,
+      availability: this.el<HTMLSelectElement>('source-availability').value as SourceAvailability | '',
+    }, this.sourceAvailability);
     const pages = Math.max(1, Math.ceil(matches.length / 24));
     this.sourcePage = Math.max(0, Math.min(this.sourcePage, pages - 1));
     this.el('source-count').textContent = `${matches.length} source candidates · page ${this.sourcePage + 1} of ${pages}`;
@@ -1015,6 +1021,8 @@ export class Workshop {
       button.className = 'workshop-asset';
       button.disabled = true;
       button.dataset.sourceId = item.id;
+      const availability = this.sourceAvailability(item.id);
+      button.dataset.sourceAvailability = availability.state;
       const img = document.createElement('img');
       img.alt = '';
       img.width = 96; img.height = 96;
@@ -1023,13 +1031,21 @@ export class Workshop {
       img.addEventListener('error', () => { detail.textContent = 'Thumbnail unavailable'; });
       img.src = `/__museum-workshop/tge-thumbnail?id=${encodeURIComponent(item.id)}`;
       const title = document.createElement('strong'); title.textContent = item.name;
-      const detail = document.createElement('small'); detail.textContent = `${item.packName} · ${item.license}`;
+      const detail = document.createElement('small');
+      detail.textContent = `${item.packName} · ${item.license}${availability.state === 'importable' ? '' : availability.state === 'unsupported' ? ' · Not importable' : ' · Unverified'}`;
+      if (availability.state !== 'importable') button.title = availability.reason;
       button.append(img, title, detail);
       button.addEventListener('click', () => {
         this.sourceSelection = item;
-        this.el<HTMLButtonElement>('source-import').disabled = false;
+        const importable = availability.state === 'importable';
+        this.el<HTMLButtonElement>('source-import').disabled = !importable;
         this.el<HTMLButtonElement>('source-import').textContent = 'Import and place selected model';
         const details = `${item.name} · ${item.id} · ${item.bytes} bytes · ${item.license} · ${item.author} · source revision ${this.sourceCatalogRevision()} · ${item.featured?.role ?? 'Unassigned candidate'}`;
+        if (!importable) {
+          ++this.sourceStatusRequest;
+          this.el('source-inspector').textContent = `${details} · ${availability.state === 'unsupported' ? 'Not importable' : 'Not importable until verified'}: ${availability.reason}.`;
+          return;
+        }
         this.el('source-inspector').textContent = `${details} · Checking local installation…`;
         const request = ++this.sourceStatusRequest;
         const current = () => this.sourceSelection === item && this.sourceStatusRequest === request;
@@ -1055,7 +1071,7 @@ export class Workshop {
 
   private async importSourceCandidate(): Promise<void> {
     const selected = this.sourceSelection;
-    if (!selected || this.placements.isComparingOriginal) return;
+    if (!selected || this.placements.isComparingOriginal || this.sourceAvailability(selected.id).state !== 'importable') return;
     const button = this.el<HTMLButtonElement>('source-import');
     button.disabled = true;
     // A status check still in flight must not overwrite this import's result.
@@ -1085,7 +1101,7 @@ export class Workshop {
       this.el('source-inspector').textContent = `${selected.name} · locally imported from ${selected.id} · ${selected.license} · bounds ${dimensions.toArray().map((n) => n.toFixed(2)).join(' × ')} m · bounding center from origin ${center.toArray().map((n) => n.toFixed(2)).join(', ')} m · visual review required.`;
     } catch (error) {
       this.note(error instanceof Error ? error.message : 'Source import failed.', 'error');
-    } finally { button.disabled = !this.sourceSelection; }
+    } finally { button.disabled = !this.sourceSelection || this.sourceAvailability(this.sourceSelection.id).state !== 'importable'; }
   }
 
   private addModel(assetId: string, label: string): void {
@@ -2262,6 +2278,7 @@ const WORKSHOP_HTML = `
       <label>Collection<select data-workshop="source-featured"><option value="all">All 3D candidates</option><option value="featured">Featured 200</option></select></label>
       <label>Source pack<select data-workshop="source-pack"><option value="">All packs</option></select></label>
       <label>Featured target wing<select data-workshop="source-wing"><option value="">All wings</option></select></label>
+      <label>Import status<select data-workshop="source-availability"><option value="">All statuses</option><option value="importable">Verified, importable</option><option value="unsupported">Not importable</option><option value="unchecked">Not yet verified</option></select></label>
       <p data-workshop="source-count" role="status"></p>
       <div data-workshop="source-results" class="workshop-asset-results" role="group" aria-label="Source candidates"></div>
       <button type="button" data-workshop="source-prev">Previous candidates</button>
