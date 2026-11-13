@@ -67,11 +67,11 @@ describe('Museum Health', () => {
     expect(check(report, 'structure')).toMatchObject({ status: 'PASS', affected: [] });
     expect(check(report, 'structure').detail).toContain('6/6 wings, 35/35 exhibits, 2/2 stairs, 2/2 levels');
     expect(check(report, 'conservation').status).toBe('PASS');
-    for (const id of ['walkways', 'route-collision', 'bounds', 'performance', 'visitor-jury']) {
+    for (const id of ['walkways', 'route-collision', 'bounds', 'performance', 'visitor-jury', 'exterior-jury']) {
       expect(check(report, id).status).toBe('NOT TESTED');
     }
     expect(report.status).toBe('NOT TESTED');
-    expect(report.counts['NOT TESTED']).toBe(5);
+    expect(report.counts['NOT TESTED']).toBe(6);
   });
 
   it('fails when the protected structure is incomplete and names what is missing', () => {

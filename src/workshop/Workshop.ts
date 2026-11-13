@@ -17,7 +17,7 @@ import { buildMuseumSceneIndex, querySceneIndex } from './SceneIndex';
 import { scanAuthoredRouteClearance } from './RouteClearance';
 import { applyWalkwayProposals, clearWalkways, type WalkwayProposal } from './ClearWalkways';
 import { museumHealth } from './MuseumHealth';
-import { visitorJury, type JuryCheck, type VisitorJuryReport } from './VisitorJury';
+import { exteriorJury, visitorJury, type ExteriorJuryReport, type JuryCheck, type VisitorJuryReport } from './VisitorJury';
 import { MEANINGFUL_ACTIONS, MEANING_MAX_DISTANCE } from './MeaningfulObjects';
 import { applyCurateSuggestions, autoCurate, rejectCurateSuggestion, type CurateDensity, type CurateMode, type CurateSuggestion } from './AutoCurate';
 import { NARRATIVE_GRAVITY_PILOTS, applyGravitySuggestions, narrativeGravity, rejectGravitySuggestion, type GravitySuggestion, type NarrativeGravityPilot } from './NarrativeGravity';
@@ -710,8 +710,9 @@ export class Workshop {
     const index = buildMuseumSceneIndex(manifest, { exterior: this.app.exteriorWorld.collision, interior: this.app.museum?.collision },
       { placements: this.placements });
     // Only a jury run against this exact manifest may stand in for the jury check.
-    const jury = this.lastJury?.manifest === JSON.stringify(manifest) ? this.lastJury.report : undefined;
-    const report = museumHealth(index, manifest, { sceneEntries: this.placements.sceneEntries(), runtime: true, jury });
+    const current = this.lastJury?.manifest === JSON.stringify(manifest) ? this.lastJury : null;
+    const report = museumHealth(index, manifest, { sceneEntries: this.placements.sceneEntries(), runtime: true,
+      jury: current?.report, exteriorJury: current?.exterior });
     const counts = (Object.entries(report.counts) as [string, number][]).filter(([, n]) => n).map(([status, n]) => `${n} ${status}`).join(' · ');
     this.el('health-status').textContent = `${report.status}: ${counts}.`;
     const results = this.el('health-results');
@@ -748,7 +749,7 @@ export class Workshop {
     }
   }
 
-  private lastJury: { report: VisitorJuryReport; manifest: string } | null = null;
+  private lastJury: { report: VisitorJuryReport; exterior: ExteriorJuryReport; manifest: string } | null = null;
 
   /** Walk simulated visitors through the live interior collision world; read-only, nothing moves or saves. */
   private runJury(): void {
@@ -758,10 +759,13 @@ export class Workshop {
     const manifest = this.placements.captureManifest();
     const interior = this.app.museum?.collision ?? null;
     const started = performance.now();
-    const report = visitorJury(buildMuseumSceneIndex(manifest, { exterior: this.app.exteriorWorld.collision, interior: interior ?? undefined },
-      { placements: this.placements }), manifest, interior);
-    this.lastJury = { report, manifest: JSON.stringify(manifest) };
+    const index = buildMuseumSceneIndex(manifest, { exterior: this.app.exteriorWorld.collision, interior: interior ?? undefined },
+      { placements: this.placements });
+    const report = visitorJury(index, manifest, interior);
+    const exterior = exteriorJury(index, manifest, this.app.exteriorWorld.collision);
+    this.lastJury = { report, exterior, manifest: JSON.stringify(manifest) };
     this.el('jury-status').textContent = `${report.status}: ${report.summary} (${Math.round(performance.now() - started)} ms)`;
+    this.el('jury-exterior-status').textContent = `Exterior ${exterior.status}: ${exterior.summary}`;
     const results = this.el('jury-results');
     results.replaceChildren();
     const row = (status: string, text: string, checks: readonly JuryCheck[]) => {
@@ -786,7 +790,7 @@ export class Workshop {
       results.append(item);
       return item;
     };
-    for (const route of [...report.routes, ...report.stairs, report.sanctuary]) {
+    for (const route of [...report.routes, ...report.stairs, report.sanctuary, ...exterior.routes]) {
       row(route.status, `${route.status} · ${route.label} (${route.legs} legs)`, [route]).dataset.juryRoute = route.id;
     }
     for (const exhibit of report.exhibits) {
@@ -2418,9 +2422,10 @@ const WORKSHOP_HTML = `
     <div data-workshop="health-results" class="workshop-outliner"></div>
   </section>
   <section><h3>Virtual visitor jury</h3>
-    <p class="workshop-muted">Simulated visitors walk every exhibit, both floors, the stairs and the Sanctuary through the real collision world. Read-only.</p>
+    <p class="workshop-muted">Simulated visitors walk every exhibit, both floors, the stairs and the Sanctuary through the real collision world, then the arrival, pier and island paths outside. Read-only.</p>
     <button type="button" data-workshop="jury-run">Run visitor jury</button>
     <p data-workshop="jury-status" role="status" class="workshop-muted">Not tested.</p>
+    <p data-workshop="jury-exterior-status" role="status" class="workshop-muted">Exterior not tested.</p>
     <div data-workshop="jury-results" class="workshop-outliner"></div>
   </section>
   <section><h3>Curator's memory</h3>

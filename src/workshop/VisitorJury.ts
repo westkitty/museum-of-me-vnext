@@ -6,6 +6,8 @@ import { estimatedBounds } from './AutoCurate';
 import { HERO_FOCUS_HEIGHT, SIGHTLINE_HALF_WIDTH, segmentHitsBox } from './NarrativeGravity';
 import type { MuseumSceneIndex, SceneBounds } from './SceneIndex';
 import type { WorkshopPlacementManifest } from './schema';
+import { LAND_SUPPORT_Y, PATH_CENTERLINES, PIER_CENTERLINE } from '../world/exterior/IslandSiteLayout';
+import { START_POSITION } from '../world/start';
 
 export type JuryStatus = 'PASS' | 'FAIL' | 'WARNING' | 'NOT TESTED' | 'UNKNOWN';
 
@@ -124,7 +126,8 @@ class Walker {
   private readonly cache = new Map<string, LegResult>();
 
   constructor(private readonly world: CollisionWorld, private readonly obstacles: readonly Obstacle[],
-    private readonly walls: readonly { id: string; minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number }[]) {}
+    private readonly walls: readonly { id: string; minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number }[],
+    private readonly colliderLabel = 'museum collider') {}
 
   get legs(): number { return this.cache.size; }
 
@@ -215,7 +218,7 @@ class Walker {
           for (const wall of this.walls) {
             const box: SceneBounds = { min: [wall.minX, wall.minY, wall.minZ], max: [wall.maxX, wall.maxY, wall.maxZ] };
             if (!inRecentBand(box)) continue;
-            if (boxXZDistance(pos.x, pos.z, box) <= reach) blockers.push({ kind: 'collider', id: wall.id, label: `museum collider ${wall.id}`, position: centre(box) });
+            if (boxXZDistance(pos.x, pos.z, box) <= reach) blockers.push({ kind: 'collider', id: wall.id, label: `${this.colliderLabel} ${wall.id}`, position: centre(box) });
             if (blockers.length >= 5) break;
           }
         }
@@ -309,6 +312,34 @@ function judgeLegs(legs: readonly LegResult[], passText: string): JuryCheck {
 
 const totalMetres = (legs: readonly LegResult[]) => Math.round(legs.reduce((sum, leg) => sum + leg.metres, 0));
 
+/** Authored placements in one world (or shared) as obstacles from known bounds, plus that world's walls. */
+function obstaclesFor(index: MuseumSceneIndex, manifest: WorkshopPlacementManifest, worldId: 'interior' | 'exterior') {
+  const records = new Map(manifest.objects.map((record) => [record.id, record]));
+  const colliders = index.collisions[worldId] ?? [];
+  const liveIds = new Set(colliders.filter((collider) => collider.ownership === 'dynamic')
+    .map((collider) => collider.id.replace(/^(wall|floor):/, '').replace(/:segment-\d+$/, '')));
+  const obstacles: Obstacle[] = [];
+  let estimatedCount = 0;
+  for (const item of index.authored) {
+    if (item.world !== worldId && item.world !== 'shared') continue;
+    const record = records.get(item.id);
+    if (!record || record.prefab === 'floor-slab') continue;
+    const solid = item.collision === 'solid';
+    if (item.bounds) {
+      obstacles.push({ id: item.id, label: item.label, box: item.bounds, solid, estimated: false, live: solid && liveIds.has(item.id) });
+    } else if (item.resident === null) {
+      // No live Builder: judge from the catalogue footprint, as Narrative Gravity does.
+      estimatedCount++;
+      obstacles.push({ id: item.id, label: item.label, box: estimatedBounds(record), solid, estimated: false, live: false });
+    } else {
+      obstacles.push({ id: item.id, label: item.label, box: estimatedBounds(record), solid, estimated: true, live: false });
+    }
+  }
+  const walls = colliders.flatMap((collider) => (collider.kind === 'wall' ? [{
+    id: collider.id, minX: collider.minX, maxX: collider.maxX, minY: collider.minY, maxY: collider.maxY, minZ: collider.minZ, maxZ: collider.maxZ }] : []));
+  return { obstacles, walls, estimatedCount };
+}
+
 /**
  * Deterministic, headless Virtual Visitor Jury. Simulated visitors walk the
  * canonical route through the supplied interior collision world with the
@@ -334,29 +365,7 @@ export function visitorJury(index: MuseumSceneIndex, manifest: WorkshopPlacement
       counts, walked: { legs: 0, steps: 0, metres: 0 }, summary: why, limitations: [why] };
   }
 
-  // Authored placements in the interior (or shared) as obstacles, from known bounds.
-  const records = new Map(manifest.objects.map((record) => [record.id, record]));
-  const liveIds = new Set((index.collisions.interior ?? []).filter((collider) => collider.ownership === 'dynamic')
-    .map((collider) => collider.id.replace(/^(wall|floor):/, '').replace(/:segment-\d+$/, '')));
-  const obstacles: Obstacle[] = [];
-  let estimatedCount = 0;
-  for (const item of index.authored) {
-    if (item.world !== 'interior' && item.world !== 'shared') continue;
-    const record = records.get(item.id);
-    if (!record || record.prefab === 'floor-slab') continue;
-    const solid = item.collision === 'solid';
-    if (item.bounds) {
-      obstacles.push({ id: item.id, label: item.label, box: item.bounds, solid, estimated: false, live: solid && liveIds.has(item.id) });
-    } else if (item.resident === null) {
-      // No live Builder: judge from the catalogue footprint, as Narrative Gravity does.
-      estimatedCount++;
-      obstacles.push({ id: item.id, label: item.label, box: estimatedBounds(record), solid, estimated: false, live: false });
-    } else {
-      obstacles.push({ id: item.id, label: item.label, box: estimatedBounds(record), solid, estimated: true, live: false });
-    }
-  }
-  const walls = (index.collisions.interior ?? []).flatMap((collider) => (collider.kind === 'wall' ? [{
-    id: collider.id, minX: collider.minX, maxX: collider.maxX, minY: collider.minY, maxY: collider.maxY, minZ: collider.minZ, maxZ: collider.maxZ }] : []));
+  const { obstacles, walls, estimatedCount } = obstaclesFor(index, manifest, 'interior');
   const walker = new Walker(world, obstacles, walls);
 
   const route: Waypoint[] = index.route.map((point) => ({ label: point.label, at: point.position }));
@@ -525,4 +534,61 @@ export function juryAffected(report: VisitorJuryReport): JuryAffected[] {
     ...report.routes, ...report.stairs, report.sanctuary,
   ];
   return uniq(checks.filter((check) => check.status !== 'PASS').flatMap((check) => check.affected));
+}
+
+export interface ExteriorJuryReport {
+  readonly status: JuryStatus;
+  /** Arrival from the pier to the museum door and back, the pier, and each island path. */
+  readonly routes: readonly JuryRouteVerdict[];
+  readonly walked: { readonly legs: number; readonly steps: number; readonly metres: number };
+  readonly summary: string;
+  readonly limitations: readonly string[];
+}
+
+/** Waypoints at the island's support height; the walker seats each leg on the floor below. */
+const islandPoint = (label: string, x: number, z: number, y = LAND_SUPPORT_Y): Waypoint => ({ label, at: [x, y, z] });
+
+/**
+ * The exterior counterpart of the jury: the same walker, on the exterior
+ * collision world, along the authored island layout. It never reports PASS for
+ * a route it did not walk, and it reads only.
+ */
+export function exteriorJury(index: MuseumSceneIndex, manifest: WorkshopPlacementManifest, world: CollisionWorld | null): ExteriorJuryReport {
+  const ids: [string, string][] = [['exterior:arrival', 'Arrival: pier to museum door and back'], ['exterior:pier', 'Arrival pier'],
+    ...PATH_CENTERLINES.map((_, k): [string, string] => [`exterior:path-${k + 1}`, `Island path ${k + 1}`])];
+  if (!world) {
+    const why = 'No exterior collision world is loaded, so no visitor was walked outside.';
+    return { status: 'NOT TESTED', routes: ids.map(([id, label]) => ({ id, label, legs: 0, status: 'NOT TESTED' as const, detail: why, affected: [] })),
+      walked: { legs: 0, steps: 0, metres: 0 }, summary: why, limitations: [why] };
+  }
+  const { obstacles, walls, estimatedCount } = obstaclesFor(index, manifest, 'exterior');
+  const walker = new Walker(world, obstacles, walls, 'exterior collider');
+  const start = islandPoint('arrival pier start', START_POSITION[0], START_POSITION[2], START_POSITION[1]);
+  const door = islandPoint('museum door', index.threshold.exterior[0], index.threshold.exterior[2], index.threshold.exterior[1]);
+  const plaza = islandPoint('arrival plaza', PIER_CENTERLINE[0][0], PIER_CENTERLINE[0][1], 0);
+  const pier = PIER_CENTERLINE.map(([x, z], k) => islandPoint(`pier ${k + 1}`, x, z));
+  const arrivalIn = walker.journey([start, pier[1], plaza, door]);
+  const arrivalOut = walker.journey([door, plaza, pier[1], start]);
+  const pierLegs = [...walker.journey(pier), ...walker.journey([...pier].reverse())];
+  const routes: JuryRouteVerdict[] = [
+    { id: ids[0][0], label: ids[0][1], legs: arrivalIn.length + arrivalOut.length,
+      ...judgeLegs([...arrivalIn, ...arrivalOut], `Walked from the pier start to the museum door (${totalMetres(arrivalIn)} m) and back (${totalMetres(arrivalOut)} m).`) },
+    { id: ids[1][0], label: ids[1][1], legs: pierLegs.length, ...judgeLegs(pierLegs, `Walked the pier end to end and back (${totalMetres(pierLegs)} m).`) },
+    ...PATH_CENTERLINES.map((line, k) => {
+      const legs = walker.journey(line.map(([x, z], n) => islandPoint(`path ${k + 1} point ${n + 1}`, x, z)));
+      return { id: ids[k + 2][0], label: ids[k + 2][1], legs: legs.length, ...judgeLegs(legs, `Walked island path ${k + 1} (${totalMetres(legs)} m).`) };
+    }),
+  ];
+  const status = worstJuryStatus(routes.map((item) => item.status));
+  const bad = routes.filter((item) => item.status !== 'PASS');
+  return { status, routes,
+    walked: { legs: walker.legs, steps: walker.steps, metres: Math.round(walker.metres) },
+    summary: `${routes.length} exterior routes${bad.length ? `, of which ${bad.map((item) => `${item.label} ${item.status}`).join(', ')}` : ' all walked without a break'}. ${walker.legs} legs, ${walker.steps} strides, ${Math.round(walker.metres)} m.`,
+    limitations: ['Exterior routes follow the authored pier and island path centrelines with the same capsule and step rules as inside; scenery off those paths is not walked.',
+      ...(estimatedCount ? [`${estimatedCount} exterior placement(s) were judged from catalogue footprints.`] : [])] };
+}
+
+/** Every placement, collider or waypoint named by a non-passing exterior route, once each. */
+export function exteriorJuryAffected(report: ExteriorJuryReport): JuryAffected[] {
+  return uniq(report.routes.filter((route) => route.status !== 'PASS').flatMap((route) => route.affected));
 }

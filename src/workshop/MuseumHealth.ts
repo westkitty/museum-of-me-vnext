@@ -5,7 +5,7 @@ import { validateWorkshopConservation } from './conservation';
 import { overlapsEmptyRegion } from './CuratorMemory';
 import { scanAuthoredRouteClearance } from './RouteClearance';
 import type { MuseumSceneIndex } from './SceneIndex';
-import { juryAffected, type VisitorJuryReport } from './VisitorJury';
+import { exteriorJuryAffected, juryAffected, type ExteriorJuryReport, type VisitorJuryReport } from './VisitorJury';
 import { WORKSHOP_MAX_OBJECTS, type WorkshopPlacementManifest } from './schema';
 
 export type HealthStatus = 'PASS' | 'FAIL' | 'WARNING' | 'NOT TESTED' | 'UNKNOWN';
@@ -48,6 +48,8 @@ export interface MuseumHealthOptions {
   readonly runtime?: boolean;
   /** A Virtual Visitor Jury run for this same manifest; without one the jury check stays NOT TESTED. */
   readonly jury?: VisitorJuryReport;
+  /** The exterior jury (arrival, pier, island paths) for this same manifest; without one it stays NOT TESTED. */
+  readonly exteriorJury?: ExteriorJuryReport;
 }
 
 /**
@@ -155,6 +157,15 @@ export function museumHealth(index: MuseumSceneIndex, manifest: WorkshopPlacemen
     checks.push({ id: 'visitor-jury', title: 'Virtual Visitor Jury', status: options.jury.status, detail: options.jury.summary,
       affected: juryAffected(options.jury).map((item) => item.kind === 'placement' ? placementSubject(item.id)
         : { kind: kinds[item.kind], id: item.id, label: item.label, world: 'interior' as const, position: item.position }) });
+  }
+  if (!options.exteriorJury) {
+    checks.push({ id: 'exterior-jury', title: 'Virtual Visitor Jury — exterior', status: 'NOT TESTED',
+      detail: 'No exterior jury has been run for this scene; the arrival, pier and island paths have not been walked.', affected: [] });
+  } else {
+    const kinds = { placement: 'placement', collider: 'collider', exhibit: 'exhibit', stair: 'stair', waypoint: 'region' } as const;
+    checks.push({ id: 'exterior-jury', title: 'Virtual Visitor Jury — exterior', status: options.exteriorJury.status, detail: options.exteriorJury.summary,
+      affected: exteriorJuryAffected(options.exteriorJury).map((item) => item.kind === 'placement' ? placementSubject(item.id)
+        : { kind: kinds[item.kind], id: item.id, label: item.label, world: 'exterior' as const, position: item.position }) });
   }
 
   const counts = { PASS: 0, FAIL: 0, WARNING: 0, 'NOT TESTED': 0, UNKNOWN: 0 } as Record<HealthStatus, number>;

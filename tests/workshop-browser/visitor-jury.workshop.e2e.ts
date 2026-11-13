@@ -25,8 +25,18 @@ test('Virtual Visitor Jury walks the live museum, names a placed blocker, feeds 
   for (const id of ['stair:grand-stair-sw', 'stair:grand-stair-se', 'sanctuary', 'canonical', 'hall:media', 'hall:infra']) {
     await expect(panel.locator(`[data-jury-route="${id}"]`)).toHaveAttribute('data-jury-status', 'PASS');
   }
+  // Outside: the arrival from the pier to the museum door and the pier itself are walked in the live exterior world.
+  await expect(panel.locator('[data-workshop="jury-exterior-status"]')).toContainText('exterior routes');
+  for (const id of ['exterior:arrival', 'exterior:pier']) {
+    await expect(panel.locator(`[data-jury-route="${id}"]`)).toHaveAttribute('data-jury-status', 'PASS');
+  }
+  // Island paths that run through the building are reported with the collider that stops the visitor.
+  const failedPaths = panel.locator('[data-jury-route^="exterior:path-"][data-jury-status="FAIL"]');
+  for (let k = 0; k < await failedPaths.count(); k++) await expect(failedPaths.nth(k)).toContainText('exterior collider');
   await panel.locator('[data-workshop="health-run"]').click();
   await expect(panel.locator('[data-health-check="visitor-jury"]')).toHaveAttribute('data-health-status', 'PASS');
+  await expect(panel.locator('[data-health-check="exterior-jury"]')).toHaveAttribute('data-health-status',
+    await failedPaths.count() ? 'FAIL' : 'PASS');
 
   // A solid wall across the E03 bay approach. Conservation forbids placements in an exhibit's
   // read zone, so it is injected through the schema-only history-restore path to prove the
