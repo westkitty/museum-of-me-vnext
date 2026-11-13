@@ -5,27 +5,41 @@ import { openCandidatePreview, verifyPreviewLifecycleAndReset } from '../_shared
 
 const DIR = dirname(fileURLToPath(import.meta.url));
 
-test('E26 unfolds diorama into playable platformer cartridge, toggles click-through overlay, and clears goal', async ({ page }) => {
+test('E26 transforms coastal diorama into cartridge and enforces opaque vs click-through overlay rule', async ({
+  page,
+}) => {
   await openCandidatePreview(page, 'E26');
   await page.screenshot({ path: join(DIR, 'artifacts', 'e26-diorama.png') });
 
-  // Unfold into cartridge + enable WESTCAT overlay + traverse all 5 platforms
+  // 1. Fold into cartridge + turn on OPAQUE overlay -> test blocked misclick interception
   await page.evaluate(() => {
-    window.__ARENA_PREVIEW__!.activateControl(0);
-    window.__ARENA_PREVIEW__!.activateControl(1);
-    window.__ARENA_PREVIEW__!.activateControl(2);
-    window.__ARENA_PREVIEW__!.activateControl(3);
-    window.__ARENA_PREVIEW__!.activateControl(2);
-    window.__ARENA_PREVIEW__!.activateControl(3);
+    window.__ARENA_PREVIEW__!.activateControl(0); // Fold into Cartridge
+    window.__ARENA_PREVIEW__!.activateControl(1); // Overlay -> blocking
+    window.__ARENA_PREVIEW__!.activateControl(2); // Intercepted on air!
+  });
+  await page.waitForTimeout(450);
+  const blockedSnap = await page.evaluate(() => window.__ARENA_PREVIEW__!.getSnapshot());
+  expect(blockedSnap.state).toContain('Overlay=blocking');
+  expect(blockedSnap.state).toContain('MisclicksBlocked=1');
+  expect(blockedSnap.state).toContain('Stage=1/5');
+  await page.screenshot({ path: join(DIR, 'artifacts', 'e26-blocking-misclick.png') });
+
+  // 2. Toggle to CLICK-THROUGH -> traverse all 5 coastal platforms to Point Beacon
+  await page.evaluate(() => {
+    window.__ARENA_PREVIEW__!.activateControl(1); // Overlay -> click_through
+    window.__ARENA_PREVIEW__!.activateControl(2); // 0 -> 1
+    window.__ARENA_PREVIEW__!.activateControl(3); // 1 -> 2
+    window.__ARENA_PREVIEW__!.activateControl(2); // 2 -> 3
+    window.__ARENA_PREVIEW__!.activateControl(3); // 3 -> 4 goal!
   });
   await page.waitForTimeout(700);
   const snap = await page.evaluate(() => window.__ARENA_PREVIEW__!.getSnapshot());
   expect(snap.state).toContain('Mode=cartridge');
-  expect(snap.state).toContain('Overlay=telemetry (click-through)');
+  expect(snap.state).toContain('Overlay=click_through');
   expect(snap.state).toContain('Goal=true');
   await page.screenshot({ path: join(DIR, 'artifacts', 'e26-cartridge.png') });
 
-  // Collapse cleanly back to diorama
+  // 3. Reverse cleanly back to diorama
   await page.evaluate(() => window.__ARENA_PREVIEW__!.activateControl(0));
   await page.waitForTimeout(450);
   const collapsed = await page.evaluate(() => window.__ARENA_PREVIEW__!.getSnapshot());
@@ -34,4 +48,5 @@ test('E26 unfolds diorama into playable platformer cartridge, toggles click-thro
   await verifyPreviewLifecycleAndReset(page);
   const afterReset = await page.evaluate(() => window.__ARENA_PREVIEW__!.getSnapshot());
   expect(afterReset.state).toContain('Goal=false');
+  expect(afterReset.state).toContain('MisclicksBlocked=0');
 });
