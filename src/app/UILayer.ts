@@ -1,4 +1,6 @@
 import { HUD } from '../ui/HUD';
+import { SECRETS } from '../content/secrets';
+import { isSecretControlId } from '../world/SecretSpots';
 import { CenterTapTracker } from './CenterTapTracker';
 import { MapPanel } from '../ui/MapPanel';
 import { JournalPanel } from '../ui/JournalPanel';
@@ -77,7 +79,10 @@ export class UILayer {
       () => app.isOutside,
     );
     this.deep = new DeepPanel(app.journal);
-    this.journal = new JournalPanel(app.journal, (id) => this.deep.openFor(id), () => this.visitThread.open());
+    this.journal = new JournalPanel(app.journal, (id) => this.deep.openFor(id), () => this.visitThread.open(), {
+      secrets: SECRETS,
+      isFound: (id) => app.secretsLog.has(id),
+    });
     this.settings = new SettingsPanel({
       get: () => app.preferences,
       setQuality: (tier: QualityTier | 'auto') => app.setQuality(tier),
@@ -281,7 +286,7 @@ export class UILayer {
     if (!tap || this.anyPanelOpen || this.app.input.uiCaptured) return;
     if (this.app.interaction.activate()) {
       const focus = this.app.interaction.currentFocus;
-      if (focus) {
+      if (focus && !isSecretControlId(focus.exhibitId)) {
         this.app.journal.markVisited(focus.exhibitId);
         this.app.visitThread.recordVisit(focus.exhibitId);
       }

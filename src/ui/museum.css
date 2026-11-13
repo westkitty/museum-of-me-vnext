@@ -210,6 +210,37 @@ html[data-motion='reduced'] *::after {
 }
 .hud__subtitle--visible { opacity: 1; }
 
+/* A found secret: a small card that rises in at the top, then fades. */
+.hud__secret {
+  position: absolute;
+  left: 50%;
+  top: 4.2rem;
+  transform: translate(-50%, -0.6rem) scale(0.96);
+  min-width: min(18rem, 84vw);
+  max-width: min(26rem, 90vw);
+  padding: 0.75rem 1.25rem 0.8rem;
+  display: grid;
+  gap: 0.2rem;
+  justify-items: center;
+  text-align: center;
+  background: rgba(11, 10, 16, 0.9);
+  border: 1px solid rgba(232, 198, 90, 0.55);
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 26px rgba(232, 198, 90, 0.18);
+  color: var(--parchment);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms ease, transform 420ms cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.hud__secret--visible { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.hud__secret-kicker { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-bright); }
+.hud__secret strong { font-size: 1.15rem; font-weight: 600; }
+.hud__secret p { margin: 0; font-size: 0.92rem; line-height: 1.45; color: var(--parchment-dim); }
+.hud__secret-count { margin-top: 0.15rem; font-size: 0.78rem; color: var(--gold); }
+.hud__secret--quiet { border-color: rgba(236, 229, 216, 0.25); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); }
+.hud__secret--quiet .hud__secret-kicker { color: var(--parchment-dim); }
+html[data-contrast='high'] .hud__secret { background: #000; border-color: #ffdf7a; }
+
 .hud__threshold {
   position: absolute;
   z-index: 2;
@@ -1084,3 +1115,11 @@ html[data-contrast='high'] .hud__location[data-zone] { border-left-color: #fff; 
   padding: 0.4rem 0.6rem;
   box-sizing: border-box;
 }
+
+.journal-secrets { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid rgba(236, 229, 216, 0.14); }
+.journal-secrets h3 { margin: 0 0 0.6rem; color: var(--gold-bright); }
+.journal-secrets ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }
+.journal-secrets li { padding: 0.5rem 0.7rem; border-radius: var(--radius); background: rgba(255, 255, 255, 0.04); }
+.journal-secrets__found { display: grid; gap: 0.15rem; }
+.journal-secrets__found span { font-size: 0.85rem; color: var(--parchment-dim); }
+.journal-secrets__hidden { color: var(--parchment-dim); letter-spacing: 0.2em; text-align: center; }

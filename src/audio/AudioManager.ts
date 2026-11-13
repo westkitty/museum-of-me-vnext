@@ -133,6 +133,38 @@ export class AudioManager {
     this.playTick(pitch);
   }
 
+  /** A short rising chime for a found secret. Silent when sound is off. */
+  secretChime(): void {
+    if (!this.started || !this.ctx || !this.master) return;
+    if (this.masterVolume <= 0) return;
+    if (this.ctx.state !== 'running') {
+      void this.ctx.resume().then(() => this.playSecretChime()).catch(() => {});
+      return;
+    }
+    this.playSecretChime();
+  }
+
+  private playSecretChime(): void {
+    if (!this.ctx || !this.master || this.ctx.state !== 'running') return;
+    const start = this.ctx.currentTime;
+    // An original rising arpeggio: D, G, B, then the high D held a little longer.
+    const notes: readonly [number, number][] = [[587.33, 0], [783.99, 0.09], [987.77, 0.18], [1174.66, 0.3]];
+    for (const [frequency, offset] of notes) {
+      const at = start + offset;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = frequency;
+      const last = offset >= 0.3;
+      gain.gain.setValueAtTime(0, at);
+      gain.gain.linearRampToValueAtTime(last ? 0.075 : 0.055, at + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + (last ? 0.9 : 0.26));
+      osc.connect(gain).connect(this.master);
+      osc.start(at);
+      osc.stop(at + (last ? 0.95 : 0.3));
+    }
+  }
+
   private playTick(pitch: number): void {
     if (!this.ctx || !this.master || this.ctx.state !== 'running') return;
     const now = this.ctx.currentTime;
