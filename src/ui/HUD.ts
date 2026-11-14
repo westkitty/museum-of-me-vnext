@@ -36,6 +36,8 @@ export class HUD {
   private workshopCueLabel: string | null = null;
 
   private subtitleTimer = 0;
+  private readonly secretCard: HTMLElement;
+  private secretTimer = 0;
   private lastZone: ZoneId | null = null;
   private lastOutsideLabel: string | undefined;
 
@@ -51,6 +53,7 @@ export class HUD {
     this.cue = el('div', { class: 'hud__cue' }, el('kbd', { text: 'F' }), this.cueLabel);
     this.location = el('div', { class: 'hud__location' });
     this.subtitle = el('div', { class: 'hud__subtitle', role: 'status', 'aria-live': 'polite' });
+    this.secretCard = el('div', { class: 'hud__secret', role: 'status', 'aria-live': 'polite' });
     this.thresholdStatus = el('p', { text: 'The museum entrance is ready.' });
     this.thresholdEnter = el('button', {
       type: 'button', text: 'Enter museum', onclick: () => onEnterMuseum?.(),
@@ -138,6 +141,7 @@ export class HUD {
       this.threadStatus,
       this.hints,
       this.subtitle,
+      this.secretCard,
       this.thresholdPanel,
       this.lockPrompt,
       this.resumeLook,
@@ -262,6 +266,22 @@ export class HUD {
     this.subtitleTimer = seconds;
   }
 
+  /** A found secret: title, its line, and how many have been found. */
+  showSecret(title: string, line: string, found: number, total: number, quiet = false, seconds = 5.5): void {
+    this.secretCard.replaceChildren(
+      el('span', { class: 'hud__secret-kicker', text: quiet ? 'Found' : 'Secret found' }),
+      el('strong', { text: title }),
+      el('p', { text: line }),
+      el('span', { class: 'hud__secret-count', text: `${found} of ${total} secrets` }),
+    );
+    this.secretCard.classList.toggle('hud__secret--quiet', quiet);
+    // Restart the entrance animation even when one find follows another.
+    this.secretCard.classList.remove('hud__secret--visible');
+    void this.secretCard.offsetWidth;
+    this.secretCard.classList.add('hud__secret--visible');
+    this.secretTimer = seconds;
+  }
+
   setThresholdStatus(visible: boolean, message: string, failed = false, preparing = false): void {
     const wasVisible = !this.thresholdPanel.hidden;
     const active = document.activeElement;
@@ -295,6 +315,10 @@ export class HUD {
 
   /** Called once per frame from the single loop. */
   update(dt: number): void {
+    if (this.secretTimer > 0) {
+      this.secretTimer -= dt;
+      if (this.secretTimer <= 0) this.secretCard.classList.remove('hud__secret--visible');
+    }
     if (this.subtitleTimer > 0) {
       this.subtitleTimer -= dt;
       if (this.subtitleTimer <= 0) {

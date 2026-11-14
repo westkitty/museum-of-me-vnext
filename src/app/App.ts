@@ -46,6 +46,9 @@ import { UILayer } from './UILayer';
 import { ExteriorWorld } from '../world/exterior/ExteriorWorld';
 import type { InteriorWorld } from '../world/InteriorWorld';
 import { LongFrameRecorder } from './LongFrameRecorder';
+import { SECRETS } from '../content/secrets';
+import { SecretsLog } from '../state/Secrets';
+import { SecretSpots, isSecretControlId, type SecretFind } from '../world/SecretSpots';
 import { WorldDirector, type WorldId } from './WorldDirector';
 import type { AuthorableSceneRegistry } from '../workshop/AuthorableSceneRegistry';
 
@@ -85,6 +88,9 @@ export class App implements LoopCallbacks {
   readonly player: PlayerController;
   readonly interaction = new InteractionManager();
   readonly audio = new AudioManager();
+  /** Hidden things to find; saved on this device. */
+  readonly secretsLog = new SecretsLog();
+  readonly secrets = new SecretSpots(SECRETS, this.secretsLog, (find) => this.presentSecret(find));
   readonly assets = new AssetManager();
   readonly sky: Sky;
   readonly study: Study;
@@ -177,6 +183,8 @@ export class App implements LoopCallbacks {
     // Exterior world context: island terrain, shoreline, water, lanterns, and outdoor collider
     this.exteriorWorld = new ExteriorWorld(this.renderer.quality.tier);
     this.renderer.scene.add(this.exteriorWorld.root);
+    this.secrets.attachObjects('exterior', this.exteriorWorld.root, this.exteriorWorld.scope,
+      (id, control) => this.interaction.register(id, control));
 
     this.sky = new Sky(this.scope);
     this.renderer.scene.add(this.sky.mesh);
@@ -202,7 +210,7 @@ export class App implements LoopCallbacks {
     this.input.on('interact', () => {
       if (this.interaction.activate()) {
         const focus = this.interaction.currentFocus;
-        if (focus) {
+        if (focus && !isSecretControlId(focus.exhibitId)) {
           this.journal.markVisited(focus.exhibitId);
           this.visitThread.recordVisit(focus.exhibitId);
         }
@@ -440,6 +448,13 @@ export class App implements LoopCallbacks {
     }
   }
 
+  private presentSecret({ secret, found, total }: SecretFind): void {
+    const quiet = Boolean(secret.quiet);
+    this.ui?.hud.showSecret(secret.title, secret.line, found, total, quiet);
+    this.ui?.mirror.announce(`${quiet ? 'Found' : 'Secret found'}: ${secret.title}. ${secret.line} ${found} of ${total} secrets found.`);
+    if (!quiet) this.audio.secretChime();
+  }
+
   private async preloadAmbientVisitors(interior: InteriorWorld): Promise<void> {
     if (this.renderer.quality.ambientVisitors <= 0) return;
     try {
@@ -617,6 +632,7 @@ export class App implements LoopCallbacks {
 
     this.worldDirector.update(this.player.position);
     this.updateLocationAnnouncement(eye, zoneChanged);
+    this.secrets.update(this.isOutside ? 'exterior' : 'interior', this.player.position, this.currentZone);
 
     if (this.interiorWorld) {
       if (this.activeWorld === 'interior') {
@@ -697,6 +713,7 @@ export class App implements LoopCallbacks {
     this.disposed = true;
     this.loop.stop();
     this.longFrames.stop();
+    this.secrets.dispose();
     this.developmentTool?.dispose();
     this.developmentTool = null;
     this.developerOverlay?.dispose();

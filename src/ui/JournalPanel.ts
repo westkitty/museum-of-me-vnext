@@ -2,6 +2,13 @@ import { Panel } from './Panel';
 import { el } from './dom';
 import { EXHIBITS_BY_ID, projectsForExhibit, WINGS_BY_ID } from '../content/collection.generated';
 import type { Journal, JournalEntry } from '../state/Journal';
+import type { SecretDefinition } from '../content/secrets';
+
+/** The secrets list shown in the journal. */
+export interface JournalSecretsView {
+  readonly secrets: readonly SecretDefinition[];
+  isFound(id: string): boolean;
+}
 
 type JournalView = 'all' | 'bookmarks' | 'notes';
 type JournalSort = 'recent' | 'first' | 'title';
@@ -21,6 +28,7 @@ export class JournalPanel extends Panel {
     private readonly journal: Journal,
     private readonly onOpenExhibit: (id: string) => void,
     private readonly onOpenThread?: () => void,
+    private readonly secretsView?: JournalSecretsView,
   ) {
     super('journal', 'Journal', 'Your visit');
   }
@@ -35,6 +43,7 @@ export class JournalPanel extends Panel {
           this.onOpenThread ? el('button', { type: 'button', text: 'Build a Visit Thread instead', onclick: () => { this.close(); this.onOpenThread?.(); } }) : document.createTextNode(''),
         ),
         el('p', { class: 'panel__note', text: 'The journal is a return path, not a score. You can use the entire museum without filling it.' }),
+        this.secretsSection(),
       );
       return;
     }
@@ -95,6 +104,7 @@ export class JournalPanel extends Panel {
       el('p', { class: 'journal-result-count', role: 'status', 'aria-live': 'polite', text: `${visible.length} ${visible.length === 1 ? 'entry' : 'entries'} shown.` }),
       results,
       editor,
+      this.secretsSection(),
       this.statusMessage ? el('p', { class: 'panel__note', role: 'status', text: this.statusMessage }) : document.createTextNode(''),
       el('div', { class: 'journal-danger' },
         el('button', {
@@ -108,6 +118,24 @@ export class JournalPanel extends Panel {
         }),
       ),
       el('p', { class: 'panel__note', text: 'Everything here stays in this browser unless you explicitly export it. There is no score, badge, or completion requirement.' }),
+    );
+  }
+
+  /** Found secrets by name; the rest stay hidden. Exhibits are never counted. */
+  private secretsSection(): Node {
+    const view = this.secretsView;
+    if (!view || view.secrets.length === 0) return document.createTextNode('');
+    const found = view.secrets.filter((secret) => view.isFound(secret.id)).length;
+    return el('section', { class: 'journal-secrets', 'aria-label': 'Secrets' },
+      el('h3', { text: `Secrets · ${found} of ${view.secrets.length} found` }),
+      el('ul', {},
+        ...view.secrets.map((secret) => view.isFound(secret.id)
+          ? el('li', { class: 'journal-secrets__found' }, el('strong', { text: secret.title }), el('span', { text: secret.line }))
+          : el('li', { class: 'journal-secrets__hidden', 'aria-label': 'Not found yet', text: '???' })),
+      ),
+      found < view.secrets.length
+        ? el('p', { class: 'panel__note', text: 'They are tucked away inside and out. Wander off the path.' })
+        : el('p', { class: 'panel__note', text: 'You found every one. Thank you for looking so closely.' }),
     );
   }
 
