@@ -155,7 +155,7 @@ export class EnvironmentDressing {
       wall.rotation.y = Math.atan2(d[0], d[2]);
     }
 
-    const welcome = buildWingSign(this.scope, 'Welcome', 'Begin here. The museum opens from the Rotunda.');
+    const welcome = buildWingSign(this.scope, 'Welcome', 'Try the star window on your right. Rotunda straight ahead.');
     welcome.scale.setScalar(0.86);
     const at = place(d, VESTIBULE_FROM + 2.2, 0, GROUND_Y);
     welcome.position.set(at[0], 4.6, at[2]);

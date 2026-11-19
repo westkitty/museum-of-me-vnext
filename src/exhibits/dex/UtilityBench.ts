@@ -24,19 +24,19 @@ interface Bin {
   readonly name: string;
   readonly note: string;
   readonly colour: number;
-  readonly reclaimable: boolean;
+  readonly caption?: string;
 }
 
 const BINS: readonly Bin[] = [
-  { key: 'photos', name: 'Photographs', colour: 0x3fb9b2, reclaimable: false,
+  { key: 'photos', name: 'Photographs', colour: 0x3fb9b2, caption: 'Photos stay here',
     note: 'The archive itself. Never moved off the device and never deleted — the device is the source, not a cache.' },
-  { key: 'duplicates', name: 'Duplicates', colour: 0xe8c65a, reclaimable: false,
+  { key: 'duplicates', name: 'Duplicates', colour: 0xe8c65a,
     note: 'Marked, never removed. The tool tells you they exist; you decide what happens next.' },
-  { key: 'caches', name: 'Caches', colour: 0xd97a4e, reclaimable: true,
-    note: 'Genuinely reclaimable, and the application will regenerate them. This is the honest number.' },
-  { key: 'downloads', name: 'Downloads', colour: 0x9d8bff, reclaimable: true,
-    note: 'Reclaimable, but only you know which ones matter, so nothing here is automatic.' },
-  { key: 'system', name: 'System', colour: 0x8f9a9c, reclaimable: false,
+  { key: 'caches', name: 'Caches', colour: 0xd97a4e, caption: 'The app can rebuild these',
+    note: 'The application can rebuild these files when it needs them.' },
+  { key: 'downloads', name: 'Downloads', colour: 0x9d8bff, caption: 'Only you know what matters here',
+    note: 'Review these yourself. A download may be your only copy.' },
+  { key: 'system', name: 'System', colour: 0x8f9a9c,
     note: 'Explained, never touched. Overstating what can be cleared here is why this category of tool is distrusted.' },
 ];
 
@@ -51,7 +51,7 @@ export class UtilityBench extends ExhibitBase {
   private binSlots = this.tracked<THREE.Vector3>();
   private sorted = false;
   private explained = -1;
-  private meter!: THREE.Mesh;
+  private meters = this.tracked<{ mesh: THREE.Mesh; left: number; count: number }>();
 
   /** Reused every frame; allocating these per element churned the heap. */
   private readonly scratchTarget = new THREE.Vector3();
@@ -99,7 +99,7 @@ export class UtilityBench extends ExhibitBase {
       this.group.add(tray);
       this.binSlots.push(new THREE.Vector3(x, 1.08, -3.9));
 
-      const label = buildLabel(scope, bin.name, 0.86);
+      const label = buildLabel(scope, bin.caption ? `${bin.name}\n${bin.caption}` : bin.name, 1.02, 0.4);
       label.position.set(x, 1.03, -3.35);
       label.rotation.x = -Math.PI / 2;
       this.group.add(label);
@@ -124,23 +124,30 @@ export class UtilityBench extends ExhibitBase {
       this.homes.push(home);
     }
 
-    // ── the honest meter ──
-    const meterFrame = new THREE.Mesh(scope.track(new THREE.BoxGeometry(2.4, 0.3, 0.08)), steel);
-    meterFrame.position.set(0, 1.35, -4.3);
-    this.group.add(meterFrame);
+    // Track rebuildable files separately from files that need a person to decide.
+    for (const [key, x, caption, color] of [
+      ['caches', -1.25, 'Can be rebuilt', 0xd97a4e],
+      ['downloads', 1.25, 'Needs your review', 0x9d8bff],
+    ] as const) {
+      const frame = new THREE.Mesh(scope.track(new THREE.BoxGeometry(1.9, 0.3, 0.08)), steel);
+      frame.position.set(x, 1.42, -4.3);
+      this.group.add(frame);
 
-    this.meter = new THREE.Mesh(
-      scope.track(new THREE.BoxGeometry(2.2, 0.2, 0.06)),
-      this.emissive(0x3fb9b2, 0.9),
-    );
-    this.meter.position.set(0, 1.35, -4.25);
-    this.meter.scale.x = 0.001;
-    this.group.add(this.meter);
+      const fill = new THREE.Mesh(scope.track(new THREE.BoxGeometry(1.7, 0.2, 0.06)), this.emissive(color, 0.9));
+      const left = x - 0.85;
+      fill.position.set(left, 1.42, -4.25);
+      fill.scale.x = 0.001;
+      this.group.add(fill);
+      this.meters.push({
+        mesh: fill,
+        left,
+        count: this.fileBins.filter((binIndex) => BINS[binIndex].key === key).length,
+      });
 
-    const meterLabel = buildLabel(scope, 'Actually reclaimable', 1.5, 0.18);
-    meterLabel.position.set(0, 1.62, -4.3);
-    this.group.add(meterLabel);
-    scope.track(meterLabel.geometry);
+      const label = buildLabel(scope, caption, 1.75, 0.18);
+      label.position.set(x, 1.73, -4.3);
+      this.group.add(label);
+    }
 
     // ── controls ──
     const sortConsole = buildConsole(scope, 0.6, 0.44, 1.0, steel);
@@ -158,13 +165,12 @@ export class UtilityBench extends ExhibitBase {
       object: sortConsole,
       label: () => (this.sorted ? 'Return the files' : 'Audit and sort the files'),
       description:
-        'Sorts every file into its category and shows what is genuinely reclaimable. Sorting is organisational — nothing is moved off the bench and nothing is destroyed.',
+        'Sorts the sample files and shows which can be rebuilt and which need a decision.',
       activate: () => {
         this.sorted = !this.sorted;
-        const reclaim = this.reclaimableCount();
         this.ctx.announce(
           this.sorted
-            ? `Sorted. ${reclaim} of ${this.files.length} files are genuinely reclaimable. The rest are explained, not cleared.`
+            ? `Sorted. ${this.fileSummary()}`
             : 'Files returned to the bench. Nothing was moved off the device and nothing was destroyed.',
         );
       },
@@ -197,10 +203,8 @@ export class UtilityBench extends ExhibitBase {
     scope.track(absent.geometry);
   }
 
-  private reclaimableCount(): number {
-    let n = 0;
-    for (const bin of this.fileBins) if (BINS[bin].reclaimable) n++;
-    return n;
+  private fileSummary(): string {
+    return `The app can rebuild ${this.meters[0].count} files. Review ${this.meters[1].count} downloads yourself. Photos stay here.`;
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
@@ -218,18 +222,20 @@ export class UtilityBench extends ExhibitBase {
       this.files[i].position.lerp(target, rate);
     }
 
-    const fraction = this.sorted ? this.reclaimableCount() / Math.max(1, this.files.length) : 0;
-    this.meter.scale.x += (Math.max(0.001, fraction) - this.meter.scale.x) * rate;
-    this.meter.position.x = -1.1 + (2.2 * this.meter.scale.x) / 2;
+    for (const { mesh, left, count } of this.meters) {
+      const fraction = this.sorted ? count / Math.max(1, this.files.length) : 0;
+      mesh.scale.x += (Math.max(0.001, fraction) - mesh.scale.x) * rate;
+      mesh.position.x = left + (1.7 * mesh.scale.x) / 2;
+    }
   }
 
   protected override onReset(): void {
     this.sorted = false;
     this.explained = -1;
     for (let i = 0; i < this.files.length; i++) this.files[i].position.copy(this.homes[i]);
-    if (this.meter) {
-      this.meter.scale.x = 0.001;
-      this.meter.position.x = -1.1;
+    for (const { mesh, left } of this.meters) {
+      mesh.scale.x = 0.001;
+      mesh.position.x = left;
     }
   }
 
@@ -238,6 +244,6 @@ export class UtilityBench extends ExhibitBase {
     if (!this.sorted) {
       return `${this.files.length} synthetic files lie unsorted on the bench. Nothing here touches a real filesystem.${explained}`;
     }
-    return `Sorted into five categories. ${this.reclaimableCount()} of ${this.files.length} files are genuinely reclaimable; the rest are explained rather than cleared. There is no delete control.${explained}`;
+    return `Sorted into five categories. ${this.fileSummary()} There is no delete control.${explained}`;
   }
 }

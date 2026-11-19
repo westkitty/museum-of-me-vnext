@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ExhibitBase } from '../ExhibitBase';
-import { buildPlaque, buildLectern, buildLabel } from '../Furniture';
+import { buildPlaque, buildLectern, buildLabel, updateLabel } from '../Furniture';
 import { buildConsole } from '../parts';
 import { rng } from '../../assets/generators';
 import { buildCollectibleSilhouette } from './CollectibleSilhouettes';
@@ -47,6 +47,7 @@ export class SmoresKatamari extends ExhibitBase {
   private collected = this.tracked<boolean>();
   private homes = this.tracked<THREE.Vector3>();
   private radius = 0.06;
+  private rollLabel!: THREE.Mesh;
   private rolling = false;
   private t = 0;
 
@@ -263,7 +264,7 @@ export class SmoresKatamari extends ExhibitBase {
     this.diorama.add(this.ball);
 
     // ── the compression note ──
-    const note = buildLabel(scope, 'The town is real. The distances are not — compressed about eight to one.', 3.8, 0.16);
+    const note = buildLabel(scope, 'A real town, about eight times smaller.\nWatch what sticks as the ball grows.', 3.8, 0.28);
     note.position.set(0, 1.85, -2.0);
     this.diorama.add(note);
     scope.track(note.geometry);
@@ -273,26 +274,34 @@ export class SmoresKatamari extends ExhibitBase {
     consoleGroup.position.set(0, 0, -1.6);
     this.group.add(consoleGroup);
 
-    const consoleLabel = buildLabel(scope, 'Roll', 0.5);
-    consoleLabel.position.set(0, 1.02, 0.2);
-    consoleLabel.rotation.x = -Math.PI / 2.1;
-    consoleGroup.add(consoleLabel);
-    scope.track(consoleLabel.geometry);
+    this.rollLabel = buildLabel(scope, this.rollAction(), 0.65);
+    this.rollLabel.position.set(0, 1.02, 0.2);
+    this.rollLabel.rotation.x = -Math.PI / 2.1;
+    consoleGroup.add(this.rollLabel);
 
     this.control({
       object: consoleGroup,
-      label: 'Roll the ball',
+      label: () => this.rollAction(),
       description:
         'One short self-contained level: roll through the town, pick up anything smaller than you are, and watch what becomes collectible as you grow.',
       activate: () => {
         this.rolling = !this.rolling;
+        updateLabel(scope, this.rollLabel, this.rollAction());
         this.ctx.announce(
           this.rolling
             ? 'Rolling. Anything smaller than the ball sticks to it.'
-            : `Stopped at ${(this.radius * 100).toFixed(0)} centimetres across, having collected ${this.collectedCount()} things.`,
+            : `Stopped at ${this.ballWidth()}, having collected ${this.collectedCount()} things.`,
         );
       },
     });
+  }
+
+  private rollAction(): string {
+    return this.rolling ? 'Stop rolling' : 'Start rolling';
+  }
+
+  private ballWidth(): string {
+    return `${(this.radius * 200).toFixed(0)} centimetres across`;
   }
 
   private collectedCount(): number {
@@ -350,7 +359,7 @@ export class SmoresKatamari extends ExhibitBase {
           const tier = COLLECTIBLES[this.itemTier[i]];
           if (this.collectedCount() % 8 === 0) {
             this.ctx.announce(
-              `${(this.radius * 100).toFixed(0)} centimetres across. ${tier.name} are within reach now.`,
+              `${this.ballWidth()}. ${tier.name} are within reach now.`,
             );
           }
         }
@@ -374,7 +383,10 @@ export class SmoresKatamari extends ExhibitBase {
   }
 
   protected override onReset(): void {
-    this.rolling = false;
+    if (this.rolling) {
+      this.rolling = false;
+      updateLabel(this.ctx.scope, this.rollLabel, this.rollAction());
+    }
     this.t = 0;
     this.radius = 0.06;
     for (let i = 0; i < this.items.length; i++) {
@@ -391,7 +403,7 @@ export class SmoresKatamari extends ExhibitBase {
 
   protected override describeState(): string {
     const reachable = COLLECTIBLES.filter((c) => c.size <= this.radius * 0.85).map((c) => c.name);
-    const size = `${(this.radius * 100).toFixed(0)} centimetres across`;
+    const size = `${this.ballWidth()}`;
     if (!this.rolling && this.collectedCount() === 0) {
       return `The ball sits at the edge of the town, ${size}. Only ${reachable.join(' and ') || 'nothing yet'} can be picked up at this size.`;
     }

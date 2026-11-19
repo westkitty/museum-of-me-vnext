@@ -1,4 +1,5 @@
 import type { App } from '../app/App';
+import { museumLink } from '../content/collectionLinks';
 
 /** Live-world title presentation: no second renderer, media, or animation loop. */
 export function mountCinematicArrival(app: App): void {
@@ -39,7 +40,13 @@ export function mountCinematicArrival(app: App): void {
   enter.textContent = 'Preparing your arrival…';
   heading.id = 'cinematic-arrival-heading';
   root.setAttribute('aria-labelledby', heading.id);
-  content.append(eyebrow, heading, description, orientation, touchOrientation, enter);
+  const browse = document.createElement('a');
+  browse.href = museumLink({ browse: true });
+  browse.textContent = 'Browse the collection';
+  const actions = document.createElement('div');
+  actions.className = 'cinematic-arrival__actions';
+  actions.append(enter, browse);
+  content.append(eyebrow, heading, description, orientation, touchOrientation, actions);
   root.append(content);
   document.body.append(root);
 
@@ -76,7 +83,7 @@ export function mountCinematicArrival(app: App): void {
     app.setArrivalUpdate(null);
     enter.disabled = false;
     enter.textContent = 'Enter the museum';
-    enter.focus({ preventScroll: true });
+    if (document.activeElement === heading) enter.focus({ preventScroll: true });
   };
   app.setArrivalUpdate(check);
   const finish = () => {
@@ -108,9 +115,13 @@ export function mountCinematicArrival(app: App): void {
       if (!enter.disabled) finish();
     }
     if (event.key === 'Tab') {
-      // The introductory dialog has one actionable control.
+      const ordered = enter.disabled ? [browse] : [enter, browse];
+      const index = ordered.findIndex((item) => item === document.activeElement);
+      const next = index < 0
+        ? (event.shiftKey ? ordered.length - 1 : 0)
+        : (index + (event.shiftKey ? -1 : 1) + ordered.length) % ordered.length;
       event.preventDefault();
-      (enter.disabled ? heading : enter).focus({ preventScroll: true });
+      ordered[next].focus({ preventScroll: true });
     }
   });
 }

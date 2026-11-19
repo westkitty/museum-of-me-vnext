@@ -1043,3 +1043,12 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 **Continuity:** `docs/COMPLETION_MATRIX.md` updated (queue item 5 closed with full control adjudication and interaction closure).
 
 **Resume here:** Owner device walkthrough and remaining human acceptance judgments (Queue Item 1).
+
+## Visitor experience and interpretation update
+
+- The text collection and stable exhibit links use the same exhibit records as the 3D museum. The reading view loads without WebGL and can hand an exhibit destination to the 3D visit.
+- The map, guide, and Visit Thread share a walking target across the island, entrance, gallery floors, and stairs. The island view shows public landmarks and a return path. The touch menu exposes visitor tools without keyboard shortcuts.
+- Curator Desk session files include Journal, Study Lab, preferences, Visit Thread, and finds. The importer previews and validates those sections before writing, and it offers whole-session undo. Older exports retain local finds when the file omits them.
+- Doorway signs now give short invitations for all 35 bays. A small foyer observatory previews Heliocide. The Drakken lab describes the visible effect of the first station and Syrin contact. Three authored tours connect exhibit actions with walking-time estimates.
+- Updated physical labels and state cues for Orbital Tomb, Heliocide, Voice Lab, AetherVFX, BigMac Backbone, Utility Bench, Media Lineage, S'mores Katamari, and Dexter's room. The existing Sanctuary nickname and inscription are preserved.
+- Automated evidence lives with the relevant visitor-route, visitor-signage, collection-search, visitor-session, and browser tests. Physical-device use and human review of the new signs remain unverified.

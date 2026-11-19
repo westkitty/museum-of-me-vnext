@@ -32,7 +32,7 @@ interface JournalPayload {
   guideTarget?: GuideTargetRef;
 }
 
-const KEY = 'museum-of-me:journal';
+export const JOURNAL_KEY = 'museum-of-me:journal';
 const BACKUP_KEY = 'museum-of-me:journal:backup';
 const QUARANTINE_KEY = 'museum-of-me:journal:quarantine';
 export const JOURNAL_VERSION = 2;
@@ -249,7 +249,7 @@ export class Journal {
   private load(): void {
     if (!this.storage) return;
     try {
-      const raw = this.storage.getItem(KEY);
+      const raw = this.storage.getItem(JOURNAL_KEY);
       if (!raw) return;
       const parsed = JSON.parse(raw) as JournalPayload;
       if (typeof parsed !== 'object' || parsed === null || typeof parsed.entries !== 'object') {
@@ -265,7 +265,7 @@ export class Journal {
       }
       this.applyParsed(parsed);
     } catch {
-      const raw = this.storage.getItem(KEY) ?? '';
+      const raw = this.storage.getItem(JOURNAL_KEY) ?? '';
       if (raw) this.quarantine(raw, 'malformed-json');
       this.recoveryNotice = 'Journal JSON was corrupt and has been quarantined. Existing visitor data was not silently discarded.';
     }
@@ -281,9 +281,9 @@ export class Journal {
   private save(): void {
     if (!this.storage) return;
     try {
-      const previous = this.storage.getItem(KEY);
+      const previous = this.storage.getItem(JOURNAL_KEY);
       if (previous) this.storage.setItem(BACKUP_KEY, previous);
-      this.storage.setItem(KEY, JSON.stringify(this.exportPayload()));
+      this.storage.setItem(JOURNAL_KEY, JSON.stringify(this.exportPayload()));
     } catch {
       /* storage unavailable — journal degrades to session-only */
     }

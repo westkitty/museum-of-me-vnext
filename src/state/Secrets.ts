@@ -3,7 +3,7 @@
  * Separate from the Journal: exhibit visits are for orientation and are never
  * counted; secrets are the one place the museum keeps a count.
  */
-const KEY = 'museum-of-me:secrets';
+export const SECRETS_KEY = 'museum-of-me:secrets';
 export const SECRETS_VERSION = 1;
 
 interface SecretsPayload {
@@ -49,7 +49,7 @@ export class SecretsLog {
   private load(): void {
     if (!this.storage) return;
     try {
-      const raw = this.storage.getItem(KEY);
+      const raw = this.storage.getItem(SECRETS_KEY);
       if (!raw) return;
       const payload = JSON.parse(raw) as Partial<SecretsPayload>;
       if (payload.version !== SECRETS_VERSION || !payload.found || typeof payload.found !== 'object') return;
@@ -62,11 +62,14 @@ export class SecretsLog {
     }
   }
 
+  exportPayload(): SecretsPayload {
+    return { version: SECRETS_VERSION, found: Object.fromEntries(this.found) };
+  }
+
   private save(): void {
     if (!this.storage) return;
-    const payload: SecretsPayload = { version: SECRETS_VERSION, found: Object.fromEntries(this.found) };
     try {
-      this.storage.setItem(KEY, JSON.stringify(payload));
+      this.storage.setItem(SECRETS_KEY, JSON.stringify(this.exportPayload()));
     } catch {
       // Storage full or blocked: the find still counts for this visit.
     }

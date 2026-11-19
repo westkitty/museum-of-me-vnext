@@ -34,13 +34,13 @@ function hallWaypoints(w: WingSpec): Waypoint[] {
   return out;
 }
 
-const RING_RADIUS = 10.5;
+export const ROTUNDA_ROUTE_RADIUS = 10.5;
 /** Balcony ring floor spans apothem 11..16 (layout.ts); 13.5 stays clear of
  * both the inner atrium drop and the outer wall/piers, and matches the radius
  * already used for the wing thresholds and the stair landings. */
-const BALCONY_RING_RADIUS = 13.5;
+export const BALCONY_ROUTE_RADIUS = 13.5;
 
-function ringPoint(face: Parameters<typeof faceDirection>[0], y = GROUND_Y, radius = RING_RADIUS): Vec3 {
+function ringPoint(face: Parameters<typeof faceDirection>[0], y = GROUND_Y, radius = ROTUNDA_ROUTE_RADIUS): Vec3 {
   return place(faceDirection(face), radius, 0, y);
 }
 
@@ -55,7 +55,7 @@ function ringPath(
   from: Parameters<typeof faceDirection>[0],
   to: Parameters<typeof faceDirection>[0],
   y = GROUND_Y,
-  radius = RING_RADIUS,
+  radius = ROTUNDA_ROUTE_RADIUS,
 ): Waypoint[] {
   const order = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'] as const;
   const a = order.indexOf(from);
@@ -67,7 +67,7 @@ function ringPath(
   const out: Waypoint[] = [];
   for (let i = 0; i !== delta + stepDir && Math.abs(i) <= Math.abs(delta); i += stepDir) {
     const face = order[(a + i + 16) % 8];
-    const label = radius === RING_RADIUS ? `rotunda ring ${face}` : `balcony ring ${face}`;
+    const label = radius === ROTUNDA_ROUTE_RADIUS ? `rotunda ring ${face}` : `balcony ring ${face}`;
     out.push({ label, at: ringPoint(face, y, radius) });
     if (i === delta) break;
   }
@@ -124,13 +124,13 @@ export function canonicalRoute(): readonly Waypoint[] {
   for (const id of ['media', 'infra'] as const) {
     const w = WINGS.find((x) => x.id === id)!;
     const face = w.face as 'nw' | 'ne';
-    route.push(...ringPath(atBalconyFace, face, LEVEL_1_Y, BALCONY_RING_RADIUS));
-    route.push({ label: `balcony toward ${id}`, at: place(faceDirection(face), BALCONY_RING_RADIUS, 0, LEVEL_1_Y) });
+    route.push(...ringPath(atBalconyFace, face, LEVEL_1_Y, BALCONY_ROUTE_RADIUS));
+    route.push({ label: `balcony toward ${id}`, at: place(faceDirection(face), BALCONY_ROUTE_RADIUS, 0, LEVEL_1_Y) });
     route.push(...hallWaypoints(w));
-    route.push({ label: `balcony from ${id}`, at: place(faceDirection(face), BALCONY_RING_RADIUS, 0, LEVEL_1_Y) });
+    route.push({ label: `balcony from ${id}`, at: place(faceDirection(face), BALCONY_ROUTE_RADIUS, 0, LEVEL_1_Y) });
     atBalconyFace = face;
   }
-  route.push(...ringPath(atBalconyFace, 'sw', LEVEL_1_Y, BALCONY_RING_RADIUS));
+  route.push(...ringPath(atBalconyFace, 'sw', LEVEL_1_Y, BALCONY_ROUTE_RADIUS));
 
   route.push(...stairWaypoints().reverse());
   route.push(...ringPath('sw', 'nw'));

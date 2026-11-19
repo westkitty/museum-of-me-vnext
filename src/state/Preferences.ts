@@ -37,8 +37,8 @@ export interface PreferencesLoadResult {
   notice: string | null;
 }
 
-const KEY = 'museum-of-me:preferences';
-const KEY_V2 = 'museum-of-me:preferences:v2';
+export const PREFERENCES_LEGACY_KEY = 'museum-of-me:preferences';
+export const PREFERENCES_KEY = 'museum-of-me:preferences:v2';
 const BACKUP_KEY = 'museum-of-me:preferences:backup';
 const QUARANTINE_KEY = 'museum-of-me:preferences:quarantine';
 export const PREFERENCES_VERSION = 3;
@@ -163,7 +163,7 @@ export function loadPreferencesResult(storage: Storage | null = safeStorage()): 
     return JSON.parse(raw);
   };
   try {
-    const current = storage.getItem(KEY_V2) ?? storage.getItem(KEY);
+    const current = storage.getItem(PREFERENCES_KEY) ?? storage.getItem(PREFERENCES_LEGACY_KEY);
     if (!current) return { preferences: applySafeModeOverlay(base), migrated: false, quarantined: false, notice: null };
     const parsed = tryParse(current);
     if (typeof parsed !== 'object' || parsed === null) {
@@ -175,7 +175,7 @@ export function loadPreferencesResult(storage: Storage | null = safeStorage()): 
       quarantine(storage, current, 'future-version');
       return { preferences: applySafeModeOverlay(base), migrated: false, quarantined: true, notice: 'A newer preference format was rejected. Your previous file is quarantined.' };
     }
-    const migrated = version !== PREFERENCES_VERSION || storage.getItem(KEY_V2) === null;
+    const migrated = version !== PREFERENCES_VERSION || storage.getItem(PREFERENCES_KEY) === null;
     // v3 intentionally mutes legacy defaults once. Visitors who subsequently
     // opt in retain their chosen values under the new version.
     const audioDefaults = !Number.isFinite(version) || version < 3
@@ -193,7 +193,7 @@ export function loadPreferencesResult(storage: Storage | null = safeStorage()): 
       notice: migrated ? 'Visitor preferences were migrated to the current schema. The previous payload is backed up.' : null,
     };
   } catch {
-    const raw = storage.getItem(KEY_V2) ?? storage.getItem(KEY) ?? '';
+    const raw = storage.getItem(PREFERENCES_KEY) ?? storage.getItem(PREFERENCES_LEGACY_KEY) ?? '';
     if (raw) quarantine(storage, raw, 'malformed-json');
     return { preferences: applySafeModeOverlay(base), migrated: false, quarantined: true, notice: 'Preferences JSON was corrupt and has been quarantined. Defaults are in use.' };
   }
@@ -218,27 +218,31 @@ export function savePreferences(prefs: VisitorPreferences, storage: Storage | nu
     })
     : incoming;
   try {
-    const previous = storage.getItem(KEY_V2);
+    const previous = storage.getItem(PREFERENCES_KEY);
     if (previous) storage.setItem(BACKUP_KEY, previous);
-    storage.setItem(KEY_V2, JSON.stringify(stored));
-    storage.setItem(KEY, JSON.stringify(stored));
+    storage.setItem(PREFERENCES_KEY, JSON.stringify(stored));
+    storage.setItem(PREFERENCES_LEGACY_KEY, JSON.stringify(stored));
   } catch { /* quota / private mode */ }
 }
 
 function loadStoredBase(storage: Storage): Partial<VisitorPreferences> {
   try {
-    // KEY_V2 is the current real value; BACKUP_KEY is only set to what KEY_V2
+    // PREFERENCES_KEY is the current real value; BACKUP_KEY is only set to what PREFERENCES_KEY
     // held immediately before the save now in progress (see savePreferences
     // below), so it is always one save behind. Reading it first pulled a
     // stale value for every Safe-Mode-protected field on every subsequent
     // save, silently reverting real, current settings the visitor had
     // already saved.
-    const raw = storage.getItem(KEY_V2) ?? storage.getItem(BACKUP_KEY) ?? storage.getItem(KEY);
+    const raw = storage.getItem(PREFERENCES_KEY) ?? storage.getItem(BACKUP_KEY) ?? storage.getItem(PREFERENCES_LEGACY_KEY);
     if (!raw) return {};
     return sanitizePreferences(JSON.parse(raw));
   } catch {
     return {};
   }
+}
+
+export function preferencesForExport(runtime: VisitorPreferences, storage: Storage | null = safeStorage()): VisitorPreferences {
+  return isSafeMode() && storage ? sanitizePreferences({ ...runtime, ...loadStoredBase(storage) }) : runtime;
 }
 
 export function restorePreviousPreferences(storage: Storage | null = safeStorage()): VisitorPreferences | null {

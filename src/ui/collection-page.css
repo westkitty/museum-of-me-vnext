@@ -1,0 +1,45 @@
+#museum-loading a { color: var(--gold-bright); }
+
+html.reading-mode,
+html.reading-mode body {
+  height: auto;
+  min-height: 100%;
+  overflow: auto;
+}
+
+.collection-page {
+  width: min(100%, 56rem);
+  margin-inline: auto;
+  padding: 2rem clamp(1rem, 6vw, 3rem) 5rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.collection-page nav,
+.exhibit-reading__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem 1.5rem;
+}
+
+.collection-page nav {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--gold);
+}
+
+.collection-page h1,
+.collection-page h2 {
+  font-family: var(--font-body);
+  line-height: 1.15;
+}
+
+.collection-page h1 { font-size: clamp(2.25rem, 5vw, 3.5rem); }
+.collection-page h2 { margin-top: 1.75rem; color: var(--gold-bright); }
+.collection-page a,
+.exhibit-reading__actions a { color: var(--gold-bright); }
+.collection-page__subtitle { font-size: 1.2rem; }
+.collection-page__index { margin: 0; padding: 0; list-style: none; }
+.collection-page__index li { padding: .85rem 0; border-bottom: 1px solid #44404c; }
+.collection-page__index p { margin: .25rem 0; }
+.collection-page__projects { font-size: .9rem; color: #c6bebe; }

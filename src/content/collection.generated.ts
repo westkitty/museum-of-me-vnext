@@ -2215,8 +2215,8 @@ export const COLLECTION: Collection = {
         "plaque": "Five voice projects, one requirement: recognition and synthesis run locally, and audio is not transmitted.",
         "problem": "Dictation and voice synthesis are useful everywhere and trustworthy almost nowhere.",
         "made": "System-wide macOS dictation with local recognition, a separate Android input method, a multi-provider synthesis application, a voice-cloning fork, and a thin client for models running on a larger machine.",
-        "interaction": "Select a prerecorded sample and compare raw transcription, refined transcription, synthesised voice and command interpretation at the four stations.",
-        "explore": "No microphone permission is requested. Every sample in this room is prerecorded."
+        "interaction": "Choose a prepared example. Compare the original transcript, corrected wording, text for a spoken reply, and the action the words could trigger.",
+        "explore": "No microphone is used. See the same example at all four stations."
       }
     },
     {
@@ -2458,7 +2458,7 @@ export const COLLECTION: Collection = {
         "plaque": "The effect is not only particles. It is a deterministic ability sequence that can change terrain, leave aftermath, and be undone as one authoritative transaction.",
         "problem": "How do visual effects remain immediate to author while also becoming deterministic gameplay state with bounded resources and reversible world mutation?",
         "made": "A deterministic Three.js ability and VFX platform with surface-conforming telegraphs, data-defined abilities, semantic sequence composition, persistent world mutations, terrain deformation, atomic undo and redo, performance workloads, and visual regression fixtures.",
-        "interaction": "Cast an ability across the chamber floor. Follow its telegraph, travel, impact, field, and residue stages; then undo the persistent aftermath and watch the world return to the prior authoritative state.",
+        "interaction": "Cast an ability across the chamber floor. Follow its telegraph, travel, impact, field, and residue stages; then remove the newest mark and see how the floor changes.",
         "explore": "Authoring controls remain immediate, but the room now exposes the semantic chain and persistent consequence that distinguish the current platform from a particle sandbox."
       }
     },

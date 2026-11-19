@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ExhibitBase } from '../ExhibitBase';
-import { buildPlaque, buildLectern, buildLabel } from '../Furniture';
+import { buildPlaque, buildLectern, buildLabel, updateLabel } from '../Furniture';
 import { buildConsole, Pulse, Filament } from '../parts';
 import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
 
@@ -24,7 +24,15 @@ const STATIONS: readonly Station[] = [
   { name: 'Telemetry', colour: 0xc7d2d4, note: 'Inspect the ordered mutation ledger without smuggling wall-clock time into deterministic state.' },
 ] as const;
 
-const PLANET_ACTIONS = ['Heat', 'Cool', 'Uplift', 'Fracture', 'Pressure', 'CO₂'] as const;
+const PLANET_ACTIONS = [
+  { name: 'Heat', invitation: 'Heat the planet', result: 'Heat applied' },
+  { name: 'Cool', invitation: 'Cool the planet', result: 'Cooling applied' },
+  { name: 'Uplift', invitation: 'Apply uplift', result: 'Uplift applied' },
+  { name: 'Fracture', invitation: 'Apply a fracture', result: 'Fracture applied' },
+  { name: 'Pressure', invitation: 'Apply pressure', result: 'Pressure applied' },
+  { name: 'CO₂', invitation: 'Add carbon dioxide', result: 'Carbon dioxide added' },
+] as const;
+const PLANET_PROMPT = 'Start at the Planet console. Watch the air around the world.';
 
 export class TerraformingLaboratory extends ExhibitBase {
   private world!: THREE.Mesh;
@@ -32,9 +40,12 @@ export class TerraformingLaboratory extends ExhibitBase {
   private stationMeshes = this.tracked<THREE.Group>();
   private stationLamps = this.tracked<THREE.Mesh>();
   private pulse!: Pulse;
+  private planetLabel!: THREE.Mesh;
+  private planetReadout!: THREE.Mesh;
   private sharedCurves = this.tracked<THREE.CatmullRomCurve3>();
   private activeStation = 0;
   private planetAction = 0;
+  private planetResult = PLANET_PROMPT;
   private mutationCount = 0;
   private macroStep = 0;
   private stellarStarsilk = 1;
@@ -66,16 +77,18 @@ export class TerraformingLaboratory extends ExhibitBase {
       const a = (i / STATIONS.length) * Math.PI * 2 - Math.PI / 2;
       const x = Math.cos(a) * 4.35;
       const z = -4.0 + Math.sin(a) * 3.45;
-      // Station 3 stands in front of the plinth rather than intersecting it.
-      const xPos = i === 3 ? -1.1 : x;
-      const zPos = i === 3 ? 2.1 : z;
-      const yRot = i === 3 ? 0 : -a + Math.PI / 2;
+      // Put the first experiment beside the approach and keep the other stations in sight.
+      const xPos = i === 0 ? -2.85 : i === 3 ? -1.1 : x;
+      const zPos = i === 0 ? 2.35 : i === 3 ? 2.1 : z;
+      const yRot = i === 0 || i === 3 ? 0 : -a + Math.PI / 2;
 
       const c = buildConsole(scope, 0.7, 0.5, 1.0, this.standard(0x343247, { roughness: 0.65 }));
       c.position.set(xPos, 0, zPos); c.rotation.y = yRot; this.group.add(c); this.stationMeshes.push(c);
       const lamp = new THREE.Mesh(scope.track(new THREE.SphereGeometry(0.075, 10, 8)), this.emissive(station.colour, i === 0 ? 1.2 : 0.12));
       lamp.position.set(0, 1.22, 0); c.add(lamp); this.stationLamps.push(lamp);
-      const label = buildLabel(scope, `${i + 1}. ${station.name}`, 0.76); label.position.set(0, 1.03, 0.24); label.rotation.x = -Math.PI / 2.1; c.add(label); scope.track(label.geometry);
+      const label = buildLabel(scope, i === 0 ? this.planetLabelText() : `${i + 1}. ${station.name}`, 0.76);
+      label.position.set(0, 1.03, 0.24); label.rotation.x = -Math.PI / 2.1; c.add(label);
+      if (i === 0) this.planetLabel = label;
 
       const from = new THREE.Vector3(xPos, 1.15, zPos);
       const to = this.world.position.clone();
@@ -83,8 +96,18 @@ export class TerraformingLaboratory extends ExhibitBase {
       this.sharedCurves.push(curve);
       const line = new Filament(scope, this.scaled(14), 0.018, this.standard(0x3a3950, { roughness: 0.8 })); line.follow(curve); this.group.add(line.group);
 
-      this.control({ object: c, label: `Operate ${station.name} station`, description: station.note, activate: () => this.operate(i) });
+      this.control({
+        object: c,
+        label: i === 0 ? () => PLANET_ACTIONS[this.planetAction].invitation : `Operate ${station.name} station`,
+        description: i === 0 ? PLANET_PROMPT : station.note,
+        activate: () => this.operate(i),
+      });
     });
+
+    this.planetReadout = buildLabel(scope, this.planetResult, 2.9, 0.18);
+    this.planetReadout.name = 'drakken-planet-readout';
+    this.planetReadout.position.set(0, 2.52, -2.55);
+    this.group.add(this.planetReadout);
 
     this.pulse = new Pulse(scope, 0.1, this.emissive(0xffffff, 1.9));
     this.pulse.mesh.position.copy(this.world.position);
@@ -103,13 +126,19 @@ export class TerraformingLaboratory extends ExhibitBase {
     status.position.set(0, 4.35, -6.2); this.group.add(status); scope.track(status.geometry);
   }
 
+  private planetLabelText(): string {
+    return `Planet · ${PLANET_ACTIONS[this.planetAction].invitation}`;
+  }
+
   private operate(index: number): void {
     this.activeStation = index;
-    const station = STATIONS[index];
     if (index === 0) {
       const action = PLANET_ACTIONS[this.planetAction]; this.planetAction = (this.planetAction + 1) % PLANET_ACTIONS.length;
-      this.mutationCount++; this.telemetry.push(`PLANET ${action}`); this.pulse.start();
-      this.ctx.announce(`${station.name}: committed ${action} at a bounded target cell. Mutation ${this.mutationCount}. Shared planet state changed.`);
+      this.mutationCount++; this.telemetry.push(`PLANET ${action.name}`); this.pulse.start();
+      this.planetResult = `${action.result} · change ${this.mutationCount}`;
+      updateLabel(this.ctx.scope, this.planetLabel, this.planetLabelText());
+      updateLabel(this.ctx.scope, this.planetReadout, this.planetResult);
+      this.ctx.announce(`${this.planetResult}. Watch the air around the world.`);
     } else if (index === 1) {
       if (this.nullified) { this.ctx.announce('Macro refused. Syrin contact left the Starsilk runtime inert.'); return; }
       this.macroStep++; this.mutationCount++; this.telemetry.push(`MACRO step ${this.macroStep} → EMIT`); this.pulse.start();
@@ -151,7 +180,15 @@ export class TerraformingLaboratory extends ExhibitBase {
   }
 
   protected override onReset(): void {
-    this.activeStation = 0; this.planetAction = 0; this.mutationCount = 0; this.macroStep = 0; this.stellarStarsilk = 1; this.collapsed = false; this.nullified = false; this.latticeFractured = false; this.specimen = 0; this.telemetry.length = 0; this.pulse.stop();
+    if (this.planetAction !== 0) {
+      this.planetAction = 0;
+      updateLabel(this.ctx.scope, this.planetLabel, this.planetLabelText());
+    }
+    if (this.planetResult !== PLANET_PROMPT) {
+      this.planetResult = PLANET_PROMPT;
+      updateLabel(this.ctx.scope, this.planetReadout, this.planetResult);
+    }
+    this.activeStation = 0; this.mutationCount = 0; this.macroStep = 0; this.stellarStarsilk = 1; this.collapsed = false; this.nullified = false; this.latticeFractured = false; this.specimen = 0; this.telemetry.length = 0; this.pulse.stop();
     if (this.world) { this.world.rotation.set(0,0,0); (this.world.material as THREE.MeshStandardMaterial).color.setHex(0x6b4a3a); }
   }
 

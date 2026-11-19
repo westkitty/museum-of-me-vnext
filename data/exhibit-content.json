@@ -132,8 +132,8 @@
   "plaque": "Five voice projects, one requirement: recognition and synthesis run locally, and audio is not transmitted.",
   "problem": "Dictation and voice synthesis are useful everywhere and trustworthy almost nowhere.",
   "made": "System-wide macOS dictation with local recognition, a separate Android input method, a multi-provider synthesis application, a voice-cloning fork, and a thin client for models running on a larger machine.",
-  "interaction": "Select a prerecorded sample and compare raw transcription, refined transcription, synthesised voice and command interpretation at the four stations.",
-  "explore": "No microphone permission is requested. Every sample in this room is prerecorded."
+  "interaction": "Choose a prepared example. Compare the original transcript, corrected wording, text for a spoken reply, and the action the words could trigger.",
+  "explore": "No microphone is used. See the same example at all four stations."
 },
 "E18": {
   "subtitle": "Software Shaped by a Dog",

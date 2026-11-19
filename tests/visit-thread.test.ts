@@ -6,6 +6,8 @@ import {
 } from '../src/state/VisitThread';
 import { EXHIBITS_BY_ID } from '../src/content/collection.generated';
 import { attachIntegrity } from '../src/state/integrity';
+import { AUTHORED_TOURS, estimatedWalkingMinutes } from '../src/content/authoredTours';
+import { buildThreadWeave } from '../src/state/ThreadWeave';
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -299,5 +301,28 @@ describe('Visit Thread state', () => {
     expect(target.active).toBeNull();
     target.applyImport(preview.state!);
     expect(target.active?.stopIds).toEqual(source.active?.stopIds);
+  });
+});
+
+describe('short authored tours', () => {
+  it('round-trips each route, its instructions and transitions through local save and replay', () => {
+    const storage = memoryStorage();
+    const journal = new Journal(storage);
+    expect(AUTHORED_TOURS).toHaveLength(3);
+    for (const tour of AUTHORED_TOURS) {
+      const thread = new VisitThread(storage);
+      expect(thread.startAuthored(tour.id)?.stopIds).toEqual(tour.stops.map((stop) => stop.exhibitId));
+      const reloaded = new VisitThread(storage);
+      const active = reloaded.active!;
+      expect(active.authoredTourId).toBe(tour.id);
+      const weave = buildThreadWeave(active, journal);
+      expect(weave.opening).toBe(tour.opening);
+      expect(weave.stops.map((stop) => stop.selectionReason)).toEqual(tour.stops.map((stop) => stop.instruction));
+      expect(weave.stops[1].bridgeFromPrevious).toBe(tour.stops[1].bridgeFromPrevious);
+      expect(estimatedWalkingMinutes(active.stopIds)).toBeGreaterThan(0);
+      reloaded.end();
+      expect(reloaded.resumeRecent(active.id)).toBe(true);
+      expect(reloaded.active?.authoredTourId).toBe(tour.id);
+    }
   });
 });

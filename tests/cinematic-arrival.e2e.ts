@@ -104,8 +104,11 @@ test('keyboard visitor can dismiss the ready introduction', async ({ page }) => 
   await expect(intro).toBeVisible({ timeout: 30_000 });
   const enter = intro.getByRole('button', { name: 'Enter the museum' });
   await expect(enter).toBeEnabled({ timeout: 15_000 });
+  const browse = intro.getByRole('link', { name: 'Browse the collection' });
   await enter.focus();
   await page.keyboard.press('Tab');
+  await expect(browse).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
   await expect(enter).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(intro).toHaveCount(0);
@@ -126,10 +129,11 @@ test('prewarming introduction owns keyboard focus before entry is enabled', asyn
     .every((id) => document.getElementById(id)?.inert === true))).toBe(true);
   if (await enter.isDisabled()) {
     await page.keyboard.press('Tab');
+    // Browse stays available during prewarm. Enter can become enabled on the
+    // same frame as Tab, so either visitor action keeps focus inside the dialog.
     await expect.poll(async () => page.evaluate(() => {
       const active = document.activeElement;
-      const dialog = document.querySelector('.cinematic-arrival');
-      return Boolean(dialog?.contains(active) && ['H1', 'BUTTON'].includes(active?.tagName ?? ''));
+      return Boolean(active?.closest('.cinematic-arrival__actions') && ['BUTTON', 'A'].includes(active.tagName));
     }), { timeout: 20_000 }).toBe(true);
   }
 });

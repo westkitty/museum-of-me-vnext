@@ -58,12 +58,11 @@ const SAMPLES: readonly Sample[] = [
 const STAGES = [
   { name: 'Raw transcription', projects: 'DexDictate macOS · DexDictate Android', note: 'What local recognition produced before any correction. This is where DexDictate on macOS and its separate Android input method begin.', colour: 0x8a9aa0 },
   { name: 'Refined transcription', projects: 'DexDictate', note: 'After punctuation, casing and vocabulary repair. Still entirely on the machine.', colour: 0x3fb9b2 },
-  { name: 'Synthesised voice', projects: 'DexSpeak · DexTalk · BigMac Voice Tools', note: 'The same text read back by a local synthesis engine: DexSpeak’s system and neural voices, a DexTalk cloned voice, or a model driven on a larger machine through BigMac Voice Tools.', colour: 0xe8c65a },
+  { name: 'Synthesised voice', projects: 'DexSpeak · DexTalk · BigMac Voice Tools', note: 'Text prepared for a local synthesis engine: DexSpeak’s system and neural voices, a DexTalk cloned voice, or a model driven on a larger machine through BigMac Voice Tools.', colour: 0xe8c65a },
   { name: 'Command interpretation', projects: 'DexDictate', note: 'What a system would actually do with it — the point of dictation that reaches the whole OS.', colour: 0xd97a4e },
 ] as const;
 
-/** What the synthesis station's screen shows: speech is not text, so it says what is being read. */
-const SPOKEN_PREFIX = 'Reads aloud: ';
+const SPOKEN_PREFIX = 'Text for the spoken reply: ';
 
 const WAVE_BARS = 56;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -225,7 +224,7 @@ export class VoiceLab extends ExhibitBase {
     this.sampleDial.group.position.set(0, 1.04, 0);
     selector.add(this.sampleDial.group);
 
-    const selectorLabel = buildLabel(scope, 'Prerecorded sample', 0.68);
+    const selectorLabel = buildLabel(scope, 'Try another example', 0.68);
     selectorLabel.position.set(0, 1.02, 0.22);
     selectorLabel.rotation.x = -Math.PI / 2.1;
     selector.add(selectorLabel);
@@ -233,9 +232,9 @@ export class VoiceLab extends ExhibitBase {
 
     this.control({
       object: selector,
-      label: 'Choose a different sample',
+      label: 'Try another example',
       description:
-        'Three prerecorded samples: a quiet room, a noisy one, and technical vocabulary. No microphone permission is requested — nothing in this room listens.',
+        'Compare examples from a quiet room, a noisy room, and technical vocabulary. The exhibit uses prepared examples and never requests a microphone.',
       activate: () => {
         this.sample = this.sampleDial.advance();
         this.playhead = 0;
@@ -245,7 +244,7 @@ export class VoiceLab extends ExhibitBase {
     });
 
     // The privacy notice is a physical sign, because it is a design decision.
-    const notice = buildLabel(scope, 'No microphone is used. All samples are prerecorded.', 3.0);
+    const notice = buildLabel(scope, 'It heard “for.” You meant “four.”\nCompare three prepared examples. No microphone is used.', 3.0, 0.28);
     notice.position.set(0, 3.1, -7.0);
     this.group.add(notice);
     scope.track(notice.geometry);

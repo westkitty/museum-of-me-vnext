@@ -2,37 +2,24 @@ import placementManifest from '../data/workshop-placements.json';
 import { mountCinematicArrival } from './ui/CinematicArrival';
 import './ui/cinematic-arrival.css';
 import { App } from './app/App';
+import { exhibitFromParameter } from './content/collectionLinks';
 import { MuseumPlacements } from './workshop/MuseumPlacements';
 import { AuthorableSceneRegistry } from './workshop/AuthorableSceneRegistry';
 
-function fail(message: string, detail?: unknown): never {
-  console.error('[museum]', message, detail);
-  const el = document.getElementById('ui-root');
-  if (el) {
-    el.innerHTML = `<div class="noscript"><h1>Museum of Me</h1><p>${message}</p></div>`;
+export function startMuseum(): void {
+  const canvas = document.getElementById('museum-canvas') as HTMLCanvasElement | null;
+  const uiRoot = document.getElementById('ui-root');
+  const a11yRoot = document.getElementById('a11y-root');
+
+  if (!canvas || !uiRoot || !a11yRoot) {
+    throw new Error('The museum could not find its mount points.');
   }
-  throw new Error(message);
-}
 
-const canvas = document.getElementById('museum-canvas') as HTMLCanvasElement | null;
-const uiRoot = document.getElementById('ui-root');
-const a11yRoot = document.getElementById('a11y-root');
-
-if (!canvas || !uiRoot || !a11yRoot) {
-  fail('The museum could not find its mount points.');
-}
-
-let app: App;
-let placements: MuseumPlacements;
-let sceneRegistry: AuthorableSceneRegistry;
-const bootstrapStarted = performance.now();
-let coreBootMs = 0;
-const environmentBootMs = 0;
-try {
-  app = new App({ canvas, uiRoot, a11yRoot });
-  coreBootMs = performance.now() - bootstrapStarted;
-
-  sceneRegistry = new AuthorableSceneRegistry([
+  const bootstrapStarted = performance.now();
+  const app = new App({ canvas, uiRoot, a11yRoot });
+  const coreBootMs = performance.now() - bootstrapStarted;
+  const environmentBootMs = 0;
+  const sceneRegistry = new AuthorableSceneRegistry([
     ...app.arrivalGarden.authorableSceneRoots(),
   ]);
   app.sceneRegistry = sceneRegistry;
@@ -49,89 +36,87 @@ try {
     const bytes = Uint8Array.from(atob(script.textContent), (character) => character.charCodeAt(0));
     source = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as unknown;
   }
-  placements = new MuseumPlacements(source, sceneRegistry);
+  const placements = new MuseumPlacements(source, sceneRegistry);
   app.scene.add(placements.group);
-} catch (err) {
-  fail(
-    'This museum needs WebGL 2, which this browser did not provide. The full text of every exhibit is still available in the accessible contents.',
-    err,
+
+  // Expose the constructed app before starting the continuous render loop. Browser
+  // proofs can now observe and stop the real runtime at its first stable boundary.
+  window.__museum = app;
+  // The shared Three.js DevTools bridge discovers the active scene/renderer by
+  // inspecting ordinary window properties. Keep its entry point development-only
+  // and point it at the existing app; never create another renderer or loop.
+  if (import.meta.env.DEV) {
+    window.museumDevtools = app;
+  }
+  // Expose startup phase timings in opt-in QA only, never as inferred GPU time.
+  if (new URLSearchParams(window.location.search).has('qa')) {
+    console.info('[Museum boot]', JSON.stringify({
+      coreMs: Math.round(coreBootMs),
+      environmentMs: Math.round(environmentBootMs),
+      finishingMs: Math.round(performance.now() - bootstrapStarted - coreBootMs - environmentBootMs),
+      totalMs: Math.round(performance.now() - bootstrapStarted),
+    }));
+  }
+  placements.bindInteractions(app.interaction, (message) => app.ui.hud.announce(message));
+  // Meaningful Objects reach exhibits only through their existing visitor control path.
+  placements.bindMeaningfulActions((installation, code) => app.sourceInstallations?.key(installation, code) ?? false);
+  const syncBuilderPlacements = () => placements.syncWorld(
+    app.activeWorld, app.exteriorWorld.collision, app.museum?.collision,
+    app.exteriorWorld.root, app.museum?.root, app.camera.position,
   );
-}
+  // Establish the initial world before the first frame, including when a test or
+  // embedding host pauses the application immediately after boot.
+  syncBuilderPlacements();
+  app.setWorkshopUpdate(syncBuilderPlacements);
+  const guide = exhibitFromParameter(new URLSearchParams(window.location.search).get('guide'));
+  if (guide) app.ui.guideToExhibit(guide.id);
+  app.start();
+  mountCinematicArrival(app);
+  document.getElementById('museum-loading')?.remove();
 
-// Expose the constructed app before starting the continuous render loop. Browser
-// proofs can now observe and stop the real runtime at its first stable boundary.
-window.__museum = app;
-// The shared Three.js DevTools bridge discovers the active scene/renderer by
-// inspecting ordinary window properties. Keep its entry point development-only
-// and point it at the existing app; never create another renderer or loop.
-if (import.meta.env.DEV) {
-  window.museumDevtools = app;
-}
-// Expose startup phase timings in opt-in QA only, never as inferred GPU time.
-if (new URLSearchParams(window.location.search).has('qa')) {
-  console.info('[Museum boot]', JSON.stringify({
-    coreMs: Math.round(coreBootMs),
-    environmentMs: Math.round(environmentBootMs),
-    finishingMs: Math.round(performance.now() - bootstrapStarted - coreBootMs - environmentBootMs),
-    totalMs: Math.round(performance.now() - bootstrapStarted),
-  }));
-}
-placements.bindInteractions(app.interaction, (message) => app.ui.hud.announce(message));
-// Meaningful Objects reach exhibits only through their existing visitor control path.
-placements.bindMeaningfulActions((installation, code) => app.sourceInstallations?.key(installation, code) ?? false);
-const syncBuilderPlacements = () => placements.syncWorld(
-  app.activeWorld, app.exteriorWorld.collision, app.museum?.collision,
-  app.exteriorWorld.root, app.museum?.root, app.camera.position,
-);
-// Establish the initial world before the first frame, including when a test or
-// embedding host pauses the application immediately after boot.
-syncBuilderPlacements();
-app.setWorkshopUpdate(syncBuilderPlacements);
-app.start();
-mountCinematicArrival(app);
-
-if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('edit') === '1') {
-  let toggleWorkshop: (() => void) | null = null;
-  app.ui.setBuildModeControl(() => {
-    if (toggleWorkshop) toggleWorkshop();
-    else app.ui.hud.announce('Museum Workshop is still loading.');
-  });
-  void import('./workshop/Workshop')
-    .then(async ({ Workshop }) => {
-      await app.ensureInteriorLoaded();
-      const workshop = new Workshop(app, placements);
-      toggleWorkshop = () => workshop.toggle();
-      app.setWorkshopUpdate(() => {
-        syncBuilderPlacements();
-        workshop.update();
-      });
-      window.__museumWorkshop = workshop;
-    })
-    .catch((error) => {
-      console.error('[Museum Workshop] failed to start', error);
-      app.ui.hud.announce('Museum Workshop failed to start. See the developer console.');
+  if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('edit') === '1') {
+    let toggleWorkshop: (() => void) | null = null;
+    app.ui.setBuildModeControl(() => {
+      if (toggleWorkshop) toggleWorkshop();
+      else app.ui.hud.announce('Museum Workshop is still loading.');
     });
-}
-
-if (import.meta.env.DEV) {
-  const query = new URLSearchParams(window.location.search);
-  if (query.get('edit') === '1' || query.get('devtools') === '1') {
-    void import('./dev/FlightSkyControls')
-      .then(({ FlightSkyControls }) => app.setDeveloperOverlay(new FlightSkyControls(app)))
+    void import('./workshop/Workshop')
+      .then(async ({ Workshop }) => {
+        await app.ensureInteriorLoaded();
+        const workshop = new Workshop(app, placements);
+        toggleWorkshop = () => workshop.toggle();
+        app.setWorkshopUpdate(() => {
+          syncBuilderPlacements();
+          workshop.update();
+        });
+        window.__museumWorkshop = workshop;
+      })
       .catch((error) => {
-        console.error('[Developer Flight/Sky] failed to start', error);
-        app.ui.hud.announce('Developer Flight/Sky controls failed to start.');
+        console.error('[Museum Workshop] failed to start', error);
+        app.ui.hud.announce('Museum Workshop failed to start. See the developer console.');
       });
   }
-}
 
-if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('choreo') === '1') {
-  void import('./choreo/VisitorChoreographer')
-    .then(({ VisitorChoreographer }) => app.setDevelopmentTool(new VisitorChoreographer(app)))
-    .catch((error) => {
-      console.error('[Visitor Choreographer] failed to start', error);
-      app.ui.hud.announce('Visitor Choreographer failed to start. See the developer console.');
-    });
+  if (import.meta.env.DEV) {
+    const query = new URLSearchParams(window.location.search);
+    if (query.get('edit') === '1' || query.get('devtools') === '1') {
+      void import('./dev/FlightSkyControls')
+        .then(({ FlightSkyControls }) => app.setDeveloperOverlay(new FlightSkyControls(app)))
+        .catch((error) => {
+          console.error('[Developer Flight/Sky] failed to start', error);
+          app.ui.hud.announce('Developer Flight/Sky controls failed to start.');
+        });
+    }
+  }
+
+  if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('choreo') === '1') {
+    void import('./choreo/VisitorChoreographer')
+      .then(({ VisitorChoreographer }) => app.setDevelopmentTool(new VisitorChoreographer(app)))
+      .catch((error) => {
+        console.error('[Visitor Choreographer] failed to start', error);
+        app.ui.hud.announce('Visitor Choreographer failed to start. See the developer console.');
+      });
+  }
 }
 
 // Expose for Playwright smoke tests and diagnostics. Workshop itself exists only

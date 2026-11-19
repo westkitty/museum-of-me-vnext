@@ -1,5 +1,6 @@
 import { el, clear } from '../ui/dom';
 import { COLLECTION, exhibitsForWing, projectsForExhibit } from '../content/collection.generated';
+import { SANCTUARY_DESCRIPTION, SANCTUARY_INSCRIPTION, SANCTUARY_TITLE } from '../content/sanctuaryCopy';
 import type { StreamingManager } from '../exhibits/StreamingManager';
 
 /**
@@ -95,13 +96,9 @@ export class DomMirror {
    */
   private sanctuaryNodes(): Node[] {
     return [
-      el('h3', { text: 'The Dexter Sanctuary' }),
-      el('p', {
-        text:
-          'Below and behind the Rotunda, reached by a ramp through a narrow threshold. It is not one of the thirty-five exhibits. ' +
-          'A tricolour Phalène, with the hanging ears the variety is named for. Several systems in this museum carry his name; none of them are him. ' +
-          'There is nothing to collect here and nothing to complete.',
-      }),
+      el('h3', { text: SANCTUARY_TITLE }),
+      el('p', { text: SANCTUARY_DESCRIPTION }),
+      ...SANCTUARY_INSCRIPTION.map((line) => el('p', { text: line })),
     ];
   }
 

@@ -1123,3 +1123,26 @@ html[data-contrast='high'] .hud__location[data-zone] { border-left-color: #fff; 
 .journal-secrets__found { display: grid; gap: 0.15rem; }
 .journal-secrets__found span { font-size: 0.85rem; color: var(--parchment-dim); }
 .journal-secrets__hidden { color: var(--parchment-dim); letter-spacing: 0.2em; text-align: center; }
+
+.hud__visitor-menu {
+  position: absolute;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  min-height: 44px;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--gold-bright);
+  border-radius: 3px;
+  color: var(--parchment);
+  background: #181520;
+  font: 600 0.9rem var(--font-ui);
+  pointer-events: auto;
+}
+
+.hud__visitor-menu[hidden] { display: none; }
+
+.visitor-menu__actions {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.visitor-menu__actions button { min-height: 44px; }

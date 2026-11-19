@@ -121,3 +121,13 @@ which Bible brainstorm items are in or out of 1.0 — all remain BRAINSTORMED an
 | Games-wing traversal rewards | BRAINSTORMED (conflicts with the no-progression rule unless redesigned) |
 | Westcat guide presentation | BRAINSTORMED |
 | Theater / in-world film wing | BRAINSTORMED (would add space beyond the six wings — needs approval) |
+
+## Visitor experience and interpretation update
+
+| Visitor path | Implementation | Evidence |
+| --- | --- | --- |
+| Open a shared exhibit or browse without WebGL | Static-data reading view, shareable links, project search, Study search results | Collection search and reading-view tests |
+| Find the entrance and reach an exhibit | Island map, shared guide destination, upper-floor routes, touch menu | Collision route tests and focused browser scenarios |
+| Save or restore a visit | Session preview, checked import, backup and whole-session undo | Round-trip, legacy, rejection, and rollback tests |
+| Understand objects and their controls | 35 doorway invitations, eight exhibit label and readout updates, foyer preview, Drakken interaction cues, Sanctuary copy | Focused signage tests. Human legibility and interpretation review pending |
+| Follow a short authored visit | Three themed routes with actions, transitions, and estimated walk time | Visit Thread and route tests |

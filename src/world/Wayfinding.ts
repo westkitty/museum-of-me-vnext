@@ -1,23 +1,19 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
-import { PLACEMENT_BY_EXHIBIT, WING_BY_ID, faceDirection, place, ROTUNDA_APOTHEM, type Vec3 } from './layout';
-import { EXHIBITS_BY_ID } from '../content/collection.generated';
+import type { CollisionWorld } from './CollisionWorld';
+import { ENTRANCE_DOOR, type Vec3 } from './layout';
+import { guideDestination, isGuideTarget, MUSEUM_ENTRANCE_TARGET, planVisitorRoute, type GuideWorld } from './visitorRoute';
 
-/**
- * Restrained spatial wayfinding (plan §8, "Guided visitor").
- *
- * When a visitor picks an exhibit from the map, a low line of light appears on
- * the floor ahead of them pointing the way — and nothing else. There is no
- * arrow in the sky, no minimap, and no teleport. It is a cue, not a rail, and
- * it disappears when they arrive.
- */
+export { MUSEUM_ENTRANCE_TARGET } from './visitorRoute';
+
+/** One walking destination persists across the exterior-to-interior handoff. */
 export class Wayfinding {
   readonly group = new THREE.Group();
   private readonly markers: THREE.Mesh[] = [];
   private target: string | null = null;
-  private targetDoorway: Vec3 | null = null;
-  private targetThreshold: Vec3 | null = null;
-  private targetDirection: Vec3 | null = null;
+  private world: GuideWorld | null = null;
+  private route: Vec3[] = [];
+  private origin: Vec3 | null = null;
   private phase = 0;
 
   private static readonly MARKER_COUNT = 7;
@@ -27,17 +23,11 @@ export class Wayfinding {
     this.group.visible = false;
 
     const geometry = scope.track(new THREE.PlaneGeometry(0.5, 0.9));
-    const material = scope.track(
-      new THREE.MeshBasicMaterial({
-        color: 0xe8c65a,
-        transparent: true,
-        opacity: 0.5,
-        depthWrite: false,
-      }),
-    );
     for (let i = 0; i < Wayfinding.MARKER_COUNT; i++) {
-      const marker = new THREE.Mesh(geometry, material.clone());
-      scope.track(marker.material as THREE.Material);
+      const material = scope.track(new THREE.MeshBasicMaterial({
+        color: 0xe8c65a, transparent: true, opacity: 0.5, depthWrite: false,
+      }));
+      const marker = new THREE.Mesh(geometry, material);
       marker.rotation.x = -Math.PI / 2;
       this.group.add(marker);
       this.markers.push(marker);
@@ -48,74 +38,68 @@ export class Wayfinding {
     return this.target;
   }
 
-  setTarget(exhibitId: string | null): void {
-    if (!exhibitId) {
-      this.target = null;
-      this.targetDoorway = null;
-      this.targetThreshold = null;
-      this.targetDirection = null;
-      this.group.visible = false;
-      return;
-    }
-
-    const placement = PLACEMENT_BY_EXHIBIT.get(exhibitId);
-    const record = EXHIBITS_BY_ID.get(exhibitId);
-    const wing = record ? WING_BY_ID.get(record.wing) : undefined;
-    if (!placement || !wing) {
-      this.target = null;
-      this.targetDoorway = null;
-      this.targetThreshold = null;
-      this.targetDirection = null;
-      this.group.visible = false;
-      return;
-    }
-
-    const direction = faceDirection(wing.face);
-    this.target = exhibitId;
-    this.targetDoorway = placement.doorway;
-    this.targetDirection = direction;
-    this.targetThreshold = place(direction, ROTUNDA_APOTHEM + 4, 0, wing.floorY);
-    this.group.visible = true;
+  setTarget(id: string | null): void {
+    const next = id && isGuideTarget(id) ? id : null;
+    if (next === this.target) return;
+    this.target = next;
+    this.route = [];
+    this.origin = null;
+    this.group.visible = false;
   }
 
-  /** Compatibility wrapper for callers/tests that already own a tuple. */
-  update(dt: number, from: Vec3, reducedMotion: boolean): void {
-    this.updateXYZ(dt, from[0], from[1], from[2], reducedMotion);
+  update(dt: number, from: Vec3, reducedMotion: boolean, world?: GuideWorld, collision?: CollisionWorld): void {
+    this.updateXYZ(dt, from[0], from[1], from[2], reducedMotion, world, collision);
   }
 
-  /** Called once per frame from the single loop without allocating a Vec3 tuple. */
-  updateXYZ(dt: number, x: number, y: number, z: number, reducedMotion: boolean): void {
-    if (!this.target || !this.targetDoorway || !this.targetThreshold || !this.targetDirection) return;
-
-    const along = x * this.targetDirection[0] + z * this.targetDirection[2];
-    const to = along < ROTUNDA_APOTHEM + 2 ? this.targetThreshold : this.targetDoorway;
-    const dx = to[0] - x;
-    const dz = to[2] - z;
-    const distanceSq = dx * dx + dz * dz;
-
-    // Arrived: the cue takes itself away rather than nagging. Check squared
-    // distance first so the common arrival decision avoids a square root.
-    if (distanceSq < 3.5 * 3.5) {
+  updateXYZ(
+    dt: number, x: number, y: number, z: number, reducedMotion: boolean,
+    world: GuideWorld = z > ENTRANCE_DOOR[2] ? 'exterior' : 'interior',
+    collision?: CollisionWorld,
+  ): void {
+    if (!this.target) return;
+    const destination = guideDestination(world, this.target)!;
+    const isFinal = world === 'interior' || this.target === MUSEUM_ENTRANCE_TARGET;
+    const arrivalRadius = this.target === MUSEUM_ENTRANCE_TARGET ? 1.6 : 2.6;
+    if (isFinal && Math.abs(y - destination[1]) < 1.25
+      && Math.hypot(x - destination[0], z - destination[2]) < arrivalRadius) {
       this.setTarget(null);
       return;
     }
 
-    const distance = Math.sqrt(distanceSq);
-    const invDistance = 1 / distance;
-    const ux = dx * invDistance;
-    const uz = dz * invDistance;
-    const angle = Math.atan2(ux, uz);
-    if (!reducedMotion) this.phase = (this.phase + dt * 0.55) % 1;
+    // Replan when crossing the world seam or departing the last sample.
+    // Static frames only reposition existing markers, with no graph allocation.
+    const origin = this.origin;
+    if (world !== this.world || !origin || Math.hypot(x - origin[0], y - origin[1], z - origin[2]) >= 1.1) {
+      this.origin = [x, y, z];
+      this.route = planVisitorRoute(world, this.origin, this.target, collision);
+      this.world = world;
+    }
+    this.group.visible = this.route.length >= 2;
+    if (!this.group.visible) return;
 
-    const span = Math.min(distance - 1.2, 7.5);
+    if (!reducedMotion) this.phase = (this.phase + dt * 0.55) % 1;
     for (let i = 0; i < this.markers.length; i++) {
-      const t = ((i / this.markers.length + this.phase) % 1) * span + 1.2;
+      const phase = (i / this.markers.length + this.phase) % 1;
+      let along = 1.1 + phase * 7.5;
       const marker = this.markers[i];
-      marker.position.set(x + ux * t, y + 0.06, z + uz * t);
-      marker.rotation.z = -angle;
-      // Fade in at the near end and out at the far end so it reads as a flow.
-      const fade = Math.sin((t / span) * Math.PI);
-      (marker.material as THREE.MeshBasicMaterial).opacity = 0.12 + fade * 0.4;
+      marker.visible = false;
+
+      for (let j = 1; j < this.route.length; j++) {
+        const a = this.route[j - 1], b = this.route[j];
+        const dx = b[0] - a[0], dz = b[2] - a[2];
+        const step = Math.hypot(dx, dz);
+        if (step < 0.01) continue;
+        if (along > step) {
+          along -= step;
+          continue;
+        }
+        const t = along / step;
+        marker.position.set(a[0] + dx * t, a[1] + (b[1] - a[1]) * t + 0.06, a[2] + dz * t);
+        marker.rotation.z = -Math.atan2(dx, dz);
+        marker.visible = true;
+        (marker.material as THREE.MeshBasicMaterial).opacity = 0.17 + Math.sin(phase * Math.PI) * 0.39;
+        break;
+      }
     }
   }
 
@@ -123,8 +107,6 @@ export class Wayfinding {
     this.group.removeFromParent();
     this.group.clear();
     this.markers.length = 0;
-    this.targetDoorway = null;
-    this.targetThreshold = null;
-    this.targetDirection = null;
+    this.route = [];
   }
 }
