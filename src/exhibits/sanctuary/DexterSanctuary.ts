@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { ResourceScope } from '../../assets/ResourceScope';
 import { createTextTexture, createFallbackTexture, canRenderText } from '../../assets/TextTexture';
 import { SANCTUARY_CENTER, SANCTUARY_FLOOR_Y, SANCTUARY_RADIUS, SANCTUARY_HEIGHT, SANCTUARY_DIR, rightOf, add } from '../../world/layout';
+import { SANCTUARY_DESCRIPTION, SANCTUARY_INSCRIPTION, SANCTUARY_TITLE } from '../../content/sanctuaryCopy';
 import { SOURCE_SANCTUARY } from '../../content/sourceParity';
 import { curatedUrl, registerCuratedAssets } from '../../assets/curatedAssets';
 
@@ -21,12 +22,6 @@ import { curatedUrl, registerCuratedAssets } from '../../assets/curatedAssets';
  * The rules below are load-bearing. Anything that would make this room feel
  * like a game does not belong in it.
  */
-
-/** The one piece of interpretation in the room. Kept short on purpose. */
-const INSCRIPTION = [
-  'A tricolour Phalène, with the hanging ears the variety is named for.',
-  'Several systems in this museum carry his name. None of them are him.',
-];
 
 export class DexterSanctuary {
   readonly group = new THREE.Group();
@@ -77,7 +72,7 @@ export class DexterSanctuary {
 
     // ── the inscription, low on the wall, read by kneeling or standing close ──
     const map = canRenderText()
-      ? createTextTexture(this.scope, INSCRIPTION, {
+      ? createTextTexture(this.scope, SANCTUARY_INSCRIPTION, {
           width: 1024, height: 400, background: '#2a2620', color: '#d9c69a',
           titleColor: '#e8d9b0', title: 'Dexter', titleSize: 62, bodySize: 30,
           align: 'center', padding: 44,
@@ -303,10 +298,10 @@ export class DexterSanctuary {
   /** The Sanctuary's text for the accessible mirror. It is not an exhibit entry. */
   accessibleContent(): { heading: string; body: readonly string[] } {
     return {
-      heading: 'The Dexter Sanctuary',
+      heading: SANCTUARY_TITLE,
       body: [
-        'A quiet room below and behind the Rotunda, reached by a ramp through a narrow threshold.',
-        ...INSCRIPTION,
+        SANCTUARY_DESCRIPTION,
+        ...SANCTUARY_INSCRIPTION,
         'There is nothing to collect here and nothing to complete. There is a platform, a little light from an opening overhead, and somewhere to sit.',
         `${SOURCE_SANCTUARY.modelLock.identity} is a ${SOURCE_SANCTUARY.modelLock.species}. Stance ${SOURCE_SANCTUARY.modelLock.stance}; ears ${SOURCE_SANCTUARY.modelLock.ears}; eyes ${SOURCE_SANCTUARY.modelLock.eyes}.`,
         `Blindness is expressed through ${SOURCE_SANCTUARY.modelLock.blindnessCue}, not by erasing the eyes.`,

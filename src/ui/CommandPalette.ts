@@ -1,6 +1,6 @@
 import { Panel } from './Panel';
 import { el } from './dom';
-import { COLLECTION } from '../content/collection.generated';
+import { COLLECTION_SEARCH_ENTRIES, scoreCollectionSearch } from '../content/collectionSearch';
 import { SOURCE_INSTALLATIONS, SOURCE_VISITORS, PRIMARY_TO_VNEXT } from '../content/sourceParity';
 
 export interface CommandAction {
@@ -9,21 +9,6 @@ export interface CommandAction {
   detail: string;
   keywords?: string;
   run: () => void;
-}
-
-function score(query: string, label: string, detail: string, keywords = ''): number {
-  if (!query) return 1;
-  const q = query.toLocaleLowerCase();
-  const l = label.toLocaleLowerCase();
-  const d = detail.toLocaleLowerCase();
-  const k = keywords.toLocaleLowerCase();
-  if (l === q) return 1;
-  if (l.startsWith(q)) return 0.94;
-  if (l.split(/\s+/).some((word) => word.startsWith(q))) return 0.86;
-  if (l.includes(q)) return 0.75;
-  if (d.includes(q)) return 0.58;
-  if (k.includes(q)) return 0.46;
-  return 0;
 }
 
 /**
@@ -67,6 +52,7 @@ export class CommandPalette extends Panel {
     const input = el('input', {
       type: 'search',
       id: 'command-search',
+      'aria-label': 'Search commands, exhibits, and projects',
       value: this.query,
       placeholder: 'Guide, journal, Starsilk, Dexter…',
       'aria-expanded': 'true',
@@ -91,12 +77,12 @@ export class CommandPalette extends Panel {
   }
 
   private availableActions(): CommandAction[] {
-    const exhibitActions: CommandAction[] = COLLECTION.exhibits.map((exhibit) => ({
-      id: `exhibit:${exhibit.id}`,
-      label: exhibit.title,
-      detail: `exhibit · ${exhibit.wing}`,
-      keywords: 'find inspect visit collection record',
-      run: () => this.guideTo(exhibit.id),
+    const collectionActions: CommandAction[] = COLLECTION_SEARCH_ENTRIES.map((entry) => ({
+      id: `${entry.kind}:${entry.id}`,
+      label: entry.name,
+      detail: entry.kind === 'project' ? `project · ${entry.exhibit.title}` : `exhibit · ${entry.exhibit.wing}`,
+      keywords: entry.keywords,
+      run: () => this.guideTo(entry.exhibit.id),
     }));
     const sourceActions: CommandAction[] = SOURCE_INSTALLATIONS.map((item) => ({
       id: `source:${item.id}`,
@@ -117,7 +103,7 @@ export class CommandPalette extends Panel {
     }));
     // Contextual actions must be resolved at use time so exterior/interior
     // eligibility never goes stale while the palette remains alive.
-    return [...this.getActions(), ...exhibitActions, ...sourceActions, ...visitorActions];
+    return [...this.getActions(), ...collectionActions, ...sourceActions, ...visitorActions];
   }
 
   private matches(): CommandAction[] {
@@ -125,7 +111,7 @@ export class CommandPalette extends Panel {
     const all = this.availableActions();
     if (!q) return all.slice(0, 12);
     return all
-      .map((action) => ({ action, match: score(q, action.label, action.detail, action.keywords) }))
+      .map((action) => ({ action, match: scoreCollectionSearch(q, action.label, action.detail, action.keywords) }))
       .filter((entry) => entry.match > 0)
       .sort((a, b) => b.match - a.match || a.action.label.localeCompare(b.action.label))
       .slice(0, 24)
@@ -133,8 +119,12 @@ export class CommandPalette extends Panel {
   }
 
   private onKey(event: KeyboardEvent, matches: CommandAction[]): void {
-    if (event.key === 'ArrowDown') { event.preventDefault(); this.selected += 1; this.render(); }
-    else if (event.key === 'ArrowUp') { event.preventDefault(); this.selected -= 1; this.render(); }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.selected += event.key === 'ArrowDown' ? 1 : -1;
+      this.render();
+      this.body.querySelector('input')?.focus();
+    }
     else if (event.key === 'Enter' && matches[this.selected]) { event.preventDefault(); this.run(this.selected, matches); }
   }
 

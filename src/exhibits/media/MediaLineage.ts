@@ -77,7 +77,7 @@ export class MediaLineage extends ExhibitBase {
     this.sourceRightArm = new THREE.Mesh(scope.track(new THREE.BoxGeometry(0.12, 0.72, 0.12)), sourceMat);
     this.sourceRightArm.position.set(0.33, 0.74, 0); this.sourceRightArm.rotation.z = -0.35; this.sourceRig.add(this.sourceRightArm);
 
-    const sourceLabel = buildLabel(scope, 'CHARACTER PERFORMANCE CAPTURE · MOTION FIXTURE', 2.8, 0.16);
+    const sourceLabel = buildLabel(scope, 'Original movement', 2.8, 0.16);
     sourceLabel.position.set(-2.05, 3.25, -2.65); this.group.add(sourceLabel); scope.track(sourceLabel.geometry);
 
     // PerformanceFrame markers are deliberately abstract. They are the portable
@@ -102,7 +102,7 @@ export class MediaLineage extends ExhibitBase {
       this.emissive(0x9d8bff, 0.18),
     );
     this.outputFrame.position.set(1.65, 1.78, -2.78); this.group.add(this.outputFrame);
-    const outputLabel = buildLabel(scope, 'OUTPUT PREVIEW · SAME PERFORMANCE', 2.4, 0.16);
+    const outputLabel = buildLabel(scope, 'Same movement, different character', 2.4, 0.16);
     outputLabel.position.set(1.65, 3.18, -2.74); this.group.add(outputLabel); scope.track(outputLabel.geometry);
 
     const studio = new THREE.Group(); studio.name = 'E16 background studio'; this.group.add(studio); this.backgroundVariants.push(studio);
@@ -185,7 +185,7 @@ export class MediaLineage extends ExhibitBase {
       activate: () => {
         this.character = (this.character + 1) % CHARACTERS.length;
         this.applyVisualState();
-        this.ctx.announce(`Character ${CHARACTERS[this.character]}. The PerformanceFrame did not change.`);
+        this.ctx.announce(`Character ${CHARACTERS[this.character]}. Watch the gesture. It’s the same one.`);
       },
     });
 
@@ -205,7 +205,7 @@ export class MediaLineage extends ExhibitBase {
     // Historical app lineage remains visible but secondary.
     const lineage = buildLabel(scope, 'LINEAGE: Guy_Cast → Gay_Cast · Media Getter', 3.2, 0.16);
     lineage.position.set(-1.6, 4.35, -6.1); this.group.add(lineage); scope.track(lineage.geometry);
-    const privacy = buildLabel(scope, 'Museum fixture only · no camera requested · performance state ≠ camera pixels', 4.2, 0.13);
+    const privacy = buildLabel(scope, 'Museum demonstration · no camera used', 4.2, 0.13);
     privacy.position.set(0, 4.85, -6.1); this.group.add(privacy); scope.track(privacy.geometry);
 
     this.applyVisualState();

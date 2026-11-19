@@ -121,11 +121,20 @@ export class InteractionManager {
 
   /** The visitor pressed interact. Returns true if something handled it. */
   activate(): boolean {
-    if (!this.focused) return false;
+    const focus = this.focused;
+    if (!focus) return false;
+    const before = typeof focus.label === 'function' ? focus.label() : null;
     try {
-      this.focused.activate();
+      focus.activate();
     } catch (err) {
       console.error('[Interaction] control threw', err);
+    }
+    // A toggle can change the verb while the visitor is still looking at it.
+    if (this.focused === focus && before !== null) {
+      const after = this.currentFocus;
+      if (after && after.label !== before) {
+        for (const listener of this.listeners) listener(after);
+      }
     }
     return true;
   }

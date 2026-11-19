@@ -7,9 +7,10 @@ import { EXHIBITS_BY_ID } from '../content/collection.generated';
 export interface CuratorHandlers {
   guideTo: (exhibitId: string | null) => void;
   captureView: () => void;
-  copyLocation: () => Promise<void>;
+  copyExhibitLink: () => Promise<string>;
   nextUnvisited: () => void;
   restorePrevious: () => boolean;
+  restoreSession: () => string;
   exportSession: () => void;
   importSession: (file: File) => Promise<string>;
 }
@@ -39,15 +40,24 @@ export class CuratorPanel extends Panel {
     ];
 
     this.setContent(
-      el('p', { class: 'panel__note', role: 'status', text: this.journal.recoveryNotice ?? this.importNotice ?? 'Local curator records. Walking remains the only way to move through the museum.' }),
+      el('p', { class: 'panel__note', role: 'status', text: this.importNotice || this.journal.recoveryNotice || 'Local curator records. Walking remains the only way to move through the museum.' }),
       el('div', { class: 'panel__grid' },
         el('button', { type: 'button', text: 'Next unvisited', onclick: () => this.handlers.nextUnvisited() }),
         el('button', { type: 'button', text: 'Clear guide', onclick: () => this.handlers.guideTo(null) }),
-        el('button', { type: 'button', text: 'Copy location', onclick: () => void this.handlers.copyLocation() }),
+        el('button', { type: 'button', text: 'Copy exhibit link', onclick: () => {
+          void this.handlers.copyExhibitLink().then(message => {
+            this.importNotice = message;
+            this.render();
+          });
+        } }),
         el('button', { type: 'button', text: 'Capture view', onclick: () => this.handlers.captureView() }),
         el('button', { type: 'button', text: 'Export session', onclick: () => this.handlers.exportSession() }),
-        el('button', { type: 'button', text: 'Restore previous save', onclick: () => {
+        el('button', { type: 'button', text: 'Restore previous Journal save', onclick: () => {
           this.importNotice = this.handlers.restorePrevious() ? 'Previous save restored.' : 'No previous save is available.';
+          this.render();
+        } }),
+        el('button', { type: 'button', text: 'Undo session import', onclick: () => {
+          this.importNotice = this.handlers.restoreSession();
           this.render();
         } }),
       ),
@@ -69,7 +79,7 @@ export class CuratorPanel extends Panel {
         ? el('p', { text: 'No history yet.' })
         : el('ol', {}, ...history.slice().reverse().map((h) => el('li', { text: `${h.title} (${h.kind})` }))),
       el('h3', { text: 'Source collection' }),
-      el('p', { class: 'panel__note', text: `${records.length} source records (14 installations, 15 supplementary, 17 visitors). The vNext 64/35 corpus remains intact.` }),
+      el('p', { class: 'panel__note', text: `${records.length} source records (14 installations, 15 supplementary, 17 visitors).` }),
       el('ul', {}, ...SOURCE_INSTALLATIONS.map((i) => el('li', { text: `${i.title} → ${PRIMARY_TO_VNEXT[i.id] ?? 'sanctuary'}` }))),
     );
   }

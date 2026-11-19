@@ -1,6 +1,9 @@
 import { HUD } from '../ui/HUD';
+import { VisitorMenuPanel } from '../ui/VisitorMenuPanel';
+import { applyVisitorSession, exportVisitorSession, previewVisitorSession, restoreVisitorSession, SESSION_MAX_BYTES } from '../state/VisitorSession';
 import { SECRETS } from '../content/secrets';
-import { isSecretControlId } from '../world/SecretSpots';
+import { museumLink } from '../content/collectionLinks';
+import { MUSEUM_ENTRANCE_TARGET } from '../world/Wayfinding';
 import { CenterTapTracker } from './CenterTapTracker';
 import { MapPanel } from '../ui/MapPanel';
 import { JournalPanel } from '../ui/JournalPanel';
@@ -31,6 +34,7 @@ import { WINGS_BY_ID } from '../content/collection.generated';
 export class UILayer {
   readonly hud: HUD;
   readonly map: MapPanel;
+  readonly visitorMenu: VisitorMenuPanel;
   readonly journal: JournalPanel;
   readonly deep: DeepPanel;
   readonly settings: SettingsPanel;
@@ -63,7 +67,8 @@ export class UILayer {
     }, () => this.visitThread.open(),
     () => { void app.worldDirector.prepareInterior().catch(() => undefined); },
     () => window.location.reload(),
-    () => app.worldDirector.dismissThresholdPrompt());
+    () => app.worldDirector.dismissThresholdPrompt(),
+    () => this.visitorMenu.open());
     this.hud.setArrivalReadiness(app.arrivalReady);
     this.map = new MapPanel(
       app.journal,
@@ -77,8 +82,9 @@ export class UILayer {
         ...(app.visitors?.positions() ?? []),
       ],
       () => app.isOutside,
+      () => app.isOutside ? app.exteriorWorld.collision : app.interiorWorld?.collision,
     );
-    this.deep = new DeepPanel(app.journal);
+    this.deep = new DeepPanel(app.journal, (id) => this.guideToExhibit(id));
     this.journal = new JournalPanel(app.journal, (id) => this.deep.openFor(id), () => this.visitThread.open(), {
       secrets: SECRETS,
       isFound: (id) => app.secretsLog.has(id),
@@ -94,13 +100,14 @@ export class UILayer {
     this.curator = new CuratorPanel(app.journal, {
       guideTo: (id) => this.mapGuide(id),
       captureView: () => this.captureView(),
-      copyLocation: () => this.copyLocation(),
+      copyExhibitLink: () => this.copyExhibitLink(),
       nextUnvisited: () => {
         const next = app.journal.nextUnvisited(COLLECTION.exhibits.map((e) => e.id));
         if (next) this.mapGuide(next);
         else this.hud.announce('Every exhibit in this visit journal has been opened.');
       },
       restorePrevious: () => app.journal.restorePrevious(),
+      restoreSession: () => this.restoreSession(),
       exportSession: () => this.exportSession(),
       importSession: (file) => this.importSession(file),
     });
@@ -117,11 +124,12 @@ export class UILayer {
         ?? SOURCE_SUPPLEMENTARY.find((s) => s.id === id)?.summary
         ?? SOURCE_VISITORS.find((v) => v.id === id)?.lines.join(' ')
         ?? id,
+      (id) => this.deep.openFor(id),
     );
     this.command = new CommandPalette(
       (id) => this.mapGuide(id),
       () => [
-        ...(app.currentZone === 'plaza' ? [] : [{ id: 'open-dexgpt-guide', label: 'Talk to DexGPT', detail: 'Local museum guide', keywords: 'guide project exhibit controls wings', run: () => this.openDexGPTGuide() }]),
+        ...(app.isOutside ? [] : [{ id: 'open-dexgpt-guide', label: 'Talk to DexGPT', detail: 'Local museum guide', keywords: 'guide project exhibit controls wings', run: () => this.openDexGPTGuide() }]),
         { id: 'open-map', label: 'Open map', detail: 'Wayfinding', keywords: 'guide walk', run: () => this.map.open() },
         { id: 'open-journal', label: 'Open journal', detail: 'Visit record', run: () => this.journal.open() },
         { id: 'open-curator', label: 'Open Curator Desk', detail: 'Records and recovery', run: () => this.curator.open() },
@@ -150,15 +158,24 @@ export class UILayer {
       (id) => this.mapGuide(id),
       (message) => this.hud.announce(message),
     );
-    this.lastThreadStop = app.visitThread.currentStopId;
+    this.visitorMenu = new VisitorMenuPanel(() => [
+      { label: 'Map', open: () => this.map.open() },
+      { label: 'Journal', open: () => this.journal.open() },
+      app.isOutside
+        ? { label: 'Guide to the entrance', open: () => this.mapGuide(MUSEUM_ENTRANCE_TARGET) }
+        : { label: 'Guide', open: () => this.openDexGPTGuide() },
+      { label: 'Visit Thread', open: () => this.visitThread.open() },
+      { label: 'Settings', open: () => this.settings.open() },
+    ]);
+    this.lastThreadStop = null;
     // Thread state is user-visible UI state, not a frame-loop concern. Subscribe
     // directly so start/pause/skip/import/cross-tab reconciliation updates the
     // HUD and floor guide immediately even when rendering is suspended.
     this.unbind.push(app.visitThread.subscribe(() => this.syncVisitThread()));
-    this.syncVisitThread();
 
     uiRoot.append(
       this.hud.root,
+      this.visitorMenu.root,
       this.map.root,
       this.journal.root,
       this.deep.root,
@@ -180,7 +197,7 @@ export class UILayer {
 
     // A panel takes over input while it is open; movement stops and the mouse
     // is released so the visitor can actually use it.
-    for (const panel of [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.dexgptGuide, this.visitThread]) {
+    for (const panel of [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.dexgptGuide, this.visitThread, this.visitorMenu]) {
       const originalOpen = panel.open.bind(panel);
       panel.open = () => {
         input.releasePointerLock();
@@ -203,17 +220,20 @@ export class UILayer {
       input.on('accessibility', () => this.mirror.focus()),
       interaction.onFocusChange((focus) => {
         this.hud.setFocus(focus);
-        this.mirror.setCurrentExhibit(focus?.exhibitId ?? null);
+        this.mirror.setCurrentExhibit(focus?.exhibitId === 'foyer-observatory-preview' ? null : focus?.exhibitId ?? null);
       }),
       this.map.onTargetChange((exhibitId) => {
-        app.wayfinding?.setTarget(exhibitId);
-        if (exhibitId) {
-          this.hud.announce('Wayfinding set. A line on the floor points the way; it clears when you arrive.');
-        }
+        app.wayfinding.setTarget(exhibitId);
+        const guide = exhibitId && EXHIBITS_BY_ID.has(exhibitId) ? { kind: 'exhibit' as const, id: exhibitId } : undefined;
+        if (app.journal.guideTarget?.id !== guide?.id) app.journal.setGuideTarget(guide);
+        if (exhibitId === MUSEUM_ENTRANCE_TARGET) this.hud.announce('Follow the path to the front door.');
+        else if (guide) this.hud.announce(`Follow the floor lights to ${EXHIBITS_BY_ID.get(guide.id)?.title}.`);
+        else this.hud.announce('Guide cleared.');
       }),
       app.onAnnounce((exhibitId, message) => {
         if (app.preferences.subtitles) this.hud.announce(message);
         this.mirror.announce(message);
+        if (exhibitId === 'foyer-observatory-preview') return;
         this.mirror.setCurrentExhibit(exhibitId);
         this.mirror.refreshState();
       }),
@@ -222,7 +242,7 @@ export class UILayer {
     this.unbind.push(
       input.on('interact', () => {
         const focus = interaction.currentFocus;
-        if (focus) this.mirror.setCurrentExhibit(focus.exhibitId);
+        if (focus && focus.exhibitId !== 'foyer-observatory-preview') this.mirror.setCurrentExhibit(focus.exhibitId);
       }),
     );
 
@@ -233,6 +253,12 @@ export class UILayer {
     document.addEventListener('pointerlockchange', this.onPointerLock);
     window.addEventListener('message', this.onEmbeddedMessage);
     window.addEventListener('storage', this.onVisitThreadStorage);
+    const savedGuide = app.journal.guideTarget;
+    if (savedGuide?.kind === 'exhibit' && EXHIBITS_BY_ID.has(savedGuide.id)) {
+      this.mapGuide(savedGuide.id);
+      this.lastThreadStop = app.visitThread.active?.status === 'active' ? app.visitThread.currentStopId : null;
+    }
+    this.syncVisitThread();
     this.applyPreferences({});
   }
 
@@ -257,7 +283,7 @@ export class UILayer {
   }
 
   openDexGPTGuide(): void {
-    if (this.app.currentZone === 'plaza') {
+    if (this.app.isOutside) {
       this.hud.announce('DexGPT becomes available once you enter the museum.');
       return;
     }
@@ -285,11 +311,7 @@ export class UILayer {
     const tap = this.centerTap.end(e.changedTouches);
     if (!tap || this.anyPanelOpen || this.app.input.uiCaptured) return;
     if (this.app.interaction.activate()) {
-      const focus = this.app.interaction.currentFocus;
-      if (focus && !isSecretControlId(focus.exhibitId)) {
-        this.app.journal.markVisited(focus.exhibitId);
-        this.app.visitThread.recordVisit(focus.exhibitId);
-      }
+      this.app.recordInteractionVisit();
       this.app.audio.start();
       this.app.audio.tick();
     }
@@ -304,12 +326,18 @@ export class UILayer {
     }
   };
 
+  guideToExhibit(id: string): void {
+    this.mapGuide(id);
+  }
+
   private mapGuide(id: string | null): void {
-    this.map.setTargetPublic(id);
-    this.app.wayfinding?.setTarget(id);
-    this.app.journal.setGuideTarget(id ? { kind: 'exhibit', id } : undefined);
-    if (id) this.hud.announce('Wayfinding set. A line on the floor points the way; it clears when you arrive.');
-    else this.hud.announce('Guide cleared.');
+    if (this.map.currentTarget !== id) this.map.setTargetPublic(id);
+  }
+
+  clearGuideOnArrival(): void {
+    this.map.clearTargetOnArrival();
+    if (this.app.journal.guideTarget?.kind === 'exhibit') this.app.journal.setGuideTarget(undefined);
+    this.hud.announce('You have arrived.');
   }
 
   private captureView(): void {
@@ -338,28 +366,20 @@ export class UILayer {
     }
   }
 
-  private async copyLocation(): Promise<void> {
-    const p = this.app.player.position;
-    const fragment = `#x=${p.x.toFixed(2)}&y=${p.y.toFixed(2)}&z=${p.z.toFixed(2)}`;
-    const href = `${location.href.split('#')[0]}${fragment}`;
+  private async copyExhibitLink(): Promise<string> {
+    const id = this.app.currentExhibitId ?? this.map.currentTarget;
+    if (!id || !EXHIBITS_BY_ID.has(id)) return 'Choose an exhibit on the map or walk up to one to copy its link.';
+    const href = museumLink({ exhibit: id });
     try {
       await navigator.clipboard.writeText(href);
-      this.hud.announce('Location copied. A local-file fragment is also in the address bar.');
+      return 'Exhibit link copied.';
     } catch {
-      this.hud.announce(`Clipboard unavailable. Location fragment: ${fragment}`);
+      return href;
     }
-    history.replaceState(null, '', fragment);
   }
 
   private exportSession(): void {
-    const payload = {
-      format: 'reliquary-session',
-      journal: this.app.journal.exportPayload(),
-      study: this.app.study.state,
-      preferences: this.app.preferences,
-      visitThread: this.app.visitThread.exportPayload(),
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const blob = new Blob([exportVisitorSession(this.app)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -369,49 +389,50 @@ export class UILayer {
   }
 
   private async importSession(file: File): Promise<string> {
-    if (file.size > 512 * 1024) return 'Import is too large.';
+    if (file.size > SESSION_MAX_BYTES) return 'Session file is too large.';
     try {
-      const parsed = JSON.parse(await file.text()) as { journal?: unknown; study?: unknown; visitThread?: unknown };
-      const preview = window.confirm('Replace the current journal with this import? This can be undone via Restore previous save.');
-      if (!preview) return 'Import cancelled.';
-      const ok = parsed.journal ? this.app.journal.importPayload(parsed.journal, { replace: true }) : false;
-      if (parsed.study) {
-        const result = this.app.study.importRaw(JSON.stringify(parsed.study));
-        if (result.ok && result.preview) this.app.study.applyImport(result.preview);
+      const preview = previewVisitorSession(await file.text(), this.app);
+      if (!window.confirm(`Import ${preview.description}? The museum will reload. You can undo the entire import from Curator Desk.`)) {
+        return 'Import cancelled.';
       }
-      if (parsed.visitThread) {
-        const result = this.app.visitThread.previewImport(JSON.stringify(parsed.visitThread));
-        if (result.ok && result.state) this.app.visitThread.applyImport(result.state);
-      }
-      return ok ? 'Session imported. Use Restore previous save if this was a mistake.' : 'Journal import failed integrity or shape checks.';
-    } catch {
-      return 'Import is not valid JSON.';
+      applyVisitorSession(window.localStorage, preview.values);
+      window.location.reload();
+      return 'Session imported.';
+    } catch (error) {
+      if (error instanceof SyntaxError) return 'Session file is not valid JSON.';
+      return error instanceof Error ? error.message : 'Session import failed.';
     }
   }
 
+  private restoreSession(): string {
+    if (!window.confirm('Restore the whole session from before your last import? The museum will reload.')) {
+      return 'Restore cancelled.';
+    }
+    try {
+      if (!restoreVisitorSession(window.localStorage)) return 'No previous session import is available.';
+      window.location.reload();
+      return 'Previous session restored.';
+    } catch (error) {
+      return error instanceof Error ? error.message : 'Session restore failed.';
+    }
+  }
 
   private syncVisitThread(): void {
     const active = this.app.visitThread.active;
-    const current = this.app.visitThread.currentStopId;
-    if (!active) {
-      this.hud.setVisitThreadStatus(null);
-      this.lastThreadStop = null;
-      return;
+    const current = active?.status === 'active' ? this.app.visitThread.currentStopId : null;
+    if (!active) this.hud.setVisitThreadStatus(null);
+    else {
+      const status = active.status === 'active'
+        ? `${active.cursor + 1}/${active.stopIds.length} · ${EXHIBITS_BY_ID.get(current ?? '')?.title ?? ''}`
+        : active.status;
+      this.hud.setVisitThreadStatus(`THREAD · ${active.title} · ${status}`);
     }
-    const label = active.status === 'complete'
-      ? `THREAD · ${active.title} · complete`
-      : `THREAD · ${active.cursor + 1}/${active.stopIds.length} · ${EXHIBITS_BY_ID.get(current ?? '')?.title ?? 'paused'}`;
-    this.hud.setVisitThreadStatus(label);
-    if (current !== this.lastThreadStop) {
-      if (active.status === 'active' && current) {
-        this.mapGuide(current);
-        this.hud.announce(`Visit Thread advanced. Next: ${EXHIBITS_BY_ID.get(current)?.title ?? current}.`);
-      } else if (active.status === 'complete') {
-        this.mapGuide(null);
-        this.hud.announce('Visit Thread complete. The museum remains entirely open.');
-      }
-      this.lastThreadStop = current;
-    }
+    if (current === this.lastThreadStop) return;
+
+    const previous = this.lastThreadStop;
+    this.lastThreadStop = current;
+    if (current) this.mapGuide(current);
+    else if (previous && this.map.currentTarget === previous) this.mapGuide(null);
   }
 
   private readonly onVisitThreadStorage = (event: StorageEvent): void => {
@@ -504,7 +525,7 @@ export class UILayer {
   }
 
   private get modalPanels(): { isOpen: boolean }[] {
-    return [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.dexgptGuide, this.visitThread];
+    return [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.dexgptGuide, this.visitThread, this.visitorMenu];
   }
 
   dispose(): void {
@@ -531,5 +552,6 @@ export class UILayer {
     this.fullWeasel.dispose();
     this.dexgptGuide.dispose();
     this.visitThread.dispose();
+    this.visitorMenu.dispose();
   }
 }

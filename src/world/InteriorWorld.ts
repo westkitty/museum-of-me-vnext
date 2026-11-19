@@ -2,9 +2,9 @@ import * as THREE from 'three';
 import { ResourceScope } from '../assets/ResourceScope';
 import { Museum, type MuseumBuildResult } from './Museum';
 import { DexterSanctuary } from '../exhibits/sanctuary/DexterSanctuary';
-import { Wayfinding } from './Wayfinding';
 import { AmbientVisitors } from './AmbientVisitors';
 import { FlightPadAtmosphere } from './FlightPadAtmosphere';
+import { FoyerPreview } from './FoyerPreview';
 import { installExhibits } from '../exhibits';
 import { StreamingManager } from '../exhibits/StreamingManager';
 import { SourceArtwork } from './SourceArtwork';
@@ -33,7 +33,6 @@ export class InteriorWorld {
   museum!: Museum;
   built!: MuseumBuildResult;
   sanctuary!: DexterSanctuary;
-  wayfinding!: Wayfinding;
   visitors!: AmbientVisitors;
   flightPadAtmosphere!: FlightPadAtmosphere;
   streaming!: StreamingManager;
@@ -42,6 +41,7 @@ export class InteriorWorld {
   supplementary!: SupplementaryCases;
   sourceInstallations!: SourceInstallations;
   persistentEnvironment!: PersistentEnvironment;
+  private foyerPreview?: FoyerPreview;
 
   private lightingResidencyRevision = -1;
 
@@ -61,14 +61,18 @@ export class InteriorWorld {
       this.app.interiorLoadTelemetry.buildStageMs[`museum.${name}`] = duration;
     }
     this.root.add(this.built.root);
+    this.foyerPreview = this.measureBuildStage('foyer-preview', () => new FoyerPreview(
+      this.scope,
+      this.app.interaction,
+      (message) => this.app.announce('foyer-observatory-preview', message),
+    ));
+    this.root.add(this.foyerPreview.group);
     await yieldBudget.checkpoint();
 
     this.sanctuary = this.measureBuildStage('sanctuary', () => new DexterSanctuary(this.scope));
     this.root.add(this.sanctuary.group);
     await yieldBudget.checkpoint();
 
-    this.wayfinding = this.measureBuildStage('wayfinding', () => new Wayfinding(this.scope));
-    this.root.add(this.wayfinding.group);
     await yieldBudget.checkpoint();
 
     this.visitors = this.measureBuildStage('ambient-visitors', () =>
@@ -293,6 +297,7 @@ export class InteriorWorld {
   }
 
   dispose(): void {
+    this.foyerPreview?.dispose();
     this.streaming?.dispose();
     this.sourceInstallations?.dispose();
     this.scope.dispose();

@@ -1,14 +1,18 @@
 import { Panel } from './Panel';
+import type { CollisionWorld } from '../world/CollisionWorld';
 import { el, isActivationKey } from './dom';
 import {
   WINGS, PLACEMENTS, ROTUNDA_APOTHEM, VESTIBULE_TO, SANCTUARY_CENTER, SANCTUARY_RADIUS, LEVEL_1_Y,
   SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_DIR,
   faceDirection, place, type Vec3,
 } from '../world/layout';
+import { SANCTUARY_DESCRIPTION, SANCTUARY_TITLE } from '../content/sanctuaryCopy';
 import { EXHIBITS_BY_ID, WINGS_BY_ID, exhibitsForWing, COLLECTION } from '../content/collection.generated';
 import type { Journal } from '../state/Journal';
 import type { ActiveVisitThread } from '../state/VisitThread';
 import type { VisitorPreferences } from '../state/Preferences';
+import { ISLAND_OUTLINE, LAGOON_SURFACE_OUTLINE, PATH_CENTERLINES, PIER_CENTERLINE } from '../world/exterior/IslandSiteLayout';
+import { ISLAND_LANDMARKS, MUSEUM_ENTRANCE_TARGET, planVisitorRoute, visitorRouteDistance } from '../world/visitorRoute';
 
 const SVG = 'http://www.w3.org/2000/svg';
 /** Plan extent in metres, mapped onto the SVG viewBox. */
@@ -74,6 +78,7 @@ const WING_COLOUR: Record<string, string> = {
  */
 export class MapPanel extends Panel {
   private level: 0 | 1 = 0;
+  private showIsland = false;
   private target: string | null = null;
   private readonly targetListeners = new Set<(exhibitId: string | null) => void>();
 
@@ -87,12 +92,14 @@ export class MapPanel extends Panel {
     private readonly getVisitors: () => readonly MapVisitorMarker[],
     /** Outside, the plan of the interior must not show the visitor's position. */
     private readonly isOutside: () => boolean = () => false,
+    private readonly getCollision: () => CollisionWorld | undefined = () => undefined,
   ) {
     super('map', 'Museum map', 'Where you are');
   }
 
   override open(): void {
     this.level = mapLevelForY(this.getPosition()[1]);
+    this.showIsland = this.isOutside();
     super.open();
   }
 
@@ -109,6 +116,11 @@ export class MapPanel extends Panel {
     this.setTarget(id);
   }
 
+  clearTargetOnArrival(): void {
+    this.target = null;
+    this.rerenderWithDialogFocus();
+  }
+
   private setTarget(id: string | null): void {
     this.target = id;
     for (const fn of this.targetListeners) fn(id);
@@ -122,8 +134,100 @@ export class MapPanel extends Panel {
    * dialog itself after a rebuild so keyboard operation remains continuous.
    */
   private rerenderWithDialogFocus(): void {
+    if (!this.isOpen) return;
     this.render();
-    if (this.isOpen) this.body.focus();
+    this.body.focus();
+  }
+
+  private viewSwitch(): HTMLElement {
+    const position = this.getPosition();
+    const myLevel = mapLevelForY(position[1]);
+    return el('div', { class: 'map__level', role: 'group', 'aria-label': 'Map view' },
+      el('button', {
+        type: 'button', text: 'Island', 'aria-pressed': String(this.showIsland),
+        onclick: () => { this.showIsland = true; this.rerenderWithDialogFocus(); },
+      }),
+      ...([0, 1] as const).map((level) => el('button', {
+        type: 'button', text: level === 0 ? 'Ground floor' : 'Upper floor',
+        'aria-pressed': String(!this.showIsland && this.level === level),
+        onclick: () => { this.level = level; this.showIsland = false; this.rerenderWithDialogFocus(); },
+      })),
+      this.isOutside() ? document.createTextNode('') : el('button', {
+        type: 'button', text: `My floor · ${myLevel === 0 ? 'ground' : 'upper'}`,
+        disabled: !this.showIsland && this.level === myLevel,
+        onclick: () => { this.level = myLevel; this.showIsland = false; this.rerenderWithDialogFocus(); },
+      }),
+    );
+  }
+
+  private renderIsland(position: Vec3, yaw: number, heading: string): void {
+    const outside = this.isOutside();
+    const plan = svg('svg', {
+      class: 'map__plan map__island', role: 'img',
+      viewBox: '-210 -209 420 442',
+      'aria-label': outside ? `Island map. You are facing ${heading}.` : 'Island map. You are inside the museum.',
+    });
+    const points = (path: readonly (readonly [number, number])[]) => path.map(([x, z]) => `${x},${z}`).join(' ');
+    plan.append(
+      svg('polygon', { points: points(ISLAND_OUTLINE), fill: '#29382e', stroke: '#7c9884', 'stroke-width': 1.7 }),
+      svg('polygon', { points: points(LAGOON_SURFACE_OUTLINE), fill: '#245268', stroke: '#80aab2', 'stroke-width': 1.3 }),
+    );
+    for (const path of [...PATH_CENTERLINES, PIER_CENTERLINE]) {
+      plan.append(svg('polyline', {
+        points: points(path), fill: 'none', stroke: '#c2ac83', 'stroke-width': 2.5, 'stroke-linejoin': 'round',
+      }));
+    }
+    plan.append(
+      svg('rect', { x: -38, y: -105, width: 76, height: 233, rx: 6, fill: '#252532', stroke: '#a39dbc', 'stroke-width': 1.5 }),
+      islandLabel(0, -16, 'Museum'),
+      islandLabel(171, -167, 'N ↑'),
+    );
+    const route = outside ? planVisitorRoute('exterior', position, MUSEUM_ENTRANCE_TARGET, this.getCollision()) : [];
+    if (route.length > 1) {
+      plan.append(svg('polyline', {
+        class: 'island-route', points: points(route.map(([x, , z]) => [x, z] as const)), fill: 'none',
+        stroke: '#ffda70', 'stroke-width': 3, 'stroke-dasharray': '6 3', 'stroke-linejoin': 'round',
+      }));
+    }
+    for (const landmark of ISLAND_LANDMARKS) {
+      const [x, , z] = landmark.at;
+      plan.append(svg('circle', { cx: x, cy: z, r: 3.5, fill: '#f1dab1' }));
+      plan.append(islandLabel(x + (x === 0 ? -49 : 0), z - 4, landmark.name));
+    }
+    if (outside) {
+      const [x, , z] = position;
+      plan.append(svg('line', {
+        class: 'island-heading', x1: x, y1: z, x2: x - 12 * Math.sin(yaw), y2: z - 12 * Math.cos(yaw),
+        stroke: '#fff4d8', 'stroke-width': 2.3,
+      }));
+      plan.append(svg('circle', {
+        class: 'island-you', cx: x, cy: z, r: 5, fill: '#ffda70', stroke: '#fff4d8', 'stroke-width': 1.8,
+      }));
+    }
+    const location = outside
+      ? `You are outside the museum (${this.getZone()}), facing ${heading}.`
+      : `You are inside the museum (${this.getZone()}).`;
+    const door = Math.round(visitorRouteDistance(route));
+    this.setContent(el('div', { class: 'map__layout' },
+      el('div', {}, this.viewSwitch(), plan as unknown as Node),
+      el('div', {},
+        el('p', { text: location }),
+        outside && route.length > 1
+          ? el('p', { class: 'panel__note', text: `Follow the dashed path to the front door · about ${door} m on foot.` })
+          : document.createTextNode(''),
+        this.target
+          ? el('p', { class: 'panel__note map__wayfinding', role: 'status', text: `Wayfinding to ${this.targetName(this.target)}.` })
+          : document.createTextNode(''),
+        outside
+          ? el('button', { type: 'button', text: 'Guide to the entrance', onclick: () => this.setTarget(MUSEUM_ENTRANCE_TARGET) })
+          : document.createTextNode(''),
+        this.target
+          ? el('button', { type: 'button', text: 'Clear guide', onclick: () => this.setTarget(null) })
+          : document.createTextNode(''),
+        el('h3', { text: 'Island landmarks' }),
+        el('ul', {}, ...ISLAND_LANDMARKS.map(({ name }) => el('li', { text: name }))),
+      ),
+    ));
   }
 
   protected render(): void {
@@ -131,6 +235,10 @@ export class MapPanel extends Panel {
     const prefs = this.getPreferences();
     const yaw = this.getYaw();
     const heading = compassHeading(yaw);
+    if (this.showIsland) {
+      this.renderIsland(position, yaw, heading);
+      return;
+    }
     const floorName = this.level === 0 ? 'ground floor' : 'upper floor';
     const plan = svg('svg', {
       class: 'map__plan',
@@ -219,7 +327,7 @@ export class MapPanel extends Panel {
       const [rx2, ry2] = toSvg(place(SANCTUARY_DIR, SANCTUARY_RAMP_TO));
       plan.append(svg('line', { x1: rx1, y1: ry1, x2: rx2, y2: ry2, stroke: '#d9c69a', 'stroke-width': 5, 'stroke-opacity': '0.3', 'stroke-dasharray': '3 2' }));
       plan.append(svg('circle', { class: 'room', cx: sx, cy: sy, r: SANCTUARY_RADIUS, fill: 'rgba(217,198,154,0.16)', stroke: '#d9c69a', 'stroke-width': 0.6 }));
-      plan.append(textAt(sx, sy - SANCTUARY_RADIUS - 3, 'Dexter Sanctuary'));
+      plan.append(textAt(sx, sy - SANCTUARY_RADIUS - 3, SANCTUARY_TITLE));
     }
 
     const visitorMarkers = prefs.showMapVisitors
@@ -285,42 +393,23 @@ export class MapPanel extends Panel {
       list.append(grid);
     }
 
-    const myLevel = mapLevelForY(position[1]);
-    const levelSwitch = el(
-      'div',
-      { class: 'map__level', role: 'group', 'aria-label': 'Floor' },
-      el('button', {
-        type: 'button', text: 'Ground floor',
-        'aria-pressed': String(this.level === 0),
-        onclick: () => { this.level = 0; this.rerenderWithDialogFocus(); },
-      }),
-      el('button', {
-        type: 'button', text: 'Upper floor',
-        'aria-pressed': String(this.level === 1),
-        onclick: () => { this.level = 1; this.rerenderWithDialogFocus(); },
-      }),
-      el('button', {
-        type: 'button',
-        text: `My floor · ${myLevel === 0 ? 'ground' : 'upper'}`,
-        disabled: this.level === myLevel,
-        onclick: () => { this.level = myLevel; this.rerenderWithDialogFocus(); },
-      }),
-    );
-
     this.setContent(
       el(
         'div',
         { class: 'map__layout' },
-        el('div', {}, levelSwitch, plan as unknown as Node),
+        el('div', {}, this.viewSwitch(), plan as unknown as Node),
         el(
           'div',
           {},
           el('p', { text: `${outside
-            ? `You are outside the museum (${this.getZone()}), facing ${heading}. The plan shows the inside of the building and marks your position once you enter.`
+            ? `You are outside the museum (${this.getZone()}), facing ${heading}. Select Island to see your position and the path to the entrance.`
             : `You are in the ${this.getZone()}, facing ${heading}.`} Selecting an exhibit marks it on the map and shows a direction cue — it never moves you there.` }),
           this.target
-            ? el('p', { class: 'panel__note map__wayfinding', role: 'status', text: `Wayfinding to ${EXHIBITS_BY_ID.get(this.target)?.title} · ${Math.round(this.distanceTo(this.target))} m away. Select it again to clear.` })
+            ? el('p', { class: 'panel__note map__wayfinding', role: 'status', text: `Wayfinding to ${this.targetName(this.target)} · ${Math.round(this.distanceTo(this.target))} m ${outside ? 'to the entrance' : 'away'}.` })
             : el('p', { class: 'panel__note map__wayfinding', role: 'status', text: `${this.journal.visitedCount} of 35 exhibits visited. There is no score.` }),
+          this.level === 0
+            ? el('p', { class: 'panel__note', text: `${SANCTUARY_TITLE}. ${SANCTUARY_DESCRIPTION}` })
+            : document.createTextNode(''),
           prefs.showMapVisitors
             ? el('p', { class: 'map__visitor-note', text: `${visitorMarkers.length} visitor${visitorMarkers.length === 1 ? '' : 's'} visible on this floor: authored people use solid markers, staff use ringed markers, ambient visitors use quiet markers.` })
             : el('p', { class: 'map__visitor-note', text: 'Visitor markers are hidden by your settings.' }),
@@ -351,14 +440,13 @@ export class MapPanel extends Panel {
     );
   }
 
-  private distanceTo(exhibitId: string): number {
-    const placement = PLACEMENTS.find((entry) => entry.exhibitId === exhibitId);
-    if (!placement) return 0;
-    const position = this.getPosition();
-    return Math.hypot(
-      placement.doorway[0] - position[0],
-      placement.doorway[2] - position[2],
-    );
+  private targetName(id: string): string {
+    return id === MUSEUM_ENTRANCE_TARGET ? 'the museum entrance' : EXHIBITS_BY_ID.get(id)?.title ?? id;
+  }
+
+  private distanceTo(id: string): number {
+    const route = planVisitorRoute(this.isOutside() ? 'exterior' : 'interior', this.getPosition(), id, this.getCollision());
+    return visitorRouteDistance(route);
   }
 
   private renderVisitThread(plan: SVGSVGElement): void {
@@ -407,4 +495,10 @@ function textAt(x: number, y: number, label: string): SVGTextElement {
   const t = svg('text', { class: 'label', x, y, 'text-anchor': 'middle' });
   t.textContent = label;
   return t;
+}
+
+function islandLabel(x: number, y: number, label: string): SVGTextElement {
+  const node = textAt(x, y, label);
+  node.style.fontSize = '10px';
+  return node;
 }

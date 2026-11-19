@@ -1,6 +1,7 @@
 import { COLLECTION, EXHIBITS_BY_ID, projectsForExhibit, WINGS_BY_ID } from '../content/collection.generated';
 import type { ActiveVisitThread, VisitThreadPreset } from './VisitThread';
 import type { Journal } from './Journal';
+import { authoredTour } from '../content/authoredTours';
 
 export interface ThreadWeaveStop {
   readonly exhibitId: string;
@@ -80,17 +81,25 @@ function reasonFor(active: ActiveVisitThread, exhibitId: string, journal: Journa
 }
 
 export function buildThreadWeave(active: ActiveVisitThread, journal: Journal): ThreadWeave {
-  const stops = active.stopIds.map((exhibitId, index) => ({
-    exhibitId,
-    selectionReason: reasonFor(active, exhibitId, journal),
-    bridgeFromPrevious: index === 0 ? null : bridge(active.stopIds[index - 1], exhibitId),
-  }));
+  const tour = authoredTour(active.authoredTourId);
+  const stops = active.stopIds.map((exhibitId, index) => {
+    const authoredIndex = tour?.stops.findIndex((stop) => stop.exhibitId === exhibitId) ?? -1;
+    const authoredStop = tour && authoredIndex >= 0 ? tour.stops[authoredIndex] : undefined;
+    const previous = active.stopIds[index - 1];
+    const authoredBridge = authoredIndex > 0 && tour?.stops[authoredIndex - 1].exhibitId === previous
+      ? authoredStop?.bridgeFromPrevious : undefined;
+    return {
+      exhibitId,
+      selectionReason: authoredStop?.instruction ?? reasonFor(active, exhibitId, journal),
+      bridgeFromPrevious: previous ? authoredBridge ?? bridge(previous, exhibitId) : null,
+    };
+  });
   const domains = new Set(active.stopIds.map((id) => EXHIBITS_BY_ID.get(id)?.wing).filter(Boolean));
   return {
     title: `${active.title} — interpretive weave`,
-    opening: domains.size > 1
+    opening: tour?.opening ?? (domains.size > 1
       ? `This thread crosses ${domains.size} museum wings. The links below explain why each stop was selected and what changes as the route moves between them.`
-      : 'This thread stays inside one museum wing and uses the stop sequence to show different sides of the same domain.',
+      : 'This thread stays inside one museum wing and uses the stop sequence to show different sides of the same domain.'),
     stops,
   };
 }

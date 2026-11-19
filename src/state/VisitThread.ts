@@ -1,6 +1,7 @@
 import { COLLECTION, EXHIBITS_BY_ID, WINGS_BY_ID } from '../content/collection.generated';
 import type { ExhibitRecord, WingId } from '../content/types';
 import type { Journal } from './Journal';
+import { authoredTour } from '../content/authoredTours';
 import { attachIntegrity, checksumPayload, verifyIntegrity } from './integrity';
 
 export const VISIT_THREAD_KEY = 'museum-of-me:visit-thread:v1';
@@ -28,6 +29,7 @@ export interface VisitThreadOptions {
 
 export interface ActiveVisitThread {
   id: string;
+  authoredTourId?: string;
   title: string;
   preset: VisitThreadPreset;
   pace: VisitThreadPace;
@@ -46,6 +48,7 @@ export interface ActiveVisitThread {
 
 export interface VisitThreadRecent {
   id: string;
+  authoredTourId?: string;
   title: string;
   preset: VisitThreadPreset;
   pace: VisitThreadPace;
@@ -116,8 +119,10 @@ function sanitizeActive(value: unknown): ActiveVisitThread | null {
   const skippedIds = uniqueKnown(raw.skippedIds).filter((id) => stopIds.includes(id) && !completedIds.includes(id));
   const cursor = Math.max(0, Math.min(stopIds.length - 1, Math.floor(Number(raw.cursor) || 0)));
   const status: VisitThreadStatus = raw.status === 'paused' || raw.status === 'complete' ? raw.status : 'active';
+  const tour = authoredTour(raw.authoredTourId);
   return {
     id: String(raw.id || newId('visit')).slice(0, 80),
+    ...(tour ? { authoredTourId: tour.id } : {}),
     title: String(raw.title || PRESET_TITLES[validPreset(raw.preset)]).slice(0, 96),
     preset: validPreset(raw.preset),
     pace: validPace(raw.pace),
@@ -142,8 +147,10 @@ export function sanitizeVisitThreadState(value: unknown): VisitThreadState {
     .map((item) => {
       const entry = item as Partial<VisitThreadRecent>;
       const stopIds = uniqueKnown(entry.stopIds);
+      const tour = authoredTour(entry.authoredTourId);
       return {
         id: String(entry.id || newId('recent')).slice(0, 80),
+        ...(tour ? { authoredTourId: tour.id } : {}),
         title: String(entry.title || PRESET_TITLES[validPreset(entry.preset)]).slice(0, 96),
         preset: validPreset(entry.preset),
         pace: validPace(entry.pace),
@@ -307,6 +314,21 @@ export class VisitThread {
     return this.state.active;
   }
 
+  startAuthored(id: string): ActiveVisitThread | null {
+    const tour = authoredTour(id);
+    if (!tour) return null;
+    const now = Date.now();
+    this.commit((state) => {
+      state.active = {
+        id: newId('visit'), authoredTourId: tour.id, title: tour.title, preset: 'highlights', pace: 'quick',
+        status: 'active', createdAt: now, updatedAt: now,
+        stopIds: tour.stops.map((stop) => stop.exhibitId), cursor: 0,
+        completedIds: [], skippedIds: [], avoidVisited: false, preferBookmarks: false, topic: '', onlyWing: null,
+      };
+    });
+    return this.state.active;
+  }
+
   resumeRecent(id: string): boolean {
     const recent = this.state.recent.find((item) => item.id === id);
     if (!recent) return false;
@@ -314,6 +336,7 @@ export class VisitThread {
     this.commit((state) => {
       state.active = {
         id: newId('visit'), title: recent.title, preset: recent.preset, pace: recent.pace,
+        ...(recent.authoredTourId ? { authoredTourId: recent.authoredTourId } : {}),
         status: 'active', createdAt: now, updatedAt: now, stopIds: [...recent.stopIds], cursor: 0,
         completedIds: [], skippedIds: [], avoidVisited: false, preferBookmarks: false, topic: '', onlyWing: null,
       };
@@ -509,6 +532,7 @@ export class VisitThread {
   private archive(state: VisitThreadState, active: ActiveVisitThread): void {
     const entry: VisitThreadRecent = {
       id: active.id, title: active.title, preset: active.preset, pace: active.pace,
+      ...(active.authoredTourId ? { authoredTourId: active.authoredTourId } : {}),
       finishedAt: Date.now(), stopIds: [...active.stopIds],
     };
     state.recent = [...state.recent.filter((item) => item.id !== entry.id), entry].slice(-VISIT_THREAD_MAX_RECENT);

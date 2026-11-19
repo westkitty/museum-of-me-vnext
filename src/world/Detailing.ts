@@ -4,6 +4,7 @@ import { architecturalStoneFinish } from './SurfaceFinish';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { buildWingSign } from '../exhibits/Furniture';
 import { buildBench } from '../assets/generators';
+import { EXHIBIT_DOORWAY_LINES } from '../content/exhibitDoorways';
 import { WINGS_BY_ID, EXHIBITS_BY_ID, COLLECTION } from '../content/collection.generated';
 import {
   WINGS, PLACEMENTS, OCTAGON_FACES, ROTUNDA_APOTHEM, LEVEL_1_Y, GROUND_Y,
@@ -365,7 +366,8 @@ export class Detailing {
     for (const placement of PLACEMENTS) {
       if (placement.wing !== wing.id) continue;
       const record = EXHIBITS_BY_ID.get(placement.exhibitId)!;
-      const sign = buildWingSign(this.scope, record.title, `${record.id} · ${record.copy.subtitle}`);
+      const sign = buildWingSign(this.scope, EXHIBIT_DOORWAY_LINES[record.id], `${record.title} · ${record.id}`);
+      sign.name = `exhibit-doorway:${record.id}`;
       sign.scale.setScalar(0.62);
       const sign_at = placement.doorway;
       const sign_sign = placement.side === 'right' ? 1 : -1;

@@ -21,16 +21,21 @@
 
     <div id="ui-root" class="ui-root"></div>
 
+    <div id="museum-loading" class="noscript">
+      <h1>Museum of Me</h1>
+      <p>Opening the 3D museum…</p>
+      <a href="?view=collection">Browse the collection</a>
+    </div>
+
     <noscript>
       <div class="noscript">
         <h1>Museum of Me</h1>
         <p>
-          This museum is a real-time 3D environment and requires JavaScript and WebGL. The full text of
-          every exhibit is also available in the accessible contents once scripting is enabled.
+          Enable JavaScript to read the collection. The 3D visit also requires WebGL.
         </p>
       </div>
     </noscript>
 
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/entry.ts"></script>
   </body>
 </html>

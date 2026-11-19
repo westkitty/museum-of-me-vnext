@@ -155,7 +155,7 @@ export class HeliocideObservatory extends ExhibitBase {
     consoleGroup.rotation.y = -0.42;
     consoleGroup.name = 'witness-reconstruction-console';
     this.group.add(consoleGroup);
-    const consoleLabel = buildLabel(scope, 'RECONSTRUCT', 1.25);
+    const consoleLabel = buildLabel(scope, 'Watch the stars disappear', 1.25);
     consoleLabel.position.set(0, 1.16, 0.15);
     consoleLabel.rotation.x = -Math.PI / 2.1;
     consoleGroup.add(consoleLabel);
@@ -163,7 +163,7 @@ export class HeliocideObservatory extends ExhibitBase {
 
     this.control({
       object: consoleGroup,
-      label: () => (this.running ? 'Restart the six-record reconstruction' : 'Reconstruct the cause of the missing sky'),
+      label: () => (this.running ? 'Restart the reconstruction' : 'Watch the stars disappear'),
       description: 'Replay the six confirmed historical records. The sky remains intact until the containment decision. No extra object is drawn when it disappears.',
       activate: () => this.startReconstruction(),
     });
@@ -366,7 +366,7 @@ export class HeliocideObservatory extends ExhibitBase {
     });
     if (this.readout) {
       const status = this.record <= 3 ? 'STARS PRESENT'
-        : this.record === 4 ? 'STARS REMOVED' : 'ABSENCE';
+        : this.record === 4 ? 'STARS GO DARK' : 'From the worlds below, the wall looks like missing stars.';
       updateLabel(this.ctx.scope, this.readout, status);
     }
   }

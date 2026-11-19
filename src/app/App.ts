@@ -39,7 +39,7 @@ import { AudioManager } from '../audio/AudioManager';
 import { AssetManager } from '../assets/AssetManager';
 import type { DexterSanctuary } from '../exhibits/sanctuary/DexterSanctuary';
 import { Sky } from '../world/Sky';
-import type { Wayfinding } from '../world/Wayfinding';
+import { Wayfinding } from '../world/Wayfinding';
 import type { AmbientVisitors } from '../world/AmbientVisitors';
 import type { FlightPadAtmosphere } from '../world/FlightPadAtmosphere';
 import { UILayer } from './UILayer';
@@ -74,6 +74,7 @@ export class App implements LoopCallbacks {
   private readonly adaptiveResolution = new AdaptiveResolution();
   readonly journal: Journal;
   readonly scope = new ResourceScope('app');
+  readonly wayfinding = new Wayfinding(this.scope);
 
   readonly exteriorWorld: ExteriorWorld;
   interiorWorld: InteriorWorld | null = null;
@@ -183,6 +184,7 @@ export class App implements LoopCallbacks {
     // Exterior world context: island terrain, shoreline, water, lanterns, and outdoor collider
     this.exteriorWorld = new ExteriorWorld(this.renderer.quality.tier);
     this.renderer.scene.add(this.exteriorWorld.root);
+    this.exteriorWorld.root.add(this.wayfinding.group);
     this.secrets.attachObjects('exterior', this.exteriorWorld.root, this.exteriorWorld.scope,
       (id, control) => this.interaction.register(id, control));
 
@@ -209,11 +211,7 @@ export class App implements LoopCallbacks {
 
     this.input.on('interact', () => {
       if (this.interaction.activate()) {
-        const focus = this.interaction.currentFocus;
-        if (focus && !isSecretControlId(focus.exhibitId)) {
-          this.journal.markVisited(focus.exhibitId);
-          this.visitThread.recordVisit(focus.exhibitId);
-        }
+        this.recordInteractionVisit();
         this.audio.tick();
       }
     });
@@ -225,6 +223,13 @@ export class App implements LoopCallbacks {
     this.lifecycle = new Lifecycle(this.loop, this.input, this.renderer, () => this.preferences, (message) => {
       this.ui.hud.announce(message);
     }, () => !this.ui.fullWeasel.isOpen);
+  }
+
+  recordInteractionVisit(): void {
+    const id = this.interaction.currentFocus?.exhibitId;
+    if (!id || isSecretControlId(id) || id === 'foyer-observatory-preview') return;
+    this.journal.markVisited(id);
+    this.visitThread.recordVisit(id);
   }
 
   /**
@@ -289,10 +294,6 @@ export class App implements LoopCallbacks {
 
   get sanctuary(): DexterSanctuary | undefined {
     return this.interiorWorld?.sanctuary;
-  }
-
-  get wayfinding(): Wayfinding | undefined {
-    return this.interiorWorld?.wayfinding;
   }
 
   get visitors(): AmbientVisitors | undefined {
@@ -657,15 +658,19 @@ export class App implements LoopCallbacks {
     diagnosticPosition[2] = Math.round(this.player.position.z * 10) / 10;
     this.diagnostics.stats.wing = this.zoneLabel;
 
-    if (this.wayfinding) {
-      this.wayfinding.updateXYZ(
-        dt,
-        this.player.position.x,
-        this.player.position.y,
-        this.player.position.z,
-        this.preferences.reducedMotion,
-      );
-    }
+    const activeRoot = this.activeWorld === 'interior' ? this.interiorWorld?.root : this.exteriorWorld.root;
+    if (activeRoot && this.wayfinding.group.parent !== activeRoot) activeRoot.add(this.wayfinding.group);
+    const targetBeforeUpdate = this.wayfinding.currentTarget;
+    this.wayfinding.updateXYZ(
+      dt,
+      this.player.position.x,
+      this.player.position.y,
+      this.player.position.z,
+      this.preferences.reducedMotion,
+      this.activeWorld,
+      this.isOutside ? this.exteriorWorld.collision : this.interiorWorld?.collision,
+    );
+    if (targetBeforeUpdate && !this.wayfinding.currentTarget) this.ui.clearGuideOnArrival();
     this.arrivalGarden.update(dt, this.preferences.reducedMotion);
     this.sky.follow(this.camera);
 
@@ -729,7 +734,7 @@ export class App implements LoopCallbacks {
     this.exteriorWorld.dispose();
     this.interiorWorld?.dispose();
     this.sanctuary?.dispose();
-    this.wayfinding?.dispose();
+    this.wayfinding.dispose();
     this.visitors?.dispose();
     this.flightPadAtmosphere?.dispose();
     this.sourceVisitors?.dispose();

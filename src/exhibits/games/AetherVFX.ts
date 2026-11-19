@@ -29,6 +29,7 @@ export class AetherVFX extends ExhibitBase {
   private travelling = false;
   private residueKind = 0;
   private residues = this.tracked<THREE.Mesh>();
+  private marks = this.tracked<{ mesh: THREE.Mesh; kind: typeof RESIDUES[number]['name'] }>();
   private stageNodes = this.tracked<THREE.Mesh>();
   private pulse!: Pulse;
   private curves = this.tracked<THREE.CatmullRomCurve3>();
@@ -83,32 +84,32 @@ export class AetherVFX extends ExhibitBase {
     });
 
     const residue = buildConsole(scope, 0.64, 0.44, 1.0, frame); residue.position.set(0, 0, -1.35); this.group.add(residue);
-    const residueLabel = buildLabel(scope, 'RESIDUE TYPE', 0.62); residueLabel.position.set(0, 1.02, 0.2); residueLabel.rotation.x = -Math.PI / 2.1; residue.add(residueLabel); scope.track(residueLabel.geometry);
+    const residueLabel = buildLabel(scope, 'Choose what’s left behind', 0.62); residueLabel.position.set(0, 1.02, 0.2); residueLabel.rotation.x = -Math.PI / 2.1; residue.add(residueLabel); scope.track(residueLabel.geometry);
     this.control({
       object: residue,
-      label: 'Change persistent aftermath type',
+      label: 'Choose what’s left behind',
       description: 'Cycles museum-safe examples of the platform’s persistent world-mutation vocabulary.',
       activate: () => {
         this.residueKind = (this.residueKind + 1) % RESIDUES.length;
-        this.ctx.announce(`Residue target: ${RESIDUES[this.residueKind].name}. The semantic sequence remains unchanged; only its declared aftermath changes.`);
+        this.ctx.announce(`The next spell will leave ${RESIDUES[this.residueKind].name}.`);
       },
     });
 
     const undo = buildConsole(scope, 0.7, 0.48, 1.0, frame); undo.position.set(2.0, 0, -1.6); this.group.add(undo);
-    const undoLabel = buildLabel(scope, 'UNDO MUTATION', 0.68); undoLabel.position.set(0, 1.02, 0.2); undoLabel.rotation.x = -Math.PI / 2.1; undo.add(undoLabel); scope.track(undoLabel.geometry);
+    const undoLabel = buildLabel(scope, 'Remove the last mark', 0.68); undoLabel.position.set(0, 1.02, 0.2); undoLabel.rotation.x = -Math.PI / 2.1; undo.add(undoLabel); scope.track(undoLabel.geometry);
     this.control({
       object: undo,
-      label: 'Undo the persistent aftermath',
-      description: 'Reverts the museum simulation’s mutation transaction without pretending the visual residue was merely a particle that expired.',
+      label: 'Remove the last mark',
+      description: 'Removes the most recent mark on the floor.',
       activate: () => {
-        const visible = this.residues.filter((r) => r.visible);
-        if (visible.length === 0) { this.ctx.announce('Nothing to undo. No persistent mutation is currently committed.'); return; }
-        visible[visible.length - 1].visible = false;
-        this.ctx.announce(`Undo committed. One ${RESIDUES[this.residueKind].name} aftermath transaction was removed and the prior world state restored.`);
+        const last = this.marks.pop();
+        if (!last) { this.ctx.announce('There are no marks to remove.'); return; }
+        last.mesh.visible = false;
+        this.ctx.announce(`Removed the last ${last.kind} mark.`);
       },
     });
 
-    const semantic = buildLabel(scope, 'telegraph → travel → impact → field → residue\nmutation is state, not decoration', 5.6, 0.18);
+    const semantic = buildLabel(scope, 'A spell leaves a mark. Follow it from warning to impact.', 5.6, 0.18);
     semantic.position.set(0, 4.35, -6.2); this.group.add(semantic); scope.track(semantic.geometry);
   }
 
@@ -126,10 +127,11 @@ export class AetherVFX extends ExhibitBase {
   }
 
   private commitResidue(): void {
-    const slot = this.residues.find((r) => !r.visible) ?? this.residues[0];
+    const slot = this.residues.find((mark) => !mark.visible) ?? this.marks.shift()!.mesh;
     const kind = RESIDUES[this.residueKind];
     (slot.material as THREE.MeshStandardMaterial).color.setHex(kind.colour);
     slot.visible = true;
+    this.marks.push({ mesh: slot, kind: kind.name });
   }
 
   protected override onUpdate(dt: number, _ctx: ExhibitUpdateContext): void {
@@ -152,11 +154,12 @@ export class AetherVFX extends ExhibitBase {
   protected override onReset(): void {
     this.stage = -1; this.travelling = false; this.residueKind = 0; this.pulse.stop();
     for (const r of this.residues) r.visible = false;
+    this.marks.length = 0;
     for (const n of this.stageNodes) (n.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.18;
   }
 
   protected override describeState(): string {
-    const committed = this.residues.filter((r) => r.visible).length;
+    const committed = this.marks.length;
     return `${this.stage < 0 ? 'No ability is active' : `Ability at ${STAGES[this.stage].name}`}. Residue target: ${RESIDUES[this.residueKind].name}. ${committed} persistent mutation${committed === 1 ? '' : 's'} committed; undo is available.`;
   }
 }

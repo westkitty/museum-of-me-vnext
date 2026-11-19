@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ExhibitBase } from '../ExhibitBase';
-import { buildPlaque, buildLectern, buildLabel } from '../Furniture';
+import { buildPlaque, buildLectern, buildLabel, updateLabel } from '../Furniture';
 import { buildConsole, Pulse, Filament } from '../parts';
 import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
 
@@ -66,6 +66,8 @@ export class BigMacBackbone extends ExhibitBase {
   private receiptChanged = false;
   private receiptVerified = false;
   private gate!: THREE.Mesh;
+  private receiptStatus!: THREE.Mesh;
+  private receiptBlocked = false;
 
   constructor(def: ExhibitDefinition) { super(def); }
 
@@ -107,7 +109,8 @@ export class BigMacBackbone extends ExhibitBase {
       const c = buildConsole(scope, 0.62, 0.46, 1.0, metal); c.position.set(-3.0 + i * 2.0, 0, 2.1); this.group.add(c); // in front of the bay plinth, not inside it
       const label = buildLabel(scope, workflow.name, 0.66); label.position.set(0, 1.02, 0.22); label.rotation.x = -Math.PI / 2.1; c.add(label); scope.track(label.geometry);
       this.control({ object: c, label: `Select ${workflow.name}`, description: `${workflow.note} Permission class: ${workflow.permission}.`, activate: () => {
-        this.workflow = i; this.segment = -1; this.previewReady = false; this.curves.length = 0;
+        this.workflow = i; this.segment = -1; this.previewReady = false; this.curves.length = 0; this.pulse.stop();
+        this.receiptBlocked = false;
         this.receiptRequested = true; this.receiptAttempted = false; this.receiptChanged = false; this.receiptVerified = false;
         this.applyReceiptVisualState();
         this.ctx.announce(`${workflow.name}. ${workflow.note} Permission class: ${workflow.permission}. REQUESTED receipt state recorded.`);
@@ -119,19 +122,20 @@ export class BigMacBackbone extends ExhibitBase {
     const gateLabel = buildLabel(scope, 'THE DEXTER GATE', 1.55); gateLabel.position.set(0, 2.7, -6.15); this.group.add(gateLabel); scope.track(gateLabel.geometry);
 
     const preview = buildConsole(scope, 0.7, 0.48, 1.0, metal); preview.position.set(-2.4, 0, 0.2); this.group.add(preview);
-    const previewLabel = buildLabel(scope, 'PREVIEW EXACT EFFECT', 0.8); previewLabel.position.set(0, 1.02, 0.2); previewLabel.rotation.x = -Math.PI / 2.1; preview.add(previewLabel); scope.track(previewLabel.geometry);
-    this.control({ object: preview, label: 'Preview the selected operation', description: 'Consequential operations require this exact preview before execution. Read-only work may proceed without it.', activate: () => {
+    const previewLabel = buildLabel(scope, 'Preview the change', 0.8); previewLabel.position.set(0, 1.02, 0.2); previewLabel.rotation.x = -Math.PI / 2.1; preview.add(previewLabel); scope.track(previewLabel.geometry);
+    this.control({ object: preview, label: 'Preview the change', description: 'Consequential operations require this exact preview before execution. Read-only work may proceed without it.', activate: () => {
       if (this.workflow < 0) { this.ctx.announce('Select a registered operation first.'); return; }
-      this.previewReady = true; const w = WORKFLOWS[this.workflow]; this.ctx.announce(`Preview bound: ${w.name}. Declared route: ${w.path.join(' → ')}. No other operation may use this preview.`);
+      this.previewReady = true; this.receiptBlocked = false; this.applyReceiptVisualState(); const w = WORKFLOWS[this.workflow]; this.ctx.announce(`Preview bound: ${w.name}. Declared route: ${w.path.join(' → ')}. No other operation may use this preview.`);
     }});
 
     const execute = buildConsole(scope, 0.7, 0.48, 1.0, metal); execute.position.set(2.4, 0, 0.2); this.group.add(execute);
-    const executeLabel = buildLabel(scope, 'EXECUTE REGISTERED', 0.76); executeLabel.position.set(0, 1.02, 0.2); executeLabel.rotation.x = -Math.PI / 2.1; execute.add(executeLabel); scope.track(executeLabel.geometry);
-    this.control({ object: execute, label: 'Execute selected registered operation', description: 'Starts only the selected registered route and returns an evidence receipt when its museum simulation verifies.', activate: () => this.execute() });
+    const executeLabel = buildLabel(scope, 'Run the simulation', 0.76); executeLabel.position.set(0, 1.02, 0.2); executeLabel.rotation.x = -Math.PI / 2.1; execute.add(executeLabel); scope.track(executeLabel.geometry);
+    this.control({ object: execute, label: 'Run the simulation', description: 'Starts only the selected registered route and returns an evidence receipt when its museum simulation verifies.', activate: () => this.execute() });
 
     const receiptBoard = new THREE.Mesh(scope.track(new THREE.BoxGeometry(6.0, 0.08, 0.72)), this.standard(0x2f3635, { roughness: 0.82 }));
-    receiptBoard.position.set(0, 1.12, -2.15); // raised to read over the bay plinth this.group.add(receiptBoard);
-    const receiptTitle = buildLabel(scope, 'EVIDENCE RECEIPT · STATES DO NOT COLLAPSE INTO “DONE”', 4.4, STRIP);
+    receiptBoard.position.set(0, 1.12, -2.15);
+    this.group.add(receiptBoard);
+    const receiptTitle = buildLabel(scope, 'Did it actually happen?', 4.4, STRIP);
     receiptTitle.position.set(0, 1.86, -2.16); this.group.add(receiptTitle); scope.track(receiptTitle.geometry);
 
     RECEIPT_STATES.forEach((state, i) => {
@@ -140,6 +144,12 @@ export class BigMacBackbone extends ExhibitBase {
       lamp.position.set(-2.5 + i, 1.26, -2.15); this.group.add(lamp); this.receiptLamps.push(lamp);
       const label = buildLabel(scope, state.label, 0.72); label.position.set(-2.5 + i, 1.52, -2.13); this.group.add(label); scope.track(label.geometry);
     });
+
+    this.receiptStatus = buildLabel(scope, 'Choose an operation', 2.8, 0.15);
+    this.receiptStatus.name = 'E34 receipt status';
+    this.receiptStatus.userData.status = 'Choose an operation';
+    this.receiptStatus.position.set(0, 2.28, -2.16);
+    this.group.add(this.receiptStatus);
 
     const receipt = buildLabel(scope, 'REQUESTED → ATTEMPTED → CHANGED? → VERIFIED    FAILED / UNKNOWN stay distinct', 5.6, 0.12);
     receipt.position.set(0, 4.85, -6.4); this.group.add(receipt); scope.track(receipt.geometry);
@@ -152,16 +162,31 @@ export class BigMacBackbone extends ExhibitBase {
       const mat = this.receiptLamps[i].material as THREE.MeshStandardMaterial;
       mat.emissiveIntensity = active[i] ? 1.45 : 0.06;
     }
+    const status = this.receiptMessage();
+    if (this.receiptStatus.userData.status !== status) {
+      updateLabel(this.ctx.scope, this.receiptStatus, status);
+      this.receiptStatus.userData.status = status;
+    }
+  }
+
+  private receiptMessage(): string {
+    if (this.receiptBlocked) return 'Blocked · preview required';
+    if (this.receiptVerified) return this.receiptChanged ? 'Change verified in the simulation' : 'Result verified in the simulation';
+    if (this.previewReady) return 'Preview ready';
+    if (this.receiptAttempted) return 'Simulation in progress';
+    return this.receiptRequested ? 'Operation selected' : 'Choose an operation';
   }
 
   private execute(): void {
+    if (this.pulse.isRunning) return;
     if (this.workflow < 0) { this.ctx.announce('Select a registered operation first.'); return; }
     const w = WORKFLOWS[this.workflow];
     this.receiptAttempted = true;
     this.receiptChanged = false;
     this.receiptVerified = false;
+    this.receiptBlocked = w.permission === 'consequential' && !this.previewReady;
     this.applyReceiptVisualState();
-    if (w.permission === 'consequential' && !this.previewReady) {
+    if (this.receiptBlocked) {
       this.ctx.announce(`BLOCKED at the Dexter Gate. ${w.name} is consequential and has no exact preview transaction. REQUESTED and ATTEMPTED remain recorded; CHANGED and VERIFIED do not light.`);
       return;
     }
@@ -202,6 +227,7 @@ export class BigMacBackbone extends ExhibitBase {
   protected override onReset(): void {
     this.workflow = -1; this.segment = -1; this.previewReady = false; this.curves.length = 0; this.pulse.stop();
     this.receiptRequested = false; this.receiptAttempted = false; this.receiptChanged = false; this.receiptVerified = false;
+    this.receiptBlocked = false;
     this.applyReceiptVisualState();
   }
 
@@ -214,6 +240,6 @@ export class BigMacBackbone extends ExhibitBase {
       this.receiptChanged ? 'changed' : null,
       this.receiptVerified ? 'verified' : null,
     ].filter(Boolean).join(' → ') || 'none';
-    return `${w.name} selected (${w.permission}). Preview ${this.previewReady ? 'is bound' : 'is not bound'}. Receipt: ${receipt}. Route: ${w.path.map((id) => { const n = NODES.find((node) => node.id === id)!; return n.project ? `${n.name} (${n.project})` : n.name; }).join(' → ')}.`;
+    return `${w.name} selected (${w.permission}). Preview ${this.previewReady ? 'is bound' : 'is not bound'}. Receipt: ${receipt}. ${this.receiptMessage()}. Route: ${w.path.map((id) => { const n = NODES.find((node) => node.id === id)!; return n.project ? `${n.name} (${n.project})` : n.name; }).join(' → ')}.`;
   }
 }

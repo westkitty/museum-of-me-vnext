@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ExhibitBase } from '../ExhibitBase';
-import { buildPlaque, buildLectern, buildLabel } from '../Furniture';
+import { buildPlaque, buildLectern, buildLabel, updateLabel } from '../Furniture';
 import { buildConsole, Dial } from '../parts';
 import { rng } from '../../assets/generators';
 import type { ExhibitDefinition, ExhibitUpdateContext } from '../contract';
@@ -133,11 +133,14 @@ export class OrbitalTomb extends ExhibitBase {
     this.group.add(consoleGroup);
 
     this.dial = new Dial(scope, MONTHS.length, 0.26, { handle: this.emissive(0xe8c65a, 0.8) });
+    this.dial.value = this.month;
+    this.dial.update(0, true);
     this.dial.group.position.set(0, 1.04, 0);
     consoleGroup.add(this.dial.group);
 
-    this.monthLabel = buildLabel(scope, MONTHS[0].label, 0.72);
-    this.monthLabel.position.set(0, 1.02, 0.24);
+    this.monthLabel = buildLabel(scope, this.monthLabelText(), 1.1, 0.5);
+    this.monthLabel.name = 'orbital-tomb-month-label';
+    this.monthLabel.position.set(0, 1.06, 0.38);
     this.monthLabel.rotation.x = -Math.PI / 2.1;
     consoleGroup.add(this.monthLabel);
     scope.track(this.monthLabel.geometry);
@@ -148,7 +151,7 @@ export class OrbitalTomb extends ExhibitBase {
       description:
         'Moves the station from Month Zero to Month Six. Every production of this project — the song, the story, the visuals, the tour — shares this one timeline.',
       activate: () => {
-        this.month = this.dial.advance();
+        this.setMonth(this.dial.advance());
         this.ctx.announce(`${MONTHS[this.month].label}. ${MONTHS[this.month].note}`);
       },
     });
@@ -178,8 +181,18 @@ export class OrbitalTomb extends ExhibitBase {
     if (!this.reducedMotion) this.station.rotation.y += dt * 0.02;
   }
 
+  private setMonth(index: number): void {
+    this.month = index;
+    updateLabel(this.ctx.scope, this.monthLabel, this.monthLabelText());
+  }
+
+  private monthLabelText(): string {
+    const month = MONTHS[this.month];
+    return `${month.label}\n${month.note}`;
+  }
+
   protected override onReset(): void {
-    this.month = 0;
+    if (this.monthLabel && this.month !== 0) this.setMonth(0);
     if (this.dial) {
       this.dial.value = 0;
       this.dial.update(0, true);

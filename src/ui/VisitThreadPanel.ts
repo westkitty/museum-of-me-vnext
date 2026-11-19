@@ -7,6 +7,7 @@ import {
   VisitThread, buildVisitThreadPlan, type VisitThreadPace, type VisitThreadPreset, visitThreadStopLabel,
 } from '../state/VisitThread';
 import { buildThreadWeave } from '../state/ThreadWeave';
+import { AUTHORED_TOURS, estimatedWalkingMinutes } from '../content/authoredTours';
 
 const PRESETS: Array<{ id: VisitThreadPreset; label: string; note: string }> = [
   { id: 'highlights', label: 'Highlights', note: 'A compact cross-section of the strongest physical exhibits.' },
@@ -134,8 +135,26 @@ export class VisitThreadPanel extends Panel {
         : el('p', { class: 'panel__note', text: 'Nothing matches these constraints. Broaden the topic or wing before starting.' }),
     );
 
+    const authored = el('section', { 'aria-label': 'Short tours' },
+      el('h3', { text: 'Short tours' }),
+      el('div', { class: 'panel__grid' }, ...AUTHORED_TOURS.map((tour) => el('button', {
+        type: 'button', class: 'panel__card', onclick: () => {
+          const active = this.thread.startAuthored(tour.id);
+          if (!active) return;
+          this.guideTo(this.thread.currentStopId);
+          this.announce(`${tour.title} The floor guide points to the first stop.`);
+          this.close();
+        },
+      },
+      el('strong', { text: tour.title }),
+      el('span', { text: `${tour.stops.length} stops · about ${estimatedWalkingMinutes(tour.stops.map((stop) => stop.exhibitId))} min walking from the entrance` }),
+      el('span', { text: tour.opening }),
+      ))),
+    );
+
     return [
-      el('p', { text: 'Pick a shape for the visit. The planner uses the actual collection, your local journal, and the wing layout. It may guide you; it will never move you.' }),
+      authored,
+      el('h3', { text: 'Build your own thread' }),
       el('h3', { text: 'What kind of thread?' }), presetGrid,
       el('h3', { text: 'How long?' }), paceGroup,
       el('h3', { text: 'Narrow it, if you want' }), focusControls, controls, preview, begin, recent,
@@ -213,6 +232,7 @@ export class VisitThreadPanel extends Panel {
         el('strong', { text: active.status === 'complete' ? 'Thread closed cleanly.' : current ? `Next: ${visitThreadStopLabel(current)}` : 'No next stop.' }),
         el('span', { text: summary }),
       ),
+      active.authoredTourId ? el('p', { class: 'panel__note', text: `${weave.opening} About ${estimatedWalkingMinutes(active.stopIds)} min walking from the entrance.` }) : document.createTextNode(''),
       nav, route,
       el('h3', { text: 'Edit the thread' }),
       el('p', { class: 'panel__note', text: 'Reorder, remove, or add a stop. Editing the itinerary never alters the museum collection.' }),

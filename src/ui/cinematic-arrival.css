@@ -39,6 +39,14 @@
   .cinematic-arrival__orientation--touch { display: block; }
 }
 .cinematic-arrival h1:focus-visible { outline: 2px solid #e9c39e; outline-offset: .35rem; }
+.cinematic-arrival__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem 1.5rem;
+}
+.cinematic-arrival__actions a { padding-block: .75rem; color: #f4d1a4; }
 .cinematic-arrival button:focus-visible { outline: 3px solid #e9c39e; outline-offset: 4px; }
 .cinematic-arrival button {
   padding: 1rem 2rem;

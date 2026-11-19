@@ -159,11 +159,19 @@ test('operates the visual map and reduced-motion setting with the keyboard', asy
     await window.__museum?.ensureInteriorLoaded();
   });
 
-  // Outside, the interior plan must not place the visitor inside a wing.
+  // Start on the island map, then choose a genuine upstairs exhibit before
+  // crossing the actual south doorway. The same guide must survive the seam.
   await page.keyboard.press('m');
-  await expect(page.getByRole('dialog', { name: 'Museum map' })).toBeVisible();
-  await expect(page.locator('.map__plan .you-heading')).toHaveCount(0);
-  await expect(page.locator('#panel-map')).toContainText('outside the museum');
+  const map = page.getByRole('dialog', { name: 'Museum map' });
+  await expect(map).toBeVisible();
+  await expect(map.locator('.map__island .island-heading')).toHaveCount(1);
+  await expect(map.locator('.map__island .island-route')).toHaveCount(1);
+  await expect(map).toContainText('outside the museum');
+  await map.getByRole('button', { name: 'Upper floor', exact: true }).click();
+  await expect(map.locator('.map__plan .you-heading')).toHaveCount(0);
+  await map.getByRole('button', { name: /^E34, .*BigMac Backbone/ }).click();
+  await expect(map.locator('.map__wayfinding')).toContainText('to the entrance');
+  expect(await page.evaluate(() => window.__museum?.wayfinding.currentTarget)).toBe('E34');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog', { name: 'Museum map' })).toBeHidden();
 
@@ -183,6 +191,10 @@ test('operates the visual map and reduced-motion setting with the keyboard', asy
   });
   await page.keyboard.up('w');
   expect(entered).toBe('interior');
+  expect(await page.evaluate(() => {
+    const app = window.__museum!;
+    return { target: app.wayfinding.currentTarget, parent: app.wayfinding.group.parent?.name, visible: app.wayfinding.group.visible };
+  })).toEqual({ target: 'E34', parent: 'interior-world', visible: true });
 
   await page.keyboard.press('m');
   await expect(page.getByRole('dialog', { name: 'Museum map' })).toBeVisible();
@@ -366,6 +378,7 @@ test('builds a Visit Thread through the production UI and connects it to real wa
   await page.keyboard.press('m');
   const map = page.locator('#panel-map');
   await expect(map).toBeVisible();
+  await map.getByRole('button', { name: 'Ground floor', exact: true }).click();
   await expect(map.locator('.map__thread-note')).toContainText('Visit Thread');
   expect(await map.locator('.thread-marker').count()).toBeGreaterThan(0);
 

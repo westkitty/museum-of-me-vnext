@@ -25,6 +25,7 @@ export class HUD {
   private readonly hints: HTMLElement;
   private readonly lockPrompt: HTMLElement;
   private readonly resumeLook: HTMLButtonElement;
+  private readonly visitorMenu: HTMLButtonElement;
   private readonly arrivalAction: HTMLElement;
   private arrivalReady = true;
   private arrivalEntered = false;
@@ -47,6 +48,7 @@ export class HUD {
     onEnterMuseum?: () => void,
     onRetryMuseum?: () => void,
     onContinueOutside?: () => void,
+    onVisitorMenu?: () => void,
   ) {
     this.reticle = el('div', { class: 'hud__reticle' });
     this.cueLabel = el('span', {});
@@ -109,6 +111,11 @@ export class HUD {
         onRequestLock(false);
       },
     }) as HTMLButtonElement;
+    this.visitorMenu = el('button', {
+      class: 'hud__visitor-menu', type: 'button', hidden: true,
+      'aria-haspopup': 'dialog', 'aria-controls': 'panel-visitor-menu',
+      text: 'Museum', onclick: onVisitorMenu,
+    });
     this.lockPrompt = el(
       'div',
       {
@@ -145,6 +152,7 @@ export class HUD {
       this.thresholdPanel,
       this.lockPrompt,
       this.resumeLook,
+      this.visitorMenu,
     );
     this.setLocation('plaza');
   }
@@ -173,6 +181,7 @@ export class HUD {
     this.lockPrompt.hidden = locked || this.touchMode || this.buildModeActive || this.arrivalEntered;
     this.resumeLook.hidden = !this.arrivalEntered || locked || this.touchMode || this.buildModeActive;
     this.reticle.style.display = locked || this.touchMode ? '' : 'none';
+    this.visitorMenu.hidden = !this.arrivalEntered || !this.touchMode || this.buildModeActive;
   }
 
   /** Add the development-only Build Mode affordance after the editor loads. */
@@ -200,8 +209,7 @@ export class HUD {
       this.buildModeButton.setAttribute('aria-label', active ? 'Exit Build Mode' : 'Enter Build Mode');
       this.buildModeButton.setAttribute('aria-pressed', String(active));
     }
-    this.lockPrompt.hidden = active || this.pointerLocked || this.touchMode || this.arrivalEntered;
-    this.resumeLook.hidden = !this.arrivalEntered || active || this.pointerLocked || this.touchMode;
+    this.setPointerLocked(this.pointerLocked);
   }
 
   private touchMode = false;
@@ -210,15 +218,11 @@ export class HUD {
   setTouchMode(on: boolean): void {
     if (this.touchMode === on) return;
     this.touchMode = on;
-    if (!on) {
-      this.setPointerLocked(this.pointerLocked);
-      return;
-    }
-    this.lockPrompt.hidden = true;
-    this.resumeLook.hidden = true;
-    this.reticle.style.display = '';
-    this.hints.innerHTML =
-      '<div>Left half to walk · right half to look</div><div>Tap the centre dot to interact</div>';
+    this.setPointerLocked(this.pointerLocked);
+    this.hints.innerHTML = on
+      ? '<div>Left half to walk · right half to look</div><div>Tap the centre dot to interact</div>'
+      : '<div><b>M</b> map · <b>J</b> journal · <b>C</b> curator</div>'
+        + '<div><b>Y</b> study · <b>T</b> thread · <b>Ctrl+K</b> command · <b>H</b> contents · <b>O</b> settings</div>';
   }
 
   setFocus(focus: InteractionFocus | null): void {

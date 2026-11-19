@@ -57,7 +57,7 @@ describe('E34 visible evidence receipt contract', () => {
     expect(lamp(host, 'requested').emissiveIntensity).toBeGreaterThan(1);
     expect(lamp(host, 'attempted').emissiveIntensity).toBeLessThan(0.1);
 
-    control(captured, 'Execute selected registered operation').activate();
+    control(captured, 'Run the simulation').activate();
     expect(lamp(host, 'attempted').emissiveIntensity).toBeGreaterThan(1);
     expect(lamp(host, 'changed').emissiveIntensity).toBeLessThan(0.1);
     expect(lamp(host, 'verified').emissiveIntensity).toBeLessThan(0.1);
@@ -72,8 +72,8 @@ describe('E34 visible evidence receipt contract', () => {
   it('blocks consequential work without preview, then records changed separately when the previewed route verifies', async () => {
     const { host, captured } = await live();
     const select = control(captured, 'Select Restart registered service');
-    const execute = control(captured, 'Execute selected registered operation');
-    const preview = control(captured, 'Preview the selected operation');
+    const execute = control(captured, 'Run the simulation');
+    const preview = control(captured, 'Preview the change');
 
     select.activate();
     execute.activate();
@@ -82,6 +82,8 @@ describe('E34 visible evidence receipt contract', () => {
     expect(lamp(host, 'changed').emissiveIntensity).toBeLessThan(0.1);
     expect(lamp(host, 'verified').emissiveIntensity).toBeLessThan(0.1);
 
+    expect(host.module.getAccessibleContent().state).toContain('Blocked · preview required');
+    expect(host.group.getObjectByName('E34 receipt status')?.userData.status).toBe('Blocked · preview required');
     preview.activate();
     execute.activate();
     for (let i = 0; i < 4; i++) host.update(0.25, [0, 1.6, 4], i * 0.25);

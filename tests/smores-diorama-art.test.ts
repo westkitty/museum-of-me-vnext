@@ -4,7 +4,7 @@ import { installExhibits } from '../src/exhibits';
 import { createExhibit } from '../src/exhibits/registry';
 import { ExhibitHost } from '../src/exhibits/ExhibitHost';
 import { EXHIBITS_BY_ID } from '../src/content/collection.generated';
-import type { ExhibitControl } from '../src/exhibits/contract';
+import { resolveExhibitLabel, type ExhibitControl } from '../src/exhibits/contract';
 
 it('keeps S’mores rolling and collecting while sharing its miniature-town draw resources', async () => {
   installExhibits();
@@ -42,9 +42,10 @@ it('keeps S’mores rolling and collecting while sharing its miniature-town draw
     expect(new Set(pickups.map((pickup) => pickup.geometry.name)).size).toBeGreaterThan(3);
     expect(pickups.every((pickup) => pickup.instanceMatrix.usage === THREE.DynamicDrawUsage)).toBe(true);
     expect(group.getObjectByName('smores-layered-katamari-ball')?.children).toHaveLength(3);
-    const roll = controls.find((c) => c.label === 'Roll the ball');
+    const roll = controls.find((c) => resolveExhibitLabel(c.label) === 'Start rolling');
     expect(roll).toBeDefined();
     const before = module.getAccessibleContent().state;
+    expect(before).toContain('12 centimetres across');
     // The test deliberately puts one real collectible on the authored
     // figure-eight so collection and the GPU instance both have to move.
     const runtime = module as unknown as {
@@ -58,6 +59,7 @@ it('keeps S’mores rolling and collecting while sharing its miniature-town draw
     expect(capIndex).toBeGreaterThanOrEqual(0);
     runtime.items[capIndex].set(0, 0.09, 0);
     roll!.activate();
+    expect(resolveExhibitLabel(roll!.label)).toBe('Stop rolling');
     for (let i = 0; i < 120; i++) host.update(1 / 60, [0, 1.6, 4], i / 60);
     expect(runtime.collected[capIndex]).toBe(true);
     const capMatrix = new THREE.Matrix4();
@@ -65,6 +67,7 @@ it('keeps S’mores rolling and collecting while sharing its miniature-town draw
     expect(new THREE.Vector3().setFromMatrixPosition(capMatrix).distanceTo(runtime.items[capIndex])).toBeLessThan(0.0001);
     expect(module.getAccessibleContent().state).not.toBe(before);
     host.reset();
+    expect(resolveExhibitLabel(roll!.label)).toBe('Start rolling');
     expect(runtime.collected[capIndex]).toBe(false);
     runtime.pickupBatches[0]!.getMatrixAt(runtime.itemBatchSlots[capIndex], capMatrix);
     expect(new THREE.Vector3().setFromMatrixPosition(capMatrix).distanceTo(runtime.items[capIndex])).toBeLessThan(0.0001);

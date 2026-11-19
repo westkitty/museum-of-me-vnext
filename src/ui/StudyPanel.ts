@@ -4,16 +4,20 @@ import type { Study, StudyColor } from '../state/Study';
 import { STUDY_COLORS } from '../state/Study';
 import { SOURCE_INSTALLATIONS, SOURCE_SUPPLEMENTARY, SOURCE_VISITORS } from '../content/sourceParity';
 import { EXHIBITS_BY_ID, COLLECTION } from '../content/collection.generated';
+import { collectionSearch } from '../content/collectionSearch';
+import { museumLink } from '../content/collectionLinks';
 
 export class StudyPanel extends Panel {
   private tab: 'overview' | 'collections' | 'compare' | 'queue' | 'tools' = 'overview';
   private speech: SpeechSynthesisUtterance | null = null;
   private status = '';
+  private searchQuery = '';
 
   constructor(
     private readonly study: Study,
     private readonly knownIds: () => string[],
     private readonly textFor: (id: string) => string,
+    private readonly openExhibit?: (id: string) => void,
   ) {
     super('study', 'Study Lab', 'Collections, comparison, and reading');
   }
@@ -41,8 +45,8 @@ export class StudyPanel extends Panel {
       return [
         this.goalBlock(),
         el('p', { text: `Queue ${s.queue.length} · collections ${s.collections.length} · saved searches ${s.savedSearches.length} · compare ${s.compare.filter(Boolean).length}/2` }),
-        el('label', { text: 'Search' }),
         this.searchBox(),
+        this.searchResults(),
       ];
     }
     if (this.tab === 'collections') {
@@ -127,23 +131,52 @@ export class StudyPanel extends Panel {
   }
 
   private searchBox(): HTMLElement {
-    const input = el('input', { type: 'search', placeholder: 'type:exhibit tag:…' }) as HTMLInputElement;
-    const name = el('input', { type: 'text', placeholder: 'Save as', maxlength: 48 }) as HTMLInputElement;
-    return el('div', {},
-      input, name,
+    const input = el('input', { type: 'search', id: 'study-search', value: this.searchQuery,
+      placeholder: 'Project, exhibit, capability, type:exhibit, or tag:…' });
+    const name = el('input', { type: 'text', 'aria-label': 'Saved search name', placeholder: 'Save as', maxlength: 48 });
+    const search = (query: string, focus: boolean) => {
+      this.searchQuery = query.trim();
+      this.render();
+      if (focus) this.body.querySelector<HTMLInputElement>('#study-search')?.focus();
+    };
+    return el('form', { 'aria-label': 'Search the museum collection', onsubmit: (event: Event) => {
+      event.preventDefault();
+      search(input.value, true);
+    } },
+      el('label', { for: 'study-search', text: 'Search the collection' }),
+      input, el('button', { type: 'submit', text: 'Search' }), name,
       el('button', { type: 'button', text: 'Save search', onclick: () => {
         const query = input.value.trim();
         if (!query) { this.status = 'Enter a Study search query.'; this.render(); return; }
-        this.study.commit((st) => {
-          st.savedSearches.push({ id: `search-${Date.now()}`, name: name.value.trim() || query, query });
+        this.study.commit((state) => {
+          state.savedSearches.push({ id: `search-${Date.now()}`, name: name.value.trim() || query, query });
         });
         this.status = 'Search saved.';
-        this.render();
+        search(query, true);
       } }),
-      ...this.study.state.savedSearches.map((search) => el('button', {
+      ...this.study.state.savedSearches.map((saved) => el('button', {
         type: 'button',
-        text: search.name,
-        onclick: () => { input.value = search.query; this.status = `Restored search ${search.name}.`; },
+        text: saved.name,
+        onclick: () => { this.status = ''; search(saved.query, true); },
+      })),
+    );
+  }
+
+  private searchResults(): HTMLElement {
+    if (!this.searchQuery) return el('div');
+    const results = collectionSearch(this.searchQuery, this.study.state.tags);
+    return el('section', { 'aria-label': 'Collection search results' },
+      el('p', { role: 'status', text: results.length
+        ? `${results.length} result${results.length === 1 ? '' : 's'} for “${this.searchQuery}”.`
+        : `No results for “${this.searchQuery}”.` }),
+      el('ul', {}, ...results.map((entry) => {
+        const text = entry.kind === 'project' ? `${entry.name} · ${entry.exhibit.title}` : entry.name;
+        return el('li', {}, this.openExhibit
+          ? el('button', { type: 'button', text, onclick: () => {
+            this.close();
+            this.openExhibit?.(entry.exhibit.id);
+          } })
+          : el('a', { href: museumLink({ exhibit: entry.exhibit.id }), text }));
       })),
     );
   }
