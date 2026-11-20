@@ -113,8 +113,8 @@ describe('D06 hall planting stays out of bay openings', () => {
   });
 });
 
-describe('I2/I3 physical stair and return-to-hub signage', () => {
-  it('signs both stair feet, both balcony landings and every dead-end hall', () => {
+describe('I2 physical stair signage (I3 hall-end signs removed by owner)', () => {
+  it('signs both stair feet and both balcony landings, and puts no sign on a dead-end hall wall', () => {
     const scope = new ResourceScope('uplift-test');
     const palettes = new PaletteSet(scope);
     const parents = new Map<string, THREE.Group>();
@@ -137,10 +137,9 @@ describe('I2/I3 physical stair and return-to-hub signage', () => {
         expect(normal.x * sign.position.x + normal.z * sign.position.z).toBeLessThan(0);
       }
     }
-    for (const wing of WINGS.filter((candidate) => candidate.id !== 'south')) {
-      expect(signs.has(`hall-return-sign:${wing.id}`), wing.id).toBe(true);
-    }
-    expect(signs.has('hall-return-sign:south')).toBe(false);
+    // The dead-end "Back to the Rotunda" wall signs were removed at the
+    // owner's request: on the far wall they read as a walled-off exit.
+    expect([...signs.keys()].filter((name) => name.startsWith('hall-return-sign:'))).toEqual([]);
     scope.dispose();
   });
 });
@@ -210,5 +209,28 @@ describe('uplift2 #40 spoken location names the floor when it changes', () => {
     expect(locationAnnouncement('Rotunda Balcony', 'Upper floor', 'Ground floor')).toBe('Entering Rotunda Balcony, upper floor.');
     expect(locationAnnouncement('Local Systems', 'Upper floor', 'Upper floor')).toBe('Entering Local Systems.');
     expect(locationAnnouncement('Dexter Sanctuary', 'Lower level', null)).toBe('Entering Dexter Sanctuary, lower level.');
+  });
+});
+
+describe('owner fixes 2026-11-20: sprint speed and collision during flight', () => {
+  it('sprints at 2.5x the earlier 6.2 m/s', async () => {
+    const { RUN_SPEED, WALK_SPEED } = await import('../src/player/PlayerController');
+    expect(RUN_SPEED).toBeCloseTo(6.2 * 2.5, 6);
+    expect(RUN_SPEED).toBeGreaterThan(WALK_SPEED);
+  });
+
+  it('a flying visitor is stopped by walls instead of passing through them', async () => {
+    const { PlayerController, PLAYER_RADIUS } = await import('../src/player/PlayerController');
+    const built = buildMuseum();
+    const held = new Set<string>(['forward']);
+    const input = { isDown: (action: string) => held.has(action), uiCaptured: false, touchMoveX: 0, touchMoveY: 0, on: () => () => undefined };
+    const player = new PlayerController(built.collision, input as never);
+    // Inside the north hall at head height, flying north at the dead-end wall
+    // (the hall ends at z = -96).
+    player.teleport([0, 3, -88], 0);
+    player.enterFlight();
+    for (let i = 0; i < 240; i++) player.fixedUpdate(1 / 60);
+    expect(player.flightMode).toBe(true);
+    expect(player.position.z).toBeGreaterThan(-96 + 0.4 - PLAYER_RADIUS);
   });
 });

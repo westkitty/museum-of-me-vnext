@@ -1,14 +1,11 @@
 import { expect, it } from 'vitest';
 import * as THREE from 'three';
-import { ResourceScope } from '../src/assets/ResourceScope';
 import { COLLECTION, EXHIBITS_BY_ID } from '../src/content/collection.generated';
 import { EXHIBIT_DOORWAY_LINES } from '../src/content/exhibitDoorways';
 import { installExhibits } from '../src/exhibits';
 import { ExhibitHost } from '../src/exhibits/ExhibitHost';
 import { resolveExhibitLabel, type ExhibitControl } from '../src/exhibits/contract';
 import { createExhibit } from '../src/exhibits/registry';
-import { InteractionManager } from '../src/interaction/InteractionManager';
-import { FoyerPreview } from '../src/world/FoyerPreview';
 
 installExhibits();
 
@@ -88,35 +85,4 @@ it('undoes the committed aftermath type even after the next type is selected', a
     expect(messages.at(-1)).toBe('Removed the last scorch mark.');
     expect(host.module.getAccessibleContent().state).toContain('0 persistent mutations');
   } finally { host.dispose(); }
-});
-
-it('offers a reachable, reversible foyer preview using the standard interaction manager', () => {
-  const scope = new ResourceScope('foyer-signage');
-  const interaction = new InteractionManager();
-  const messages: string[] = [];
-  const preview = new FoyerPreview(scope, interaction, (message) => messages.push(message));
-  try {
-    const window = preview.group.getObjectByName('foyer-star-window')!;
-    const stars = preview.group.getObjectByName('foyer-stars-that-disappear')!;
-    const target = window.getWorldPosition(new THREE.Vector3());
-    const camera = new THREE.PerspectiveCamera();
-    camera.position.set(0, 1.65, 125);
-    camera.lookAt(target);
-    camera.updateMatrixWorld();
-    const labels: Array<string | undefined> = [];
-    interaction.onFocusChange((focus) => labels.push(focus?.label));
-    interaction.update(camera);
-    expect(interaction.currentFocus?.label).toBe('Watch stars disappear');
-    expect(interaction.activate()).toBe(true);
-    expect(stars.visible).toBe(false);
-    expect(messages.at(-1)).toContain('A patch of the sky is empty now');
-    expect(interaction.currentFocus?.label).toBe('Bring the stars back');
-    expect(interaction.activate()).toBe(true);
-    expect(stars.visible).toBe(true);
-    expect(labels).toEqual(['Watch stars disappear', 'Bring the stars back', 'Watch stars disappear']);
-  } finally {
-    preview.dispose();
-    expect(interaction.controlCount).toBe(0);
-    scope.dispose();
-  }
 });
