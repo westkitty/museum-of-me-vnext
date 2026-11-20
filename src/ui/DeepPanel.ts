@@ -19,7 +19,17 @@ export class DeepPanel extends Panel {
 
   openFor(exhibitId: string): void {
     this.exhibitId = exhibitId;
-    this.open();
+    if (!this.isOpen) {
+      this.open();
+      return;
+    }
+    // Already open (a related room or a connection was chosen inside the
+    // reading): open() is a no-op then, so rebuild in place, start the new
+    // reading at its top and keep focus inside the dialog.
+    this.render();
+    this.body.scrollTop = 0;
+    this.content.scrollTop = 0;
+    this.body.focus();
   }
 
   protected render(): void {

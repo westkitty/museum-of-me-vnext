@@ -1,0 +1,93 @@
+/* Uplift 2 (B): interpretation and reading surfaces. */
+
+/* Room outline: the projects of a multi-project room, with jump links. */
+.exhibit-reading__outline {
+  margin: 1rem 0;
+  padding: .6rem .9rem;
+  border-left: 3px solid var(--gold);
+  background: rgba(201, 162, 39, .06);
+}
+.exhibit-reading__outline h2 { margin-top: 0; font-size: 1rem; }
+.exhibit-reading__outline ol { margin: .25rem 0 0; padding-left: 1.5rem; }
+.exhibit-reading__outline li { margin: .2rem 0; }
+
+/* Long readings: each project is a clear block, headings are jump targets. */
+.exhibit-reading__project {
+  margin-top: 1.75rem;
+  padding-top: .5rem;
+  border-top: 1px solid rgba(201, 162, 39, .35);
+  scroll-margin-top: 1rem;
+}
+.exhibit-reading__project [tabindex='-1']:focus,
+.exhibit-reading__outline [tabindex='-1']:focus { outline: 2px dashed var(--gold-bright); outline-offset: 3px; }
+.exhibit-reading__project p,
+.exhibit-reading__story p { max-width: 68ch; }
+.exhibit-reading__brief { font-size: 1.05em; }
+.exhibit-reading__anchor { color: var(--gold-bright); }
+.exhibit-reading__connections ul { padding-left: 1.2rem; }
+.exhibit-reading__connections li { margin: .3rem 0; }
+.exhibit-reading__back { font-size: .9rem; }
+.exhibit-reading__repos a { word-break: break-all; }
+
+/* Journal: where you have been, per wing. */
+.journal-wings { margin-top: 1.2rem; }
+.journal-wings ul { margin: 0; padding: 0; list-style: none; }
+.journal-wings__wing { padding: .5rem 0; border-bottom: 1px solid rgba(201, 162, 39, .25); }
+.journal-wings__wing h4 { margin: 0 0 .2rem; font-size: .95rem; }
+.journal-wings__rooms { display: flex; flex-wrap: wrap; gap: .3rem .4rem; margin-top: .25rem; }
+.journal-wings__rooms button { font-size: .82rem; }
+.journal-wings__rooms span { font-size: .82rem; opacity: .8; }
+
+/* Visit Thread: floor and stair markers between stops. */
+.thread-floor { display: block; font-size: .8rem; color: var(--gold); }
+.thread-stair {
+  display: block;
+  margin: .2rem 0;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--gold-bright);
+}
+.thread-stair::before { content: '⇅ '; }
+
+/* Collection page: find and jump. */
+.collection-page__find { margin: 1rem 0 .5rem; }
+.collection-page__find label { display: block; font-weight: 600; }
+.collection-page__find input {
+  width: min(100%, 28rem);
+  margin-top: .3rem;
+  padding: .45rem .6rem;
+  font: inherit;
+  color: inherit;
+  background: #1d1a20;
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+}
+.collection-page__find input:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
+.collection-page__jump ul { display: flex; flex-wrap: wrap; gap: .4rem 1.1rem; margin: .4rem 0 0; padding: 0; list-style: none; }
+.collection-page section[id] { scroll-margin-top: 1rem; }
+.collection-page__index li[hidden] { display: none; }
+.collection-page__top { font-size: .9rem; }
+
+@media (forced-colors: active) {
+  .exhibit-reading__outline { border-left-color: CanvasText; background: Canvas; }
+  .exhibit-reading__project { border-top-color: CanvasText; }
+}
+
+/* Print: the collection page reads as a document. */
+@media print {
+  html.reading-mode, html.reading-mode body { background: #fff; color: #000; }
+  .collection-page { width: auto; padding: 0; color: #000; line-height: 1.45; }
+  .collection-page nav[aria-label='Museum'],
+  .collection-page__find,
+  .collection-page__jump,
+  .collection-page__top,
+  .exhibit-reading__actions,
+  .exhibit-reading__back { display: none !important; }
+  .collection-page h1, .collection-page h2, .collection-page h3 { color: #000; break-after: avoid; }
+  .collection-page a { color: #000; text-decoration: underline; }
+  .collection-page a[data-print-url]::after { content: ' (' attr(data-print-url) ')'; font-size: .85em; }
+  .exhibit-reading__external { display: none; }
+  .collection-page__index li, .exhibit-reading__connections li { break-inside: avoid-page; }
+  .exhibit-reading__outline { background: none; border-left: 2px solid #000; }
+  .stage-chip { border: 1px solid #000; color: #000; background: none; }
+}

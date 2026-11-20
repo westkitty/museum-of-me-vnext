@@ -8,6 +8,7 @@ import {
 } from '../state/VisitThread';
 import { buildThreadWeave } from '../state/ThreadWeave';
 import { AUTHORED_TOURS, estimatedWalkingMinutes } from '../content/authoredTours';
+import { floorChangeText, threadFloorSummary, threadLegs, threadPositionText } from '../content/readingRelations';
 
 const PRESETS: Array<{ id: VisitThreadPreset; label: string; note: string }> = [
   { id: 'highlights', label: 'Highlights', note: 'A compact cross-section of the strongest physical exhibits.' },
@@ -131,7 +132,14 @@ export class VisitThreadPanel extends Panel {
         this.preset === 'wildcard' ? el('button', { type: 'button', text: 'Reshuffle preview', onclick: () => { this.previewSeed = `preview-${Date.now().toString(36)}`; this.render(); } }) : document.createTextNode(''),
       ),
       previewIds.length
-        ? el('ol', { class: 'thread-preview__list' }, ...previewIds.map((id) => el('li', { text: visitThreadStopLabel(id) })))
+        ? el('div', {},
+          el('ol', { class: 'thread-preview__list' }, ...threadLegs(previewIds).map((leg) => el('li', {},
+            leg.floorChange ? el('span', { class: 'thread-stair', text: floorChangeText(leg.floorChange) }) : '',
+            visitThreadStopLabel(leg.stopId),
+            leg.floor ? el('span', { class: 'thread-floor', text: leg.floor }) : '',
+          ))),
+          threadFloorSummary(previewIds) ? el('p', { class: 'panel__note', text: threadFloorSummary(previewIds)! }) : '',
+        )
         : el('p', { class: 'panel__note', text: 'Nothing matches these constraints. Broaden the topic or wing before starting.' }),
     );
 
@@ -170,6 +178,9 @@ export class VisitThreadPanel extends Panel {
       : `${active.stopIds.length} stops. ${this.thread.remainingCount} still in this thread. This is itinerary state, not museum completion.`;
 
     const weave = buildThreadWeave(active, this.journal);
+    const legs = threadLegs(active.stopIds);
+    const position = active.status === 'complete' ? null : threadPositionText(active.stopIds, current);
+    const floors = threadFloorSummary(active.stopIds);
     const route = el('ol', { class: 'thread-route', 'aria-label': 'Visit Thread stops' });
     active.stopIds.forEach((id, index) => {
       const exhibit = EXHIBITS_BY_ID.get(id)!;
@@ -180,11 +191,14 @@ export class VisitThreadPanel extends Panel {
       const status = completed ? 'visited' : skipped ? 'skipped' : isCurrent ? 'current' : 'upcoming';
       const statusText = completed ? 'Reached' : skipped ? 'Skipped' : isCurrent ? 'Next' : 'Later';
       const woven = weave.stops[index];
+      const leg = legs[index];
       route.append(el('li', { class: 'thread-stop', 'data-state': status, 'aria-current': isCurrent ? 'step' : undefined },
         el('div', { class: 'thread-stop__index', text: String(index + 1) }),
         el('div', { class: 'thread-stop__copy' },
+          leg?.floorChange ? el('span', { class: 'thread-stair', text: floorChangeText(leg.floorChange) }) : document.createTextNode(''),
           el('strong', { text: exhibit.title }),
           el('span', { text: `${wing.name} · ${exhibit.copy.subtitle}` }),
+          el('span', { class: 'thread-floor', text: leg?.floor ? `${leg.floor[0].toLocaleUpperCase()}${leg.floor.slice(1)}` : '' }),
           el('small', { class: 'thread-status', text: statusText }),
           el('p', { class: 'thread-reason', text: woven?.selectionReason ?? '' }),
           woven?.bridgeFromPrevious ? el('p', { class: 'thread-bridge', text: woven.bridgeFromPrevious }) : document.createTextNode(''),
@@ -229,8 +243,9 @@ export class VisitThreadPanel extends Panel {
 
     return [
       el('div', { class: 'thread-summary', role: 'status', 'aria-live': 'polite' },
-        el('strong', { text: active.status === 'complete' ? 'Thread closed cleanly.' : current ? `Next: ${visitThreadStopLabel(current)}` : 'No next stop.' }),
+        el('strong', { text: active.status === 'complete' ? 'Thread closed cleanly.' : current ? `${position ? `${position} · ` : ''}Next: ${visitThreadStopLabel(current)}` : 'No next stop.' }),
         el('span', { text: summary }),
+        floors ? el('span', { class: 'thread-floor', text: floors }) : document.createTextNode(''),
       ),
       active.authoredTourId ? el('p', { class: 'panel__note', text: `${weave.opening} About ${estimatedWalkingMinutes(active.stopIds)} min walking from the entrance.` }) : document.createTextNode(''),
       nav, route,
@@ -271,7 +286,10 @@ export class VisitThreadPanel extends Panel {
     if (!active) return '';
     return [
       `Museum of Me — ${active.title}`,
-      ...active.stopIds.map((id, index) => `${index + 1}. ${visitThreadStopLabel(id)}`),
+      ...threadLegs(active.stopIds).flatMap((leg, index) => [
+        ...(leg.floorChange ? [`   (${floorChangeText(leg.floorChange)})`] : []),
+        `${index + 1}. ${visitThreadStopLabel(leg.stopId)}${leg.floor ? ` — ${leg.floor}` : ''}`,
+      ]),
       '', 'This is a local self-guided itinerary; it does not represent museum completion.',
     ].join('\n');
   }

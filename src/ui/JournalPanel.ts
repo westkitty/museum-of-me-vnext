@@ -3,6 +3,7 @@ import { el } from './dom';
 import { EXHIBITS_BY_ID, projectsForExhibit, WINGS_BY_ID } from '../content/collection.generated';
 import type { Journal, JournalEntry } from '../state/Journal';
 import type { SecretDefinition } from '../content/secrets';
+import { wingVisitSummary } from '../content/readingRelations';
 
 /** The secrets list shown in the journal. */
 export interface JournalSecretsView {
@@ -104,6 +105,7 @@ export class JournalPanel extends Panel {
       el('p', { class: 'journal-result-count', role: 'status', 'aria-live': 'polite', text: `${visible.length} ${visible.length === 1 ? 'entry' : 'entries'} shown.` }),
       results,
       editor,
+      this.wingsSection(entries),
       this.secretsSection(),
       this.statusMessage ? el('p', { class: 'panel__note', role: 'status', text: this.statusMessage }) : document.createTextNode(''),
       el('div', { class: 'journal-danger' },
@@ -118,6 +120,34 @@ export class JournalPanel extends Panel {
         }),
       ),
       el('p', { class: 'panel__note', text: 'Everything here stays in this browser unless you explicitly export it. There is no score, badge, or completion requirement.' }),
+    );
+  }
+
+  /**
+   * Where you have been, wing by wing, and which rooms you have not opened yet.
+   * A plan for the next walk, not a score: nothing is ranked or rewarded.
+   */
+  private wingsSection(entries: readonly JournalEntry[]): HTMLElement {
+    const roomButton = (id: string, title: string, opened: boolean) => el('button', {
+      type: 'button', text: `${id} · ${title}`,
+      'aria-label': `${opened ? 'Open again' : 'Read'}: ${title}`,
+      onclick: () => { this.close(); this.onOpenExhibit(id); },
+    });
+    return el('section', { class: 'journal-wings', 'aria-labelledby': 'journal-wings-title' },
+      el('h3', { id: 'journal-wings-title', text: 'Where you have been' }),
+      el('p', { class: 'panel__note', text: 'Each wing lists the rooms you opened and the ones still waiting. Open any of them to read it or to be guided there.' }),
+      el('ul', {}, ...wingVisitSummary(entries.map((entry) => entry.exhibitId)).map((wing) => el('li', { class: 'journal-wings__wing' },
+        el('details', {},
+          el('summary', {},
+            el('strong', { text: wing.name }),
+            el('span', { text: ` · ${wing.level === 1 ? 'upper floor' : 'ground floor'} — ${wing.opened.length ? `opened ${wing.opened.length}` : 'not visited yet'}${wing.notOpened.length && wing.opened.length ? `, ${wing.notOpened.length} still to see` : ''}` }),
+          ),
+          wing.opened.length ? el('div', {}, el('h4', { text: 'Opened' }),
+            el('div', { class: 'journal-wings__rooms' }, ...wing.opened.map((room) => roomButton(room.id, room.title, true)))) : document.createTextNode(''),
+          wing.notOpened.length ? el('div', {}, el('h4', { text: 'Not opened yet' }),
+            el('div', { class: 'journal-wings__rooms' }, ...wing.notOpened.map((room) => roomButton(room.id, room.title, false)))) : el('p', { class: 'panel__note', text: 'You have opened every room in this wing.' }),
+        ),
+      ))),
     );
   }
 
