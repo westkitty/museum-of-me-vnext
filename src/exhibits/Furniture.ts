@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { createTextTexture, createFallbackTexture, canRenderText } from '../assets/TextTexture';
 import type { ResourceScope } from '../assets/ResourceScope';
 import type { ExhibitRecord, ProjectRecord } from '../content/types';
+import { lecternRepresentedLine } from '../content/readingRelations';
 
 type TextTextureOptions = NonNullable<Parameters<typeof createTextTexture>[2]>;
 
@@ -151,10 +152,9 @@ export function buildLectern(
   base.position.y = 0.05;
   group.add(base);
 
-  const represented =
-    projects.length === 1
-      ? `Represents ${projects[0].name}.`
-      : `Represents ${projects.length} projects: ${projects.map((p) => p.name).join(', ')}.`;
+  // Names carry their lifecycle stage when it is not plainly active, so the
+  // physical lectern says which work is experimental, paused or superseded.
+  const represented = lecternRepresentedLine(projects);
 
   const text = residentTextMaterial(scope, [record.copy.problem, record.copy.made, represented], {
     width: 1024,

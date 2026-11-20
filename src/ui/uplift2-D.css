@@ -1,0 +1,149 @@
+/* ── uplift 2 (D): panels, controls and the paused-view notice ─────────────
+   Kept separate from museum.css. Selectors carry one extra class of
+   specificity (.panel …) so load order between the two sheets never matters. */
+
+/* 1. The panel heading and its Close button stay in view while a long panel
+      scrolls. At interface scale 1.6 Settings is ~2,500 px tall inside a
+      617 px panel; before this the only visible way out scrolled away. */
+.panel > .panel__body { padding-top: 0; }
+.panel .panel__head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin-top: 0;
+  padding-top: 1.6rem;
+  background: linear-gradient(180deg, #171b23 0%, #151920 82%, rgba(21, 25, 32, 0.94) 100%);
+}
+html[data-density='compact'] .panel .panel__head { padding-top: 1rem; }
+html[data-contrast='high'] .panel .panel__head,
+html[data-transparency='reduced'] .panel .panel__head { background: #000; }
+@media (max-width: 720px) {
+  .panel .panel__head { top: 0; margin: 0 -1rem 1rem; padding: 1rem; }
+}
+/* Short landscape phones: less chrome around the reading area. */
+@media (max-height: 500px) {
+  .panel > .panel__body {
+    max-height: calc(100dvh - max(0.5rem, env(safe-area-inset-top)) - max(0.5rem, env(safe-area-inset-bottom)));
+    padding-left: max(1.2rem, env(safe-area-inset-left));
+    padding-right: max(1.2rem, env(safe-area-inset-right));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .panel .panel__head { padding-top: 0.75rem; padding-bottom: 0.6rem; margin-bottom: 0.8rem; }
+  .panel .panel__head h2 { font-size: 1.25rem; }
+}
+@media (forced-colors: active) {
+  .panel .panel__head { background: Canvas; }
+}
+
+/* 2. Form controls follow the interface scale and are large enough to use.
+      Unstyled inputs used the browser's fixed 13 px font, so they did not
+      grow with the interface scale and stayed 185 × 21 px. */
+.panel input:not([type='range']):not([type='checkbox']):not([type='radio']):not([type='file']),
+.panel select,
+.panel textarea {
+  font: inherit;
+  font-size: 0.92rem;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.6rem;
+  color: var(--parchment);
+  background: #12111a;
+  border: 1px solid rgba(236, 229, 216, 0.28);
+  border-radius: var(--radius);
+}
+.panel input[type='search']:not([class]),
+.panel input[type='text']:not([class]) { width: min(100%, 34rem); }
+.panel #command-search { width: 100%; }
+.panel input[type='checkbox'],
+.panel input[type='radio'] {
+  width: 1.25em;
+  height: 1.25em;
+  flex: 0 0 auto;
+  accent-color: var(--gold);
+}
+.panel .field input[type='range'] { min-height: 2rem; }
+.panel .field--check label { cursor: pointer; }
+
+/* Command palette results: a real list, comfortably sized, with the active
+   option shown by more than an outline. */
+.panel > .panel__body::before { z-index: 4; }
+.panel .command-result {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.7rem;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--parchment);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(236, 229, 216, 0.14);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.panel .command-result[aria-selected='true'] {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+  background: rgba(127, 214, 255, 0.12);
+  border-color: var(--focus);
+}
+.panel .command-status {
+  margin: 0.45rem 0 0.6rem;
+  font-size: 0.78rem;
+  color: var(--parchment-dim);
+}
+
+@media (pointer: coarse) {
+  .panel input:not([type='range']):not([type='checkbox']):not([type='radio']):not([type='file']),
+  .panel select,
+  .panel .command-result,
+  .panel button:not([class]),
+  .panel .field input[type='range'] { min-height: 44px; }
+  /* The checkbox row's label is the touch target: at least 44 px tall. */
+  .panel .field--check { min-height: 44px; align-items: center; }
+  .panel .field--check label { display: inline-block; padding: 0.55rem 0; }
+  .panel input[type='checkbox'],
+  .panel input[type='radio'] { width: 24px; height: 24px; }
+  .panel .guide-suggestions__item { min-height: 44px; }
+}
+
+@media (forced-colors: active) {
+  .panel .command-result[aria-selected='true'] { outline: 3px solid Highlight; }
+}
+
+/* 3. Paused 3D view (WebGL context lost): visible, persistent, recoverable. */
+.pause-notice {
+  position: fixed;
+  left: 50%;
+  top: max(1.2rem, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  z-index: 60;
+  width: min(32rem, calc(100vw - 2rem));
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem 1.2rem;
+  color: var(--parchment);
+  background: rgba(14, 16, 22, 0.97);
+  border: 1px solid rgba(232, 198, 90, 0.6);
+  border-left: 4px solid var(--gold-bright);
+  border-radius: 5px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+  font-family: var(--font-ui);
+  pointer-events: auto;
+}
+.pause-notice[hidden] { display: none; }
+.pause-notice__title { font-size: 1.02rem; }
+.pause-notice__message { margin: 0; font-size: 0.88rem; line-height: 1.5; color: var(--parchment-dim); }
+.pause-notice__reload {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0.4rem 1rem;
+  font: 600 0.88rem var(--font-ui);
+  color: #120f08;
+  background: var(--gold-bright);
+  border: 1px solid var(--gold-bright);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.pause-notice__reload:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+html[data-contrast='high'] .pause-notice { background: #000; border-color: #ffdf7a; }
+@media (forced-colors: active) {
+  .pause-notice { background: Canvas; color: CanvasText; border-color: CanvasText; }
+  .pause-notice__reload { background: ButtonFace; color: ButtonText; border-color: ButtonText; }
+}

@@ -4,8 +4,24 @@ import { CollisionWorld } from '../CollisionWorld';
 import type { QualityTier } from '../../render/QualityTiers';
 import {
   ISLAND_OUTLINE, PATH_CENTERLINES, PIER_CENTERLINE, SCENIC_GROVE_POINTS, SPIRE_GARDEN_CENTER,
-  SPIRE_GARDEN_RADIUS, isSiteLand,
+  SPIRE_GARDEN_RADIUS, LANTERN_WALK_Z, inAncientTreeClearing, isSiteLand,
 } from './IslandSiteLayout';
+import { WAYMARKER_POSTS } from './ExteriorWaymarkers';
+
+/** Even walking rhythm of path edge lights (metres of path between lights). */
+export const PATH_LIGHT_SPACING = 13;
+/** Edge lights sit just off the 2.3 m half-width ribbon. */
+export const PATH_LIGHT_OFFSET = 2.7;
+/** Where the pier edge trim opens for the island-loop crossing (z range). */
+export const PIER_TRIM_GAP: readonly [number, number] = [181, 186.8];
+
+/** The lantern walk carries its own light; waymarkers stand at the forks. */
+export function pathLightSuppressed(x: number, z: number): boolean {
+  const lanternFrom = Math.min(...LANTERN_WALK_Z) - 4;
+  const lanternTo = Math.max(...LANTERN_WALK_Z) + 4;
+  if (x > 38 && x < 54 && z > lanternFrom && z < lanternTo) return true;
+  return WAYMARKER_POSTS.some((post) => Math.hypot(post.x - x, post.z - z) < 3.5);
+}
 
 /** Paths, woodland, western spire court and the axial south pier. */
 export class IslandLandscape {
@@ -80,14 +96,40 @@ export class IslandLandscape {
       mesh.receiveShadow = true;
       this.root.add(mesh);
 
-      for (let i = 3; i < samples.length - 3; i += 22) {
-        const p = samples[i];
-        const x = p.x + (i % 2 ? 2.7 : -2.7);
-        const z = p.z;
+      // Edge lights at an even walking rhythm (arc length, not spline
+      // parameter), alternating sides so the ribbon reads as a lit path.
+      // The old sampler stepped every 22nd parameter sample: spacing varied
+      // with segment length and every light fell on the same side.
+      const length = curve.getLength();
+      const count = Math.max(1, Math.round(length / PATH_LIGHT_SPACING));
+      for (let k = 0; k < count; k++) {
+        const u = curve.getUtoTmapping((k + 0.5) / count, 0);
+        const p = curve.getPoint(u);
+        const tangent = curve.getTangent(u);
+        const side = (pathIndex + k) % 2 === 0 ? 1 : -1;
+        const x = p.x + tangent.z * PATH_LIGHT_OFFSET * side;
+        const z = p.z - tangent.x * PATH_LIGHT_OFFSET * side;
+        // The lantern stretch has its own light; waymarkers stand at the forks.
+        if (pathLightSuppressed(x, z)) continue;
         // Never float a path light over the lagoon or off the island.
-        if (isSiteLand(x, z)) markers.push({ x, z, id: `path-ground-light-${pathIndex + 1}-${i}` });
+        if (isSiteLand(x, z)) markers.push({ x, z, id: `path-ground-light-${pathIndex + 1}-${k}` });
       }
     });
+    // The pier junction is the one fork on the way in: a lit pair marks each
+    // path mouth so the turn-off reads from the spawn at night.
+    for (const [pathIndex, fromEnd] of [[0, false], [PATH_CENTERLINES.length - 1, true]] as const) {
+      const points = PATH_CENTERLINES[pathIndex];
+      const curve = new THREE.CatmullRomCurve3(points.map(([x, z]) => new THREE.Vector3(x, -0.465, z)), false, 'centripetal');
+      const along = 9 / curve.getLength();
+      const u = curve.getUtoTmapping(fromEnd ? 1 - along : along, 0);
+      const p = curve.getPoint(u);
+      const tangent = curve.getTangent(u);
+      for (const side of [-1, 1]) {
+        const x = p.x + tangent.z * PATH_LIGHT_OFFSET * side;
+        const z = p.z - tangent.x * PATH_LIGHT_OFFSET * side;
+        if (isSiteLand(x, z)) markers.push({ x, z, id: `path-junction-light-${pathIndex + 1}-${side}` });
+      }
+    }
     const markerGeo = this.scope.track(new THREE.SphereGeometry(0.18, 8, 6));
     const batch = new THREE.InstancedMesh(markerGeo, lightMat, markers.length);
     batch.name = 'path-ground-light-instances';
@@ -206,12 +248,19 @@ export class IslandLandscape {
     pierPiles.computeBoundingSphere();
     this.root.add(pierPiles);
     this.scope.trackObject(pierPiles);
+    // The edge trim is broken where the island loop crosses the pier, so the
+    // fork reads as an opening rather than a kerb the path runs under.
+    const [gapFrom, gapTo] = PIER_TRIM_GAP;
     for (const side of [-1, 1]) {
-      const edge = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(0.3, 0.35, 58)), trim);
-      edge.name = `pier-edge-${side}`;
+      const south = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(0.3, 0.35, 217 - gapTo)), trim);
+      south.name = `pier-edge-${side}`;
       // The trim must touch the pier deck at -0.49, not float 0.135 m above it.
-      edge.position.set(side * 5.35, -0.315, 188);
-      this.root.add(edge);
+      south.position.set(side * 5.35, -0.315, (217 + gapTo) / 2);
+      this.root.add(south);
+      const north = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(0.3, 0.35, gapFrom - 159)), trim);
+      north.name = `pier-edge-north-${side}`;
+      north.position.set(side * 5.35, -0.315, (gapFrom + 159) / 2);
+      this.root.add(north);
     }
     // A quiet amber rhythm draws the eye north from the new pier spawn.
     // Rails only: these visual-only inlays cannot obstruct the walkway.
@@ -315,21 +364,51 @@ export class IslandLandscape {
     rocks.receiveShadow = false;
     const transform = new THREE.Object3D();
     let placed = 0;
-    for (let i = 0; i < target; i++) {
-      const segment = i % ISLAND_OUTLINE.length;
-      const [ax, az] = ISLAND_OUTLINE[segment];
-      const [bx, bz] = ISLAND_OUTLINE[(segment + 1) % ISLAND_OUTLINE.length];
-      const t = (Math.floor(i / ISLAND_OUTLINE.length) + 0.6)
-        / (Math.ceil(target / ISLAND_OUTLINE.length) + 0.25);
-      const x = (ax + (bx - ax) * t) * 0.996;
-      const z = (az + (bz - az) * t) * 0.996;
-      if (z > 153 && Math.abs(x) < 27) continue; // clear the entire pier approach
-      const scale = 0.68 + ((i * 7) % 11) * 0.067;
-      transform.position.set(x, -0.52 + scale * 0.35, z);
-      transform.rotation.set(0, (i * 1.618) % (Math.PI * 2), 0);
-      transform.scale.set(scale * 1.25, scale * 0.78, scale);
-      transform.updateMatrix();
-      rocks.setMatrixAt(placed++, transform.matrix);
+    // Outcrops are distributed by coastline length, in irregular clusters of
+    // one to four (a large anchor stone with smaller satellites) straddling
+    // the waterline. The former layout gave every edge the same number of
+    // rocks at the same fractions of its length: short edges were crowded,
+    // long ones sparse, and the repetition read as a regular kerb.
+    const edges = ISLAND_OUTLINE.map(([ax, az], i) => {
+      const [bx, bz] = ISLAND_OUTLINE[(i + 1) % ISLAND_OUTLINE.length];
+      return { ax, az, bx, bz, length: Math.hypot(bx - ax, bz - az) };
+    });
+    const perimeter = edges.reduce((sum, edge) => sum + edge.length, 0);
+    const pointAt = (s: number): { x: number; z: number; tx: number; tz: number } => {
+      let rest = ((s % perimeter) + perimeter) % perimeter;
+      for (const edge of edges) {
+        if (rest <= edge.length) {
+          const t = rest / edge.length;
+          return { x: edge.ax + (edge.bx - edge.ax) * t, z: edge.az + (edge.bz - edge.az) * t,
+            tx: (edge.bx - edge.ax) / edge.length, tz: (edge.bz - edge.az) / edge.length };
+        }
+        rest -= edge.length;
+      }
+      return { x: edges[0].ax, z: edges[0].az, tx: 1, tz: 0 };
+    };
+    const hash = (n: number): number => {
+      const v = Math.sin(n * 91.3458 + 17.17) * 47453.5453;
+      return v - Math.floor(v);
+    };
+    const clusters = Math.ceil(target / 2.5);
+    for (let k = 0; k < clusters && placed < target; k++) {
+      const s = ((k + 0.5 + (hash(k) - 0.5) * 0.8) / clusters) * perimeter;
+      const anchor = pointAt(s);
+      const size = 1 + Math.floor(hash(k + 101) * 4);
+      for (let j = 0; j < size && placed < target; j++) {
+        const along = j === 0 ? 0 : (hash(k * 7 + j) - 0.5) * 4.4;
+        // The outline runs clockwise in this top-down view: (tz, -tx) is seaward.
+        const across = j === 0 ? (hash(k + 211) - 0.5) * 1.2 : -1.2 + hash(k * 13 + j) * 2.8;
+        const x = anchor.x + anchor.tx * along + anchor.tz * across;
+        const z = anchor.z + anchor.tz * along - anchor.tx * across;
+        if (z > 153 && Math.abs(x) < 27) continue; // clear the entire pier approach
+        const scale = j === 0 ? 1.0 + hash(k + 307) * 0.6 : 0.4 + hash(k * 17 + j) * 0.4;
+        transform.position.set(x, -0.52 + scale * 0.35, z);
+        transform.rotation.set(0, hash(k * 29 + j) * Math.PI * 2, 0);
+        transform.scale.set(scale * 1.25, scale * 0.78, scale);
+        transform.updateMatrix();
+        rocks.setMatrixAt(placed++, transform.matrix);
+      }
     }
     rocks.count = placed;
     rocks.instanceMatrix.needsUpdate = true;
@@ -415,7 +494,7 @@ export class IslandLandscape {
       if (!isSiteLand(x, z)) continue;
       if (Math.hypot(x, z - 128) < 54) continue;
       if (x > 44 && x < 142 && z > -62 && z < 63) continue;
-      if (Math.hypot(x + 104, z + 82) < 33) continue;
+      if (Math.hypot(x + 104, z + 82) < 33 || inAncientTreeClearing(x, z)) continue;
       if (Math.abs(x) < 50 && Math.abs(z) < 112) continue;
       if (occupied.some(([px, pz]) => Math.hypot(x - px, z - pz) < 8)) continue;
       if (PATH_CENTERLINES.some((path) => path.slice(0, -1).some((point, index) => {
@@ -476,7 +555,7 @@ export class IslandLandscape {
         if (Math.abs(x) < 50 && Math.abs(z) < 112) continue;
         if (Math.hypot(x, z - 128) < 54) continue;
         if (x > 44 && x < 142 && z > -62 && z < 63) continue;
-        if (Math.hypot(x + 104, z + 82) < 33) continue;
+        if (Math.hypot(x + 104, z + 82) < 33 || inAncientTreeClearing(x, z)) continue;
         const width = 0.9 + ((i + j) % 5) * 0.18;
         const height = 0.55 + ((i + j * 2) % 3) * 0.14;
         dummy.position.set(x, -0.5 + height, z);
@@ -521,7 +600,7 @@ export class IslandLandscape {
         if (Math.abs(x) < 50 && Math.abs(z) < 112) continue;
         if (Math.hypot(x, z - 128) < 54) continue;
         if (x > 44 && x < 142 && z > -62 && z < 63) continue;
-        if (Math.hypot(x + 104, z + 82) < 33) continue;
+        if (Math.hypot(x + 104, z + 82) < 33 || inAncientTreeClearing(x, z)) continue;
         const width = 0.94 + ((i + j) % 5) * 0.11;
         const height = 0.72 + ((i + j * 2) % 4) * 0.12;
         const elevation = 4.7 + ((i * 3 + j) % 5) * 0.78;
@@ -586,6 +665,7 @@ export class IslandLandscape {
         && Math.hypot(x, z - 128) >= 60
         && !(x > 39 && x < 147 && z > -67 && z < 68)
         && Math.hypot(x + 104, z + 82) >= 38
+        && !inAncientTreeClearing(x, z)
         && !(z > 155 && Math.abs(x) < 26);
     };
     const hash01 = (n: number): number => {
@@ -650,7 +730,7 @@ export class IslandLandscape {
       if (Math.abs(x) < 56 && Math.abs(z) < 120) continue;
       if (Math.hypot(x, z - 128) < 58) continue;
       if (x > 42 && x < 147 && z > -68 && z < 70) continue;
-      if (Math.hypot(x + 104, z + 82) < 40) continue;
+      if (Math.hypot(x + 104, z + 82) < 40 || inAncientTreeClearing(x, z)) continue;
       if (PATH_CENTERLINES.some((path) => path.slice(0, -1).some(([ax, az], n) => {
         const [bx, bz] = path[n + 1];
         const dx = bx - ax, dz = bz - az;

@@ -17,8 +17,9 @@ function distanceToPath(x: number, z: number): number {
 }
 
 describe('S5 shoreline-belt forest visual coverage', () => {
+  // uplift2(A): the relocated ancient tree's 11 m clearing removes ~13 low-tier crowns.
   for (const [tier, min, max] of [
-    ['low', 890, 915], ['medium', 1450, 1490], ['high', 2090, 2140],
+    ['low', 880, 915], ['medium', 1450, 1490], ['high', 2090, 2140],
   ] as const) {
     it(`fills distinct forest areas on ${tier} without new physical support or forbidden placements`, () => {
       const scope = new ResourceScope(`forest-belt-${tier}`);

@@ -17,6 +17,16 @@ const STEP_UP = 0.55;
 const MAX_PITCH = Math.PI / 2 - 0.02;
 const LOOK_SCALE = 0.0022;
 
+/**
+ * Camera comfort on step-ups. Physics still lifts the body onto a ledge or
+ * stair tread in one fixed step (collision is unchanged); only the eye follows
+ * over a short exponential ease, so a 0.5 m step is not a 0.5 m single-frame
+ * camera jolt. Rises smaller than STEP_SMOOTH_MIN (ordinary ramps, which climb
+ * a few centimetres per step) are untouched, so slopes keep a 1:1 eye.
+ */
+export const STEP_SMOOTH_MIN = 0.08;
+export const STEP_SMOOTH_TAU = 0.075;
+
 export const FLIGHT_SPEED = 7;
 export const FLIGHT_RUN_SPEED = 16;
 /** Metres above the last support the visitor must clear before landing again
@@ -61,6 +71,15 @@ export class PlayerController {
    * look/WASD control. See FLIGHT_LAUNCH_SPEED/FLIGHT_LAUNCH_DECAY. */
   private launchVelocityY = 0;
 
+  /** Metres the eye still trails the body after a step-up (camera only). */
+  private eyeLag = 0;
+  private prevEyeLag = 0;
+
+  /** Current camera-only step-up lag, for tests and diagnostics. */
+  get stepEyeLag(): number {
+    return this.eyeLag;
+  }
+
   /** Set while a scripted move (map wayfinding, reset) owns the player. */
   private frozen = false;
   private readonly freezeOwners = new Set<symbol>();
@@ -98,6 +117,8 @@ export class PlayerController {
     this.jumpQueued = false;
     this.flightMode = false;
     this.developerFlight = false;
+    this.eyeLag = 0;
+    this.prevEyeLag = 0;
   }
 
   setFrozen(frozen: boolean): void {
@@ -181,11 +202,14 @@ export class PlayerController {
     this.prevPosition.copy(this.position);
     this.prevYaw.v = this.yaw;
     this.prevPitch.v = this.pitch;
+    this.prevEyeLag = this.eyeLag;
     if (this.isFrozen) return;
     if (this.flightMode) {
+      this.eyeLag = 0;
       this.fixedUpdateFlight(dt);
       return;
     }
+    const wasGrounded = this.grounded;
 
     // -- desired horizontal motion in world space --
     let ix = 0;
@@ -297,6 +321,14 @@ export class PlayerController {
       this.position.y = Math.max(support ?? this.position.y, ceiling - PLAYER_HEIGHT);
       if (this.velocity.y > 0) this.velocity.y = 0;
     }
+
+    // Camera comfort: let the eye ease up after a walked step-up.
+    const rise = this.position.y - this.prevPosition.y;
+    if (wasGrounded && this.grounded && rise > STEP_SMOOTH_MIN && rise <= STEP_UP + 0.01) {
+      this.eyeLag = Math.min(STEP_UP, this.eyeLag + rise);
+    }
+    this.eyeLag *= Math.exp(-dt / STEP_SMOOTH_TAU);
+    if (this.eyeLag < 1e-4) this.eyeLag = 0;
   }
 
   /**
@@ -368,7 +400,7 @@ export class PlayerController {
   /** Write the interpolated eye transform into the camera. */
   applyToCamera(camera: THREE.PerspectiveCamera, alpha: number): void {
     const x = lerp(this.prevPosition.x, this.position.x, alpha);
-    const y = lerp(this.prevPosition.y, this.position.y, alpha);
+    const y = lerp(this.prevPosition.y - this.prevEyeLag, this.position.y - this.eyeLag, alpha);
     const z = lerp(this.prevPosition.z, this.position.z, alpha);
     camera.position.set(x, y + EYE_HEIGHT, z);
     camera.rotation.order = 'YXZ';

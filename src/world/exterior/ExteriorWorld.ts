@@ -8,6 +8,7 @@ import { ExteriorMuseumShell } from './ExteriorMuseumShell';
 import { IslandLandscape } from './IslandLandscape';
 import { ExteriorWildlife } from './ExteriorWildlife';
 import { ExteriorSignatureFeatures } from './ExteriorSignatureFeatures';
+import { ExteriorWaymarkers } from './ExteriorWaymarkers';
 import { addIslandSupport } from './IslandSiteLayout';
 import { START_POSITION, START_YAW } from '../start';
 import {
@@ -43,6 +44,7 @@ export class ExteriorWorld {
   readonly islandLandscape: IslandLandscape;
   readonly wildlife: ExteriorWildlife;
   readonly signatureFeatures: ExteriorSignatureFeatures;
+  readonly waymarkers: ExteriorWaymarkers;
 
   readonly spawnPosition: Vec3 = START_POSITION;
   readonly spawnYaw = START_YAW;
@@ -85,6 +87,9 @@ export class ExteriorWorld {
 
     this.signatureFeatures = new ExteriorSignatureFeatures(this.scope, this.collision, qualityTier);
     this.root.add(this.signatureFeatures.root);
+
+    this.waymarkers = new ExteriorWaymarkers(this.scope, this.collision);
+    this.root.add(this.waymarkers.build());
 
     this.arrivalBeacons = new ArrivalBeacons(this.scope);
     this.root.add(this.arrivalBeacons.group);
@@ -189,6 +194,8 @@ export class ExteriorWorld {
       this.root.add(sconce);
     }
 
+    this.buildThresholdContinuity(hw, fromZ, toZ);
+
     // Front facade wall with portal opening at toZ (z = 128)
     const halfOpening = PORTAL_WIDTH / 2; // 3.5
     const leftWidth = PLAZA_HALF_WIDTH - halfOpening;
@@ -202,6 +209,46 @@ export class ExteriorWorld {
       [(halfOpening + PLAZA_HALF_WIDTH) / 2, GROUND_Y + 6, toZ],
       [leftWidth / 2, 6, 0.25],
     );
+  }
+
+  /**
+   * The arrival axis used to stop dead at the doors: pale plaza walk and its
+   * two bronze inlays outside, a dark floor and an unlit black ceiling inside.
+   * Carry the walk and inlays through the opening to the foyer backdrop and
+   * give the vestibule soffit a warm coffer glow. Visual only: no collider,
+   * no light, no change to the doorway aperture or the handoff volumes.
+   */
+  private buildThresholdContinuity(hw: number, fromZ: number, toZ: number): void {
+    const depth = toZ - fromZ;
+    const midZ = (fromZ + toZ) / 2;
+    const runnerMat = this.scope.track(new THREE.MeshStandardMaterial({ color: 0x6d7880, roughness: 0.92 }));
+    const inlayMat = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x8b6951, metalness: 0.58, roughness: 0.4,
+    }));
+    const glowMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x9a6a3c, toneMapped: false }));
+
+    const runner = new THREE.Mesh(this.scope.track(new THREE.PlaneGeometry(10.8, depth - 0.1)), runnerMat);
+    runner.name = 'vestibule-arrival-runner';
+    runner.rotation.x = -Math.PI / 2;
+    runner.position.set(0, GROUND_Y + 0.012, midZ + 0.05);
+    runner.receiveShadow = true;
+    this.root.add(runner);
+
+    const inlayGeo = this.scope.track(new THREE.BoxGeometry(0.055, 0.016, depth - 0.1));
+    for (const side of [-1, 1]) {
+      const inlay = new THREE.Mesh(inlayGeo, inlayMat);
+      inlay.name = 'vestibule-axis-inlay';
+      inlay.position.set(side * 4.6, GROUND_Y + 0.02, midZ + 0.05);
+      this.root.add(inlay);
+    }
+
+    const cofferGeo = this.scope.track(new THREE.BoxGeometry(hw * 2 - 1.2, 0.05, 0.22));
+    for (let i = 0; i < 3; i++) {
+      const coffer = new THREE.Mesh(cofferGeo, glowMat);
+      coffer.name = 'vestibule-soffit-coffer';
+      coffer.position.set(0, GROUND_Y + 8.95, fromZ + depth * (i + 0.5) / 3);
+      this.root.add(coffer);
+    }
   }
 
   setQuality(tier: QualityTier): void {

@@ -19,6 +19,8 @@ import { CommandPalette } from '../ui/CommandPalette';
 import { FullWeaselPanel } from '../ui/FullWeaselPanel';
 import { MuseumGuidePanel } from '../ui/MuseumGuidePanel';
 import { VisitThreadPanel } from '../ui/VisitThreadPanel';
+import { JOURNAL_KEY } from '../state/Journal';
+import { persistenceHealth } from '../state/PersistenceHealth';
 import { DeterministicMuseumGuide } from '../guide/DeterministicMuseumGuide';
 import { SOURCE_INSTALLATIONS, SOURCE_SUPPLEMENTARY, SOURCE_VISITORS } from '../content/sourceParity';
 import { EXHIBITS_BY_ID, COLLECTION } from '../content/collection.generated';
@@ -264,6 +266,8 @@ export class UILayer {
     document.addEventListener('pointerlockchange', this.onPointerLock);
     window.addEventListener('message', this.onEmbeddedMessage);
     window.addEventListener('storage', this.onVisitThreadStorage);
+    // uplift2(E): say once, in plain words, when this device stops keeping the visitor's records.
+    this.unbind.push(persistenceHealth.onChange((message) => { if (message) this.hud.announce(message, 12); }));
     const savedGuide = app.journal.guideTarget;
     if (savedGuide?.kind === 'exhibit' && EXHIBITS_BY_ID.has(savedGuide.id)) {
       this.mapGuide(savedGuide.id);
@@ -447,6 +451,11 @@ export class UILayer {
   }
 
   private readonly onVisitThreadStorage = (event: StorageEvent): void => {
+    // uplift2(E): another tab wrote the journal — fold it in so neither tab's visits are lost.
+    if (event.key === JOURNAL_KEY) {
+      this.app.journal.reconcileExternal(event.newValue);
+      return;
+    }
     if (event.key !== 'museum-of-me:visit-thread:v1' || !event.newValue) return;
     if (this.app.visitThread.reconcileExternal(event.newValue)) {
       this.hud.announce('Visit Thread reconciled with another tab.');

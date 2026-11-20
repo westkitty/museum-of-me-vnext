@@ -7,8 +7,29 @@ import { EXHIBITS_BY_ID, COLLECTION } from '../content/collection.generated';
 import { collectionSearch } from '../content/collectionSearch';
 import { museumLink } from '../content/collectionLinks';
 
+type StudyTab = 'overview' | 'collections' | 'compare' | 'queue' | 'tools';
+
+/** Visible tab names; the ids stay the stored, lower-case keys. */
+export const STUDY_TAB_LABELS: Readonly<Record<StudyTab, string>> = {
+  overview: 'Overview',
+  collections: 'Collections',
+  compare: 'Compare',
+  queue: 'Reading queue',
+  tools: 'Tools',
+};
+const STUDY_TABS = Object.keys(STUDY_TAB_LABELS) as StudyTab[];
+
+/** Arrow-key movement across a horizontal tab list (wraps; Home and End jump). */
+export function nextTabIndex(key: string, index: number, count: number): number | null {
+  if (key === 'ArrowRight') return (index + 1) % count;
+  if (key === 'ArrowLeft') return (index - 1 + count) % count;
+  if (key === 'Home') return 0;
+  if (key === 'End') return count - 1;
+  return null;
+}
+
 export class StudyPanel extends Panel {
-  private tab: 'overview' | 'collections' | 'compare' | 'queue' | 'tools' = 'overview';
+  private tab: StudyTab = 'overview';
   private speech: SpeechSynthesisUtterance | null = null;
   private status = '';
   private searchQuery = '';
@@ -23,19 +44,34 @@ export class StudyPanel extends Panel {
   }
 
   protected render(): void {
-    const tabs = (['overview', 'collections', 'compare', 'queue', 'tools'] as const).map((id) =>
+    const select = (id: StudyTab, focus: boolean) => {
+      this.tab = id;
+      this.render();
+      if (focus) this.body.querySelector<HTMLElement>(`#study-tab-${id}`)?.focus();
+    };
+    const tabs = STUDY_TABS.map((id, index) =>
       el('button', {
         type: 'button',
+        role: 'tab',
+        id: `study-tab-${id}`,
+        'aria-controls': 'study-tabpanel',
         class: this.tab === id ? 'study-tab study-tab--active' : 'study-tab',
-        text: id,
+        text: STUDY_TAB_LABELS[id],
         'aria-selected': this.tab === id ? 'true' : 'false',
-        onclick: () => { this.tab = id; this.render(); },
+        tabindex: this.tab === id ? '0' : '-1',
+        onclick: () => select(id, false),
+        onkeydown: (event: Event) => {
+          const next = nextTabIndex((event as KeyboardEvent).key, index, STUDY_TABS.length);
+          if (next === null) return;
+          event.preventDefault();
+          select(STUDY_TABS[next], true);
+        },
       }),
     );
     this.setContent(
-      el('div', { class: 'study-tabs', role: 'tablist' }, ...tabs),
+      el('div', { class: 'study-tabs', role: 'tablist', 'aria-label': 'Study Lab sections' }, ...tabs),
       el('p', { role: 'status', class: 'panel__note', text: this.status || this.study.recoveryNotice || `Revision ${this.study.state.revision} · writer ${this.study.state.writerId || 'local'}` }),
-      ...this.panelBody(),
+      el('div', { id: 'study-tabpanel', role: 'tabpanel', 'aria-labelledby': `study-tab-${this.tab}` }, ...this.panelBody()),
     );
   }
 
@@ -50,7 +86,7 @@ export class StudyPanel extends Panel {
       ];
     }
     if (this.tab === 'collections') {
-      const name = el('input', { type: 'text', class: 'study-input', maxlength: 48, placeholder: 'New collection' }) as HTMLInputElement;
+      const name = el('input', { type: 'text', class: 'study-input', maxlength: 48, placeholder: 'New collection', 'aria-label': 'New collection name' }) as HTMLInputElement;
       return [
         el('div', {},
           name,
@@ -67,7 +103,7 @@ export class StudyPanel extends Panel {
         ...s.collections.map((c) => el('article', { class: 'study-card' },
           el('h3', { text: c.name }),
           el('p', { text: `${c.members.length} members · ${c.color}` }),
-          this.colorSelect(c.id, c.color),
+          this.colorSelect(c.id, c.color, c.name),
           el('button', { type: 'button', text: 'Delete collection', onclick: () => {
             this.study.commit((st) => { st.collections = st.collections.filter((item) => item.id !== c.id); });
             this.status = `Deleted ${c.name}.`;
@@ -116,7 +152,7 @@ export class StudyPanel extends Panel {
 
   private goalBlock(): HTMLElement {
     const s = this.study.state;
-    const input = el('input', { type: 'text', maxlength: 180, value: s.goal?.text ?? '', placeholder: 'Session goal' }) as HTMLInputElement;
+    const input = el('input', { type: 'text', maxlength: 180, value: s.goal?.text ?? '', placeholder: 'Session goal', 'aria-label': 'Session goal' }) as HTMLInputElement;
     return el('div', {},
       input,
       el('button', { type: 'button', text: s.goal ? 'Update goal' : 'Start goal', onclick: () => {
@@ -184,6 +220,7 @@ export class StudyPanel extends Panel {
   private compareSlot(index: 0 | 1): HTMLElement {
     const current = this.study.state.compare[index];
     const select = el('select', {
+      'aria-label': `Comparison slot ${index + 1}`,
       onchange: (e: Event) => {
         const id = (e.target as HTMLSelectElement).value || null;
         this.study.commit((st) => {
@@ -200,7 +237,7 @@ export class StudyPanel extends Panel {
   }
 
   private enqueueBox(): HTMLElement {
-    const select = el('select', {},
+    const select = el('select', { 'aria-label': 'Exhibit to add to the reading queue' },
       el('option', { value: '', text: 'Add to queue' }),
       ...this.knownIds().map((id) => el('option', { value: id, text: this.label(id) })),
     ) as HTMLSelectElement;
@@ -217,8 +254,9 @@ export class StudyPanel extends Panel {
     );
   }
 
-  private colorSelect(id: string, color: StudyColor): HTMLElement {
+  private colorSelect(id: string, color: StudyColor, name = 'this collection'): HTMLElement {
     return el('select', {
+      'aria-label': `Colour for ${name}`,
       onchange: (e: Event) => {
         const value = (e.target as HTMLSelectElement).value as StudyColor;
         this.study.commit((st) => {

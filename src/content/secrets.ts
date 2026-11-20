@@ -92,7 +92,7 @@ export const SECRETS: readonly SecretDefinition[] = [
     world: 'exterior',
     title: 'Something in the roots',
     line: 'A carved stone, tucked where only a wanderer would look.',
-    trigger: { kind: 'object', position: [41.2, -0.48, -85.6], model: 'carved-stone', prompt: 'Look closer' },
+    trigger: { kind: 'object', position: [53.8, -0.48, -81.6], model: 'carved-stone', prompt: 'Look closer' },
   },
   {
     id: 'garden-wall-lantern',

@@ -9,11 +9,86 @@ import { rng } from '../assets/generators';
 interface Walker {
   readonly mesh: THREE.Group;
   readonly path: readonly Vec3[];
+  /** Ground speed in metres per second. */
   readonly speed: number;
+  /** Seconds this walker lingers at each route corner. */
+  readonly pauses: readonly number[];
   readonly mixer: THREE.AnimationMixer;
   readonly walk: THREE.AnimationAction;
-  t: number;
+  /** Seconds into the walker's looping route timeline. */
+  clock: number;
   farElapsed: number;
+}
+
+/** Comfortable gallery walking pace that matches the Walk clip's stride (m/s). */
+export const AMBIENT_WALK_SPEED: readonly [number, number] = [1.0, 1.3];
+/** How far an exhibit observer sits to one side of the visitor's viewing spot (m). */
+export const OBSERVER_SIDE_OFFSET = 1.8;
+
+export interface WalkerPose {
+  readonly x: number; readonly y: number; readonly z: number;
+  readonly yaw: number;
+  readonly moving: boolean;
+}
+
+/**
+ * Pose on a looping walker route at `time` seconds: constant ground speed
+ * along every leg (arc length, not leg count), a pause at each corner, and
+ * the turn to the next heading made smoothly during that pause.
+ *
+ * The former parameterisation gave every leg the same duration regardless of
+ * its length, so walkers raced along long hall legs and crept along short
+ * ones while the Walk clip played at one rate — and snapped their heading at
+ * every corner.
+ */
+export function walkerPoseAt(path: readonly Vec3[], speed: number, pauses: readonly number[], time: number): WalkerPose {
+  const n = path.length;
+  const legs = path.map((a, i) => {
+    const b = path[(i + 1) % n];
+    return { a, b, length: Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]), yaw: Math.atan2(b[0] - a[0], b[2] - a[2]) };
+  });
+  const cycle = legs.reduce((sum, leg, i) => sum + leg.length / speed + (pauses[i % pauses.length] ?? 0), 0);
+  let t = cycle > 0 ? ((time % cycle) + cycle) % cycle : 0;
+  for (let i = 0; i < n; i++) {
+    const leg = legs[i];
+    const walk = leg.length / speed;
+    if (t < walk) {
+      const f = walk > 0 ? t / walk : 1;
+      return {
+        x: leg.a[0] + (leg.b[0] - leg.a[0]) * f,
+        y: leg.a[1] + (leg.b[1] - leg.a[1]) * f,
+        z: leg.a[2] + (leg.b[2] - leg.a[2]) * f,
+        yaw: leg.yaw, moving: true,
+      };
+    }
+    t -= walk;
+    const pause = pauses[i % pauses.length] ?? 0;
+    if (t < pause) {
+      const next = legs[(i + 1) % n].yaw;
+      let delta = next - leg.yaw;
+      delta = Math.atan2(Math.sin(delta), Math.cos(delta));
+      const u = Math.min(1, t / Math.min(pause, 1.2));
+      return { x: leg.b[0], y: leg.b[1], z: leg.b[2], yaw: leg.yaw + delta * u * u * (3 - 2 * u), moving: false };
+    }
+    t -= pause;
+  }
+  const last = legs[n - 1];
+  return { x: last.b[0], y: last.b[1], z: last.b[2], yaw: legs[0].yaw, moving: false };
+}
+
+/**
+ * Where an exhibit observer sits: beside, not on, the spot the guide route
+ * delivers the visitor to, and turned toward the exhibit. Observers used to
+ * be placed exactly on `visitorSpot`, so a guided visitor arrived inside one.
+ */
+export function observerSpot(placement: { readonly visitorSpot: Vec3; readonly anchor: Vec3; readonly facing: Vec3 }): { position: Vec3; yaw: number } {
+  const [fx, , fz] = placement.facing;
+  const position: Vec3 = [
+    placement.visitorSpot[0] - fz * OBSERVER_SIDE_OFFSET,
+    placement.visitorSpot[1],
+    placement.visitorSpot[2] + fx * OBSERVER_SIDE_OFFSET,
+  ];
+  return { position, yaw: Math.atan2(placement.anchor[0] - position[0], placement.anchor[2] - position[2]) };
 }
 
 interface Observer { readonly mesh: THREE.Group; }
@@ -119,8 +194,7 @@ export class AmbientVisitors {
     const mixerStep = this.mixerElapsed >= AMBIENT_MIXER_INTERVAL ? this.mixerElapsed : 0;
     if (mixerStep > 0) this.mixerElapsed = 0;
     for (const walker of this.walkers) {
-      const n = walker.path.length;
-      walker.t = (walker.t + dt * walker.speed * 0.04) % 1;
+      walker.clock += dt;
 
       let far = false;
       if (viewerX !== undefined && viewerZ !== undefined) {
@@ -135,17 +209,11 @@ export class AmbientVisitors {
         }
       }
 
-      const scaled = walker.t * n;
-      const index = Math.floor(scaled);
-      const fraction = scaled - index;
-      const a = walker.path[index % n];
-      const b = walker.path[(index + 1) % n];
-      walker.mesh.position.set(
-        a[0] + (b[0] - a[0]) * fraction,
-        a[1] + (b[1] - a[1]) * fraction,
-        a[2] + (b[2] - a[2]) * fraction,
-      );
-      walker.mesh.rotation.y = Math.atan2(b[0] - a[0], b[2] - a[2]);
+      const pose = walkerPoseAt(walker.path, walker.speed, walker.pauses, walker.clock);
+      walker.mesh.position.set(pose.x, pose.y, pose.z);
+      walker.mesh.rotation.y = pose.yaw;
+      // Stand still (no stride) while lingering at a corner.
+      walker.walk.paused = !pose.moving;
       // Near visitors retain the 30 Hz pose cadence. Far visitors coarse-step
       // both transform and skeleton work at 10 Hz, with accumulated time so
       // their route/animation state still advances while off-screen.
@@ -185,7 +253,15 @@ export class AmbientVisitors {
       const walk = mixer.clipAction(clip);
       walk.play();
       this.group.add(mesh);
-      this.walkers.push({ mesh, path, speed: 0.5 + random() * 0.3, mixer, walk, t: random(), farElapsed: 0 });
+      const speed = AMBIENT_WALK_SPEED[0] + random() * (AMBIENT_WALK_SPEED[1] - AMBIENT_WALK_SPEED[0]);
+      const pauses = path.map(() => 1.2 + random() * 3.3);
+      const clock = random() * 60;
+      const start = walkerPoseAt(path, speed, pauses, clock);
+      mesh.position.set(start.x, start.y, start.z);
+      mesh.rotation.y = start.yaw;
+      // Match stride to ground speed so feet do not slide (clip authored near 1.15 m/s).
+      walk.timeScale = speed / 1.15;
+      this.walkers.push({ mesh, path, speed, pauses, mixer, walk, clock, farElapsed: 0 });
     }
 
     const exhibitIds = ['E02', 'E04', 'E05', 'E06'];
@@ -197,8 +273,9 @@ export class AmbientVisitors {
       mesh.name = `ambient-exhibit-observer:${placement.exhibitId}`;
       // The source FBX uses centimetres; inspected height is normalized to ~1.8 m.
       mesh.scale.setScalar(0.006);
-      mesh.position.set(placement.visitorSpot[0], placement.visitorSpot[1], placement.visitorSpot[2]);
-      mesh.rotation.y = Math.atan2(-placement.facing[0], -placement.facing[2]);
+      const spot = observerSpot(placement);
+      mesh.position.set(spot.position[0], spot.position[1], spot.position[2]);
+      mesh.rotation.y = spot.yaw;
       this.group.add(mesh);
       this.observers.push({ mesh });
     }

@@ -1,5 +1,6 @@
 import type { QualityTier } from '../render/QualityTiers';
 import { checksumPayload } from './integrity';
+import { persistenceHealth } from './PersistenceHealth';
 
 export type MotionPreference = 'system' | 'reduce' | 'full';
 export type FrameCap = 'auto' | '30' | '60' | 'unlimited';
@@ -222,7 +223,8 @@ export function savePreferences(prefs: VisitorPreferences, storage: Storage | nu
     if (previous) storage.setItem(BACKUP_KEY, previous);
     storage.setItem(PREFERENCES_KEY, JSON.stringify(stored));
     storage.setItem(PREFERENCES_LEGACY_KEY, JSON.stringify(stored));
-  } catch { /* quota / private mode */ }
+    persistenceHealth.saved('preferences');
+  } catch (error) { persistenceHealth.failed('preferences', error); }
 }
 
 function loadStoredBase(storage: Storage): Partial<VisitorPreferences> {

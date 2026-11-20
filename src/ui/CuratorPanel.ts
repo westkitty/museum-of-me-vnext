@@ -1,6 +1,7 @@
 import { Panel } from './Panel';
 import { el } from './dom';
 import type { Journal } from '../state/Journal';
+import { persistenceHealth } from '../state/PersistenceHealth';
 import { SOURCE_INSTALLATIONS, SOURCE_SUPPLEMENTARY, SOURCE_VISITORS, PRIMARY_TO_VNEXT } from '../content/sourceParity';
 import { EXHIBITS_BY_ID } from '../content/collection.generated';
 
@@ -40,7 +41,7 @@ export class CuratorPanel extends Panel {
     ];
 
     this.setContent(
-      el('p', { class: 'panel__note', role: 'status', text: this.importNotice || this.journal.recoveryNotice || 'Local curator records. Walking remains the only way to move through the museum.' }),
+      el('p', { class: 'panel__note', role: 'status', text: this.importNotice || persistenceHealth.message() || this.journal.recoveryNotice || 'Local curator records. Walking remains the only way to move through the museum.' }),
       el('div', { class: 'panel__grid' },
         el('button', { type: 'button', text: 'Next unvisited', onclick: () => this.handlers.nextUnvisited() }),
         el('button', { type: 'button', text: 'Clear guide', onclick: () => this.handlers.guideTo(null) }),
