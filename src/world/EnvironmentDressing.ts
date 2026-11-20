@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { buildWingSign } from '../exhibits/Furniture';
 import {
-  GROUND_Y, LEVEL_1_Y, ROTUNDA_APOTHEM, VESTIBULE_FROM, VESTIBULE_TO, PLACEMENTS,
+  GROUND_Y, LEVEL_1_Y, ROTUNDA_APOTHEM, VESTIBULE_FROM, VESTIBULE_TO, PLACEMENTS, ATRIUM_FRONT_Z,
   WINGS, faceDirection, place, rightOf, type Vec3,
 } from './layout';
 
@@ -77,17 +77,19 @@ export class EnvironmentDressing {
   private buildFacade(): void {
     const d = faceDirection('s');
     const r = rightOf(d);
-    const facade = place(d, VESTIBULE_TO + 0.3, 0, GROUND_Y);
+    // The interior world's facade is the atrium's front door, carried across
+    // the seam with the visitor (see ATRIUM_FRONT_Z).
+    const facade = place(d, ATRIUM_FRONT_Z + 0.3, 0, GROUND_Y);
 
     // Dark exterior frame with azure accents; the neutral vestibule and warm
     // south wing remain independent interior systems.
     this.box('facade-entablature', [facade[0], 9.4, facade[2]], [8.8, 0.7, 0.8], this.facadeDark);
-    this.box('facade-canopy', place(d, VESTIBULE_TO + 2.4, 0, 6.1), [7.2, 0.22, 2.3], this.facadeDark);
+    this.box('facade-canopy', place(d, ATRIUM_FRONT_Z + 2.4, 0, 6.1), [7.2, 0.22, 2.3], this.facadeDark);
 
     // Narrow reflective glazing on either side of the real entrance adds depth
     // without introducing a second doorway or changing collision authority.
     for (const side of [-1, 1]) {
-      const glassAt = place(d, VESTIBULE_TO + 0.7, side * 3.55, GROUND_Y);
+      const glassAt = place(d, ATRIUM_FRONT_Z + 0.7, side * 3.55, GROUND_Y);
       const glass = new THREE.Mesh(
         this.scope.track(new THREE.BoxGeometry(2.45, 5.9, 0.08)),
         this.facadeGlass,
@@ -101,7 +103,7 @@ export class EnvironmentDressing {
     }
 
     for (const side of [-1, 1]) {
-      const p = place(d, VESTIBULE_TO + 0.5, side * 5.7, GROUND_Y);
+      const p = place(d, ATRIUM_FRONT_Z + 0.5, side * 5.7, GROUND_Y);
       const column = new THREE.Mesh(
         this.scope.track(new THREE.CylinderGeometry(0.62, 0.78, 8.5, 18)),
         this.facadeDark,

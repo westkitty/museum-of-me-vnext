@@ -30,7 +30,8 @@ import { Lighting } from '../render/Lighting';
 import { AtmosphereDirector } from '../render/AtmosphereDirector';
 import { InputManager, touchLookGain } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
-import { zoneAtXYZ, ZONE_BY_ID, isOnFlightPad, exteriorLocationLabel, EXTERIOR_PLAZA_LABEL, type ZoneId } from '../world/layout';
+import { zoneAtXYZ, ZONE_BY_ID, isOnFlightPad, exteriorLocationLabel, EXTERIOR_PLAZA_LABEL, ENTRANCE_PORTAL_Z, type ZoneId } from '../world/layout';
+import { TICKET_KIOSK_ID } from '../world/exterior/TicketKiosk';
 import { START_POSITION } from '../world/start';
 import type { StreamingManager } from '../exhibits/StreamingManager';
 
@@ -140,6 +141,14 @@ export class App implements LoopCallbacks {
     lastFailure: null as string | null,
   };
 
+  /**
+   * The visitor's admission ticket. Admission replaces the old "Enter the
+   * museum" button: the interior is prepared while the ticket prints, so the
+   * load is hidden behind the kiosk. `?qa=1`/`?edit` sessions start holding
+   * one so automated walks are not blocked; set it to null to test the gate.
+   */
+  ticket: { readonly number: string; readonly date: string; readonly issuedAtMs: number } | null = null;
+
   get isRoomCullingEnabled(): boolean {
     return this.roomCullingEnabled;
   }
@@ -149,6 +158,7 @@ export class App implements LoopCallbacks {
     this.a11yRoot = opts.a11yRoot;
     const query = new URLSearchParams(window.location.search);
     this.cinematicArrivalEnabled = !query.has('qa') && !query.has('edit');
+    if (!this.cinematicArrivalEnabled) this.ticket = App.printTicket();
     // Workshop must see all authorable objects even when editing far-away bays.
     this.roomCullingEnabled = !(import.meta.env.DEV && query.has('edit'));
 
@@ -188,6 +198,10 @@ export class App implements LoopCallbacks {
     this.exteriorWorld.root.add(this.wayfinding.group);
     this.secrets.attachObjects('exterior', this.exteriorWorld.root, this.exteriorWorld.scope,
       (id, control) => this.interaction.register(id, control));
+    const kiosk = this.exteriorWorld.ticketKiosk.build(() => this.issueTicket(), () => Boolean(this.ticket));
+    this.exteriorWorld.root.add(kiosk.group);
+    this.interaction.register(TICKET_KIOSK_ID, kiosk.control);
+    if (this.ticket) this.exteriorWorld.ticketKiosk.markIssued();
 
     this.sky = new Sky(this.scope);
     this.renderer.scene.add(this.sky.mesh);
@@ -228,7 +242,7 @@ export class App implements LoopCallbacks {
 
   recordInteractionVisit(): void {
     const id = this.interaction.currentFocus?.exhibitId;
-    if (!id || isSecretControlId(id)) return;
+    if (!id || isSecretControlId(id) || id === TICKET_KIOSK_ID) return;
     this.journal.markVisited(id);
     this.visitThread.recordVisit(id);
   }
@@ -411,6 +425,31 @@ export class App implements LoopCallbacks {
 
   get arrivalEntered(): boolean {
     return this.cinematicArrivalEntered;
+  }
+
+  private static printTicket(): { number: string; date: string; issuedAtMs: number } {
+    const number = String(1000 + Math.floor(Math.random() * 9000));
+    const date = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+    return { number, date, issuedAtMs: performance.now() };
+  }
+
+  /**
+   * Take a ticket at the kiosk. Printing starts the interior's preparation,
+   * so by the time the visitor reaches the doors the galleries are open.
+   */
+  issueTicket(): boolean {
+    if (this.ticket) return false;
+    this.ticket = App.printTicket();
+    this.exteriorWorld.ticketKiosk.markIssued();
+    this.audio.tick(880);
+    void this.worldDirector.prepareInterior().catch(() => undefined);
+    return true;
+  }
+
+  /** Close the welcome without the readiness gate: the ticket now carries it. */
+  dismissArrival(): void {
+    this.cinematicArrivalEntered = true;
+    this.cinematicCameraCancelled = true;
   }
 
   enterArrival(): boolean {
@@ -654,6 +693,7 @@ export class App implements LoopCallbacks {
     if (this.activeWorld === 'exterior') {
       this.exteriorWorld.variableUpdate(dt, eye, zone, this.preferences.reducedMotion);
     }
+    this.updateTicketCard();
 
     this.lighting.update(eye);
 
@@ -684,6 +724,23 @@ export class App implements LoopCallbacks {
 
     this.ui?.update(dt);
     this.input.endFrame();
+  }
+
+  private updateTicketCard(): void {
+    const hud = this.ui?.hud;
+    if (!hud) return;
+    // The card is shown on the forecourt only, and not in QA sessions that
+    // begin with a ticket.
+    if (!this.ticket || this.activeWorld !== 'exterior' || !this.cinematicArrivalEnabled
+      || this.player.position.z < ENTRANCE_PORTAL_Z - 1 || this.player.position.z > ENTRANCE_PORTAL_Z + 60) {
+      hud.showTicket(null);
+      return;
+    }
+    const director = this.worldDirector;
+    const failed = director.phase === 'PREPARATION_FAILED';
+    const ready = this.interiorLoadTelemetry.entranceReadyAtMs !== null;
+    hud.showTicket(this.ticket, failed ? 'The galleries could not be opened.'
+      : ready ? 'Doors open. Walk on in.' : 'Printing… the galleries are opening.');
   }
 
   render(alpha: number): void {

@@ -52,7 +52,9 @@ test.describe('P2 Minimum viable impossible threshold and reversible world switc
         museumBuildCount: app.museumBuildCount, samples };
     });
     expect(entry.world).toBe('interior');
-    expect(entry.position[2]).toBeLessThan(128);
+    // The exterior door opens into the atrium's front door (interior z = 162).
+    expect(entry.position[2]).toBeGreaterThan(150);
+    expect(entry.position[2]).toBeLessThan(162.5);
     expect(entry.museumBuildCount).toBe(1);
     expect(entry.samples.some((sample) => sample.z >= 164 && sample.y < -0.4 && sample.grounded)).toBe(true);
     expect(entry.samples.some((sample) => sample.z > 158 && sample.z < 164 && sample.grounded)).toBe(true);

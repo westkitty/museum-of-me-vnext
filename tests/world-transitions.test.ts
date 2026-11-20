@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type * as THREE from 'three';
 import type { App } from '../src/app/App';
 import { WORLD_TRANSITIONS, WorldDirector, isLegalWorldTransition, type WorldPhase } from '../src/app/WorldDirector';
-import { ENTRANCE_PORTAL_Z, GROUND_Y } from '../src/world/layout';
+import { ATRIUM_FRONT_Z, ENTRANCE_PORTAL_Z, GROUND_Y, SEAM_OFFSET_Z } from '../src/world/layout';
 
 /** A minimal App stand-in exposing exactly what WorldDirector touches. */
 function harness(options: { loadFails?: boolean } = {}) {
@@ -18,10 +18,12 @@ function harness(options: { loadFails?: boolean } = {}) {
     interiorLoadTelemetry: { entranceReadyAtMs: null as number | null, transitionCommittedAtMs: 0 },
     interiorWorld: null as typeof interiorWorld | null,
     exteriorWorld: { root: { visible: true }, collision: {} },
+    ticket: { number: '0001', date: 'today', issuedAtMs: 0 },
     player: {
       position: { x: 0, y: GROUND_Y, z: ENTRANCE_PORTAL_Z + 20 },
       acquireFreeze: () => () => undefined,
       setCollisionWorld: vi.fn(),
+      shift(_x: number, _y: number, dz: number) { this.position.z += dz; },
     },
     ui: { hud: { setThresholdStatus: vi.fn() } },
     ensureInteriorLoaded: vi.fn(async () => {
@@ -64,13 +66,18 @@ describe('world-switch state machine', () => {
     step();
     expect(director.activeWorld).toBe('interior');
 
-    // Walk back out through the doorway, then in again.
-    pos.z = ENTRANCE_PORTAL_Z + 2;
+    // The visitor stands just inside the atrium's front door.
+    expect(pos.z).toBeGreaterThan(ATRIUM_FRONT_Z - 1);
+
+    // Walk back out through the atrium door, then in again.
+    pos.z = ATRIUM_FRONT_Z + 2;
     step();
     expect(director.activeWorld).toBe('exterior');
+    expect(pos.z).toBeCloseTo(ATRIUM_FRONT_Z + 2 - SEAM_OFFSET_Z, 5);
     pos.z = ENTRANCE_PORTAL_Z;
     step();
     expect(director.activeWorld).toBe('interior');
+    expect(pos.z).toBeCloseTo(ATRIUM_FRONT_Z, 5);
 
     expect(phases).toEqual([
       'EXTERIOR_ACTIVE', 'PREPARING_INTERIOR', 'PREPARING_RENDER_RESOURCES', 'AT_THRESHOLD',

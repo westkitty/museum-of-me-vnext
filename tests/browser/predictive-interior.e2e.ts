@@ -67,10 +67,12 @@ test('cold exterior stays lazy; accessible entrance intent records real preparat
   await page.evaluate(() => {
     const app = window.__museum;
     if (!app) throw new Error('museum missing');
+    // QA sessions start holding a ticket; take it back to exercise admission.
+    app.ticket = null;
     app.player.teleport([0, 0, 148]);
     app.worldDirector.update(app.player.position);
   });
-  const enter = page.getByRole('button', { name: 'Enter museum' });
+  const enter = page.getByRole('button', { name: 'Take a ticket' });
   await expect(enter).toBeVisible();
   await enter.focus();
   await enter.press('Enter');
@@ -187,10 +189,12 @@ test('low-tier mobile viewport and reduced-motion visitors can request entrance 
     if (!app) throw new Error('museum missing');
     app.stop();
     app.setQuality('low');
+    // QA sessions start holding a ticket; take it back to exercise admission.
+    app.ticket = null;
     app.player.teleport([0, 0, 148]);
     app.worldDirector.update(app.player.position);
   });
-  const enter = page.getByRole('button', { name: 'Enter museum' });
+  const enter = page.getByRole('button', { name: 'Take a ticket' });
   await expect(enter).toBeVisible();
   await enter.focus();
   await enter.press('Enter');
@@ -210,7 +214,7 @@ test('low-tier mobile viewport and reduced-motion visitors can request entrance 
   expect(state.quality).toBe('low');
   expect(state.requested).toBe(true);
   expect(state.world).toBe('exterior');
-  expect(state.status).toMatch(/Opening the galleries|Lighting the entrance hall|The doors are open/);
+  expect(state.status).toMatch(/Opening the galleries|ticket is printing|The doors are open/);
   expect(state.focusedControl).toBe('Continue outside');
   expect(state.horizontalOverflow).toBe(false);
   expect(state.reducedMotion).toBe(true);

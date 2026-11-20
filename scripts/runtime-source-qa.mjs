@@ -82,6 +82,7 @@ try {
     null, { timeout: BOOT_TIMEOUT_MS });
   await page.evaluate(() => {
     const app = window.__museum;
+    app.issueTicket(); // admission is by ticket; a no-op when one is held
     app.player.teleport([0, 0, 126]);
     app.variableUpdate(1 / 60);
   });

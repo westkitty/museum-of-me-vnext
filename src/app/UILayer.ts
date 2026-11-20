@@ -70,7 +70,7 @@ export class UILayer {
       else input.requestPointerLock();
       return true;
     }, () => this.visitThread.open(),
-    () => { void app.worldDirector.prepareInterior().catch(() => undefined); },
+    () => { app.issueTicket(); },
     () => window.location.reload(),
     () => app.worldDirector.dismissThresholdPrompt(),
     () => this.visitorMenu.open());

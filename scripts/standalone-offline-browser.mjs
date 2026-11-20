@@ -51,6 +51,8 @@ try {
     const app = window.__museum;
     if (!app) throw new Error('museum missing');
     app.stop();
+    // Admission is by ticket: take one at the kiosk (it also starts preparation).
+    app.issueTicket();
     app.player.teleport([0, 0, 133], 0);
     app.variableUpdate(1 / 60);
     app.start();
@@ -66,7 +68,8 @@ try {
     app.fixedUpdate(1 / 60);
     app.variableUpdate(1 / 60);
     const entered = app.activeWorld === 'interior';
-    app.player.teleport([0, 0, 132], 0);
+    // Out through the atrium's front door (interior z = 162).
+    app.player.teleport([0, 0, 164], 0);
     app.fixedUpdate(1 / 60);
     app.variableUpdate(1 / 60);
     const returned = app.activeWorld === 'exterior';

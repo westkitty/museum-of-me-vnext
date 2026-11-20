@@ -46,18 +46,16 @@ async function enterInterior(page: Page): Promise<void> {
   await frames(page, 3);
 }
 
-test('D01/D05: one welcome card, and its Enter button fits a short landscape phone', async ({ page }) => {
+test('D01/D05: one welcome title, no Enter button, nothing off-screen on a short landscape phone', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
   await boot(page, '/');
   await expect(page.locator('.cinematic-arrival')).toBeVisible();
   expect(await page.evaluate(() => (document.querySelector('.hud__lock') as HTMLElement).hidden)).toBe(true);
-  await page.evaluate(() => window.__museum?.start());
-  const enter = page.getByRole('button', { name: 'Enter the museum', exact: true });
-  await expect(enter).toBeEnabled({ timeout: 30_000 });
-  const box = await enter.boundingBox();
+  await expect(page.getByRole('button', { name: /Enter the museum/ })).toHaveCount(0);
+  const browse = page.getByRole('link', { name: 'Browse the collection' });
+  const box = await browse.boundingBox();
   expect(box && box.y + box.height <= 390).toBe(true);
-  await enter.click();
-  await page.evaluate(() => window.__museum?.stop());
+  await page.keyboard.press('Escape');
   await expect(page.locator('.cinematic-arrival')).toHaveCount(0);
   expect(await page.evaluate(() => document.querySelector('.hud')?.classList.contains('hud--cinematic'))).toBe(false);
 });

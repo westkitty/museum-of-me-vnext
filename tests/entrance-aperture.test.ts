@@ -9,7 +9,7 @@ import {
 } from '../src/app/WorldDirector';
 import {
   ENTRANCE_PORTAL_Z, GROUND_Y, PORTAL_WIDTH, PORTAL_HEIGHT,
-  PORTAL_VESTIBULE_DEPTH, THRESHOLD_PREPARE_Z,
+  PORTAL_VESTIBULE_DEPTH, THRESHOLD_PREPARE_Z, ATRIUM_FRONT_Z, SEAM_OFFSET_Z,
 } from '../src/world/layout';
 
 describe('exterior-to-interior doorway aperture', () => {
@@ -28,14 +28,17 @@ describe('exterior-to-interior doorway aperture', () => {
     expect(isAtEntrancePortal({ x: PORTAL_WIDTH / 2, y: 0, z: ENTRANCE_PORTAL_Z - 1 })).toBe(false);
     expect(isAtEntrancePortal({ x: 0, y: 0, z: ENTRANCE_PORTAL_Z - PORTAL_VESTIBULE_DEPTH - 1 })).toBe(false);
     expect(isAtEntrancePortal({ x: 0, y: 0, z: ENTRANCE_PORTAL_Z + 1 })).toBe(false);
-    expect(isExitingEntrance({ x: 0, y: 0, z: ENTRANCE_PORTAL_Z + 4 })).toBe(true);
-    expect(isExitingEntrance({ x: 0, y: 0, z: THRESHOLD_PREPARE_Z + 4 })).toBe(false);
+    // Leaving is through the atrium's front door, in interior coordinates.
+    expect(isExitingEntrance({ x: 0, y: 0, z: ENTRANCE_PORTAL_Z + 4 })).toBe(false);
+    expect(isExitingEntrance({ x: 0, y: 0, z: ATRIUM_FRONT_Z + 4 })).toBe(true);
+    expect(isExitingEntrance({ x: 0, y: 0, z: ATRIUM_FRONT_Z + 10 })).toBe(false);
+    expect(isExitingEntrance({ x: 9, y: 0, z: ATRIUM_FRONT_Z + 1 })).toBe(false);
   });
 
   it('rejects elevated free flight and positions below the portal floor', () => {
     expect(isAtEntrancePortal({ x: 0, y: PORTAL_HEIGHT + 2, z: ENTRANCE_PORTAL_Z })).toBe(false);
     expect(isAtEntrancePortal({ x: 0, y: -2, z: ENTRANCE_PORTAL_Z })).toBe(false);
-    expect(isExitingEntrance({ x: 0, y: PORTAL_HEIGHT + 2, z: ENTRANCE_PORTAL_Z + 1 })).toBe(false);
+    expect(isExitingEntrance({ x: 0, y: PORTAL_HEIGHT + 2, z: ATRIUM_FRONT_Z + 1 })).toBe(false);
   });
 
   it('prewarms invisibly only near the real entrance, never from a side-path Z crossing', () => {
@@ -61,10 +64,12 @@ describe('doorway hold while a constructed interior is still prewarming', () => 
         setActive: () => undefined,
       },
       exteriorWorld: { root: { visible: true }, collision: {} },
+      ticket: { number: '0001', date: 'today', issuedAtMs: 0 } as { number: string; date: string; issuedAtMs: number } | null,
       player: {
         position: { x: 0, y: GROUND_Y, z: ENTRANCE_PORTAL_Z },
         acquireFreeze: () => () => undefined,
         setCollisionWorld: () => undefined,
+        shift(_x: number, _y: number, dz: number) { this.position.z += dz; },
       },
       ui: undefined,
     };
@@ -91,5 +96,30 @@ describe('doorway hold while a constructed interior is still prewarming', () => 
     pos.z -= 0.1;
     director.update(pos);
     expect(director.activeWorld).toBe('interior');
+    // The exterior door opens into the atrium's front door, 34 m further on.
+    expect(pos.z).toBeGreaterThan(ATRIUM_FRONT_Z - 1);
+    expect(pos.z).toBeLessThanOrEqual(ATRIUM_FRONT_Z + 0.1);
+  });
+
+  it('admits by ticket: without one the doorway holds the visitor even when ready', () => {
+    const { director, app, telemetry } = stubDirector();
+    const pos = app.player.position as unknown as THREE.Vector3;
+    app.ticket = null;
+    telemetry.prewarmReady = true;
+    for (let i = 0; i < 100; i++) { pos.z -= 0.1; director.update(pos); }
+    expect(director.activeWorld).toBe('exterior');
+    expect(pos.z).toBeGreaterThan(ENTRANCE_PORTAL_Z);
+
+    app.ticket = { number: '0002', date: 'today', issuedAtMs: 0 };
+    pos.z -= 0.1;
+    director.update(pos);
+    expect(director.activeWorld).toBe('interior');
+
+    // Out through the atrium's front door: carried back to the exterior door.
+    pos.z = ATRIUM_FRONT_Z + 0.5;
+    director.update(pos);
+    expect(director.activeWorld).toBe('exterior');
+    expect(pos.z).toBeCloseTo(ATRIUM_FRONT_Z + 0.5 - SEAM_OFFSET_Z, 5);
+    expect(pos.z).toBeGreaterThan(ENTRANCE_PORTAL_Z);
   });
 });

@@ -4,14 +4,17 @@ import { PaletteSet } from './palette';
 import { CollisionWorld } from './CollisionWorld';
 import { Detailing } from './Detailing';
 import { GalleryPlinthKit } from './GalleryPlinth';
-import { mergeStatic, mergeStaticCooperatively, type MergeReport } from './MergeStatic';
+import { NO_MERGE, mergeStatic, mergeStaticCooperatively, type MergeReport } from './MergeStatic';
 import type { ResourceScope } from '../assets/ResourceScope';
+import { canRenderText, createFallbackTexture, createTextTexture } from '../assets/TextTexture';
 import {
   ROTUNDA_APOTHEM, ROTUNDA_WALL, LEVEL_1_Y, BALCONY_INNER_APOTHEM,
   DOME_SPRING_Y, DOME_APEX_Y, GROUND_Y,
   OCTAGON_FACES, faceDirection, rightOf, place, add, stairArcPoint,
   WINGS, type WingSpec, type OctagonFace, type Vec3, type ZoneId,
   SOUTH, VESTIBULE_FROM, VESTIBULE_TO, PLAZA_DEPTH, PLAZA_HALF_WIDTH,
+  ATRIUM_FRONT_Z, ATRIUM_HALF_WIDTH, ATRIUM_HEIGHT, ATRIUM_INNER_OPENING_WIDTH, ATRIUM_INNER_OPENING_HEIGHT,
+  PORTAL_WIDTH, PORTAL_HEIGHT,
   SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_FLOOR_Y,
   SANCTUARY_RAMP_HALF_WIDTH, SANCTUARY_RADIUS, SANCTUARY_HEIGHT, SANCTUARY_CENTER,
   STAIRS, isOverStairOpening, stairOpeningOutline, STAIR_OPENING_FROM_T, STAIR_OPENING_MARGIN, PLACEMENTS, FLIGHT_PAD_CENTER, FLIGHT_PAD_RADIUS, PLINTH_RADIUS, PLINTH_HEIGHT, PLINTH_TOP_Y,
@@ -57,6 +60,27 @@ export { getMuseumBuildCount, resetMuseumBuildCount };
  * materials and adds architectural detail without moving a single wall, because
  * every dimension comes from `layout.ts`.
  */
+/** A material the atrium light-up can take from dark (0) to its authored look (1). */
+interface Dimmable { set(level: number): void }
+
+function dimmable(material: THREE.Material): Dimmable {
+  const m = material as THREE.MeshStandardMaterial & THREE.MeshBasicMaterial & THREE.PointsMaterial;
+  const baseColor = m.color ? m.color.clone() : null;
+  const baseEmissive = 'emissiveIntensity' in m ? m.emissiveIntensity : 0;
+  const baseOpacity = m.opacity;
+  return {
+    set(level) {
+      // Glass, light and water fade in; solid surfaces brighten from near-black.
+      if (m.transparent) { m.opacity = baseOpacity * level; return; }
+      if (baseColor) m.color.copy(baseColor).multiplyScalar(0.06 + 0.94 * level);
+      if ('emissiveIntensity' in m) m.emissiveIntensity = baseEmissive * level;
+    },
+  };
+}
+
+/** Height of the atrium hologram: mid-room, above the inner portal so it reads against dark blue. */
+const HOLOGRAM_Y = 10.5;
+
 export class Museum {
   readonly root = new THREE.Group();
   readonly collision = new CollisionWorld();
@@ -355,9 +379,9 @@ export class Museum {
     this.root.add(ground);
     this.addExteriorGroundCollision();
 
-    // Arrival plaza: a raised terrace in front of the entrance.
-    const plazaNear = VESTIBULE_TO;
-    const plazaFar = VESTIBULE_TO + PLAZA_DEPTH;
+    // Arrival plaza: a raised terrace in front of the atrium's front door.
+    const plazaNear = ATRIUM_FRONT_Z;
+    const plazaFar = ATRIUM_FRONT_Z + PLAZA_DEPTH;
     const nearZ = place(dir, plazaNear)[2];
     const farZ = place(dir, plazaFar)[2];
     this.kit.slab(-PLAZA_HALF_WIDTH, PLAZA_HALF_WIDTH, Math.min(nearZ, farZ), Math.max(nearZ, farZ), GROUND_Y, 0.5, p.floor);
@@ -817,12 +841,367 @@ export class Museum {
         GROUND_Y, 9, 0.8, p.wall,
       );
     }
-    // Front facade with the main doorway.
-    kit.wallWithOpening(
-      place(d, VESTIBULE_TO, -hw - 6, GROUND_Y),
-      place(d, VESTIBULE_TO, hw + 6, GROUND_Y),
-      GROUND_Y, 12, 1.2, 7, 5.2, p.wall,
+    this.buildAtrium(g, kit);
+  }
+
+  /**
+   * The entrance atrium: the impossible reveal behind the 7 m front door.
+   * Exterior z = ENTRANCE_PORTAL_Z is carried to interior z = ATRIUM_FRONT_Z,
+   * so the visitor steps through a modest doorway into a hall wider, deeper
+   * and taller than the facade around that doorway. Its far end opens wide
+   * onto the vestibule and the long view up the south hall to the Rotunda.
+   */
+  private buildAtrium(g: THREE.Group, kit: GeometryKit): void {
+    const p = this.pal.get('plaza');
+    const hw = ATRIUM_HALF_WIDTH;
+    const near = VESTIBULE_TO;
+    const far = ATRIUM_FRONT_Z;
+    const mid = (near + far) / 2;
+    // The atrium's own night-sky palette: deep blue walls, sky-blue stone.
+    const std = (color: number, roughness: number, metalness = 0, emissive = 0x000000, emissiveIntensity = 0) =>
+      this.scope.track(new THREE.MeshStandardMaterial({ color, roughness, metalness, emissive, emissiveIntensity }));
+    const a = {
+      floor: std(0x16325a, 0.35, 0.15),
+      wall: std(0x0f2244, 0.8, 0.05, 0x06122a, 0.6),
+      ceiling: std(0x0a1830, 0.9, 0, 0x050c1c, 0.5),
+      trim: std(0x7cc4ef, 0.4, 0.25, 0x1d5f8f, 0.35),
+      runner: std(0x5fb4e8, 0.5, 0.1, 0x173f63, 0.3),
+    };
+    void p; // the plaza palette still dresses the plaza beyond the front door
+
+    kit.slab(-hw, hw, near - 0.4, far, GROUND_Y, 0.5, a.floor);
+    kit.ceiling(-hw - 0.5, hw + 0.5, near - 0.5, far + 0.5, GROUND_Y + ATRIUM_HEIGHT, 0.6, a.ceiling);
+    for (const s of [-1, 1]) {
+      kit.wall([s * hw, 0, near], [s * hw, 0, far], GROUND_Y, ATRIUM_HEIGHT, 1.0, a.wall);
+    }
+    // Front wall: the same 7 x 5.2 m door the visitor walked through outside.
+    kit.wallWithOpening([-hw, 0, far], [hw, 0, far], GROUND_Y, ATRIUM_HEIGHT, 1.2, PORTAL_WIDTH, PORTAL_HEIGHT, a.wall);
+    // Far wall: a wide, tall portal into the vestibule and the south hall.
+    kit.wallWithOpening([-hw, 0, near], [hw, 0, near], GROUND_Y, ATRIUM_HEIGHT, 1.2,
+      ATRIUM_INNER_OPENING_WIDTH, ATRIUM_INNER_OPENING_HEIGHT, a.wall);
+
+    // Skylight: a long lit lantern down the hall's axis (emissive, no new light).
+    const skyMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x9fd6ff, toneMapped: false }));
+    const sky = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(9, 0.12, far - near - 6)), skyMat);
+    sky.name = 'atrium-skylight';
+    sky.position.set(0, GROUND_Y + ATRIUM_HEIGHT - 0.35, mid);
+    g.add(sky);
+    // Coffer beams across the skylight give the height a scale to read against.
+    for (let z = near + 4; z <= far - 4; z += 4) {
+      const beam = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(11, 0.5, 0.35)), a.trim);
+      beam.name = 'atrium-coffer';
+      beam.position.set(0, GROUND_Y + ATRIUM_HEIGHT - 0.6, z);
+      g.add(beam);
+    }
+    // Colonnade: two rows of tall piers lead the eye to the inner portal.
+    // Non-colliding visual mass would mislead, so the piers are solid but sit
+    // well outside the walking axis.
+    for (const s of [-1, 1]) {
+      for (let z = near + 5; z <= far - 5; z += 6) {
+        kit.box([s * (hw - 4.5), GROUND_Y + ATRIUM_HEIGHT / 2, z], [0.55, ATRIUM_HEIGHT / 2, 0.55], a.trim);
+      }
+    }
+    // A runner on the floor from the front door to the inner portal.
+    const runner = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(5, 0.02, far - near - 1.5)), a.runner);
+    runner.name = 'atrium-runner';
+    runner.position.set(0, GROUND_Y + 0.02, mid);
+    g.add(runner);
+
+    // Six tall banners, one per wing in its own accent, hung between the
+    // piers: the whole museum is announced before the visitor reaches it.
+    const bannerGeo = this.scope.track(new THREE.BoxGeometry(0.08, 11, 3.2));
+    const bannerMats: THREE.Material[] = [];
+    WINGS.forEach((wing, index) => {
+      const side = index < 3 ? -1 : 1;
+      const z = near + 8 + (index % 3) * 6;
+      // Own material (the wing's accent is shared with the wing) so the
+      // atrium can light it up on entry.
+      const bannerMat = this.scope.track((this.pal.get(wing.id).accent as THREE.Material).clone());
+      bannerMats.push(bannerMat);
+      const banner = new THREE.Mesh(bannerGeo, bannerMat);
+      banner.name = `atrium-banner:${wing.id}`;
+      banner.position.set(side * (hw - 0.6), GROUND_Y + 10.5, z);
+      g.add(banner);
+    });
+
+    // The reveal, named: a plaque just inside the door, read on entering.
+    const plaqueMat = this.scope.track(new THREE.MeshStandardMaterial({
+        map: canRenderText()
+          ? createTextTexture(this.scope, [
+            'The doors you came through open from a foyer six metres deep.',
+            'This hall is thirty-four metres long and twenty metres high.',
+            'Inside, the museum is larger than the building that holds it.',
+          ], {
+            width: 1024, height: 580, title: 'The Entrance Atrium', titleSize: 62, bodySize: 36,
+            padding: 48, background: '#1b1712', titleColor: '#e8c65a', color: '#e6dccb',
+          })
+          : createFallbackTexture(this.scope),
+        roughness: 0.8,
+      }));
+    const plaque = new THREE.Mesh(this.scope.track(new THREE.PlaneGeometry(2.2, 1.25)), plaqueMat);
+    this.buildAtriumHologram(g, mid);
+
+    plaque.name = 'atrium-plaque';
+    plaque.position.set(4.6, GROUND_Y + 1.75, far - 7);
+    plaque.rotation.y = -0.35;
+    g.add(plaque);
+    kit.box([4.6 + 0.12, GROUND_Y + 0.55, far - 7 - 0.05], [0.08, 0.55, 0.08], a.trim);
+
+    this.buildAtriumFountains(g, near, far, a.trim);
+
+    // The atrium waits in the dark and lights up as the visitor steps in:
+    // first the hologram, then the fountains, then the sides, then the floor.
+    this.atriumStages = [
+      { start: 0, duration: 1.4, items: this.holoMats.map(dimmable) },
+      { start: 1.4, duration: 1.2, items: this.fountainMats.map(dimmable) },
+      { start: 2.8, duration: 1.6, items: [a.wall, a.ceiling, a.trim, skyMat, plaqueMat, ...bannerMats].map(dimmable) },
+      { start: 4.4, duration: 1.2, items: [a.floor, a.runner].map(dimmable) },
+    ];
+    this.applyAtriumLight(0);
+  }
+
+  private atriumStages: { start: number; duration: number; items: Dimmable[] }[] = [];
+  private holoMats: THREE.Material[] = [];
+  private fountainMats: THREE.Material[] = [];
+  /** Seconds since the visitor stepped into the atrium; −1 while it is dark. */
+  private atriumIgnition = -1;
+  private atriumLastApplied = -1;
+
+  /** Level 0..1 of the stage at `index` for a given ignition time. */
+  private atriumStageLevel(index: number, t: number): number {
+    const stage = this.atriumStages[index];
+    if (!stage || t < 0) return 0;
+    const u = Math.min(1, Math.max(0, (t - stage.start) / stage.duration));
+    return u * u * (3 - 2 * u);
+  }
+
+  private applyAtriumLight(t: number): void {
+    this.atriumStages.forEach((stage, index) => {
+      const level = this.atriumStageLevel(index, t);
+      for (const item of stage.items) item.set(level);
+    });
+    if (this.atriumHologram) this.atriumHologram.visible = this.atriumStageLevel(0, t) > 0;
+    this.atriumLastApplied = t;
+  }
+
+  /** Return the atrium to darkness (the visitor has left the museum). */
+  resetAtrium(): void {
+    this.atriumIgnition = -1;
+    this.applyAtriumLight(-1);
+  }
+
+  private atriumHologram: THREE.Group | null = null;
+  private atriumHologramTime = 0;
+
+  /**
+   * "Museum of Me" in star-silk azure, floating at the centre of the atrium:
+   * glowing lettering read from either end, a faint projection beam from the
+   * skylight and a drift of star motes. Additive, unlit, no new light.
+   */
+  private buildAtriumHologram(g: THREE.Group, midZ: number): void {
+    if (typeof document === 'undefined') return;
+    const canvas = document.createElement('canvas');
+    canvas.width = 2048;
+    canvas.height = 360;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '600 220px Georgia, "Iowan Old Style", serif';
+    // Three passes: a wide azure bloom, a saturated body, a hot pale core.
+    ctx.shadowColor = '#1a8cff';
+    ctx.shadowBlur = 70;
+    ctx.fillStyle = '#1a8cff';
+    ctx.fillText('Museum of Me', canvas.width / 2, canvas.height / 2);
+    ctx.shadowBlur = 28;
+    ctx.fillStyle = '#4fb8ff';
+    ctx.fillText('Museum of Me', canvas.width / 2, canvas.height / 2);
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = '#bfe8ff';
+    ctx.fillStyle = '#e4f6ff';
+    ctx.fillText('Museum of Me', canvas.width / 2, canvas.height / 2);
+    // Scan lines: the lettering reads as projected light, not a sign.
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    for (let y = 0; y < canvas.height; y += 6) ctx.fillRect(0, y, canvas.width, 2);
+    const texture = this.scope.track(new THREE.CanvasTexture(canvas));
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    const group = new THREE.Group();
+    group.name = 'atrium-hologram';
+    group.userData[NO_MERGE] = true; // animated: keep out of the static merge
+    group.position.set(0, GROUND_Y + HOLOGRAM_Y, midZ);
+    const glyphMat = this.scope.track(new THREE.MeshBasicMaterial({
+      // Additive: in the dark blue room the lettering is light, not a sign.
+      map: texture, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false,
+    }));
+    const glyphGeo = this.scope.track(new THREE.PlaneGeometry(20, 3.5));
+    // A soft azure halo behind the words.
+    const haloCanvas = document.createElement('canvas');
+    haloCanvas.width = 256; haloCanvas.height = 256; // square: the falloff reaches zero at every edge
+    const hctx = haloCanvas.getContext('2d');
+    if (hctx) {
+      const grad = hctx.createRadialGradient(128, 128, 4, 128, 128, 128);
+      grad.addColorStop(0, 'rgba(40,150,255,0.55)');
+      grad.addColorStop(0.5, 'rgba(20,100,255,0.18)');
+      grad.addColorStop(1, 'rgba(0,40,255,0)');
+      hctx.fillStyle = grad;
+      hctx.fillRect(0, 0, 256, 256);
+    }
+    const halo = new THREE.Mesh(
+      this.scope.track(new THREE.PlaneGeometry(30, 8)),
+      this.scope.track(new THREE.MeshBasicMaterial({
+        map: this.scope.track(new THREE.CanvasTexture(haloCanvas)), transparent: true,
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false,
+      })),
     );
+    halo.name = 'atrium-hologram-halo';
+    group.add(halo);
+    // Back to back, so the words read correctly from the door and from the hall.
+    for (const turn of [0, Math.PI]) {
+      const face = new THREE.Mesh(glyphGeo, glyphMat);
+      face.name = 'atrium-hologram-text';
+      face.rotation.y = turn;
+      face.position.z = turn === 0 ? 0.02 : -0.02;
+      group.add(face);
+    }
+    // Projection beam from the skylight down to the lettering.
+    const beam = new THREE.Mesh(
+      this.scope.track(new THREE.CylinderGeometry(0.4, 8.5, ATRIUM_HEIGHT - HOLOGRAM_Y - 1.5, 32, 1, true)),
+      this.scope.track(new THREE.MeshBasicMaterial({
+        color: 0x3fa9ff, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending,
+        depthWrite: false, side: THREE.DoubleSide, toneMapped: false,
+      })),
+    );
+    beam.name = 'atrium-hologram-beam';
+    beam.position.y = (ATRIUM_HEIGHT - HOLOGRAM_Y) / 2 - 0.3;
+    group.add(beam);
+    // Star silk: a slow drift of azure motes around the words.
+    const count = 320;
+    const positions = new Float32Array(count * 3);
+    let seed = 7;
+    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] = (rand() - 0.5) * 26;
+      positions[i * 3 + 1] = (rand() - 0.5) * 7;
+      positions[i * 3 + 2] = (rand() - 0.5) * 3;
+    }
+    const starsGeo = this.scope.track(new THREE.BufferGeometry());
+    starsGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const stars = new THREE.Points(starsGeo, this.scope.track(new THREE.PointsMaterial({
+      color: 0x8fd4ff, size: 0.12, transparent: true, opacity: 1,
+      blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false,
+    })));
+    stars.name = 'atrium-hologram-stars';
+    group.add(stars);
+    g.add(group);
+    this.atriumHologram = group;
+    this.holoMats = [glyphMat, halo.material as THREE.Material, beam.material as THREE.Material, stars.material as THREE.Material];
+  }
+
+  private readonly fountainJets: THREE.Points[] = [];
+
+  /**
+   * Fountains down both sides of the atrium, between the runner and the
+   * colonnade: a sky-blue basin, a lit pool and a rising jet of droplets.
+   * Each basin is solid (a square collision footprint around the rim).
+   */
+  private buildAtriumFountains(g: THREE.Group, near: number, far: number, sharedRim: THREE.Material): void {
+    // Own rim material: the fountains light up before the colonnade does.
+    const rim = this.scope.track(sharedRim.clone());
+    const water = this.scope.track(new THREE.MeshBasicMaterial({
+      color: 0x3fb0ff, transparent: true, opacity: 0.95, toneMapped: false,
+    }));
+    const basinGeo = this.scope.track(new THREE.CylinderGeometry(1.7, 1.85, 0.6, 32));
+    const poolGeo = this.scope.track(new THREE.CircleGeometry(1.5, 32));
+    const stemGeo = this.scope.track(new THREE.CylinderGeometry(0.16, 0.24, 1.3, 12));
+    const bowlGeo = this.scope.track(new THREE.CylinderGeometry(0.7, 0.25, 0.22, 20));
+    const dropMat = this.scope.track(new THREE.PointsMaterial({
+      color: 0xbfe6ff, size: 0.09, transparent: true, opacity: 1, blending: THREE.AdditiveBlending,
+      depthWrite: false, toneMapped: false,
+    }));
+    const drops = 90;
+    for (const x of [-8.5, 8.5]) {
+      for (const z of [near + 9, (near + far) / 2 + 1, far - 9]) {
+        const f = new THREE.Group();
+        f.name = 'atrium-fountain';
+        f.position.set(x, GROUND_Y, z);
+        const basin = new THREE.Mesh(basinGeo, rim);
+        basin.position.y = 0.3;
+        const pool = new THREE.Mesh(poolGeo, water);
+        pool.rotation.x = -Math.PI / 2;
+        pool.position.y = 0.62;
+        const stem = new THREE.Mesh(stemGeo, rim);
+        stem.position.y = 1.15;
+        const bowl = new THREE.Mesh(bowlGeo, rim);
+        bowl.position.y = 1.85;
+        f.add(basin, pool, stem, bowl);
+        // Droplets: each has a phase; updateAtrium moves them on a parabola.
+        const geo = this.scope.track(new THREE.BufferGeometry());
+        const pos = new Float32Array(drops * 3);
+        const phase = new Float32Array(drops * 2);
+        for (let i = 0; i < drops; i++) {
+          phase[i * 2] = i / drops;
+          phase[i * 2 + 1] = (i * 2.399963) % (Math.PI * 2);
+        }
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        geo.userData.phase = phase;
+        const jet = new THREE.Points(geo, dropMat);
+        jet.name = 'atrium-fountain-jet';
+        jet.frustumCulled = false;
+        f.add(jet);
+        this.fountainJets.push(jet);
+        f.userData[NO_MERGE] = true;
+        g.add(f);
+        this.collision.addBox([x, GROUND_Y + 0.5, z], [1.85, 0.5, 1.85]);
+      }
+    }
+    this.fountainMats = [rim, water, dropMat];
+    this.updateFountains(0);
+  }
+
+  private updateFountains(t: number): void {
+    for (const jet of this.fountainJets) {
+      const geo = jet.geometry;
+      const pos = geo.getAttribute('position') as THREE.BufferAttribute;
+      const phase = geo.userData.phase as Float32Array;
+      for (let i = 0; i < pos.count; i++) {
+        const u = (phase[i * 2] + t * 0.55) % 1;
+        const angle = phase[i * 2 + 1];
+        const r = u * 1.1;
+        pos.setXYZ(i, Math.cos(angle) * r, 2.0 + u * 3.2 - u * u * 4.6, Math.sin(angle) * r);
+      }
+      pos.needsUpdate = true;
+    }
+  }
+
+  /**
+   * Lighting sequence and motion for the atrium. `inAtrium`: the visitor is
+   * standing inside it, which starts the light-up. Reduced motion lights it
+   * at once and keeps the hologram and water still.
+   */
+  updateAtrium(dt: number, reducedMotion: boolean, inAtrium: boolean): void {
+    if (this.atriumIgnition < 0 && inAtrium) this.atriumIgnition = 0;
+    if (this.atriumIgnition >= 0) {
+      this.atriumIgnition = reducedMotion ? 10 : this.atriumIgnition + dt;
+      const end = 6;
+      if (this.atriumLastApplied < end) this.applyAtriumLight(Math.min(this.atriumIgnition, end));
+    }
+    const holo = this.atriumHologram;
+    if (!holo || reducedMotion || this.atriumIgnition < 0) return;
+    this.atriumHologramTime += dt;
+    const t = this.atriumHologramTime;
+    this.updateFountains(t);
+    holo.position.y = GROUND_Y + HOLOGRAM_Y + Math.sin(t * 0.6) * 0.25;
+    holo.rotation.y = Math.sin(t * 0.17) * 0.06;
+    const halo = holo.getObjectByName('atrium-hologram-halo') as THREE.Mesh | undefined;
+    if (halo) {
+      (halo.material as THREE.MeshBasicMaterial).opacity = this.atriumStageLevel(0, this.atriumIgnition)
+        * (0.8 + Math.sin(t * 1.3) * 0.2);
+    }
+    const stars = holo.getObjectByName('atrium-hologram-stars');
+    if (stars) stars.rotation.y = t * 0.05;
   }
 
   // ── Dexter Sanctuary ─────────────────────────────────────────────────────

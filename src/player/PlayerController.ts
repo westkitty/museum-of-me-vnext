@@ -109,6 +109,16 @@ export class PlayerController {
     this.world = world;
   }
 
+  /**
+   * Carry the visitor across a non-Euclidean seam: position and the
+   * interpolation origin move together, so the frame shows no streak, and
+   * velocity, facing and flight are kept (unlike teleport).
+   */
+  shift(dx: number, dy: number, dz: number): void {
+    this.position.x += dx; this.position.y += dy; this.position.z += dz;
+    this.prevPosition.x += dx; this.prevPosition.y += dy; this.prevPosition.z += dz;
+  }
+
   teleport(p: Vec3, yaw = this.yaw): void {
     this.position.set(p[0], p[1], p[2]);
     this.prevPosition.copy(this.position);
