@@ -203,3 +203,12 @@ describe('I15/I16 DexGPT gives stair directions from where the visitor stands', 
     expect(guideAt(null).answer('where are the stairs').text).toMatch(/Reliquary Rotunda is the bright, neutral hub/);
   });
 });
+
+describe('uplift2 #40 spoken location names the floor when it changes', () => {
+  it('adds the floor only on a floor change', async () => {
+    const { locationAnnouncement } = await import('../src/app/App');
+    expect(locationAnnouncement('Rotunda Balcony', 'Upper floor', 'Ground floor')).toBe('Entering Rotunda Balcony, upper floor.');
+    expect(locationAnnouncement('Local Systems', 'Upper floor', 'Upper floor')).toBe('Entering Local Systems.');
+    expect(locationAnnouncement('Dexter Sanctuary', 'Lower level', null)).toBe('Entering Dexter Sanctuary, lower level.');
+  });
+});
