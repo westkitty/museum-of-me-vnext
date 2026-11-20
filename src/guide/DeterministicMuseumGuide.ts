@@ -3,6 +3,7 @@ import type { ExhibitRecord, ProjectRecord, WingRecord } from '../content/types'
 import type { Journal } from '../state/Journal';
 import type { VisitThread } from '../state/VisitThread';
 import { threadWeaveForCurrent } from '../state/ThreadWeave';
+import { GROUND_Y, LEVEL_1_Y } from '../world/layout';
 
 export interface GuideAction {
   readonly kind: 'guide';
@@ -19,6 +20,8 @@ export interface GuideReply {
 export interface GuideLocation {
   readonly exhibitId: string | null;
   readonly zoneLabel: string;
+  /** Visitor feet position inside the museum, when known (null outside). */
+  readonly position?: readonly [number, number, number] | null;
 }
 
 const FALLBACK = 'I only answer from the museum’s local collection and visit journal. Try an exhibit title, project name, a subject such as “voice” or “games”, “what is this museum?”, “controls”, “wings”, or “something I missed”.';
@@ -207,6 +210,10 @@ export class DeterministicMuseumGuide {
 
     const wing = COLLECTION.wings.find((candidate) => wingAliases(candidate).some((alias) => padded.includes(` ${alias} `)));
     if (wing) return this.forWing(wing);
+    if (has(/ stairs? | staircase | upstairs | downstairs | (get|go|way) (up|down|back) | which floor | what floor /)) {
+      const directions = this.verticalDirections();
+      if (directions) return this.reply(directions);
+    }
     if (has(/ rotunda | stairs? | staircase | balcony | upstairs | downstairs | (upper|second) (floor|level) | fly | flying | flight /)) {
       return this.reply('The Reliquary Rotunda is the bright, neutral hub of the building. The four ground-level wings open from it. Two winding grand stairs on its southwest and southeast walls climb to the balcony, which leads to the two upper wings: Music, Promptcraft & Media to the northwest and Local Systems to the northeast. Stepping onto the low plinth at the centre lifts you into free flight until you land on a floor again. The Dexter Sanctuary is reached by a ramp below and behind the Rotunda.');
     }
@@ -271,6 +278,23 @@ export class DeterministicMuseumGuide {
         + 'Ask for a subject, a project, a wing, or “something I missed”.',
       actions: next ? [this.action(EXHIBITS_BY_ID.get(next)!, 'Guide me to an exhibit I have not opened')] : [],
     };
+  }
+
+  /** Stair directions from where the visitor actually stands. */
+  private verticalDirections(): string | null {
+    const at = this.location?.()?.position;
+    if (!at) return null;
+    const [x, y] = at;
+    const east = x >= 0;
+    const media = WINGS_BY_ID.get('media')?.name ?? 'the media wing';
+    const infra = WINGS_BY_ID.get('infra')?.name ?? 'the infrastructure wing';
+    if (y >= LEVEL_1_Y - 2) {
+      return `You are on the upper floor. The way down is a grand stair at either end of the balcony: the west end, beside ${media}, and the east end, beside ${infra}. The ${east ? 'east' : 'west'} end is nearer. Step into the stair at its open end — the well is railed — and it winds down the Rotunda wall to the ground floor. Signs on the wall say “Stairs down to the Rotunda”.`;
+    }
+    if (y < GROUND_Y - 1) {
+      return 'You are on the lower level, in or near the Dexter Sanctuary. Walk back up its ramp to the Rotunda; the two grand stairs to the upper floor start at the Rotunda’s south-west and south-east walls, either side of the entrance hall arch.';
+    }
+    return `You are on the ground floor. The two grand stairs start at the Rotunda’s south-west and south-east walls, either side of the entrance hall arch, and wind up to the balcony; the ${east ? 'south-east' : 'south-west'} one is on your side. Signs at their feet name the upper wings: ${media} and ${infra}.`;
   }
 
   private aboutHere(): GuideReply {

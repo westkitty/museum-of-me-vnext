@@ -4,6 +4,7 @@ import { SANCTUARY_DESCRIPTION, SANCTUARY_INSCRIPTION, SANCTUARY_TITLE } from '.
 import { el } from './dom';
 import { exhibitReading } from './ExhibitReading';
 import './collection-page.css';
+import { projectNameWithStage } from '../content/projectStage';
 
 export function showCollectionPage(exhibitParam: string | null, unavailable = false): void {
   const root = document.getElementById('a11y-root');
@@ -51,7 +52,7 @@ export function showCollectionPage(exhibitParam: string | null, unavailable = fa
         el('li', {},
           el('a', { href: museumLink({ exhibit: exhibit.id }), text: exhibit.title }),
           el('p', { text: exhibit.copy.plaque }),
-          el('p', { class: 'collection-page__projects', text: projectsForExhibit(exhibit.id).map((project) => project.name).join(' · ') }),
+          el('p', { class: 'collection-page__projects', text: projectsForExhibit(exhibit.id).map(projectNameWithStage).join(' · ') }),
         ),
       )),
     ));

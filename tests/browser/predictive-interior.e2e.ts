@@ -210,7 +210,7 @@ test('low-tier mobile viewport and reduced-motion visitors can request entrance 
   expect(state.quality).toBe('low');
   expect(state.requested).toBe(true);
   expect(state.world).toBe('exterior');
-  expect(state.status).toMatch(/Loading the museum module|Building the entrance exhibits|ready/);
+  expect(state.status).toMatch(/Opening the galleries|Lighting the entrance hall|The doors are open/);
   expect(state.focusedControl).toBe('Continue outside');
   expect(state.horizontalOverflow).toBe(false);
   expect(state.reducedMotion).toBe(true);
@@ -253,7 +253,7 @@ test('slow module transfer holds only the doorway seam, reports real state, and 
   expect(waiting.world).toBe('exterior');
   expect(waiting.phase).toBe('PREPARING_INTERIOR');
   expect(waiting.z).toBeGreaterThanOrEqual(128.05);
-  expect(waiting.status).toMatch(/Loading|building/i);
+  expect(waiting.status).toMatch(/Opening the galleries|Lighting the entrance hall/);
   expect(waiting.ready).toBe(false);
   expect(waiting.hasFakePercent).toBe(false);
   expect(waiting.canContinueOutside).toBe(true);

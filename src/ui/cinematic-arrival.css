@@ -4,11 +4,13 @@
   inset: 0;
   z-index: 90;
   display: grid;
-  place-items: center;
-  padding: 2rem;
+  /* Anchor the title low so the lit portal and facade stay in view above it:
+     the first view is the building, with the welcome beneath it. */
+  place-items: end center;
+  padding: 2rem 2rem clamp(1.5rem, 6vh, 4rem);
   text-align: center;
   color: #f6ebdb;
-  background: linear-gradient(180deg, rgba(2,4,12,.18), rgba(3,5,13,.45) 50%, rgba(2,3,9,.82));
+  background: linear-gradient(180deg, rgba(2,4,12,0) 0%, rgba(2,4,12,.06) 38%, rgba(3,5,13,.55) 62%, rgba(2,3,9,.88));
 }
 .cinematic-arrival__content { max-width: 58rem; max-height: 100%; overflow-y: auto; }
 .cinematic-arrival__eyebrow {
@@ -17,11 +19,15 @@
   color: #e9c39e;
 }
 .cinematic-arrival h1 {
-  margin: 1.3rem 0;
-  font: 400 clamp(2.6rem, 8vw, 7rem)/1.06 var(--font-body);
+  margin: .8rem 0 1rem;
+  font: 400 clamp(2.1rem, min(5.6vw, 8vh), 5rem)/1.04 var(--font-body);
   text-shadow: 0 6px 30px #000;
 }
 .cinematic-arrival h1 em { display: block; font-style: normal; color: #f4d1a4; }
+@media (max-height: 520px) {
+  .cinematic-arrival h1 em { display: inline; }
+  .cinematic-arrival__orientation { display: none; }
+}
 .cinematic-arrival__description {
   margin: 0 auto 1.2rem;
   max-width: 38rem;

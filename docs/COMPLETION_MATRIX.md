@@ -131,3 +131,17 @@ which Bible brainstorm items are in or out of 1.0 — all remain BRAINSTORMED an
 | Save or restore a visit | Session preview, checked import, backup and whole-session undo | Round-trip, legacy, rejection, and rollback tests |
 | Understand objects and their controls | 35 doorway invitations, eight exhibit label and readout updates, foyer preview, Drakken interaction cues, Sanctuary copy | Focused signage tests. Human legibility and interpretation review pending |
 | Follow a short authored visit | Three themed routes with actions, transitions, and estimated walk time | Visit Thread and route tests |
+
+## Continuity uplift — 2026-11-20 (local working tree, not committed)
+
+| Item | State | Evidence |
+|---|---|---|
+| D03 grand stairs roofed by the balcony slab (no descent on foot) | REPAIRED; VERIFIED BY BROWSER | Chromium walk before/after; `tests/traversal.test.ts` regression; `docs/evidence/continuity-uplift-20261120/D03-*` |
+| D01 double welcome card · D05 Enter off-screen at 844×390 · D02 hints under corner button · D04 contents Escape | REPAIRED; VERIFIED BY BROWSER | `tests/browser/continuity-uplift.e2e.ts` |
+| D06 hall plant in E09 doorway | REPAIRED; VERIFIED BY BROWSER | mesh-containment measurement; unit test over 35 doorways |
+| 21 interface, wayfinding, interpretation and accessibility improvements | IMPLEMENTED; 19 VERIFIED BY BROWSER, 2 by unit test (I13, I21) | `docs/CONTINUITY_UPLIFT_2026-11-20.md` |
+| Museum-wide journey | Automated PASS | full Chromium suite 82/82; `verify:standalone` 14/14, 17/17, 0 remote requests |
+| Human acceptance of all of the above | PENDING | — |
+
+The upper floor's walkable balcony is now the north arc between the two stair heads; the south pocket of
+the ring is unreachable on foot (owner review suggested).

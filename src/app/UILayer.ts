@@ -26,6 +26,9 @@ import type { App } from './App';
 import type { QualityTier } from '../render/QualityTiers';
 import type { WingId } from '../content/types';
 import { WINGS_BY_ID } from '../content/collection.generated';
+import { GROUND_Y, LEVEL_1_Y, PLACEMENT_BY_EXHIBIT, WING_BY_ID } from '../world/layout';
+import { exhibitWalkDistance } from '../world/visitorRoute';
+import { mapLevelForY } from '../ui/MapPanel';
 
 /**
  * Assembles every DOM surface and binds it to the app. Kept out of App itself so
@@ -84,7 +87,7 @@ export class UILayer {
       () => app.isOutside,
       () => app.isOutside ? app.exteriorWorld.collision : app.interiorWorld?.collision,
     );
-    this.deep = new DeepPanel(app.journal, (id) => this.guideToExhibit(id));
+    this.deep = new DeepPanel(app.journal, (id) => this.guideToExhibit(id), (id) => exhibitLocation(app, id));
     this.journal = new JournalPanel(app.journal, (id) => this.deep.openFor(id), () => this.visitThread.open(), {
       secrets: SECRETS,
       isFound: (id) => app.secretsLog.has(id),
@@ -150,7 +153,10 @@ export class UILayer {
       this.embeddedPaused = false;
       this.app.resumeFromEmbedded();
     }));
-    this.dexgptGuide = new MuseumGuidePanel(new DeterministicMuseumGuide(app.journal, app.visitThread, () => ({ exhibitId: app.currentExhibitId, zoneLabel: app.zoneLabel })), (id) => this.mapGuide(id));
+    this.dexgptGuide = new MuseumGuidePanel(new DeterministicMuseumGuide(app.journal, app.visitThread, () => ({
+      exhibitId: app.currentExhibitId, zoneLabel: app.zoneLabel,
+      position: app.isOutside ? null : [app.player.position.x, app.player.position.y, app.player.position.z] as const,
+    })), (id) => this.mapGuide(id), () => guideContextQuestion(app));
     this.visitThread = new VisitThreadPanel(
       app.visitThread,
       app.journal,
@@ -158,13 +164,18 @@ export class UILayer {
       (id) => this.mapGuide(id),
       (message) => this.hud.announce(message),
     );
+    // Touch visitors have no keyboard: every tool the hint line names by key
+    // (H contents, C curator, clearing the floor line) needs a button here.
     this.visitorMenu = new VisitorMenuPanel(() => [
       { label: 'Map', open: () => this.map.open() },
       { label: 'Journal', open: () => this.journal.open() },
       app.isOutside
         ? { label: 'Guide to the entrance', open: () => this.mapGuide(MUSEUM_ENTRANCE_TARGET) }
         : { label: 'Guide', open: () => this.openDexGPTGuide() },
+      ...(app.wayfinding.currentTarget ? [{ label: 'Clear the floor line', open: () => this.mapGuide(null) }] : []),
       { label: 'Visit Thread', open: () => this.visitThread.open() },
+      { label: 'Read every exhibit (text)', open: () => this.mirror.focus() },
+      { label: 'Curator Desk', open: () => this.curator.open() },
       { label: 'Settings', open: () => this.settings.open() },
     ]);
     this.lastThreadStop = null;
@@ -227,7 +238,7 @@ export class UILayer {
         const guide = exhibitId && EXHIBITS_BY_ID.has(exhibitId) ? { kind: 'exhibit' as const, id: exhibitId } : undefined;
         if (app.journal.guideTarget?.id !== guide?.id) app.journal.setGuideTarget(guide);
         if (exhibitId === MUSEUM_ENTRANCE_TARGET) this.hud.announce('Follow the path to the front door.');
-        else if (guide) this.hud.announce(`Follow the floor lights to ${EXHIBITS_BY_ID.get(guide.id)?.title}.`);
+        else if (guide) this.hud.announce(guideStartAnnouncement(app, guide.id), 8);
         else this.hud.announce('Guide cleared.');
       }),
       app.onAnnounce((exhibitId, message) => {
@@ -334,10 +345,10 @@ export class UILayer {
     if (this.map.currentTarget !== id) this.map.setTargetPublic(id);
   }
 
-  clearGuideOnArrival(): void {
+  clearGuideOnArrival(target?: string | null): void {
     this.map.clearTargetOnArrival();
     if (this.app.journal.guideTarget?.kind === 'exhibit') this.app.journal.setGuideTarget(undefined);
-    this.hud.announce('You have arrived.');
+    this.hud.announce(arrivalAnnouncement(target ?? null));
   }
 
   private captureView(): void {
@@ -554,4 +565,51 @@ export class UILayer {
     this.visitThread.dispose();
     this.visitorMenu.dispose();
   }
+}
+
+/** What the floor line says when it is done: where the visitor now stands and
+ * what to do next, instead of a bare "You have arrived." */
+export function arrivalAnnouncement(target: string | null): string {
+  if (target === MUSEUM_ENTRANCE_TARGET) return 'You have arrived at the museum entrance. Walk on through the doors.';
+  const record = target ? EXHIBITS_BY_ID.get(target) : undefined;
+  if (!record) return 'You have arrived.';
+  return `You have arrived at ${record.id} · ${record.title}. Step inside the bay; press F at the lectern or anything that lights up.`;
+}
+
+/** Where a room is relative to the visitor, in walking terms. */
+export function exhibitLocation(
+  app: Pick<App, 'isOutside' | 'player' | 'currentExhibitId'>, exhibitId: string,
+): string | null {
+  const placement = PLACEMENT_BY_EXHIBIT.get(exhibitId);
+  if (!placement) return null;
+  const floor = (WING_BY_ID.get(placement.wing)?.level ?? 0) === 1 ? 'upper floor' : 'ground floor';
+  if (app.isOutside) return `Inside the museum, on the ${floor}. Walk in through the main doors.`;
+  if (app.currentExhibitId === exhibitId) return `You are in this room, on the ${floor}.`;
+  const p = app.player.position;
+  const metres = exhibitWalkDistance([p.x, p.y, p.z], exhibitId);
+  const here = mapLevelForY(p.y);
+  const level = (WING_BY_ID.get(placement.wing)?.level ?? 0);
+  const stairs = here !== level ? (level === 1 ? ', up a grand stair' : ', down a grand stair') : '';
+  return Number.isFinite(metres) && metres > 0
+    ? `On the ${floor}: about ${Math.max(5, Math.round(metres / 5) * 5)} m on foot from here${stairs}.`
+    : `On the ${floor}.`;
+}
+
+export function guideStartAnnouncement(
+  app: Pick<App, 'isOutside' | 'player' | 'currentExhibitId'>, target: string,
+): string {
+  if (target === MUSEUM_ENTRANCE_TARGET) return 'Follow the path to the front door.';
+  const record = EXHIBITS_BY_ID.get(target);
+  if (!record) return 'Follow the floor lights.';
+  const where = exhibitLocation(app, target);
+  return `Follow the floor lights to ${record.title}.${where ? ` ${where}` : ''}`;
+}
+
+/** The DexGPT suggestion that fits where the visitor stands. */
+export function guideContextQuestion(app: Pick<App, 'isOutside' | 'player'>): string | null {
+  if (app.isOutside) return null;
+  const y = app.player.position.y;
+  if (y >= LEVEL_1_Y - 2) return 'How do I get downstairs?';
+  if (y < GROUND_Y - 1) return 'How do I get back to the Rotunda?';
+  return 'How do I get upstairs?';
 }

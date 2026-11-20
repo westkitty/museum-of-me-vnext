@@ -350,6 +350,94 @@ export function stairArcPoint(stair: StairSpec, t: number): Vec3 {
   return [Math.cos(angle) * stair.radius, y, Math.sin(angle) * stair.radius];
 }
 
+/**
+ * Each grand stair rises under the balcony ring for most of its flight. Where
+ * the treads come within a visitor's height of the slab's underside the slab
+ * must be open, or a visitor climbing passes through it and a visitor on the
+ * balcony walks straight over the stairwell at balcony height and can never
+ * descend. The slab is 0.7 m thick at `LEVEL_1_Y`; at `t = 0.7` the tread is
+ * 2.3 m below its underside, so the opening starts there.
+ */
+export const STAIR_OPENING_FROM_T = 0.7;
+/** Extra clearance beyond the tread half-width on each side of the well. */
+export const STAIR_OPENING_MARGIN = 0.15;
+
+function wrapAngle(a: number): number {
+  while (a > Math.PI) a -= Math.PI * 2;
+  while (a < -Math.PI) a += Math.PI * 2;
+  return a;
+}
+
+/** Arc parameter of (x, z) along a stair, or null when off its arc span. */
+export function stairArcParameter(stair: StairSpec, x: number, z: number): number | null {
+  const direction = faceDirection(stair.face);
+  const baseAngle = Math.atan2(direction[2], direction[0]);
+  const offset = wrapAngle(Math.atan2(z, x) - baseAngle);
+  const span = stair.endAngle - stair.startAngle;
+  const t = (offset - stair.startAngle) / span;
+  return Number.isFinite(t) ? t : null;
+}
+
+/** True over the open upper well of either grand stair (one shared authority
+ * for the balcony slab hole, its collision mask and tests). */
+export function isOverStairOpening(x: number, z: number): boolean {
+  const r = Math.hypot(x, z);
+  for (const stair of STAIRS) {
+    if (Math.abs(r - stair.radius) > stair.halfWidth + STAIR_OPENING_MARGIN) continue;
+    const t = stairArcParameter(stair, x, z);
+    if (t !== null && t >= STAIR_OPENING_FROM_T && t <= 1) return true;
+  }
+  return false;
+}
+
+/** Balcony-level point just beyond a stair head, continuing its ascent
+ * tangentially onto the ring. Routes join the balcony here, never across the
+ * open well behind the head. */
+export function stairLanding(stair: StairSpec, distance = 2.2): Vec3 {
+  const direction = faceDirection(stair.face);
+  const angle = Math.atan2(direction[2], direction[0]) + stair.endAngle;
+  const ascent = Math.sign(stair.endAngle - stair.startAngle);
+  const head = stairArcPoint(stair, 1);
+  return [
+    head[0] - Math.sin(angle) * ascent * distance,
+    stair.toY,
+    head[2] + Math.cos(angle) * ascent * distance,
+  ];
+}
+
+/** Octagon face a stair head arrives toward on the balcony ring. */
+export function stairArrivalFace(stair: StairSpec): OctagonFace {
+  const landing = stairLanding(stair);
+  let best: OctagonFace = stair.face;
+  let bestDot = -Infinity;
+  for (const face of OCTAGON_FACES) {
+    if (face === stair.face) continue;
+    const d = faceDirection(face);
+    const dot = (d[0] * landing[0] + d[2] * landing[2]) / Math.hypot(landing[0], landing[2]);
+    if (dot > bestDot) { bestDot = dot; best = face; }
+  }
+  return best;
+}
+
+/** Closed XZ outline of a stair's upper well, for the visible slab hole. */
+export function stairOpeningOutline(stair: StairSpec, samples = 8): Array<readonly [number, number]> {
+  const direction = faceDirection(stair.face);
+  const baseAngle = Math.atan2(direction[2], direction[0]);
+  const angleAt = (t: number) => baseAngle + stair.startAngle + (stair.endAngle - stair.startAngle) * t;
+  const inner = stair.radius - stair.halfWidth - STAIR_OPENING_MARGIN;
+  const outer = stair.radius + stair.halfWidth + STAIR_OPENING_MARGIN;
+  const points: Array<readonly [number, number]> = [];
+  for (let i = 0; i <= samples; i++) {
+    const a = angleAt(STAIR_OPENING_FROM_T + (1 - STAIR_OPENING_FROM_T) * (i / samples));
+    points.push([Math.cos(a) * outer, Math.sin(a) * outer]);
+  }
+  for (let i = samples; i >= 0; i--) {
+    const a = angleAt(STAIR_OPENING_FROM_T + (1 - STAIR_OPENING_FROM_T) * (i / samples));
+    points.push([Math.cos(a) * inner, Math.sin(a) * inner]);
+  }
+  return points;
+}
+
 // ── Rotunda centre plinth / flight pad ─────────────────────────────────────
 
 /**

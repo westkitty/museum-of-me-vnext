@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { buildWingSign } from '../exhibits/Furniture';
 import {
-  GROUND_Y, LEVEL_1_Y, ROTUNDA_APOTHEM, VESTIBULE_FROM, VESTIBULE_TO,
+  GROUND_Y, LEVEL_1_Y, ROTUNDA_APOTHEM, VESTIBULE_FROM, VESTIBULE_TO, PLACEMENTS,
   WINGS, faceDirection, place, rightOf, type Vec3,
 } from './layout';
 
@@ -207,14 +207,16 @@ export class EnvironmentDressing {
       const count = Math.max(3, Math.floor(span / 15));
 
       for (let i = 0; i < count; i++) {
-        const along = wing.hallFrom + ((i + 0.7) / count) * span;
-        const side = i % 2 === 0 ? -1 : 1;
+        const side: -1 | 1 = i % 2 === 0 ? -1 : 1;
+        // Even spacing alone once stood a plant in E09's doorway, right where
+        // the floor line stops a guided visitor; keep both against solid wall.
+        const along = alongClearOfBayOpenings(wing, wing.hallFrom + ((i + 0.7) / count) * span, side);
         const at = place(d, along, side * (wing.hallHalfWidth - 0.95), y);
         this.indoorPlant(at, wing.level === 1 ? 0.82 : 0.95);
 
         // A restrained sculptural pedestal on the opposite wall gives long
         // corridors a rhythm even between exhibit doors.
-        const opposite = place(d, along + 2.8, -side * (wing.hallHalfWidth - 0.82), y);
+        const opposite = place(d, alongClearOfBayOpenings(wing, along + 2.8, side === 1 ? -1 : 1), -side * (wing.hallHalfWidth - 0.82), y);
         const pedestal = this.box('hall-pedestal', [opposite[0], y + 0.55, opposite[2]], [0.58, 0.55, 0.58], this.darkMetal);
         pedestal.rotation.y = Math.atan2(r[0], r[2]);
         const object = new THREE.Mesh(
@@ -307,4 +309,26 @@ export class EnvironmentDressing {
     parent.add(mesh);
     return mesh;
   }
+}
+
+/** Clearance kept between a hall-side object and the edge of a bay opening. */
+export const BAY_OPENING_CLEARANCE = 1.3;
+
+/**
+ * Nearest position along a hall, on one side, that stands against solid wall
+ * rather than in a bay opening. Bay openings are where visitors turn into an
+ * exhibit and where the guide's floor line ends.
+ */
+export function alongClearOfBayOpenings(wing: (typeof WINGS)[number], along: number, side: -1 | 1): number {
+  const centres = PLACEMENTS
+    .filter((placement) => placement.wing === wing.id && (placement.side === 'right' ? 1 : -1) === side)
+    .map((placement) => wing.hallFrom + wing.bayLead + placement.slot * wing.bayPitch);
+  const keep = wing.bayOpening / 2 + BAY_OPENING_CLEARANCE;
+  const clear = (value: number) => value >= wing.hallFrom + 1.5 && value <= wing.hallTo - 1.5
+    && centres.every((centre) => Math.abs(value - centre) >= keep);
+  for (let offset = 0; offset <= wing.bayPitch; offset += 0.25) {
+    if (clear(along + offset)) return along + offset;
+    if (clear(along - offset)) return along - offset;
+  }
+  return along;
 }

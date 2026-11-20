@@ -160,7 +160,10 @@ export class GeometryKit {
     this.orientedFloorCollision(from, to, halfWidth, y);
   }
 
-  orientedFloorCollision(from: Vec3, to: Vec3, halfWidth: number, y: number): void {
+  orientedFloorCollision(
+    from: Vec3, to: Vec3, halfWidth: number, y: number,
+    contains?: (x: number, z: number) => boolean,
+  ): void {
     const dx = to[0] - from[0];
     const dz = to[2] - from[2];
     const length = Math.hypot(dx, dz);
@@ -168,11 +171,12 @@ export class GeometryKit {
     if (axisAligned) {
       const px = Math.abs(dx) < 1e-6 ? halfWidth : 0;
       const pz = Math.abs(dz) < 1e-6 ? halfWidth : 0;
-      this.collision.addFloor(
-        Math.min(from[0], to[0]) - px, Math.max(from[0], to[0]) + px,
-        Math.min(from[2], to[2]) - pz, Math.max(from[2], to[2]) + pz,
-        y,
-      );
+      this.collision.add({
+        kind: 'floor',
+        minX: Math.min(from[0], to[0]) - px, maxX: Math.max(from[0], to[0]) + px,
+        minZ: Math.min(from[2], to[2]) - pz, maxZ: Math.max(from[2], to[2]) + pz,
+        y, ...(contains ? { contains } : {}),
+      });
       return;
     }
     const segments = Math.max(1, Math.ceil(length / 2));
@@ -183,11 +187,12 @@ export class GeometryKit {
       const z0 = from[2] + dz * t0;
       const x1 = from[0] + dx * t1;
       const z1 = from[2] + dz * t1;
-      this.collision.addFloor(
-        Math.min(x0, x1) - halfWidth, Math.max(x0, x1) + halfWidth,
-        Math.min(z0, z1) - halfWidth, Math.max(z0, z1) + halfWidth,
-        y,
-      );
+      this.collision.add({
+        kind: 'floor',
+        minX: Math.min(x0, x1) - halfWidth, maxX: Math.max(x0, x1) + halfWidth,
+        minZ: Math.min(z0, z1) - halfWidth, maxZ: Math.max(z0, z1) + halfWidth,
+        y, ...(contains ? { contains } : {}),
+      });
     }
   }
 

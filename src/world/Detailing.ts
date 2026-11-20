@@ -9,7 +9,7 @@ import { WINGS_BY_ID, EXHIBITS_BY_ID, COLLECTION } from '../content/collection.g
 import {
   WINGS, PLACEMENTS, OCTAGON_FACES, ROTUNDA_APOTHEM, LEVEL_1_Y, GROUND_Y,
   DOME_SPRING_Y, faceDirection, rightOf, place, VESTIBULE_TO, VESTIBULE_FROM,
-  SANCTUARY_DIR, SANCTUARY_RAMP_FROM, type Vec3, type WingSpec,
+  SANCTUARY_DIR, SANCTUARY_RAMP_FROM, STAIRS, stairArcPoint, stairLanding, type Vec3, type WingSpec,
 } from './layout';
 
 /** Side length of the octagon whose apothem is `a`. */
@@ -41,8 +41,8 @@ export class Detailing {
   applyZone(id: string, parents: ReadonlyMap<string, THREE.Group>): void {
     const parent = parents.get(id);
     if (!parent) return;
-    if (id === 'rotunda') this.detailRotunda(parent);
-    else if (id === 'balcony') this.detailBalcony(parent);
+    if (id === 'rotunda') { this.detailRotunda(parent); this.stairSigns(parent, 0); }
+    else if (id === 'balcony') { this.detailBalcony(parent); this.stairSigns(parent, 1); }
     else if (id === 'entrance-detail') this.detailEntrance(parent);
     else if (id === 'sanctuary') this.detailSanctuaryApproach(parent);
     else {
@@ -265,12 +265,50 @@ export class Detailing {
 
   // ── Wings ─────────────────────────────────────────────────────────────────
 
+  /**
+   * Physical stair wayfinding. At each stair foot a sign names where the
+   * flight goes; at each balcony landing a sign names the way back down.
+   * Both face the visitor approaching on that floor and sit on the rotunda
+   * wall, clear of the treads and of every walking line.
+   */
+  private stairSigns(parent: THREE.Group, level: 0 | 1): void {
+    const upper = WINGS.filter((wing) => wing.level === 1).map((wing) => WINGS_BY_ID.get(wing.id)?.name ?? wing.id);
+    for (const stair of STAIRS) {
+      const point = level === 0 ? stairArcPoint(stair, 0.04) : stairLanding(stair, 1.6);
+      const angle = Math.atan2(point[2], point[0]);
+      const radius = ROTUNDA_APOTHEM - 0.55;
+      const sign = level === 0
+        ? buildWingSign(this.scope, 'Stairs to the upper floor', upper.join(' · '))
+        : buildWingSign(this.scope, 'Stairs down to the Rotunda', 'Ground-floor wings · Dexter Sanctuary · Exit');
+      sign.name = `stair-sign:${stair.id}:${level === 0 ? 'foot' : 'landing'}`;
+      sign.scale.setScalar(0.5);
+      sign.position.set(Math.cos(angle) * radius, (level === 0 ? GROUND_Y : LEVEL_1_Y) + (level === 0 ? 3.1 : 2.55), Math.sin(angle) * radius);
+      // Face the centre of the rotunda, where the visitor approaches from.
+      sign.rotation.y = Math.atan2(-Math.cos(angle), -Math.sin(angle));
+      parent.add(sign);
+    }
+  }
+
   private detailWing(wing: WingSpec, parent: THREE.Group): void {
     const p = this.pal.get(wing.id);
     const dir = faceDirection(wing.face);
     const r = rightOf(dir);
     const y = wing.floorY;
     const angle = Math.atan2(dir[0], dir[2]);
+
+    // Every hall but the entrance hall ends at a wall. A sign on that wall
+    // says the way back, so the end of a wing never reads as a dead end.
+    if (wing.id !== 'south') {
+      const back = buildWingSign(this.scope, 'Back to the Rotunda', wing.level === 1
+        ? 'Behind you · the balcony and both grand stairs down'
+        : 'Behind you · every wing, the Sanctuary ramp and the exit');
+      back.name = `hall-return-sign:${wing.id}`;
+      back.scale.setScalar(0.62);
+      const at = place(dir, wing.hallTo - 0.5, 0, y);
+      back.position.set(at[0], y + Math.min(wing.hallHeight - 1.6, 4.6), at[2]);
+      back.rotation.y = Math.atan2(-dir[0], -dir[2]);
+      parent.add(back);
+    }
     const thresholdGlow = this.accentGlow(p.accent, wing.id === 'north' ? 0.64 : 0.42);
 
     // Two material-only light rails make each wing threshold read instantly

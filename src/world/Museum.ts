@@ -14,7 +14,7 @@ import {
   SOUTH, VESTIBULE_FROM, VESTIBULE_TO, PLAZA_DEPTH, PLAZA_HALF_WIDTH,
   SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_FLOOR_Y,
   SANCTUARY_RAMP_HALF_WIDTH, SANCTUARY_RADIUS, SANCTUARY_HEIGHT, SANCTUARY_CENTER,
-  STAIRS, PLACEMENTS, FLIGHT_PAD_CENTER, FLIGHT_PAD_RADIUS, PLINTH_RADIUS, PLINTH_HEIGHT, PLINTH_TOP_Y,
+  STAIRS, isOverStairOpening, stairOpeningOutline, STAIR_OPENING_FROM_T, STAIR_OPENING_MARGIN, PLACEMENTS, FLIGHT_PAD_CENTER, FLIGHT_PAD_RADIUS, PLINTH_RADIUS, PLINTH_HEIGHT, PLINTH_TOP_Y,
   PLINTH_FLOOR_HALF,
 } from './layout';
 
@@ -523,6 +523,15 @@ export class Museum {
     // Octagonal ring floor with the atrium open through the middle.
     const ringShape = octagonShape(circum(ROTUNDA_APOTHEM));
     ringShape.holes.push(octagonPath(circum(BALCONY_INNER_APOTHEM)));
+    // The upper well of each grand stair is open: the treads rise through
+    // here, so a solid slab would roof the flight (see isOverStairOpening).
+    for (const stair of STAIRS) {
+      const outline = stairOpeningOutline(stair);
+      const well = new THREE.Path();
+      outline.forEach(([x, z], index) => (index === 0 ? well.moveTo(x, z) : well.lineTo(x, z)));
+      well.closePath();
+      ringShape.holes.push(well);
+    }
     const ringGeo = this.scope.track(new THREE.ExtrudeGeometry(ringShape, { depth: 0.7, bevelEnabled: false }));
     const ring = new THREE.Mesh(ringGeo, p.floor);
     ring.rotation.x = Math.PI / 2;
@@ -546,7 +555,7 @@ export class Museum {
       const c = place(d, mid);
       const from: Vec3 = [c[0] - r[0] * half, 0, c[2] - r[2] * half];
       const to: Vec3 = [c[0] + r[0] * half, 0, c[2] + r[2] * half];
-      kit.orientedFloorCollision(from, to, (ROTUNDA_APOTHEM - BALCONY_INNER_APOTHEM) / 2, LEVEL_1_Y);
+      kit.orientedFloorCollision(from, to, (ROTUNDA_APOTHEM - BALCONY_INNER_APOTHEM) / 2, LEVEL_1_Y, clearOfStairWell);
 
       // Balustrade along the atrium edge.
       const inner = place(d, BALCONY_INNER_APOTHEM);
@@ -579,10 +588,38 @@ export class Museum {
 
       const head = stairArcPoint(s, 1);
       const d = faceDirection(s.face);
-      const tangent: Vec3 = [-Math.sin(Math.atan2(d[2], d[0]) + s.endAngle), 0, Math.cos(Math.atan2(d[2], d[0]) + s.endAngle)];
-      // A short tangential landing reaches the balcony ring without extending
-      // into either neighbouring wing threshold.
-      kit.orientedFloorCollision(add(head, tangent, -1.5), add(head, tangent, 1.5), s.halfWidth + 0.15, s.toY);
+      const ascent = Math.sign(s.endAngle - s.startAngle);
+      const tangent: Vec3 = [
+        -Math.sin(Math.atan2(d[2], d[0]) + s.endAngle) * ascent, 0,
+        Math.cos(Math.atan2(d[2], d[0]) + s.endAngle) * ascent,
+      ];
+      // A short tangential landing continues the flight onto the balcony ring
+      // without extending into either neighbouring wing threshold. It starts
+      // at the stair head and runs outward only: a landing laid back over the
+      // treads would roof the top of the flight at balcony height.
+      kit.orientedFloorCollision(head, add(head, tangent, 2.5), s.halfWidth + 0.15, s.toY, clearOfStairWell);
+
+      // Guard rails around the open well: both long sides and the low end.
+      // They stand on the balcony slab (baseY = LEVEL_1_Y), so a visitor on
+      // the treads below passes underneath; only the head is open.
+      const rail = (t: number, radius: number): Vec3 => {
+        const a = Math.atan2(d[2], d[0]) + s.startAngle + (s.endAngle - s.startAngle) * t;
+        return [Math.cos(a) * radius, s.toY, Math.sin(a) * radius];
+      };
+      const innerRail = s.radius - s.halfWidth - STAIR_OPENING_MARGIN - 0.06;
+      const outerRail = s.radius + s.halfWidth + STAIR_OPENING_MARGIN + 0.06;
+      const RAIL_SEGMENTS = 4;
+      const RAIL_THICKNESS = 0.22;
+      for (let i = 0; i < RAIL_SEGMENTS; i++) {
+        const t0 = STAIR_OPENING_FROM_T + (1 - STAIR_OPENING_FROM_T) * (i / RAIL_SEGMENTS);
+        const t1 = STAIR_OPENING_FROM_T + (1 - STAIR_OPENING_FROM_T) * ((i + 1) / RAIL_SEGMENTS);
+        kit.wall(rail(t0, innerRail), rail(t1, innerRail), s.toY, 1.05, RAIL_THICKNESS, p.trim);
+        kit.wall(rail(t0, outerRail), rail(t1, outerRail), s.toY, 1.05, RAIL_THICKNESS, p.trim);
+      }
+      // The strip between the atrium balustrade and the inner rail is narrower
+      // than a visitor, so the low-end rail runs all the way to the balustrade:
+      // nobody is squeezed along it and pushed through into the well.
+      kit.wall(rail(STAIR_OPENING_FROM_T, BALCONY_INNER_APOTHEM - 0.15), rail(STAIR_OPENING_FROM_T, outerRail), s.toY, 1.05, RAIL_THICKNESS, p.trim);
     }
   }
 
@@ -901,6 +938,11 @@ export class Museum {
 }
 
 // ── octagon helpers ────────────────────────────────────────────────────────
+
+/** Balcony-height supports never cover the open upper well of a grand stair. */
+function clearOfStairWell(x: number, z: number): boolean {
+  return !isOverStairOpening(x, z);
+}
 
 function octagonPath(radius: number): THREE.Path {
   const path = new THREE.Path();

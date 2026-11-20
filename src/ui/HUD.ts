@@ -29,6 +29,7 @@ export class HUD {
   private readonly arrivalAction: HTMLElement;
   private arrivalReady = true;
   private arrivalEntered = false;
+  private cinematicArrivalActive = false;
   private readonly threadStatus: HTMLButtonElement;
   private buildModeButton: HTMLButtonElement | null = null;
   private pointerLocked = false;
@@ -157,8 +158,19 @@ export class HUD {
     this.setLocation('plaza');
   }
 
+  /** The cinematic introduction dialog owns the first title while it is open.
+   * The HUD's own arrival card is the fallback for ?qa/?edit sessions; showing
+   * both stacked two different welcome titles on top of each other. */
+  setCinematicArrivalActive(active: boolean): void {
+    this.cinematicArrivalActive = active;
+    this.root.classList.toggle('hud--cinematic', active);
+    this.setPointerLocked(this.pointerLocked);
+  }
+
   /** The accessible cinematic dialog has completed the same one-time entry. */
   completeArrival(): void {
+    this.cinematicArrivalActive = false;
+    this.root.classList.remove('hud--cinematic');
     this.arrivalEntered = true;
     this.lockPrompt.hidden = true;
     this.setPointerLocked(this.pointerLocked);
@@ -178,10 +190,14 @@ export class HUD {
 
   setPointerLocked(locked: boolean): void {
     this.pointerLocked = locked;
-    this.lockPrompt.hidden = locked || this.touchMode || this.buildModeActive || this.arrivalEntered;
+    this.lockPrompt.hidden = locked || this.touchMode || this.buildModeActive || this.arrivalEntered
+      || this.cinematicArrivalActive;
     this.resumeLook.hidden = !this.arrivalEntered || locked || this.touchMode || this.buildModeActive;
     this.reticle.style.display = locked || this.touchMode ? '' : 'none';
     this.visitorMenu.hidden = !this.arrivalEntered || !this.touchMode || this.buildModeActive;
+    // The bottom-right action button and the key hints share a corner: lift
+    // the hints clear of the button instead of letting it cover them.
+    this.root.classList.toggle('hud--corner-action', !this.resumeLook.hidden || !this.visitorMenu.hidden);
   }
 
   /** Add the development-only Build Mode affordance after the editor loads. */
@@ -257,8 +273,10 @@ export class HUD {
     this.location.dataset.zone = outsideLabel ? 'exterior' : zone;
     const record = ZONE_BY_ID.get(zone);
     const wing = outsideLabel ? undefined : WINGS_BY_ID.get(zone as never);
+    const floor = outsideLabel ? null : floorLabelForZone(zone);
+    this.location.dataset.floor = floor ?? '';
     this.location.replaceChildren(
-      el('span', { text: wing ? wing.subtitle : 'Museum of Me' }),
+      el('span', { text: [floor, wing ? wing.subtitle : 'Museum of Me'].filter(Boolean).join(' · ') }),
       el('strong', { text: outsideLabel ?? (wing ? wing.name : (record?.label ?? 'Museum')) }),
     );
   }
@@ -338,4 +356,12 @@ export class HUD {
   dispose(): void {
     this.root.remove();
   }
+}
+
+/** Which floor a zone is on, as a visitor would say it. The building has two
+ * architectural levels plus the Sanctuary below the Rotunda. */
+export function floorLabelForZone(zone: ZoneId): string | null {
+  if (zone === 'plaza') return null;
+  if (zone === 'sanctuary') return 'Lower level';
+  return ZONE_BY_ID.get(zone)?.level === 1 ? 'Upper floor' : 'Ground floor';
 }

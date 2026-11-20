@@ -39,6 +39,13 @@ const STEP_UP = 0.55;
 const SLIDE = 0.5;
 /** Consecutive non-advancing steps before a segment is declared blocked. */
 const STALL_LIMIT = 6;
+/**
+ * Largest drop a single stride may take. A stride on the steepest authored
+ * stair descends about 0.34 m; anything larger is a fall off an edge, which a
+ * route must not depend on (and which once hid a stairwell roofed at balcony
+ * height: the walker crossed the whole flight at y = 10, then fell 10 m).
+ */
+const MAX_DROP = 1.0;
 
 /**
  * Walks a straight line between two points against real collision, using the
@@ -60,7 +67,11 @@ export function walkSegment(world: CollisionWorld, step: WalkStep): WalkFailure 
   const uz = dz / Math.max(1e-6, distance);
 
   // Settle onto the floor at the start.
-  const startSupport = world.supportHeight(pos.x, pos.z, pos.y + 2, 3);
+  // Prefer the surface at the waypoint's own declared height. The generous
+  // fallback (up to 5 m above) once settled stair waypoints onto the balcony
+  // slab overhead, which is not where a visitor on the stair stands.
+  const startSupport = world.supportHeight(pos.x, pos.z, pos.y, STEP_UP)
+    ?? world.supportHeight(pos.x, pos.z, pos.y + 2, 3);
   if (startSupport === null) {
     return { label: step.label, reason: 'no floor under the start of this segment', at: [pos.x, pos.y, pos.z] };
   }
@@ -80,6 +91,13 @@ export function walkSegment(world: CollisionWorld, step: WalkStep): WalkFailure 
     const support = world.supportHeight(pos.x, pos.z, pos.y, STEP_UP);
     if (support === null) {
       return { label: step.label, reason: 'walked over a hole in the floor', at: [pos.x, pos.y, pos.z] };
+    }
+    if (pos.y - support > MAX_DROP) {
+      return {
+        label: step.label,
+        reason: `fell ${(pos.y - support).toFixed(2)} m off an edge`,
+        at: [pos.x, pos.y, pos.z],
+      };
     }
     if (support - pos.y > STEP_UP + 1e-6) {
       return {
