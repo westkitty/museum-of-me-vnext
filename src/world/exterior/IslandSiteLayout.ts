@@ -58,6 +58,86 @@ export const SCENIC_GROVE_POINTS: readonly (readonly [number, number])[] = [
   [49, -141], [-8, -151], [-65, -137], [-102, -124],
 ];
 
+/**
+ * The ancient-tree landmark stands on the outer (east) side of the lagoon
+ * walk, opposite the museum's east elevation. It used to be centred on the
+ * east facade wall itself (x = 38), half buried in the building.
+ */
+export const ANCIENT_TREE_CENTER: Vec3 = [57, -0.48, -84];
+/** Woodland, flowers and butterflies leave this clearing to the landmark. */
+export const ANCIENT_TREE_CLEARING_RADIUS = 11;
+export function inAncientTreeClearing(x: number, z: number): boolean {
+  return Math.hypot(x - ANCIENT_TREE_CENTER[0], z - ANCIENT_TREE_CENTER[2]) < ANCIENT_TREE_CLEARING_RADIUS;
+}
+
+/**
+ * Lantern stations (z) on the lagoon walk, path 2, between the hide and the
+ * ancient tree. The lantern walk used to stand at x = 16–38, inside the
+ * museum's own east wing where no visitor could ever see it.
+ */
+export const LANTERN_WALK_Z: readonly number[] = [-26, -35, -44, -53, -62, -71];
+
+/** Where the island loop crosses the pier: the only fork on the visitor's way in. */
+export const PIER_JUNCTION: readonly [number, number] = [0, 184];
+/** Walking distance from the pier junction to the museum doors (z = 128). */
+export const PIER_JUNCTION_TO_DOORS = 56;
+
+/**
+ * The island walking loop as one polyline, starting at the pier junction and
+ * running east (path 1 order). Path 3 meets path 4 across the spire-garden rim.
+ */
+export const PATH_LOOP: readonly (readonly [number, number])[] = PATH_CENTERLINES.flatMap((line, k) =>
+  (k === 0 ? line : line.slice(line[0][0] === PATH_CENTERLINES[k - 1].at(-1)![0]
+    && line[0][1] === PATH_CENTERLINES[k - 1].at(-1)![1] ? 1 : 0)));
+const LOOP_CUMULATIVE: readonly number[] = PATH_LOOP.reduce<number[]>((acc, point, i) => {
+  acc.push(i === 0 ? 0 : acc[i - 1] + Math.hypot(point[0] - PATH_LOOP[i - 1][0], point[1] - PATH_LOOP[i - 1][1]));
+  return acc;
+}, []);
+export const PATH_LOOP_LENGTH = LOOP_CUMULATIVE[LOOP_CUMULATIVE.length - 1];
+
+/** Nearest point on the loop: arc position from the pier junction (east-first) and lateral distance. */
+export function projectOntoLoop(x: number, z: number): { s: number; distance: number; x: number; z: number } {
+  let best = { s: 0, distance: Infinity, x: PATH_LOOP[0][0], z: PATH_LOOP[0][1] };
+  for (let i = 0; i < PATH_LOOP.length - 1; i++) {
+    const [ax, az] = PATH_LOOP[i];
+    const [bx, bz] = PATH_LOOP[i + 1];
+    const dx = bx - ax, dz = bz - az;
+    const len2 = dx * dx + dz * dz;
+    const t = len2 > 0 ? Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / len2)) : 0;
+    const px = ax + dx * t, pz = az + dz * t;
+    const d = Math.hypot(x - px, z - pz);
+    if (d < best.distance) best = { s: LOOP_CUMULATIVE[i] + Math.sqrt(len2) * t, distance: d, x: px, z: pz };
+  }
+  return best;
+}
+
+/**
+ * Walking distances back to the museum doors from a point beside the loop:
+ * returning the way path 1 came (east side) or carrying on round (west side).
+ */
+export function walkingDistancesToDoors(x: number, z: number): { east: number; west: number } {
+  const { s, distance } = projectOntoLoop(x, z);
+  return {
+    east: distance + s + PIER_JUNCTION_TO_DOORS,
+    west: distance + (PATH_LOOP_LENGTH - s) + PIER_JUNCTION_TO_DOORS,
+  };
+}
+
+/** Distance from (x, z) to the nearest island path centreline. */
+export function distanceToPaths(x: number, z: number): number {
+  let best = Infinity;
+  for (const line of PATH_CENTERLINES) {
+    for (let i = 0; i < line.length - 1; i++) {
+      const [ax, az] = line[i];
+      const [bx, bz] = line[i + 1];
+      const dx = bx - ax, dz = bz - az;
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
+      best = Math.min(best, Math.hypot(x - (ax + dx * t), z - (az + dz * t)));
+    }
+  }
+  return best;
+}
+
 export const LAND_SUPPORT_Y = -0.5;
 export const LAND_GRID_SIZE = 12;
 

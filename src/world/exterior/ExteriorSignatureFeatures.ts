@@ -3,6 +3,24 @@ import type { ResourceScope } from '../../assets/ResourceScope';
 import type { CollisionWorld } from '../CollisionWorld';
 import type { QualityTier } from '../../render/QualityTiers';
 import { GROUND_Y, type Vec3 } from '../layout';
+import { ANCIENT_TREE_CENTER, LANTERN_WALK_Z, PATH_CENTERLINES } from './IslandSiteLayout';
+
+/** Lantern-walk stations: light pool on the rendered path 2 spline, bollard 3.4 m to its lagoon side. */
+export function lanternWalkStations(): { px: number; pz: number; bx: number; bz: number }[] {
+  const curve = new THREE.CatmullRomCurve3(PATH_CENTERLINES[1].map(([x, z]) => new THREE.Vector3(x, 0, z)), false, 'centripetal');
+  const samples = 800;
+  return LANTERN_WALK_Z.map((targetZ) => {
+    let best = 0;
+    for (let i = 1; i <= samples; i++) {
+      if (Math.abs(curve.getPoint(i / samples).z - targetZ) < Math.abs(curve.getPoint(best / samples).z - targetZ)) best = i;
+    }
+    const p = curve.getPoint(best / samples);
+    const t = curve.getTangent(best / samples);
+    // Path 2 runs north (-z): (−t.z, t.x) points east, toward the lagoon.
+    const nx = -t.z, nz = t.x;
+    return { px: p.x, pz: p.z, bx: p.x + nx * 3.4, bz: p.z + nz * 3.4 };
+  });
+}
 
 /**
  * ExteriorSignatureFeatures implements the 12 Mandatory Signature Additions (AWE layer)
@@ -620,7 +638,10 @@ export class ExteriorSignatureFeatures {
   private buildAncientTreeLandmark(): void {
     const group = new THREE.Group();
     group.name = 'ancient-tree-landmark';
-    const center: Vec3 = [38, -0.48, -88];
+    // Formerly centred at x = 38 — on the museum's east facade wall, with
+    // half the trunk and canopy inside the building. Now on open ground
+    // across the lagoon walk, its boughs reaching over the path.
+    const center: Vec3 = ANCIENT_TREE_CENTER;
 
     // Massive gnarled asymmetrical trunk
     const trunkHeight = 6.8;
@@ -698,21 +719,18 @@ export class ExteriorSignatureFeatures {
     const group = new THREE.Group();
     group.name = 'moonlit-lantern-path';
 
-    // 6 shielded dark-bronze bollard lanterns along quiet north perimeter path
-    const bollardPoints: [number, number][] = [
-      [16, -68], [22, -61], [27, -54], [32, -47], [35, -40], [38, -34],
-    ];
+    // 6 shielded dark-bronze bollard lanterns along the lagoon walk (path 2).
+    // These used to stand at x = 16–38, inside the museum's east wing, where
+    // no visitor could see them. Each pool now sits on the rendered path
+    // spline and each bollard on its outer (lagoon-side) shoulder.
+    const bollards = lanternWalkStations();
 
     const bollardGeo = this.scope.track(new THREE.BoxGeometry(0.18, 0.88, 0.18));
     const capGeo = this.scope.track(new THREE.BoxGeometry(0.26, 0.08, 0.26));
     const glowGeo = this.scope.track(new THREE.BoxGeometry(0.14, 0.12, 0.14));
     const lightPoolGeo = this.scope.track(new THREE.CircleGeometry(2.4, 16));
 
-    for (let i = 0; i < bollardPoints.length; i++) {
-      const [px, pz] = bollardPoints[i];
-      // Offset bollard slightly onto path shoulder
-      const bx = px + 2.4;
-      const bz = pz - 1.1;
+    for (const { px, pz, bx, bz } of bollards) {
 
       // Dark bronze bollard body
       const bollard = new THREE.Mesh(bollardGeo, this.bronzeMat);
