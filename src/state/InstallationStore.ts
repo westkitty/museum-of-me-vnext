@@ -3,6 +3,7 @@ import {
   type InstallationState,
 } from '../content/installationState';
 import { attachIntegrity, verifyIntegrity } from './integrity';
+import { persistenceHealth } from './PersistenceHealth';
 
 /**
  * Persistence for the fourteen source installations.
@@ -135,8 +136,10 @@ export class InstallationStore {
       const previous = this.storage.getItem(KEY);
       if (previous) this.storage.setItem(BACKUP_KEY, previous);
       this.storage.setItem(KEY, JSON.stringify(attachIntegrity(this.exportPayload())));
-    } catch {
-      /* storage unavailable — installation state degrades to session-only */
+      persistenceHealth.saved('installations');
+    } catch (error) {
+      /* storage unavailable — installation state degrades to session-only, and the visitor is told */
+      persistenceHealth.failed('installations', error);
     }
   }
 }

@@ -4,6 +4,8 @@ import { el } from './dom';
 
 const SUGGESTED_QUESTIONS = ['What is this museum?', 'What am I looking at?', 'Show me something I missed', 'Show me games', 'What is finished?', 'Who is Dexter?', 'Controls'] as const;
 
+const RETURN_QUESTION = 'Where did I leave off?';
+
 /** Semantic, local-only surface for DexGPT’s deterministic museum guidance. */
 export class MuseumGuidePanel extends Panel {
   private query = '';
@@ -45,10 +47,11 @@ export class MuseumGuidePanel extends Panel {
           type: 'button', text: action.label, onclick: () => { this.guideTo(action.exhibitId); this.close(); },
         })),
       )
-      : el('p', { class: 'panel__note', text: 'I use the local collection and your visit journal. I can guide you, but I do not teleport you.' });
+      : el('p', { class: 'panel__note', text: this.guide.welcomeBack() ?? 'I use the local collection and your visit journal. I can guide you, but I do not teleport you.' });
     // Starting points for a visitor who does not yet know what can be asked.
     const suggestions = el('div', { class: 'guide-suggestions', role: 'group', 'aria-label': 'Example questions' },
-      ...[this.contextQuestion(), ...SUGGESTED_QUESTIONS].filter((question): question is string => Boolean(question)).map((question) => el('button', {
+      // A returning visitor (journal has entries) is offered the way back in.
+      ...[this.contextQuestion(), this.guide.welcomeBack() ? RETURN_QUESTION : null, ...SUGGESTED_QUESTIONS].filter((question): question is string => Boolean(question)).map((question) => el('button', {
         type: 'button', class: 'guide-suggestions__item', text: question, onclick: () => {
           this.query = question;
           this.reply = this.guide.answer(question);

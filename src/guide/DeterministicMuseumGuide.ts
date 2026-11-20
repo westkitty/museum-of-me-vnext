@@ -3,7 +3,9 @@ import type { ExhibitRecord, ProjectRecord, WingRecord } from '../content/types'
 import type { Journal } from '../state/Journal';
 import type { VisitThread } from '../state/VisitThread';
 import { threadWeaveForCurrent } from '../state/ThreadWeave';
-import { GROUND_Y, LEVEL_1_Y } from '../world/layout';
+import { GROUND_Y, LEVEL_1_Y, PLACEMENTS } from '../world/layout';
+import { exhibitWalkDistance } from '../world/visitorRoute';
+import { PROJECT_STAGE_LABEL, projectStage, type ProjectStage } from '../content/projectStage';
 
 export interface GuideAction {
   readonly kind: 'guide';
@@ -49,6 +51,51 @@ const SYNONYMS: Readonly<Record<string, readonly string[]>> = {
   ai: ['ai', 'agent', 'model'], llm: ['model', 'inference'], server: ['infrastructure', 'storage'],
   phone: ['android'], mobile: ['android'], mac: ['macos'], map: ['geospatial'], maps: ['geospatial'],
 };
+
+/** “Where did I leave off?” and other questions about the visitor's own journal. */
+const RECAP_WORDS = / where (did|was) i (leave|left|stop|get)( off| to)? | (left|leave) off | where was i | what have i (seen|visited|opened|done|read) | (my|the) (visit|journal|history|bookmarks?|notes?) so far | my (journal|bookmarks|notes|history) | welcome back | recap | so far /;
+const COMPARE_WORDS = / compare | comparing | comparison | versus | vs | difference between | differences between | different from | differ from | how (is|are|does|do) .+ differ /;
+const ROOM_STORY_WORDS = / what changed | changes? between | how (do|did) (the )?(projects|they) (here )?(differ|change|evolve) | differ(ences?)? (between|among) (the )?projects | evolve | evolved | evolution | lineage | (projects|stages) (here|in (this|the) (room|exhibit|bay)) /;
+const NEARBY_WORDS = / nearby | near (me|here) | close (by|to me) | closest | nearest | around (me|here) | next door | next to me /;
+
+function articled(phrase: string): string {
+  // “Creative universe” reads as “a creative universe”; “macOS application” keeps its casing.
+  const shown = /^[A-Z][a-z]/.test(phrase) ? phrase[0].toLocaleLowerCase() + phrase.slice(1) : phrase;
+  return `${/^[aeiou]/i.test(shown) ? 'an' : 'a'} ${shown}`;
+}
+
+function stageLabel(project: ProjectRecord): string {
+  const stage = projectStage(project.status);
+  return stage ? PROJECT_STAGE_LABEL[stage].toLocaleLowerCase() : 'stage not stated';
+}
+
+/** “2 active and 1 superseded”, from each project's own status line. */
+function stageSummary(projects: readonly ProjectRecord[]): string {
+  const counts = new Map<ProjectStage | 'unstated', number>();
+  for (const project of projects) {
+    const stage = projectStage(project.status) ?? 'unstated';
+    counts.set(stage, (counts.get(stage) ?? 0) + 1);
+  }
+  const order: (ProjectStage | 'unstated')[] = ['active', 'experimental', 'paused', 'completed', 'superseded', 'abandoned', 'unstated'];
+  return listNames(order.filter((stage) => counts.has(stage)).map((stage) => `${counts.get(stage)} ${stage === 'unstated' ? 'with no stated stage' : PROJECT_STAGE_LABEL[stage].toLocaleLowerCase()}`));
+}
+
+/** Levenshtein distance, giving up once it passes `limit`. */
+function editDistance(a: string, b: string, limit: number): number {
+  let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const current = [i];
+    let rowMin = i;
+    for (let j = 1; j <= b.length; j++) {
+      const value = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      current.push(value);
+      rowMin = Math.min(rowMin, value);
+    }
+    if (rowMin > limit) return limit + 1;
+    previous = current;
+  }
+  return previous[b.length];
+}
 
 const STATUS_WORDS = ['completed', 'playable', 'paused', 'abandoned', 'superseded', 'experimental'] as const;
 
@@ -167,14 +214,18 @@ function listNames(names: readonly string[]): string {
 export class DeterministicMuseumGuide {
   private readonly entities = buildEntities();
   private readonly index = buildIndex();
+  /** True when this device's journal already held visits as the page loaded. */
+  private readonly returningVisitor: boolean;
 
   constructor(
     private readonly journal: Journal,
     private readonly visitThread?: VisitThread,
     private readonly location?: () => GuideLocation,
-  ) {}
+  ) {
+    this.returningVisitor = journal.visitedCount > 0;
+  }
 
-  answer(rawQuery: string): GuideReply {
+  answer(rawQuery: string, allowRespell = true): GuideReply {
     const query = normalise(rawQuery);
     if (!query) return this.reply('Ask about an exhibit, project, wing, controls, or something you have not visited yet.');
     const padded = ` ${query} `;
@@ -185,6 +236,23 @@ export class DeterministicMuseumGuide {
     if (query === 'dexgpt' || has(/ (who|what) (are|r) (you|u) | (who|what) is dexgpt | your name | are you (dexter|an ai|real|chatgpt) |^ (hello|hi|hey) /)) return this.aboutGuide();
     if (has(/ dexter | dexters | sanctuary | stink weasel | the dog | phalene | papillon /)) return this.aboutDexter();
     if (has(/ how (many|big) | what is this (place|museum|building) | whats this (place|museum|building) | what is the museum | about (this|the) (museum|place|building) | who (made|built|makes|created) /)) return this.aboutMuseum();
+
+    // The visitor's own record, before any collection search: “where did I
+    // leave off” is about the journal, not about a project called “leave”.
+    if (has(RECAP_WORDS)) return this.recap();
+
+    // Two named things and a comparing word: answer about both, side by side.
+    if (has(COMPARE_WORDS)) {
+      const compared = this.compare(padded);
+      if (compared) return compared;
+    }
+
+    if (has(ROOM_STORY_WORDS)) {
+      const story = this.roomStory(padded);
+      if (story) return story;
+    }
+
+    if (has(NEARBY_WORDS)) return this.nearby();
 
     if (has(/ why this | why stop | why here | connect | connection /) && this.visitThread?.active) {
       const woven = threadWeaveForCurrent(this.visitThread.active, this.journal);
@@ -248,7 +316,261 @@ export class DeterministicMuseumGuide {
     if (found) return found;
     if (aboutControls) return this.controls();
 
+    // Before giving up: a misspelt collection word, then the subjects that
+    // each word does match on its own. Every suggestion is a real record.
+    if (allowRespell) {
+      const respelt = this.respell(query);
+      if (respelt) {
+        const again = this.answer(respelt.query, false);
+        if (again.actions.length > 0) {
+          return { text: `I read ${respelt.changes.map(([from, to]) => `“${from}” as “${to}”`).join(' and ')}. ${again.text}`, actions: again.actions };
+        }
+      }
+    }
+    const partial = this.partialMatches(query);
+    if (partial) return partial;
+
     return this.reply(FALLBACK);
+  }
+
+  /**
+   * A short “welcome back” line for the guide panel, from this device's
+   * journal only. Null on a first visit, so a new visitor sees no history.
+   */
+  welcomeBack(): string | null {
+    if (!this.returningVisitor) return null;
+    const recent = this.journal.all()[0];
+    const exhibit = recent ? EXHIBITS_BY_ID.get(recent.exhibitId) : undefined;
+    if (!exhibit) return null;
+    const count = this.journal.visitedCount;
+    return `Welcome back. Your journal on this device records ${count} of ${COLLECTION.exhibits.length} exhibits opened; the most recent was ${exhibit.title}. Ask “where did I leave off?” to pick up from there.`;
+  }
+
+  /** “Where did I leave off?” — a summary of the visitor's own journal. */
+  private recap(): GuideReply {
+    const entries = this.journal.all().filter((entry) => EXHIBITS_BY_ID.has(entry.exhibitId));
+    const next = this.journal.nextUnvisited(COLLECTION.exhibits.map((exhibit) => exhibit.id));
+    if (entries.length === 0) {
+      return {
+        text: 'Your journal on this device has no opened exhibits yet, so there is nothing to pick up from. There is no required order; ask for a subject, a wing, or “something I missed”.',
+        actions: next ? [this.action(EXHIBITS_BY_ID.get(next)!, 'Guide me to a first exhibit')] : [],
+      };
+    }
+    const last = EXHIBITS_BY_ID.get(entries[0].exhibitId)!;
+    const lastWing = WINGS_BY_ID.get(last.wing)!;
+    const before = entries.slice(1, 3).map((entry) => EXHIBITS_BY_ID.get(entry.exhibitId)!.title);
+    const marks = entries.filter((entry) => entry.bookmarked).map((entry) => EXHIBITS_BY_ID.get(entry.exhibitId)!.title);
+    const notes = entries.filter((entry) => entry.note.trim().length > 0).length;
+    const parts = [
+      `Your journal on this device records ${entries.length} of ${COLLECTION.exhibits.length} exhibits opened. The most recent was ${last.title} in ${lastWing.name}${before.length > 0 ? `; before that, ${listNames(before)}` : ''}.`,
+    ];
+    if (marks.length > 0) parts.push(`You bookmarked ${listNames(marks.slice(0, 4))}${marks.length > 4 ? ` and ${marks.length - 4} more` : ''}.`);
+    if (notes > 0) parts.push(`You left ${notes === 1 ? 'a note' : `notes`} on ${notes} ${notes === 1 ? 'exhibit; it is' : 'exhibits; they are'} in the Journal (J).`);
+    const actions: GuideAction[] = [];
+    const saved = this.journal.guideTarget;
+    const savedExhibit = saved?.kind === 'exhibit' ? EXHIBITS_BY_ID.get(saved.id) : undefined;
+    if (savedExhibit && !this.journal.hasVisited(savedExhibit.id)) {
+      parts.push(`Your floor line was leading to ${savedExhibit.title}.`);
+      actions.push(this.action(savedExhibit, `Carry on to ${savedExhibit.title}`));
+    }
+    // Pick up where the visitor was: the next unopened room in the same wing.
+    const sameWing = COLLECTION.exhibits.find((exhibit) => exhibit.wing === last.wing && !this.journal.hasVisited(exhibit.id));
+    const onward = sameWing ?? (next ? EXHIBITS_BY_ID.get(next) : undefined);
+    if (onward && onward.id !== savedExhibit?.id) {
+      parts.push(sameWing
+        ? `${sameWing.title} is the next room in ${lastWing.name} you have not opened.`
+        : `${lastWing.name} is fully opened; ${onward.title} is the next room you have not opened.`);
+      actions.push(this.action(onward));
+    }
+    if (!onward) parts.push('Every exhibit is recorded as opened; the rooms remain open for a slower second look.');
+    actions.push(this.action(last, `Back to ${last.title}`));
+    return { text: parts.join(' '), actions };
+  }
+
+  /** Every distinct collection record named in the visitor's words, longest names first, no overlaps. */
+  private namedEntities(padded: string): NamedEntity[] {
+    const hits: { entity: NamedEntity; start: number; end: number }[] = [];
+    const sorted = [...this.entities].sort((a, b) => b.alias.length - a.alias.length);
+    for (const entity of sorted) {
+      const start = padded.indexOf(` ${entity.alias} `);
+      if (start < 0) continue;
+      const end = start + entity.alias.length + 1;
+      if (hits.some((hit) => start < hit.end && end > hit.start)) continue;
+      hits.push({ entity, start, end });
+    }
+    for (const exhibit of COLLECTION.exhibits) {
+      const start = padded.indexOf(` ${exhibit.id.toLocaleLowerCase()} `);
+      if (start >= 0 && !hits.some((hit) => start < hit.end && start + 4 > hit.start)) {
+        hits.push({ entity: { alias: exhibit.id.toLocaleLowerCase(), exhibit }, start, end: start + 4 });
+      }
+    }
+    hits.sort((a, b) => a.start - b.start);
+    const out: NamedEntity[] = [];
+    for (const { entity } of hits) {
+      const duplicate = out.some((seen) => (entity.project ? seen.project?.id === entity.project.id : !seen.project && seen.exhibit.id === entity.exhibit.id));
+      if (!duplicate) out.push(entity);
+    }
+    return out;
+  }
+
+  /** Side-by-side answer for two exhibits or projects, from their own records only. */
+  private compare(padded: string): GuideReply | null {
+    const named = this.namedEntities(padded);
+    if (named.length === 0) return null;
+    if (named.length === 1) {
+      const only = named[0];
+      const families = new Set((only.project ? [only.project] : projectsForExhibit(only.exhibit.id)).map((project) => project.family));
+      const kin = COLLECTION.exhibits.filter((exhibit) => exhibit.id !== only.exhibit.id
+        && projectsForExhibit(exhibit.id).some((project) => families.has(project.family))).slice(0, 3);
+      const title = only.project?.name ?? only.exhibit.title;
+      return {
+        text: `Name two exhibits or projects and I will set them side by side. ${kin.length > 0
+          ? `Rooms that share a project family with ${title}: ${listNames(kin.map((exhibit) => exhibit.title))}.`
+          : `No other room shares a project family with ${title}.`}`,
+        actions: kin.map((exhibit) => this.action(exhibit)),
+      };
+    }
+    const [a, b] = named;
+    if (a.project && b.project) return this.compareProjects(a.project, a.exhibit, b.project, b.exhibit);
+    return this.compareExhibits(a.exhibit, b.exhibit);
+  }
+
+  private compareProjects(a: ProjectRecord, aHost: ExhibitRecord, b: ProjectRecord, bHost: ExhibitRecord): GuideReply {
+    const line = (project: ProjectRecord, host: ExhibitRecord) => `${project.name} is ${articled(project.kind)} in the ${project.family} family, status “${project.status}”, shown in ${host.title} (${WINGS_BY_ID.get(host.wing)!.name}). ${project.summary}`;
+    const together = aHost.id === bHost.id
+      ? `Both are kept in the same room, ${aHost.title}.`
+      : a.family === b.family ? `They share the ${a.family} family but are shown in different rooms.` : 'They come from different project families.';
+    return {
+      text: `${line(a, aHost)} ${line(b, bHost)} ${together}`,
+      actions: aHost.id === bHost.id ? [this.action(aHost)] : [this.action(aHost), this.action(bHost)],
+    };
+  }
+
+  private compareExhibits(a: ExhibitRecord, b: ExhibitRecord): GuideReply {
+    if (a.id === b.id) return this.forExhibit(a);
+    const line = (exhibit: ExhibitRecord) => {
+      const wing = WINGS_BY_ID.get(exhibit.wing)!;
+      const projects = projectsForExhibit(exhibit.id);
+      return `${exhibit.title} (${wing.name}, ${wing.level === 0 ? 'ground level' : 'upper level'}) holds ${projects.length === 1 ? `one project, ${stageLabel(projects[0])}` : `${projects.length} projects — ${stageSummary(projects)}`}. ${exhibit.copy.plaque}`;
+    };
+    const aFamilies = new Set(projectsForExhibit(a.id).map((project) => project.family));
+    const shared = [...new Set(projectsForExhibit(b.id).map((project) => project.family).filter((family) => aFamilies.has(family)))];
+    const place = a.wing === b.wing ? `Both are in ${WINGS_BY_ID.get(a.wing)!.name}.` : `They are in different wings.`;
+    const kinship = shared.length > 0 ? `They share the ${listNames(shared)} ${shared.length === 1 ? 'family' : 'families'}.` : 'They share no project family.';
+    const opened = [a, b].filter((exhibit) => this.journal.hasVisited(exhibit.id)).map((exhibit) => exhibit.title);
+    return {
+      text: `${line(a)} ${line(b)} ${place} ${kinship}${opened.length > 0 ? ` Your journal records ${listNames(opened)} as opened.` : ''}`,
+      actions: [this.action(a), this.action(b)],
+    };
+  }
+
+  /** How the projects kept in one room differ: each one's own stage, status line and lesson. */
+  private roomStory(padded: string): GuideReply | null {
+    const named = this.namedEntities(padded)[0];
+    const hereId = this.location?.()?.exhibitId ?? null;
+    const exhibit = named?.exhibit ?? (hereId ? EXHIBITS_BY_ID.get(hereId) : undefined);
+    if (!exhibit) {
+      if (!/ (here|this room|this exhibit|this bay) /.test(padded)) return null;
+      return this.reply('You are not standing in an exhibit bay just now. Walk into one and ask again, or name the exhibit, and I will set out how its projects differ.');
+    }
+    const projects = projectsForExhibit(exhibit.id);
+    if (projects.length === 1) {
+      const [project] = projects;
+      return {
+        text: `${exhibit.title} holds a single project, ${project.name} (${stageLabel(project)}; its status line reads “${project.status}”). Its lesson: ${project.lesson}`,
+        actions: [this.action(exhibit)],
+      };
+    }
+    const lines = projects.map((project) => `${project.name} — ${stageLabel(project)} (“${project.status}”): ${project.lesson}`);
+    return {
+      text: `${exhibit.title} holds ${projects.length} projects; by their own records, ${stageSummary(projects)}. ${lines.join(' ')} The museum keeps no dates finer than each project's period, so this is not a timeline.`,
+      actions: [this.action(exhibit)],
+    };
+  }
+
+  /** The closest rooms on the visitor's own floor, by walking distance on the guide's routes. */
+  private nearby(): GuideReply {
+    const here = this.location?.();
+    const at = here?.position;
+    if (!at) return this.reply('Inside the museum I can tell you which rooms are nearest to where you stand. Ask again once you are through the doors.');
+    const [x, y, z] = at;
+    if (y < GROUND_Y - 1) return this.reply('No exhibit is on the lower level: the Dexter Sanctuary stands apart from the collection. Walk back up the ramp to the Rotunda, where every hall begins.');
+    const sameFloor = PLACEMENTS.filter((placement) => Math.abs(placement.anchor[1] - y) < 3 && placement.exhibitId !== here.exhibitId);
+    const closest = sameFloor
+      .map((placement) => ({ placement, straight: Math.hypot(placement.visitorSpot[0] - x, placement.visitorSpot[2] - z) }))
+      .sort((a, b) => a.straight - b.straight || a.placement.exhibitId.localeCompare(b.placement.exhibitId))
+      .slice(0, 6)
+      .map(({ placement }) => ({ exhibit: EXHIBITS_BY_ID.get(placement.exhibitId)!, metres: Math.round(exhibitWalkDistance(at, placement.exhibitId)) }))
+      .filter((entry) => entry.exhibit)
+      .sort((a, b) => a.metres - b.metres || a.exhibit.id.localeCompare(b.exhibit.id))
+      .slice(0, 3);
+    if (closest.length === 0) return this.reply('No exhibit is on this floor near you. Ask for a wing and I will tell you how to reach it.');
+    const lines = closest.map(({ exhibit, metres }) => `${exhibit.title} in ${WINGS_BY_ID.get(exhibit.wing)!.name}, about ${Math.max(1, metres)} m on foot${this.journal.hasVisited(exhibit.id) ? ' (opened)' : ' (not yet opened)'}`);
+    return {
+      text: `Nearest to you on the ${y >= LEVEL_1_Y - 2 ? 'upper' : 'ground'} floor: ${lines.join('; ')}.`,
+      actions: closest.map(({ exhibit }) => this.action(exhibit)),
+    };
+  }
+
+  /** Corrects words one or two letters away from the collection's own vocabulary. */
+  private respell(query: string): { query: string; changes: [string, string][] } | null {
+    const known = this.vocabulary();
+    const changes: [string, string][] = [];
+    const words = query.split(' ').map((word) => {
+      if (word.length < 5 || STOPWORDS.has(word) || known.has(word) || known.has(stem(word))) return word;
+      const limit = word.length >= 8 ? 2 : 1;
+      let best: string | null = null;
+      let bestDistance = limit + 1;
+      for (const candidate of known) {
+        if (Math.abs(candidate.length - word.length) > limit) continue;
+        const distance = editDistance(word, candidate, limit);
+        if (distance < bestDistance || (distance === bestDistance && best !== null && candidate < best)) {
+          best = candidate;
+          bestDistance = distance;
+        }
+      }
+      if (!best || bestDistance > limit) return word;
+      changes.push([word, best]);
+      return best;
+    });
+    return changes.length > 0 ? { query: words.join(' '), changes } : null;
+  }
+
+  private vocabularyCache: Set<string> | null = null;
+  private vocabulary(): Set<string> {
+    if (this.vocabularyCache) return this.vocabularyCache;
+    const words = new Set<string>();
+    for (const entity of this.entities) for (const word of entity.alias.split(' ')) if (word.length >= 4) words.add(word);
+    for (const entry of this.index) for (const term of entry.terms.keys()) if (term.length >= 4) words.add(term);
+    for (const wing of COLLECTION.wings) for (const word of normalise(wing.name).split(' ')) if (word.length >= 4) words.add(word);
+    this.vocabularyCache = words;
+    return words;
+  }
+
+  /** No exhibit answers every word: name what each word does find on its own. */
+  private partialMatches(query: string): GuideReply | null {
+    const asked = [...new Set(termsOf(query))];
+    if (asked.length < 2) return null;
+    const perTerm: { term: string; exhibits: ExhibitRecord[] }[] = [];
+    for (const term of asked) {
+      const candidates = [term, ...(SYNONYMS[term] ?? []).map(stem)];
+      const exhibits = this.index
+        .map((entry) => ({ entry, weight: Math.max(0, ...candidates.map((candidate) => entry.terms.get(candidate)?.weight ?? 0)) }))
+        .filter(({ weight }) => weight >= 2)
+        .sort((a, b) => b.weight - a.weight || a.entry.exhibit.id.localeCompare(b.entry.exhibit.id))
+        .slice(0, 3)
+        .map(({ entry }) => entry.exhibit);
+      if (exhibits.length > 0) perTerm.push({ term, exhibits });
+    }
+    if (perTerm.length === 0) return null;
+    const missing = asked.filter((term) => !perTerm.some((entry) => entry.term === term));
+    const actions: GuideAction[] = [];
+    for (const { exhibits } of perTerm) for (const exhibit of exhibits) if (!actions.some((action) => action.exhibitId === exhibit.id) && actions.length < 4) actions.push(this.action(exhibit));
+    return {
+      text: `Nothing in the collection answers “${asked.join(' ')}” all together. ${perTerm.map(({ term, exhibits }) => `For “${term}”: ${listNames(exhibits.map((exhibit) => exhibit.title))}.`).join(' ')}`
+        + (missing.length > 0 ? ` The collection has nothing for “${missing.join('”, “')}”.` : ''),
+      actions,
+    };
   }
 
   private controls(): GuideReply {

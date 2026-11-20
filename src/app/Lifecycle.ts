@@ -12,6 +12,8 @@ export class Lifecycle {
   private hidden = false;
   private online = typeof navigator === 'undefined' || navigator.onLine !== false;
   private wakeLock: WakeLockSentinel | null = null;
+  /** A wake-lock request still in flight; a second sync waits for it instead of requesting another. */
+  private wakeLockRequest: Promise<void> | null = null;
   private lastDpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio;
   private listeners: Array<() => void> = [];
   notice: string | null = null;
@@ -92,18 +94,36 @@ export class Lifecycle {
     return this.hidden || this.contextLost;
   }
 
+  /**
+   * Hold exactly one screen wake lock while the preference asks for it.
+   * Called on every preference change (each slider step), so it must be
+   * idempotent: previously every call requested a fresh sentinel and dropped
+   * the old one unreleased, so turning the setting off released only the
+   * last and the screen stayed awake.
+   */
   async syncWakeLock(): Promise<void> {
-    const want = this.prefs().wakeLock && !this.hidden && typeof navigator !== 'undefined' && 'wakeLock' in navigator;
-    if (!want) {
+    if (this.wakeLockRequest) await this.wakeLockRequest;
+    if (!this.wantsWakeLock()) {
       await this.releaseWakeLock();
       return;
     }
-    try {
-      this.wakeLock = await navigator.wakeLock.request('screen');
-      this.wakeLock.addEventListener('release', () => { this.wakeLock = null; });
-    } catch {
-      this.wakeLock = null;
-    }
+    if (this.wakeLock && !this.wakeLock.released) return;
+    this.wakeLockRequest = (async () => {
+      try {
+        const sentinel = await navigator.wakeLock.request('screen');
+        sentinel.addEventListener('release', () => { if (this.wakeLock === sentinel) this.wakeLock = null; });
+        this.wakeLock = sentinel;
+      } catch {
+        this.wakeLock = null;
+      }
+    })();
+    try { await this.wakeLockRequest; } finally { this.wakeLockRequest = null; }
+    // The preference may have been switched off (or the page hidden) while the request was in flight.
+    if (!this.wantsWakeLock()) await this.releaseWakeLock();
+  }
+
+  private wantsWakeLock(): boolean {
+    return this.prefs().wakeLock && !this.hidden && typeof navigator !== 'undefined' && 'wakeLock' in navigator;
   }
 
   /** True while the visible paused-view notice is up. */

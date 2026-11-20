@@ -3,6 +3,7 @@ import type { ExhibitRecord, WingId } from '../content/types';
 import type { Journal } from './Journal';
 import { authoredTour } from '../content/authoredTours';
 import { attachIntegrity, checksumPayload, verifyIntegrity } from './integrity';
+import { persistenceHealth } from './PersistenceHealth';
 
 export const VISIT_THREAD_KEY = 'museum-of-me:visit-thread:v1';
 export const VISIT_THREAD_BACKUP_KEY = 'museum-of-me:visit-thread:backup';
@@ -556,7 +557,8 @@ export class VisitThread {
       const current = this.storage.getItem(VISIT_THREAD_KEY);
       if (backup && current) this.storage.setItem(VISIT_THREAD_BACKUP_KEY, current);
       this.storage.setItem(VISIT_THREAD_KEY, JSON.stringify(this.exportPayload()));
-    } catch { /* storage quota / privacy mode */ }
+      persistenceHealth.saved('visit-thread');
+    } catch (error) { persistenceHealth.failed('visit-thread', error); }
   }
 
   private read(): VisitThreadState {

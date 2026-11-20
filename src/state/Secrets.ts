@@ -1,3 +1,5 @@
+import { persistenceHealth } from './PersistenceHealth';
+
 /**
  * Which hidden things this visitor has found, kept on this device only.
  * Separate from the Journal: exhibit visits are for orientation and are never
@@ -70,8 +72,10 @@ export class SecretsLog {
     if (!this.storage) return;
     try {
       this.storage.setItem(SECRETS_KEY, JSON.stringify(this.exportPayload()));
-    } catch {
+      persistenceHealth.saved('secrets');
+    } catch (error) {
       // Storage full or blocked: the find still counts for this visit.
+      persistenceHealth.failed('secrets', error);
     }
   }
 }

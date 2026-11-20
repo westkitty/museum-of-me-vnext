@@ -1,4 +1,5 @@
 import { attachIntegrity, checksumPayload, verifyIntegrity } from './integrity';
+import { persistenceHealth } from './PersistenceHealth';
 
 export const STUDY_KEY = 'reliquary:study:v1';
 export const STUDY_BACKUP_KEY = 'reliquary:study:backup';
@@ -190,7 +191,8 @@ export class Study {
       if (previous) this.storage.setItem(STUDY_BACKUP_KEY, previous);
       const envelope = attachIntegrity(sanitizeStudy(this.state, this.known()));
       this.storage.setItem(STUDY_KEY, JSON.stringify(envelope));
-    } catch { /* quota */ }
+      persistenceHealth.saved('study');
+    } catch (error) { persistenceHealth.failed('study', error); }
   }
 
   commit(mutator: (state: StudyState) => void): void {

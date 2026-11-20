@@ -1,0 +1,95 @@
+{
+  "enteredInterior": "interior",
+  "standingAt": {
+    "spot": [
+      11.2,
+      0,
+      -87
+    ],
+    "exhibit": null
+  },
+  "welcomeNote": "Welcome back. Your journal on this device records 2 of 35 exhibits opened; the most recent was Drakken Terraforming Compendium. Ask “where did I leave off?” to pick up from there.",
+  "chips": [
+    "How do I get upstairs?",
+    "Where did I leave off?",
+    "What is this museum?",
+    "What am I looking at?",
+    "Show me something I missed",
+    "Show me games",
+    "What is finished?",
+    "Who is Dexter?",
+    "Controls"
+  ],
+  "recap": "Your journal on this device records 2 of 35 exhibits opened. The most recent was Drakken Terraforming Compendium in Starsilk & Drakken; before that, Drakken Terraforming Laboratory. You bookmarked Drakken Terraforming Laboratory. You left a note on 1 exhibit; they are in the Journal (J). Starsilk Universe is the next room in Starsilk & Drakken you have not opened.",
+  "recapButtons": [
+    "Guide me to Starsilk Universe",
+    "Back to Drakken Terraforming Compendium"
+  ],
+  "nearby": {
+    "q": "what is nearby?",
+    "a": "Nearest to you on the ground floor: Heliocide Observatory in Starsilk & Drakken, about 4 m on foot (not yet opened); Drakken Terraforming Laboratory in Starsilk & Drakken, about 18 m on foot (opened); StarSilk Maker in Starsilk & Drakken, about 36 m on foot (not yet opened).",
+    "buttons": [
+      "Guide me to Heliocide Observatory",
+      "Guide me to Drakken Terraforming Laboratory",
+      "Guide me to StarSilk Maker"
+    ]
+  },
+  "compare": {
+    "q": "compare Dex Voice Lab and The Full Weasel",
+    "a": "Dex Voice Lab (Dex Systems, ground level) holds 5 projects — 3 active and 2 paused. Five voice projects, one requirement: recognition and synthesis run locally, and audio is not transmitted. The Full Weasel (Games & Play, ground level) holds one project, completed. Among seventy-three projects, this one is complete and playable. A hard deadline did what deadlines do. They are in different wings. They share no project family.",
+    "buttons": [
+      "Guide me to Dex Voice Lab",
+      "Guide me to The Full Weasel"
+    ]
+  },
+  "roomStory": {
+    "q": "what changed between the projects in this room?",
+    "a": "You are not standing in an exhibit bay just now. Walk into one and ask again, or name the exhibit, and I will set out how its projects differ.",
+    "buttons": []
+  },
+  "respell": {
+    "q": "starsilck",
+    "a": "I read “starsilck” as “starsilk”. Several parts of the collection touch “starsilk”: Starsilk Universe in Starsilk & Drakken; StarSilk Maker in Starsilk & Drakken; Starsilk Compendium: Character & Canon Archive (Starsilk Compendium) in Starsilk & Drakken; Starsilk Possibility Cartographer in Starsilk & Drakken and 4 more. Name one and I will tell you what it is and what you can do there.",
+    "buttons": [
+      "Guide me to Starsilk Universe",
+      "Guide me to StarSilk Maker",
+      "Guide me to Starsilk Compendium: Character & Canon Archive",
+      "Guide me to Starsilk Possibility Cartographer"
+    ]
+  },
+  "partial": {
+    "q": "voice spaceship",
+    "a": "Nothing in the collection answers “voice spaceship” all together. For “voice”: Dex Voice Lab and Dex Companion & Agent Systems. The collection has nothing for “spaceship”.",
+    "buttons": [
+      "Guide me to Dex Voice Lab",
+      "Guide me to Dex Companion & Agent Systems"
+    ]
+  },
+  "dexgptErrors": [],
+  "tabBSawA": true,
+  "storedAfterBothTabs": [
+    "E01",
+    "E02"
+  ],
+  "tabASawB": true,
+  "quotaHud": "Not being saved on this device: your journal (this browser’s storage for the museum is full). Everything keeps working for this visit. To keep it, use Export session in the Curator Desk (C) before you close the page.",
+  "quotaCurator": "Not being saved on this device: your journal (this browser’s storage for the museum is full). Everything keeps working for this visit. To keep it, use Export session in the Curator Desk (C) before you close the page.",
+  "lost": {
+    "title": "The picture has paused",
+    "body": "Your browser took back the graphics for a moment, which can happen when a device is short of memory or its graphics driver resets. Your journal, notes and settings are kept on this device. The museum should return by itself.",
+    "role": "alert",
+    "reloadVisible": false,
+    "loopRunning": false
+  },
+  "stalled": {
+    "title": "The picture has not come back yet",
+    "reload": "Reload the museum",
+    "reloadVisible": true
+  },
+  "restored": {
+    "title": "The picture is back",
+    "loopRunning": true
+  },
+  "hiddenAfterRestore": true,
+  "contextErrors": []
+}
