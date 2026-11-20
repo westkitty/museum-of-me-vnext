@@ -228,7 +228,7 @@ export class App implements LoopCallbacks {
 
   recordInteractionVisit(): void {
     const id = this.interaction.currentFocus?.exhibitId;
-    if (!id || isSecretControlId(id) || id === 'foyer-observatory-preview') return;
+    if (!id || isSecretControlId(id)) return;
     this.journal.markVisited(id);
     this.visitThread.recordVisit(id);
   }

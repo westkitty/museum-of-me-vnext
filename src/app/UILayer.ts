@@ -233,7 +233,7 @@ export class UILayer {
       input.on('accessibility', () => this.mirror.focus()),
       interaction.onFocusChange((focus) => {
         this.hud.setFocus(focus);
-        this.mirror.setCurrentExhibit(focus?.exhibitId === 'foyer-observatory-preview' ? null : focus?.exhibitId ?? null);
+        this.mirror.setCurrentExhibit(focus?.exhibitId ?? null);
       }),
       this.map.onTargetChange((exhibitId) => {
         app.wayfinding.setTarget(exhibitId);
@@ -246,7 +246,6 @@ export class UILayer {
       app.onAnnounce((exhibitId, message) => {
         if (app.preferences.subtitles) this.hud.announce(message);
         this.mirror.announce(message);
-        if (exhibitId === 'foyer-observatory-preview') return;
         this.mirror.setCurrentExhibit(exhibitId);
         this.mirror.refreshState();
       }),
@@ -255,7 +254,7 @@ export class UILayer {
     this.unbind.push(
       input.on('interact', () => {
         const focus = interaction.currentFocus;
-        if (focus && focus.exhibitId !== 'foyer-observatory-preview') this.mirror.setCurrentExhibit(focus.exhibitId);
+        if (focus) this.mirror.setCurrentExhibit(focus.exhibitId);
       }),
     );
 

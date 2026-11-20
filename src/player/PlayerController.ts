@@ -8,7 +8,8 @@ export const PLAYER_HEIGHT = 1.78;
 export const EYE_HEIGHT = 1.64;
 
 export const WALK_SPEED = 3.4;
-export const RUN_SPEED = 6.2;
+/** Shift sprint: 2.5x the earlier 6.2 m/s (owner request: +150%). */
+export const RUN_SPEED = 15.5;
 export const JUMP_SPEED = 7.2;
 const ACCEL = 34;
 const FRICTION = 14;
@@ -382,6 +383,16 @@ export class PlayerController {
 
     this.velocity.set(0, 0, 0);
     this.grounded = false;
+
+    // Visitor flight collides like walking does: walls and railings push the
+    // capsule out, and ceilings stop the climb. Without this a flying visitor
+    // could pass into solid geometry or out of the building and be stuck.
+    const ceiling = this.world.ceilingHeight(this.position.x, this.position.z, this.position.y);
+    if (Number.isFinite(ceiling) && this.position.y + PLAYER_HEIGHT > ceiling) {
+      this.position.y = Math.max(ceiling - PLAYER_HEIGHT, this.prevPosition.y);
+      this.launchVelocityY = 0;
+    }
+    this.world.resolveHorizontal(this.position, PLAYER_RADIUS, PLAYER_HEIGHT);
 
     // Landing ends flight. A margin above the last known support means
     // standing on the pad at the moment flight begins can't immediately

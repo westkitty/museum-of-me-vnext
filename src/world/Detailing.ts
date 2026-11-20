@@ -367,19 +367,6 @@ export class Detailing {
     const y = wing.floorY;
     const angle = Math.atan2(dir[0], dir[2]);
 
-    // Every hall but the entrance hall ends at a wall. A sign on that wall
-    // says the way back, so the end of a wing never reads as a dead end.
-    if (wing.id !== 'south') {
-      const back = buildWingSign(this.scope, 'Back to the Rotunda', wing.level === 1
-        ? 'Behind you · the balcony and both grand stairs down'
-        : 'Behind you · every wing, the Sanctuary ramp and the exit');
-      back.name = `hall-return-sign:${wing.id}`;
-      back.scale.setScalar(0.62);
-      const at = place(dir, wing.hallTo - 0.5, 0, y);
-      back.position.set(at[0], y + Math.min(wing.hallHeight - 1.6, 4.6), at[2]);
-      back.rotation.y = Math.atan2(-dir[0], -dir[2]);
-      parent.add(back);
-    }
     const thresholdGlow = this.accentGlow(p.accent, wing.id === 'north' ? 0.64 : 0.42);
 
     // Two material-only light rails make each wing threshold read instantly

@@ -4,7 +4,6 @@ import { Museum, type MuseumBuildResult } from './Museum';
 import { DexterSanctuary } from '../exhibits/sanctuary/DexterSanctuary';
 import { AmbientVisitors } from './AmbientVisitors';
 import { FlightPadAtmosphere } from './FlightPadAtmosphere';
-import { FoyerPreview } from './FoyerPreview';
 import { installExhibits } from '../exhibits';
 import { StreamingManager } from '../exhibits/StreamingManager';
 import { SourceArtwork } from './SourceArtwork';
@@ -41,7 +40,6 @@ export class InteriorWorld {
   supplementary!: SupplementaryCases;
   sourceInstallations!: SourceInstallations;
   persistentEnvironment!: PersistentEnvironment;
-  private foyerPreview?: FoyerPreview;
 
   private lightingResidencyRevision = -1;
 
@@ -61,12 +59,6 @@ export class InteriorWorld {
       this.app.interiorLoadTelemetry.buildStageMs[`museum.${name}`] = duration;
     }
     this.root.add(this.built.root);
-    this.foyerPreview = this.measureBuildStage('foyer-preview', () => new FoyerPreview(
-      this.scope,
-      this.app.interaction,
-      (message) => this.app.announce('foyer-observatory-preview', message),
-    ));
-    this.root.add(this.foyerPreview.group);
     await yieldBudget.checkpoint();
 
     this.sanctuary = this.measureBuildStage('sanctuary', () => new DexterSanctuary(this.scope));
@@ -297,7 +289,6 @@ export class InteriorWorld {
   }
 
   dispose(): void {
-    this.foyerPreview?.dispose();
     this.streaming?.dispose();
     this.sourceInstallations?.dispose();
     this.scope.dispose();
