@@ -6,8 +6,8 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 99,
-  "last_updated": "2026-11-10",
+  "state_revision": 100,
+  "last_updated": "2026-11-20",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
 -->
@@ -1043,6 +1043,37 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 **Continuity:** `docs/COMPLETION_MATRIX.md` updated (queue item 5 closed with full control adjudication and interaction closure).
 
 **Resume here:** Owner device walkthrough and remaining human acceptance judgments (Queue Item 1).
+
+### Continuity uplift — stairwell traversal repair, interface repairs and 21 improvements (2026-11-20)
+
+**State:** IMPLEMENTED AND LOCALLY VERIFIED IN THE WORKING TREE. NOT COMMITTED, NOT PUSHED, NOT MERGED, NOT DEPLOYED.
+**Base:** branch `claude/new-session-wyjula` at `666869587009e27ffd38a02ca1a181c0bc7419ca` (= `main` after #60), clean before work.
+**Product status unchanged:** ACTIVE DEVELOPMENT / PRE-1.0. Full ledger: `docs/CONTINUITY_UPLIFT_2026-11-20.md`.
+
+**Verification (this working tree, headless Chromium 1243 via `MUSEUM_BROWSER_EXECUTABLE`, SwiftShader):**
+- `npm run gate`: PASS (exit 0) — typecheck, lint, 1052/1052 Vitest tests in 111 files, release tools, mapping/content/privacy/frame-loop/hotpaths/assets/exhibits/source-parity validators, QA runner, production build, budgets, `verify:dist`.
+- `npx playwright test` (full suite): PASS — 82/82 in 16.3 min, including the new `tests/browser/continuity-uplift.e2e.ts` (5 cases) and the two `predictive-interior` copy assertions updated for the new threshold wording.
+- `npm run build:standalone` + `npm run verify:standalone`: PASS — static sha256 `072e3f82…`, offline browser (cold exterior, 2 round trips, 17 visitors, 6 requests), `runtime-source-qa` 14/14 installations, 17/17 visitors, 0 remote requests.
+- The full e2e run regenerated `docs/evidence/exterior-omni-v2/*` (written by `exterior-signature-evidence.e2e.ts`); those test artifacts were restored to their committed versions.
+- Not run: `npm run test:workshop`, Pages build/verify, `perf:device`, exact-head CI.
+
+**Confirmed defects repaired:**
+- **D03 (severe):** both grand stairs ran under the solid balcony slab (visual and collision). Visitors climbed through the floor and could not walk down: on the balcony they stayed at y = 10 over the whole flight (reproduced in Chromium before; after, the same walk ends at y ≈ 0.6 at the stair foot). The canonical traversal test and the Workshop Visitor Jury had passed because their walkers settled waypoints onto surfaces up to 5 m above and never failed on a fall. Repair: open railed well over `t ≥ 0.7` of each flight (`STAIR_OPENING_FROM_T`, `isOverStairOpening`, `stairOpeningOutline` in `layout.ts` drive the slab hole and collision mask), outward-only landing, rails on both sides and a low-end rail to the balustrade; walkers now settle at the declared height and fail on drops over 1 m.
+- **D01** overlapping welcome cards; **D05** Enter button off-screen at 844×390; **D02** corner button covering key hints; **D04** Escape not leaving the contents (movement keys dead); **D06** hall plants/pedestals standing in bay openings (E09 arrival eye inside a plant).
+
+**New invariants:**
+- No floor collider or slab may roof a grand stair where its treads come within visitor height of the underside; the well is defined once in `layout.ts`.
+- The walkable balcony is the north arc `BALCONY_WALK_FACES` (w–nw–n–ne–e); stair routes join it at `stairLanding`. The south pocket between the two wells is not reachable on foot.
+- Route walkers (tests and Visitor Jury) must settle at a waypoint's declared height and must treat a drop of more than 1 m as a failure.
+- Hall-side dressing stays at least `bayOpening / 2 + 1.3 m` from every bay centre on its side (`alongClearOfBayOpenings`).
+
+**Improvements (21, see ledger):** map stairs; stair signs; return-to-Rotunda signs; HUD floor; arrival names the exhibit; guide start with floor/distance/stairs; threshold copy; arrival composition; hint plate; cue settle; panel command styling; project stage chips; related rooms; where-to-find line; DexGPT position-aware stairs; DexGPT contextual question; contents floor info; contents exit; restore defaults with undo; touch menu parity; stages in collection indexes.
+
+**Unchanged protected contracts:** 35 slots / 73 identities / 6 wings; bespoke exhibits; 14 installations / 17 conversations; one frame loop; persistence schemas; Sanctuary content; deterministic offline DexGPT distinct from Dexter; no dependency or network change. Sanctuary guide routing remains PROPOSED.
+
+**Continuity:** canonical Bible not written (no commit/push authority); temporary note `docs/MUSEUM_BIBLE_APPEND_2026-11-20_CONTINUITY_UPLIFT.md`. The Bible also lacks entries for merged #58–#60.
+
+**Resume here:** owner decision on committing/pushing this working tree; owner review of the stairwell and the unreachable south balcony pocket; human `?qa=1` walkthrough.
 
 ## Visitor experience and interpretation update
 

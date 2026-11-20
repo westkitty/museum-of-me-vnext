@@ -1,6 +1,6 @@
 import { Panel } from './Panel';
 import { el } from './dom';
-import type { VisitorPreferences } from '../state/Preferences';
+import { DEFAULT_PREFERENCES, type VisitorPreferences } from '../state/Preferences';
 import type { QualityTier } from '../render/QualityTiers';
 
 export interface SettingsHandlers {
@@ -13,9 +13,27 @@ export interface SettingsHandlers {
  * Visitor settings. Everything the accessibility pass requires is here and
  * everything here takes effect immediately — no reload, no confirmation.
  */
+/** The comfort settings a visitor can change here, restored together. Quality
+ * goes through its own handler; the version and stored-only fields are left. */
+export const RESTORABLE_SETTINGS = [
+  'uiScale', 'highContrast', 'reducedMotion', 'fieldOfView', 'mouseSensitivity', 'invertY',
+  'masterVolume', 'ambienceVolume', 'subtitles', 'hudOpacity', 'autoPauseOnBlur', 'frameCap',
+  'wakeLock', 'showMapVisitors', 'reducedTransparency', 'showTooltips', 'interfaceDensity',
+] as const satisfies readonly (keyof VisitorPreferences)[];
+
+type RestorableSettings = Pick<VisitorPreferences, (typeof RESTORABLE_SETTINGS)[number]>;
+
+export function pickRestorable(source: VisitorPreferences): RestorableSettings {
+  return Object.fromEntries(RESTORABLE_SETTINGS.map((key) => [key, source[key]])) as RestorableSettings;
+}
+
 export class SettingsPanel extends Panel {
+  /** What the visitor had before the last restore, for a one-step undo. */
+  private undoRestore: { settings: RestorableSettings; quality: VisitorPreferences['quality'] } | null = null;
+
   constructor(private readonly handlers: SettingsHandlers) {
     super('settings', 'Settings', 'Comfort and accessibility');
+    this.onClose(() => { this.undoRestore = null; });
   }
 
   protected render(): void {
@@ -76,8 +94,34 @@ export class SettingsPanel extends Panel {
         (v) => this.handlers.update({ interfaceDensity: v as VisitorPreferences['interfaceDensity'] }),
       ),
 
+      el('h3', { text: 'Start over' }),
+      this.undoRestore
+        ? el('div', { class: 'field' },
+          el('p', { role: 'status', class: 'panel__note', text: 'Settings restored to their defaults.' }),
+          el('button', { type: 'button', text: 'Undo restore', onclick: () => this.undo() }))
+        : el('div', { class: 'field' },
+          el('button', { type: 'button', text: 'Restore default settings', onclick: () => this.restoreDefaults() }),
+          el('small', { text: 'Puts every setting on this page back to its default. You can undo it straight away.' })),
+
       el('p', { class: 'panel__note', text: 'Settings are stored in this browser only. The museum has no account and no server. Append ?safe=1 for a session-only Safe Mode that leaves stored values intact.' }),
     );
+  }
+
+  private restoreDefaults(): void {
+    const current = this.handlers.get();
+    this.undoRestore = { settings: pickRestorable(current), quality: current.quality };
+    this.handlers.setQuality(DEFAULT_PREFERENCES.quality);
+    this.handlers.update(pickRestorable(DEFAULT_PREFERENCES));
+    this.render();
+  }
+
+  private undo(): void {
+    const previous = this.undoRestore;
+    if (!previous) return;
+    this.undoRestore = null;
+    this.handlers.setQuality(previous.quality);
+    this.handlers.update(previous.settings);
+    this.render();
   }
 
   private range(label: string, hint: string, value: number, min: number, max: number, step: number, onChange: (v: number) => void): HTMLElement {

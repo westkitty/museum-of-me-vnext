@@ -3,7 +3,7 @@ import { el } from './dom';
 import { EXHIBITS_BY_ID } from '../content/collection.generated';
 import { museumLink } from '../content/collectionLinks';
 import type { Journal } from '../state/Journal';
-import { exhibitReading } from './ExhibitReading';
+import { exhibitReading, type ExhibitReadingContext } from './ExhibitReading';
 
 /** Interpretation layer 3, including project history and source references. */
 export class DeepPanel extends Panel {
@@ -12,6 +12,7 @@ export class DeepPanel extends Panel {
   constructor(
     private readonly journal: Journal,
     private readonly guideTo?: (exhibitId: string) => void,
+    private readonly locate?: ExhibitReadingContext['locate'],
   ) {
     super('deep', 'Exhibit', 'Deeper reading');
   }
@@ -43,6 +44,9 @@ export class DeepPanel extends Panel {
         },
       }),
     );
-    this.setContent(...exhibitReading(record, actions));
+    this.setContent(...exhibitReading(record, actions, {
+      locate: this.locate,
+      openExhibit: (id) => this.openFor(id),
+    }));
   }
 }

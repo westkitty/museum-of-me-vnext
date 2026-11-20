@@ -670,7 +670,7 @@ export class App implements LoopCallbacks {
       this.activeWorld,
       this.isOutside ? this.exteriorWorld.collision : this.interiorWorld?.collision,
     );
-    if (targetBeforeUpdate && !this.wayfinding.currentTarget) this.ui.clearGuideOnArrival();
+    if (targetBeforeUpdate && !this.wayfinding.currentTarget) this.ui.clearGuideOnArrival(targetBeforeUpdate);
     this.arrivalGarden.update(dt, this.preferences.reducedMotion);
     this.sky.follow(this.camera);
 

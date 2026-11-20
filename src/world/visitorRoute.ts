@@ -1,10 +1,10 @@
 import {
   ENTRANCE_DOOR, GROUND_Y, LEVEL_1_Y, OCTAGON_FACES, PLAZA_DEPTH, PLAZA_HALF_WIDTH,
   PLACEMENT_BY_EXHIBIT, SANCTUARY_CENTER, SANCTUARY_DIR, SANCTUARY_FLOOR_Y, SANCTUARY_RAMP_FROM,
-  SANCTUARY_RAMP_TO, STAIRS, WINGS, faceDirection, place, rightOf, stairArcPoint, type Vec3,
+  SANCTUARY_RAMP_TO, STAIRS, WINGS, faceDirection, place, rightOf, stairArcPoint, stairArrivalFace, stairLanding, type Vec3,
 } from './layout';
 import { LAND_SUPPORT_Y, PATH_CENTERLINES, PIER_CENTERLINE, isSiteLand } from './exterior/IslandSiteLayout';
-import { BALCONY_ROUTE_RADIUS, ROTUNDA_ROUTE_RADIUS } from './route';
+import { BALCONY_ROUTE_RADIUS, BALCONY_WALK_FACES, ROTUNDA_ROUTE_RADIUS } from './route';
 import type { CollisionWorld } from './CollisionWorld';
 import { PLAYER_HEIGHT, PLAYER_RADIUS } from '../player/PlayerController';
 
@@ -138,12 +138,16 @@ const inside = new FootpathNetwork();
 // from the atrium drop and the lower circuit away from the flight plinth.
 const groundRing = OCTAGON_FACES.map((face) => place(faceDirection(face), ROTUNDA_ROUTE_RADIUS, 0, GROUND_Y));
 const upperRing = OCTAGON_FACES.map((face) => place(faceDirection(face), BALCONY_ROUTE_RADIUS, 0, LEVEL_1_Y));
-for (const ring of [groundRing, upperRing]) inside.connect([...ring, ring[0]]);
+inside.connect([...groundRing, groundRing[0]]);
+// Each grand stair rises through the balcony ring into an open, railed well,
+// so the walkable balcony is the north arc between the two stair heads.
+inside.connect(BALCONY_WALK_FACES.map((face) => upperRing[OCTAGON_FACES.indexOf(face)]));
 for (const stair of STAIRS) {
   const arc = Array.from({ length: stair.collisionSegments + 1 }, (_, i) =>
     stairArcPoint(stair, i / stair.collisionSegments));
   const index = OCTAGON_FACES.indexOf(stair.face);
-  inside.connect([groundRing[index], ...arc, upperRing[index]]);
+  const arrival = OCTAGON_FACES.indexOf(stairArrivalFace(stair));
+  inside.connect([groundRing[index], ...arc, stairLanding(stair), upperRing[arrival]]);
 }
 for (const wing of WINGS) {
   const ring = wing.level === 0 ? groundRing : upperRing;

@@ -127,7 +127,7 @@ export class WorldDirector {
     if (this.preparePromise) return this.preparePromise;
     this.interiorImportStarted = true;
     this.transition('PREPARING_INTERIOR');
-    this.app.ui?.hud.setThresholdStatus(true, 'Loading the museum module and building its architecture.', false, true);
+    this.app.ui?.hud.setThresholdStatus(true, 'Opening the galleries…', false, true);
 
     this.preparePromise = (async () => {
       try {
@@ -145,7 +145,7 @@ export class WorldDirector {
         console.error('[WorldDirector] failed to prepare interior', err);
         this.transition('PREPARATION_FAILED');
         this.preparePromise = null;
-        this.app.ui?.hud.setThresholdStatus(true, 'Museum preparation failed. The island remains available. Retry preparation or continue outside.', true);
+        this.app.ui?.hud.setThresholdStatus(true, 'The galleries could not be opened this time. The island remains available: retry, or keep exploring outside.', true);
         throw err;
       }
     })();
@@ -256,14 +256,14 @@ export class WorldDirector {
       const failed = this.phase === 'PREPARATION_FAILED';
       const preparing = this.interiorImportStarted && !entranceReady && !failed;
       const message = failed
-        ? 'Museum preparation failed. The island remains available.'
+        ? 'The galleries could not be opened this time. The island remains available: retry, or keep exploring outside.'
         : entranceReady
-          ? 'The entrance hall is ready.'
+          ? 'The doors are open. Walk on in.'
           : this.interiorConstructed
-            ? 'Building the entrance exhibits.'
+            ? 'Lighting the entrance hall…'
             : this.interiorImportStarted
-              ? 'Loading the museum module and building its architecture.'
-              : 'The entrance is nearby. Enter museum begins preparation; its galleries are not loaded yet.';
+              ? 'Opening the galleries…'
+              : 'You are at the museum doors. Walk in, or choose Enter museum.';
       this.app.ui?.hud.setThresholdStatus(true, message, failed, preparing);
     } else if (!inApproach || this.activeWorld !== 'exterior') {
       this.app.ui?.hud.setThresholdStatus(false, '');

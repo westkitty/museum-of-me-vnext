@@ -2,7 +2,7 @@ import {
   WINGS, PLACEMENTS, faceDirection, place,
   SPAWN_POSITION, ROTUNDA_APOTHEM, LEVEL_1_Y, GROUND_Y,
   SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_CENTER, SANCTUARY_FLOOR_Y,
-  STAIRS, stairArcPoint, type Vec3, type WingSpec,
+  STAIRS, stairArcPoint, stairArrivalFace, stairLanding, type Vec3, type WingSpec,
 } from './layout';
 import { START_POSITION } from './start';
 
@@ -39,6 +39,9 @@ export const ROTUNDA_ROUTE_RADIUS = 10.5;
  * both the inner atrium drop and the outer wall/piers, and matches the radius
  * already used for the wing thresholds and the stair landings. */
 export const BALCONY_ROUTE_RADIUS = 13.5;
+/** The walkable balcony arc. Both grand stairs rise through open, railed wells
+ * in the south-west and south-east of the ring and arrive at its ends. */
+export const BALCONY_WALK_FACES = ['w', 'nw', 'n', 'ne', 'e'] as const;
 
 function ringPoint(face: Parameters<typeof faceDirection>[0], y = GROUND_Y, radius = ROTUNDA_ROUTE_RADIUS): Vec3 {
   return place(faceDirection(face), radius, 0, y);
@@ -76,6 +79,7 @@ function ringPath(
 
 function stairWaypoints(): Waypoint[] {
   const s = STAIRS[0];
+  const landing: Waypoint = { label: 'stair landing', at: stairLanding(s) };
   // The verification route follows the same arc as the visible treads and
   // collision ramps. A straight foot-to-head chord would cut inside the
   // curved stair and falsely exercise the atrium rather than its walking path.
@@ -87,7 +91,7 @@ function stairWaypoints(): Waypoint[] {
         ? 'stair head'
         : `stair rise ${index}`;
     return { label, at: stairArcPoint(s, t) };
-  });
+  }).concat(landing);
 }
 
 /**
@@ -120,7 +124,8 @@ export function canonicalRoute(): readonly Waypoint[] {
 
   route.push(...ringPath(atFace, 'sw'));
   route.push(...stairWaypoints());
-  let atBalconyFace: 'sw' | 'nw' | 'ne' = 'sw';
+  const arrival = stairArrivalFace(STAIRS[0]);
+  let atBalconyFace: Parameters<typeof faceDirection>[0] = arrival;
   for (const id of ['media', 'infra'] as const) {
     const w = WINGS.find((x) => x.id === id)!;
     const face = w.face as 'nw' | 'ne';
@@ -130,7 +135,7 @@ export function canonicalRoute(): readonly Waypoint[] {
     route.push({ label: `balcony from ${id}`, at: place(faceDirection(face), BALCONY_ROUTE_RADIUS, 0, LEVEL_1_Y) });
     atBalconyFace = face;
   }
-  route.push(...ringPath(atBalconyFace, 'sw', LEVEL_1_Y, BALCONY_ROUTE_RADIUS));
+  route.push(...ringPath(atBalconyFace, arrival, LEVEL_1_Y, BALCONY_ROUTE_RADIUS));
 
   route.push(...stairWaypoints().reverse());
   route.push(...ringPath('sw', 'nw'));

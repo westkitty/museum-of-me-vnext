@@ -3,8 +3,8 @@ import type { CollisionWorld } from '../world/CollisionWorld';
 import { el, isActivationKey } from './dom';
 import {
   WINGS, PLACEMENTS, ROTUNDA_APOTHEM, VESTIBULE_TO, SANCTUARY_CENTER, SANCTUARY_RADIUS, LEVEL_1_Y,
-  SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_DIR,
-  faceDirection, place, type Vec3,
+  SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_DIR, STAIRS,
+  faceDirection, place, stairArcPoint, stairLanding, type Vec3,
 } from '../world/layout';
 import { SANCTUARY_DESCRIPTION, SANCTUARY_TITLE } from '../content/sanctuaryCopy';
 import { EXHIBITS_BY_ID, WINGS_BY_ID, exhibitsForWing, COLLECTION } from '../content/collection.generated';
@@ -230,6 +230,37 @@ export class MapPanel extends Panel {
     ));
   }
 
+  /** Both grand stairs, drawn from the same arc the treads and collision use.
+   * On the upper floor the plan shows the railed well and its head. */
+  private renderStairs(plan: SVGSVGElement): void {
+    for (const stair of STAIRS) {
+      const points = Array.from({ length: 13 }, (_, i) => toSvg(stairArcPoint(stair, i / 12)));
+      const g = svg('g', { class: 'map__stair', 'data-stair': stair.id });
+      const title = svg('title');
+      title.textContent = this.level === 0
+        ? 'Grand stair up to the balcony and the upper wings'
+        : 'Grand stair down to the Rotunda (enter at the open end)';
+      g.append(title);
+      g.append(svg('polyline', {
+        points: points.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(' '),
+        fill: 'none', stroke: '#e8dcc0', 'stroke-width': stair.halfWidth * 2,
+        'stroke-opacity': this.level === 0 ? '0.3' : '0.16', 'stroke-dasharray': '0.7 0.5',
+      }));
+      const entry = this.level === 0 ? stairArcPoint(stair, 0) : stairLanding(stair, 0.6);
+      const [hx, hy] = toSvg(entry);
+      g.append(svg('circle', { cx: hx, cy: hy, r: 1.3, fill: '#e8dcc0' }));
+      plan.append(g);
+      // Label outside the rotunda wall, beside its own stair, so the two
+      // labels never meet in the middle of the plan.
+      const radius = Math.hypot(entry[0], entry[2]) || 1;
+      const out = (ROTUNDA_APOTHEM + 6) / radius;
+      const [lx, ly] = toSvg([entry[0] * out, entry[1], entry[2] * out]);
+      const label = textAt(lx, ly, this.level === 0 ? 'Stairs up' : 'Stairs down');
+      label.setAttribute('text-anchor', entry[0] < 0 ? 'end' : 'start');
+      plan.append(label);
+    }
+  }
+
   protected render(): void {
     const position = this.getPosition();
     const prefs = this.getPreferences();
@@ -254,6 +285,7 @@ export class MapPanel extends Panel {
     });
     plan.append(rot);
     plan.append(textAt(EXTENT, EXTENT - ROTUNDA_APOTHEM - 3, this.level === 0 ? 'Rotunda' : 'Balcony'));
+    this.renderStairs(plan);
 
     this.renderVisitThread(plan);
 

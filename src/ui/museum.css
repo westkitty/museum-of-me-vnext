@@ -149,7 +149,13 @@ html[data-motion='reduced'] *::after {
   white-space: normal;
   max-width: 70vw;
 }
-.hud__cue--visible { opacity: 1; }
+.hud__cue--visible { opacity: 1; animation: hud-cue-arrive 260ms ease-out; }
+/* A single settle as an interactable comes into focus: noticeable, not busy.
+   Both reduced-motion paths collapse it to an instant appearance. */
+@keyframes hud-cue-arrive {
+  from { transform: translateX(-50%) translateY(6px); }
+  to { transform: translateX(-50%) translateY(0); }
+}
 .hud__cue kbd {
   display: inline-block;
   margin-right: 0.5rem;
@@ -191,6 +197,23 @@ html[data-motion='reduced'] *::after {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 .hud__hints b { color: var(--gold-bright); font-weight: 600; }
+/* A quiet backing plate: the hints sat directly on pale stone floors. */
+.hud__hints {
+  padding: 0.25rem 0.6rem;
+  border-radius: 3px;
+  background: rgba(8, 9, 14, 0.62);
+  color: #d9d1c3;
+}
+html[data-transparency='reduced'] .hud__hints { background: #0c0b11; }
+html[data-contrast='high'] .hud__hints { background: #000; color: #fff; }
+/* Under the cinematic welcome the HUD is inert; its corner text would only
+   show through the dialog's lower gradient beside its buttons. */
+.hud--cinematic .hud__hints, .hud--cinematic .hud__location { visibility: hidden; }
+/* Keep the key hints above the Resume mouse look / Museum button. */
+.hud--corner-action .hud__hints { bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 3rem); }
+@media (pointer: coarse) {
+  .hud--corner-action .hud__hints { bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 3.6rem); }
+}
 
 .hud__subtitle {
   position: absolute;
@@ -375,6 +398,26 @@ html[data-contrast='high'] .hud__secret { background: #000; border-color: #ffdf7
 }
 .panel__close:hover { color: var(--parchment); border-color: var(--gold); }
 
+/* Plain panel commands (Curator Desk, map actions, settings) previously fell
+   back to the browser's grey default button. One museum style, one focus ring. */
+.panel button:not([class]) {
+  min-height: 36px;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid rgba(232, 198, 90, 0.42);
+  border-radius: 3px;
+  background: rgba(20, 17, 26, 0.92);
+  color: var(--parchment);
+  font: 500 0.82rem var(--font-ui);
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+.panel button:not([class]):hover { border-color: var(--gold-bright); background: #2a1f1a; }
+.panel button:not([class]):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.panel button:not([class]):disabled { opacity: 0.5; cursor: not-allowed; }
+@media (forced-colors: active) {
+  .panel button:not([class]) { background: ButtonFace; color: ButtonText; border-color: ButtonText; }
+}
+
 .panel h3 {
   font-family: var(--font-body);
   font-size: 1.15rem;
@@ -523,6 +566,19 @@ html[data-contrast='high'] .hud__secret { background: #000; border-color: #ffdf7
   margin-bottom: 1rem;
   color: var(--gold-bright);
 }
+.a11y-root .a11y-return {
+  margin: 0 0 1rem;
+  min-height: 40px;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--gold-bright);
+  border-radius: 3px;
+  background: #15121b;
+  color: var(--parchment);
+  font: 600 0.85rem var(--font-ui);
+  cursor: pointer;
+}
+.a11y-root .a11y-return:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.a11y-root .a11y-floor { color: var(--gold-bright); font-size: 0.86rem; }
 
 /* ── high contrast ──────────────────────────────────────────────────────── */
 html[data-contrast='high'] {
@@ -1146,3 +1202,41 @@ html[data-contrast='high'] .hud__location[data-zone] { border-left-color: #fff; 
 }
 
 .visitor-menu__actions button { min-height: 44px; }
+
+/* ── Project stage chips, room location and related rooms (exhibit reading) ──
+   The chip groups a project's canonical status; the full status text remains in
+   the project's facts. Text is always present, so colour is never the only cue. */
+.stage-chip {
+  display: inline-block;
+  margin-left: 0.6rem;
+  padding: 0.05rem 0.45rem;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  font: 600 0.68rem/1.5 var(--font-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+.stage-chip--active { color: #9fd5a6; }
+.stage-chip--experimental { color: #9fc3e6; }
+.stage-chip--paused { color: #e6c98f; }
+.stage-chip--completed { color: #e8c65a; }
+.stage-chip--superseded { color: #c9b8d8; }
+.stage-chip--abandoned { color: #d9a39a; }
+html[data-contrast='high'] .stage-chip { color: #fff; }
+@media (forced-colors: active) { .stage-chip { color: CanvasText; } }
+.exhibit-reading__where { color: var(--gold-bright); font-size: 0.92rem; }
+.exhibit-reading__related ul { list-style: none; padding-left: 0; }
+.exhibit-reading__related li { margin: 0.3rem 0; color: var(--parchment-dim); }
+.exhibit-reading__related-link {
+  min-height: 32px;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid rgba(232, 198, 90, 0.42);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--parchment);
+  cursor: pointer;
+  font: 500 0.85rem var(--font-ui);
+}
+.exhibit-reading__related-link:hover { border-color: var(--gold-bright); }
+.exhibit-reading__related-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }

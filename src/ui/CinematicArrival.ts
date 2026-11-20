@@ -57,6 +57,7 @@ export function mountCinematicArrival(app: App): void {
   const priorInert = background.map((element) => element.inert);
   background.forEach((element) => { element.inert = true; });
 
+  app.ui.hud.setCinematicArrivalActive(true);
   app.input.releasePointerLock();
   app.input.uiCaptured = true;
   app.player.setFrozen(true);

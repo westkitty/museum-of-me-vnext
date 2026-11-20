@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest';
+import { PLAYER_HEIGHT } from '../src/player/PlayerController';
 import { buildMuseum, walkRoute, walkSegment } from './helpers/walk';
 import { canonicalRoute } from '../src/world/route';
 import {
   PLACEMENTS, WINGS, zoneAt, zoneAtXYZ, ZONES,
   SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_FLOOR_Y,
   SANCTUARY_CENTER, GROUND_Y, place, PLINTH_RADIUS, PLINTH_TOP_Y,
-  STAIRS, stairArcPoint, faceDirection, LEVEL_1_Y,
+  STAIRS, stairArcPoint, faceDirection, LEVEL_1_Y, stairLanding, stairArrivalFace,
+  isOverStairOpening, STAIR_OPENING_FROM_T,
 } from '../src/world/layout';
 import { START_POSITION } from '../src/world/start';
 import { COLLECTION } from '../src/content/collection.generated';
@@ -100,18 +102,39 @@ describe('curved grand stairs', () => {
         label: `${stair.id} lower ring`,
         at: place(faceDirection(stair.face), 10.5, 0, GROUND_Y),
       };
+      const landing = { label: `${stair.id} landing`, at: stairLanding(stair) };
       const upperRing = {
         label: `${stair.id} balcony ring`,
-        at: place(faceDirection(stair.face), 13.5, 0, LEVEL_1_Y),
+        at: place(faceDirection(stairArrivalFace(stair)), 13.5, 0, LEVEL_1_Y),
       };
-      for (const failure of walkRoute(built.collision, [lowerRing, ...arc, upperRing])) {
+      for (const failure of walkRoute(built.collision, [lowerRing, ...arc, landing, upperRing])) {
         failures.push(`${stair.id} upward: ${failure.label}: ${failure.reason}`);
       }
-      for (const failure of walkRoute(built.collision, [upperRing, ...[...arc].reverse(), lowerRing])) {
+      for (const failure of walkRoute(built.collision, [upperRing, landing, ...[...arc].reverse(), lowerRing])) {
         failures.push(`${stair.id} downward: ${failure.label}: ${failure.reason}`);
       }
     }
     expect(failures, `\n${failures.join('\n')}`).toEqual([]);
+  });
+
+  it('keeps the upper flight open: a visitor at balcony height over the well stands on the treads, not on a slab (regression)', () => {
+    // The balcony ring once covered both stairs at y = 10, in collision and
+    // in the visible slab: visitors climbed through the floor and anyone on
+    // the balcony walked across the whole stairwell at balcony height and
+    // could never walk back down.
+    for (const stair of STAIRS) {
+      for (const t of [0.72, 0.8, 0.9, 0.97]) {
+        const [x, y, z] = stairArcPoint(stair, t);
+        expect(isOverStairOpening(x, z)).toBe(true);
+        const support = built.collision.supportHeight(x, z, LEVEL_1_Y);
+        expect(support, `${stair.id} t=${t}`).not.toBeNull();
+        expect(Math.abs(support! - y), `${stair.id} t=${t}: support ${support} vs tread ${y}`).toBeLessThan(0.6);
+      }
+      // Under the remaining slab the tread keeps full headroom.
+      const [x, y, z] = stairArcPoint(stair, STAIR_OPENING_FROM_T - 0.01);
+      expect(isOverStairOpening(x, z)).toBe(false);
+      expect(LEVEL_1_Y - 0.7 - y).toBeGreaterThanOrEqual(PLAYER_HEIGHT + 0.3);
+    }
   });
 });
 

@@ -12,6 +12,8 @@ export class MuseumGuidePanel extends Panel {
   constructor(
     private readonly guide: DeterministicMuseumGuide,
     private readonly guideTo: (exhibitId: string) => void,
+    /** A first suggestion that fits where the visitor stands, if any. */
+    private readonly contextQuestion: () => string | null = () => null,
   ) {
     super('dexgpt-guide', 'DexGPT', 'Local museum guide');
   }
@@ -46,7 +48,7 @@ export class MuseumGuidePanel extends Panel {
       : el('p', { class: 'panel__note', text: 'I use the local collection and your visit journal. I can guide you, but I do not teleport you.' });
     // Starting points for a visitor who does not yet know what can be asked.
     const suggestions = el('div', { class: 'guide-suggestions', role: 'group', 'aria-label': 'Example questions' },
-      ...SUGGESTED_QUESTIONS.map((question) => el('button', {
+      ...[this.contextQuestion(), ...SUGGESTED_QUESTIONS].filter((question): question is string => Boolean(question)).map((question) => el('button', {
         type: 'button', class: 'guide-suggestions__item', text: question, onclick: () => {
           this.query = question;
           this.reply = this.guide.answer(question);

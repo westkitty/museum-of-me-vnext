@@ -1,3 +1,4 @@
+import { projectNameWithStage } from '../content/projectStage';
 import { el, clear } from '../ui/dom';
 import { COLLECTION, exhibitsForWing, projectsForExhibit } from '../content/collection.generated';
 import { SANCTUARY_DESCRIPTION, SANCTUARY_INSCRIPTION, SANCTUARY_TITLE } from '../content/sanctuaryCopy';
@@ -25,12 +26,34 @@ export class DomMirror {
     this.liveRegion = el('p', { role: 'status', 'aria-live': 'polite', class: 'a11y-live' });
     this.stateBlock = el('div', {});
     this.build();
+    this.root.addEventListener('keydown', this.onKeyDown);
+  }
+
+  /** The contents promise "Escape to go back to the museum". Focus left on one
+   * of its links kept them on screen and, because links own their keys, kept
+   * every movement key from reaching the museum until the visitor clicked. */
+  private readonly onKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== 'Escape') return;
+    if (this.returnToMuseum()) event.preventDefault();
+  };
+
+  /** Leave the contents: drop focus so the museum's keys work again. */
+  private returnToMuseum(): boolean {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement) || !this.root.contains(active)) return false;
+    active.blur();
+    return true;
   }
 
   private build(): void {
     clear(this.root);
     this.root.append(
       el('a', { class: 'skip', href: '#a11y-collection', text: 'Skip to the museum contents' }),
+      el('button', {
+        type: 'button', class: 'a11y-return',
+        text: 'Back to the museum (Escape)',
+        onclick: () => this.returnToMuseum(),
+      }),
       el('h1', { text: 'Museum of Me — The Reliquary of Iterative Becoming' }),
       el('p', {
         text:
@@ -68,6 +91,9 @@ export class DomMirror {
       nodes.push(
         el('h3', { text: `${wing.subtitle} — ${wing.name}` }),
         el('p', { text: wing.blurb }),
+        el('p', { class: 'a11y-floor', text: wing.level === 1
+          ? 'Upper floor. From the Rotunda, climb either grand stair (south-west or south-east wall) to the balcony.'
+          : 'Ground floor. Opens directly off the Rotunda.' }),
       );
       const list = el('ul', {});
       for (const record of exhibitsForWing(wing.id)) {
@@ -81,7 +107,7 @@ export class DomMirror {
               onclick: () => this.onOpenExhibit(record.id),
             }),
             el('p', { text: record.copy.plaque }),
-            el('p', { text: `Represents: ${projects.map((p) => p.name).join(', ')}.` }),
+            el('p', { text: `Represents: ${projects.map(projectNameWithStage).join(', ')}.` }),
           ),
         );
       }
@@ -143,6 +169,7 @@ export class DomMirror {
   }
 
   dispose(): void {
+    this.root.removeEventListener('keydown', this.onKeyDown);
     clear(this.root);
   }
 }

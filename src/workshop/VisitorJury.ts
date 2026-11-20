@@ -235,7 +235,11 @@ class Walker {
     const target = to.at;
     const dx = target[0] - pos.x, dz = target[2] - pos.z;
     const distance = Math.hypot(dx, dz);
-    const start = this.world.supportHeight(pos.x, pos.z, pos.y + 2, 3);
+    // Prefer the surface at the waypoint's declared height; only then search
+    // upward. Searching upward first once settled stair waypoints onto the
+    // balcony slab overhead.
+    const start = this.world.supportHeight(pos.x, pos.z, pos.y, STEP_UP)
+      ?? this.world.supportHeight(pos.x, pos.z, pos.y + 2, 3);
     if (start === null) return finish(false, 'no floor under the start of this leg');
     pos.y = start;
     samples.push(vec(pos));
@@ -473,10 +477,18 @@ export function visitorJury(index: MuseumSceneIndex, manifest: WorkshopPlacement
     const mid = stair.path[Math.floor(stair.path.length / 2)];
     const len = Math.hypot(mid[0], mid[2]) || 1;
     const ground: Waypoint = { label: `rotunda floor below ${stair.id}`, at: [round(mid[0] / len * RING_RADIUS), stair.from[1], round(mid[2] / len * RING_RADIUS)] };
-    const balcony: Waypoint = { label: `balcony above ${stair.id}`, at: [round(mid[0] / len * BALCONY_RING_RADIUS), stair.to[1], round(mid[2] / len * BALCONY_RING_RADIUS)] };
+    // Each flight rises into an open, railed well and arrives over its head:
+    // the balcony is joined by continuing past the head, not back over the well.
+    const head = stair.path[stair.path.length - 1];
+    const before = stair.path[stair.path.length - 2];
+    const run = Math.hypot(head[0] - before[0], head[2] - before[2]) || 1;
+    const landingAt: Vec3 = [head[0] + (head[0] - before[0]) / run * 2.2, stair.to[1], head[2] + (head[2] - before[2]) / run * 2.2];
+    const landingLen = Math.hypot(landingAt[0], landingAt[2]) || 1;
+    const landing: Waypoint = { label: `landing above ${stair.id}`, at: landingAt };
+    const balcony: Waypoint = { label: `balcony beside ${stair.id}`, at: [round(landingAt[0] / landingLen * BALCONY_RING_RADIUS), stair.to[1], round(landingAt[2] / landingLen * BALCONY_RING_RADIUS)] };
     const treads = stair.path.map((at, k) => ({ label: `${stair.id} ${k === 0 ? 'foot' : k === stair.path.length - 1 ? 'head' : `rise ${k}`}`, at }));
-    const up = walker.journey([ground, ...treads, balcony]);
-    const down = walker.journey([balcony, ...[...treads].reverse(), ground]);
+    const up = walker.journey([ground, ...treads, landing, balcony]);
+    const down = walker.journey([balcony, landing, ...[...treads].reverse(), ground]);
     const legs = [...up, ...down];
     const check = judgeLegs(legs, `Walked up (${totalMetres(up)} m) and back down (${totalMetres(down)} m) between floor ${stair.from[1]} m and the balcony at ${stair.to[1]} m.`);
     return { id: `stair:${stair.id}`, label: stair.id, legs: legs.length, ...check,
