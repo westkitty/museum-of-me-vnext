@@ -203,13 +203,13 @@ export class ExteriorSignatureFeatures {
     const group = new THREE.Group();
     group.name = 'sculpted-reflecting-rill';
 
-    // Rill curves from entrance fountain at [0, GROUND_Y, 142] toward west pool at [-14, GROUND_Y, 145]
+    // The existing rill now feeds the west member of the paired outdoor fountains.
     const curvePoints = [
       new THREE.Vector3(0, GROUND_Y, 142.5),
       new THREE.Vector3(-4, GROUND_Y, 143.2),
       new THREE.Vector3(-8, GROUND_Y, 144.1),
-      new THREE.Vector3(-12, GROUND_Y, 144.8),
-      new THREE.Vector3(-15, GROUND_Y, 145.2),
+      new THREE.Vector3(-14.5, GROUND_Y, 143.7),
+      new THREE.Vector3(-18.5, GROUND_Y, 142),
     ];
     const rillCurve = new THREE.CatmullRomCurve3(curvePoints);
     const rillGeo = this.scope.track(new THREE.TubeGeometry(rillCurve, 32, 0.38, 8, false));
@@ -230,21 +230,38 @@ export class ExteriorSignatureFeatures {
     group.add(waterMesh);
     this.rillWaterMesh = waterMesh;
 
-    // Terminal quiet reflecting basin
-    const basinGeo = this.scope.track(new THREE.CylinderGeometry(1.65, 1.85, 0.32, 20));
+    // Upgrade the pre-existing west reflecting basin to the second fountain.
+    // Mirror the garden's east fountain proportions; retain the rill and
+    // its bridge instead of silently adding a third fountain to the plaza.
+    const westX = -18.5;
+    const westZ = 142;
+    const basinGeo = this.scope.track(new THREE.CylinderGeometry(3.1, 3.4, 0.55, 28));
     const basin = new THREE.Mesh(basinGeo, this.stoneMat);
-    basin.position.set(-15, GROUND_Y + 0.16, 145.2);
+    basin.name = 'exterior-approach-fountain-west';
+    basin.position.set(westX, GROUND_Y + 0.28, westZ);
     basin.castShadow = true;
     basin.receiveShadow = true;
     group.add(basin);
-    this.collision.addBox([-15, GROUND_Y + 0.16, 145.2], [1.85, 0.2, 1.85]);
+    this.collision.addBox([westX, GROUND_Y + 0.28, westZ], [3.4, 0.28, 3.4]);
 
     const basinWater = new THREE.Mesh(
-      this.scope.track(new THREE.CylinderGeometry(1.45, 1.45, 0.02, 20)),
+      this.scope.track(new THREE.CylinderGeometry(2.55, 2.55, 0.08, 28)),
       this.rillWaterMat,
     );
-    basinWater.position.set(-15, GROUND_Y + 0.31, 145.2);
+    basinWater.position.set(westX, GROUND_Y + 0.59, westZ);
     group.add(basinWater);
+    const fountainColumn = new THREE.Mesh(
+      this.scope.track(new THREE.CylinderGeometry(0.36, 0.58, 2.2, 12)),
+      this.stoneMat,
+    );
+    fountainColumn.position.set(westX, GROUND_Y + 1.55, westZ);
+    group.add(fountainColumn);
+    const fountainBowl = new THREE.Mesh(
+      this.scope.track(new THREE.CylinderGeometry(1.15, 0.85, 0.22, 18)),
+      this.rillWaterMat,
+    );
+    fountainBowl.position.set(westX, GROUND_Y + 2.6, westZ);
+    group.add(fountainBowl);
 
     // Accessible stone step-over bridge across the rill at pedestrian crossing (x = -5, z = 143.4)
     const bridgeGeo = this.scope.track(new THREE.BoxGeometry(2.4, 0.08, 1.8));
