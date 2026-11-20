@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 100,
+  "state_revision": 101,
   "last_updated": "2026-11-20",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -1074,6 +1074,23 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 **Continuity:** canonical Bible not written (no commit/push authority); temporary note `docs/MUSEUM_BIBLE_APPEND_2026-11-20_CONTINUITY_UPLIFT.md`. The Bible also lacks entries for merged #58–#60.
 
 **Resume here:** owner decision on committing/pushing this working tree; owner review of the stairwell and the unreachable south balcony pocket; human `?qa=1` walkthrough.
+
+### Second uplift — 40 improvements, 11 defect repairs (2026-11-20)
+
+**State:** IMPLEMENTED; integrated on `claude/new-session-wyjula` (PR #62). First uplift (#61) merged to `main` as `e85b720` and published to Pages (deploy run 44755915913, including "verify exact deployed Pages revision"); no human device QA record exists for it.
+**Ledger:** `docs/UPLIFT2_2026-11-20.md`; per-area reports `docs/uplift2/{A..E}.md`.
+
+**Verification on the integrated branch:** `npm run gate` PASS (1124/1124 tests, all validators, build, budgets, `verify:dist`); the 8 Chromium specs that failed at integration pass after the integration repairs; full-suite rerun, `verify:standalone` and PR CI are recorded on PR #62.
+
+**Integration findings:** exterior signposts imported `exhibits/Furniture`, loading the exhibit chunk during exterior cold boot (repaired); two agents built the same WebGL-loss notice (one kept, one dropped and not counted).
+
+**New invariants:**
+- Exterior modules must not import `src/exhibits/*` (cold-boot chunk isolation, `exterior-first.e2e.ts`).
+- Guide floor-line markers on the grand stairs sit on tread tops (`stairTreadTopY`).
+- The journal merges another tab's writes on save; storage write failures are surfaced through `PersistenceHealth`.
+- Hall-side and bay dressing must keep the guide's visitor spots clear (observers, plants, blades).
+
+**Resume here:** confirm PR #62 CI, merge on owner instruction, promote to Pages, human `?qa=1` walkthrough.
 
 ## Visitor experience and interpretation update
 

@@ -145,3 +145,12 @@ which Bible brainstorm items are in or out of 1.0 — all remain BRAINSTORMED an
 
 The upper floor's walkable balcony is now the north arc between the two stair heads; the south pocket of
 the ring is unreachable on foot (owner review suggested).
+
+## Second uplift — 2026-11-20 (PR #62)
+
+| Item | State | Evidence |
+|---|---|---|
+| 40 improvements across exterior, reading, wayfinding, accessibility/touch, DexGPT/persistence | IMPLEMENTED; automated + headless-browser evidence per item | `docs/UPLIFT2_2026-11-20.md` |
+| 11 defects (exterior placement, stair floor line, map marker, related-room links, settings ranges, focus, wake-lock leak, journal validation) | REPAIRED | same |
+| Human acceptance | PENDING | — |
+
