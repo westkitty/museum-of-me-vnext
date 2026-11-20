@@ -3,7 +3,7 @@ import type { CollisionWorld } from '../world/CollisionWorld';
 import { el, isActivationKey } from './dom';
 import {
   WINGS, PLACEMENTS, ROTUNDA_APOTHEM, VESTIBULE_TO, SANCTUARY_CENTER, SANCTUARY_RADIUS, LEVEL_1_Y,
-  SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_DIR, STAIRS,
+  SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_DIR, STAIRS, ENTRANCE_DOOR, PLACEMENT_BY_EXHIBIT, WING_BY_ID,
   faceDirection, place, stairArcPoint, stairLanding, type Vec3,
 } from '../world/layout';
 import { SANCTUARY_DESCRIPTION, SANCTUARY_TITLE } from '../content/sanctuaryCopy';
@@ -13,6 +13,7 @@ import type { ActiveVisitThread } from '../state/VisitThread';
 import type { VisitorPreferences } from '../state/Preferences';
 import { ISLAND_OUTLINE, LAGOON_SURFACE_OUTLINE, PATH_CENTERLINES, PIER_CENTERLINE } from '../world/exterior/IslandSiteLayout';
 import { ISLAND_LANDMARKS, MUSEUM_ENTRANCE_TARGET, planVisitorRoute, visitorRouteDistance } from '../world/visitorRoute';
+import './uplift2-C.css';
 
 const SVG = 'http://www.w3.org/2000/svg';
 /** Plan extent in metres, mapped onto the SVG viewBox. */
@@ -43,6 +44,72 @@ export interface MapVisitorMarker {
 
 export function mapLevelForY(y: number): 0 | 1 {
   return y >= LEVEL_1_Y - 2 ? 1 : 0;
+}
+
+/** Height at which a route point is drawn on the upper plan (matches `mapLevelForY`). */
+const LEVEL_SPLIT_Y = LEVEL_1_Y - 2;
+
+export interface MapRouteChange {
+  readonly at: Vec3;
+  readonly from: 0 | 1;
+  readonly to: 0 | 1;
+}
+
+export interface MapRouteView {
+  /** Polylines of the planned route that lie on this floor. */
+  readonly lines: readonly (readonly Vec3[])[];
+  /** Where the route changes floor (on a grand stair), on either plan. */
+  readonly changes: readonly MapRouteChange[];
+}
+
+/**
+ * Splits a planned visitor route (the same `planVisitorRoute` result the floor
+ * line follows) into the parts drawn on one floor plan. A stair leg is cut where
+ * it crosses the plan's floor threshold, so the ground plan shows the climb up
+ * to that point and the upper plan picks it up from there.
+ */
+export function routeForLevel(route: readonly Vec3[], level: 0 | 1): MapRouteView {
+  const lines: Vec3[][] = [];
+  const changes: MapRouteChange[] = [];
+  let current: Vec3[] | null = null;
+  for (let i = 0; i < route.length; i++) {
+    const point = route[i];
+    const here = mapLevelForY(point[1]);
+    if (i > 0) {
+      const previous = route[i - 1];
+      const before = mapLevelForY(previous[1]);
+      if (before !== here) {
+        const t = (LEVEL_SPLIT_Y - previous[1]) / (point[1] - previous[1]);
+        const cross: Vec3 = [
+          previous[0] + (point[0] - previous[0]) * t,
+          LEVEL_SPLIT_Y,
+          previous[2] + (point[2] - previous[2]) * t,
+        ];
+        if (current && before === level) current.push(cross);
+        current = null;
+        changes.push({ at: cross, from: before, to: here });
+        if (here === level) {
+          current = [cross];
+          lines.push(current);
+        }
+      }
+    }
+    if (here === level) {
+      if (!current) {
+        current = [];
+        lines.push(current);
+      }
+      current.push(point);
+    }
+  }
+  return { lines: lines.filter((line) => line.length >= 2), changes };
+}
+
+/** Floor of a guide destination: an exhibit's wing level, or the ground-floor entrance. */
+export function guideTargetLevel(id: string): 0 | 1 | null {
+  if (id === MUSEUM_ENTRANCE_TARGET) return 0;
+  const placement = PLACEMENT_BY_EXHIBIT.get(id);
+  return placement ? WING_BY_ID.get(placement.wing)?.level ?? null : null;
 }
 
 export function compassHeading(yaw: number): string {
@@ -338,6 +405,12 @@ export class MapPanel extends Panel {
         });
         const activate = (): void => this.setTarget(selected ? null : record.id);
         g.append(box);
+        // The exhibit number, readable on the plan itself rather than only in
+        // a tooltip or the accessible name; it matches the hall blade signs.
+        const number = textAt(bx, by + 1.5, record.id);
+        number.setAttribute('class', 'map__bay-number' + (this.journal.hasVisited(record.id) ? ' map__bay-number--visited' : ''));
+        number.setAttribute('aria-hidden', 'true');
+        g.append(number);
         if (prefs.showTooltips) {
           const label = svg('title');
           label.textContent = `${record.id} · ${record.title} — ${record.copy.plaque}`;
@@ -362,6 +435,9 @@ export class MapPanel extends Panel {
       plan.append(textAt(sx, sy - SANCTUARY_RADIUS - 3, SANCTUARY_TITLE));
     }
 
+    const route = this.plannedInteriorRoute();
+    this.renderRoute(plan, route);
+
     const visitorMarkers = prefs.showMapVisitors
       ? this.getVisitors().filter((visitor) => mapLevelForY(visitor.y) === this.level)
       : [];
@@ -385,7 +461,16 @@ export class MapPanel extends Panel {
     // The exterior shares X/Z with this interior plan; a marker drawn from
     // outside would claim the visitor is in a wing they are walking behind.
     const outside = this.isOutside();
-    if (!outside) {
+    if (!outside && mapLevelForY(position[1]) !== this.level) {
+      // On the other floor's plan the visitor is not here: a hollow marker
+      // says where they are, above or below, without claiming this floor.
+      const [px, py] = toSvg(position);
+      const elsewhere = svg('g', { class: 'map__you-elsewhere' });
+      const title = svg('title');
+      title.textContent = `You are on the ${mapLevelForY(position[1]) === 0 ? 'ground floor, below' : 'upper floor, above'}`;
+      elsewhere.append(title, svg('circle', { cx: px, cy: py, r: 2.6 }));
+      plan.append(elsewhere);
+    } else if (!outside) {
       const [px, py] = toSvg(position);
       const forwardX = -Math.sin(yaw);
       const forwardZ = -Math.cos(yaw);
@@ -429,7 +514,7 @@ export class MapPanel extends Panel {
       el(
         'div',
         { class: 'map__layout' },
-        el('div', {}, this.viewSwitch(), plan as unknown as Node),
+        el('div', {}, this.viewSwitch(), plan as unknown as Node, this.legend(route.length > 1, Boolean(thread))),
         el(
           'div',
           {},
@@ -439,6 +524,7 @@ export class MapPanel extends Panel {
           this.target
             ? el('p', { class: 'panel__note map__wayfinding', role: 'status', text: `Wayfinding to ${this.targetName(this.target)} · ${Math.round(this.distanceTo(this.target))} m ${outside ? 'to the entrance' : 'away'}.` })
             : el('p', { class: 'panel__note map__wayfinding', role: 'status', text: `${this.journal.visitedCount} of 35 exhibits visited. There is no score.` }),
+          this.floorNote(route),
           this.level === 0
             ? el('p', { class: 'panel__note', text: `${SANCTUARY_TITLE}. ${SANCTUARY_DESCRIPTION}` })
             : document.createTextNode(''),
@@ -474,6 +560,80 @@ export class MapPanel extends Panel {
 
   private targetName(id: string): string {
     return id === MUSEUM_ENTRANCE_TARGET ? 'the museum entrance' : EXHIBITS_BY_ID.get(id)?.title ?? id;
+  }
+
+  /**
+   * The guide route drawn on the plan. Inside, it is the route the floor line
+   * follows from where the visitor stands; outside, the interior part starts at
+   * the front door (the island view shows the path up to it).
+   */
+  private plannedInteriorRoute(): Vec3[] {
+    const target = this.target;
+    if (!target || target === MUSEUM_ENTRANCE_TARGET) return [];
+    return this.isOutside()
+      ? planVisitorRoute('interior', ENTRANCE_DOOR, target)
+      : planVisitorRoute('interior', this.getPosition(), target, this.getCollision());
+  }
+
+  private renderRoute(plan: SVGSVGElement, route: readonly Vec3[]): void {
+    if (route.length < 2) return;
+    const view = routeForLevel(route, this.level);
+    for (const line of view.lines) {
+      plan.append(svg('polyline', {
+        class: 'map__route',
+        points: line.map((p) => toSvg(p).map((v) => v.toFixed(2)).join(',')).join(' '),
+        fill: 'none',
+      }));
+    }
+    for (const change of view.changes) {
+      const [x, y] = toSvg(change.at);
+      const marker = svg('g', { class: 'map__route-change' });
+      const title = svg('title');
+      const up = change.to > change.from;
+      title.textContent = up ? 'The route climbs a grand stair to the upper floor here' : 'The route goes down a grand stair to the ground floor here';
+      marker.append(title, svg('circle', { cx: x, cy: y, r: 2.6 }));
+      const arrow = textAt(x, y + 1.6, up ? '↑' : '↓');
+      arrow.setAttribute('class', 'map__route-change-arrow');
+      marker.append(arrow);
+      plan.append(marker);
+    }
+  }
+
+  /** Says when the guide target is on the other floor, with a way to show it. */
+  private floorNote(route: readonly Vec3[]): Node {
+    const target = this.target;
+    const targetLevel = target ? guideTargetLevel(target) : null;
+    if (!target || targetLevel === null || targetLevel === this.level) return document.createTextNode('');
+    const floor = targetLevel === 1 ? 'upper floor' : 'ground floor';
+    const changes = routeForLevel(route, this.level).changes.length > 0;
+    return el('div', { class: 'map__floor-note', role: 'note' },
+      el('p', { text: `${target === MUSEUM_ENTRANCE_TARGET ? 'The entrance' : `${target} · ${this.targetName(target)}`} is on the ${floor}.${changes
+        ? ` The dashed route reaches a grand stair (marked ${targetLevel === 1 ? '↑' : '↓'}) and continues there.`
+        : ''}` }),
+      el('button', {
+        type: 'button', text: `Show the ${floor}`,
+        onclick: () => { this.level = targetLevel; this.showIsland = false; this.rerenderWithDialogFocus(); },
+      }),
+    );
+  }
+
+  /** A key for every symbol the plan uses; colour is never the only cue. */
+  private legend(hasRoute: boolean, hasThread: boolean): HTMLElement {
+    const item = (swatch: string, text: string) => el('li', {},
+      el('span', { class: `map__key map__key--${swatch}`, 'aria-hidden': 'true' }),
+      el('span', { text }),
+    );
+    return el('ul', { class: 'map__legend', 'aria-label': 'Map key' },
+      item('you', this.isOutside() ? 'You (shown on the Island view while outside)' : 'You, and the way you face'),
+      ...(!this.isOutside() && mapLevelForY(this.getPosition()[1]) !== this.level ? [item('elsewhere', 'You, on the other floor')] : []),
+      item('unvisited', 'Exhibit, not yet visited (E-number)'),
+      item('visited', 'Exhibit you have visited (filled)'),
+      item('target', 'Guide destination (bright outline)'),
+      item('route', hasRoute ? 'Planned route, as the floor line walks it' : 'Planned route (choose an exhibit)'),
+      item('change', 'Route changes floor on a grand stair'),
+      item('stair', 'Grand stair'),
+      ...(hasThread ? [item('thread', 'Visit Thread stop (numbered)')] : []),
+    );
   }
 
   private distanceTo(id: string): number {

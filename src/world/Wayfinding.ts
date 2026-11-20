@@ -1,10 +1,36 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import type { CollisionWorld } from './CollisionWorld';
-import { ENTRANCE_DOOR, type Vec3 } from './layout';
+import { ENTRANCE_DOOR, STAIRS, stairArcParameter, type Vec3 } from './layout';
 import { guideDestination, isGuideTarget, MUSEUM_ENTRANCE_TARGET, planVisitorRoute, type GuideWorld } from './visitorRoute';
 
 export { MUSEUM_ENTRANCE_TARGET } from './visitorRoute';
+
+/**
+ * Top of the visible grand-stair tread under (x, z), or null off the stairs.
+ *
+ * The route follows the stair's ramp collision, which runs along the nosings,
+ * up to one riser (about 0.42 m) below the tread a visitor actually stands on.
+ * A floor-line marker set on the ramp is buried inside the tread box, so the
+ * line used to vanish exactly where a visitor changes floor. The tread layout
+ * mirrors `Museum.buildStairs` / `GeometryKit.stair`: `collisionSegments`
+ * chords, each with `visibleSteps / collisionSegments` equal risers.
+ */
+export function stairTreadTopY(x: number, z: number, y: number): number | null {
+  for (const stair of STAIRS) {
+    if (Math.abs(Math.hypot(x, z) - stair.radius) > stair.halfWidth + 0.05) continue;
+    const t = stairArcParameter(stair, x, z);
+    if (t === null || t < 0 || t > 1) continue;
+    const rampY = stair.fromY + (stair.toY - stair.fromY) * t;
+    if (Math.abs(y - rampY) > 1.2) continue;
+    const perSegment = Math.max(1, Math.round(stair.visibleSteps / stair.collisionSegments));
+    const steps = perSegment * stair.collisionSegments;
+    const rise = (stair.toY - stair.fromY) / steps;
+    const index = Math.min(steps - 1, Math.floor(t * steps));
+    return stair.fromY + rise * (index + 1) + 0.03;
+  }
+  return null;
+}
 
 /** One walking destination persists across the exterior-to-interior handoff. */
 export class Wayfinding {
@@ -94,7 +120,10 @@ export class Wayfinding {
           continue;
         }
         const t = along / step;
-        marker.position.set(a[0] + dx * t, a[1] + (b[1] - a[1]) * t + 0.06, a[2] + dz * t);
+        const mx = a[0] + dx * t;
+        const mz = a[2] + dz * t;
+        const my = a[1] + (b[1] - a[1]) * t;
+        marker.position.set(mx, (stairTreadTopY(mx, mz, my) ?? my) + 0.06, mz);
         marker.rotation.z = -Math.atan2(dx, dz);
         marker.visible = true;
         (marker.material as THREE.MeshBasicMaterial).opacity = 0.17 + Math.sin(phase * Math.PI) * 0.39;

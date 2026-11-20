@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { PaletteSet } from './palette';
 import { architecturalStoneFinish } from './SurfaceFinish';
 import type { ResourceScope } from '../assets/ResourceScope';
-import { buildWingSign } from '../exhibits/Furniture';
+import { buildWingSign, textMaterial } from '../exhibits/Furniture';
+import { canRenderText, createFallbackTexture } from '../assets/TextTexture';
 import { buildBench } from '../assets/generators';
 import { EXHIBIT_DOORWAY_LINES } from '../content/exhibitDoorways';
 import { WINGS_BY_ID, EXHIBITS_BY_ID, COLLECTION } from '../content/collection.generated';
@@ -11,6 +12,71 @@ import {
   DOME_SPRING_Y, faceDirection, rightOf, place, VESTIBULE_TO, VESTIBULE_FROM,
   SANCTUARY_DIR, SANCTUARY_RAMP_FROM, STAIRS, stairArcPoint, stairLanding, type Vec3, type WingSpec,
 } from './layout';
+
+/**
+ * The exhibit numbers a wing holds, as a range when they run on ("E17–E23"),
+ * otherwise listed. Read from the layout's own exhibit order.
+ */
+export function wingExhibitRange(wing: WingSpec): string {
+  const numbers = wing.exhibits.map((id) => Number(id.slice(1)));
+  const contiguous = numbers.every((n, i) => i === 0 || n === numbers[i - 1] + 1);
+  if (wing.exhibits.length === 1) return wing.exhibits[0];
+  return contiguous ? `${wing.exhibits[0]}–${wing.exhibits[wing.exhibits.length - 1]}` : wing.exhibits.join(' · ');
+}
+
+/** Subtitle of a wing's threshold sign: its wing name plus what it holds. */
+export function wingThresholdSubtitle(wing: WingSpec): string {
+  const record = WINGS_BY_ID.get(wing.id);
+  const count = wing.exhibits.length;
+  return `${record?.subtitle ?? wing.id} · ${wingExhibitRange(wing)} · ${count} exhibit${count === 1 ? '' : 's'}`;
+}
+
+/**
+ * Which hand the way back lies on for a visitor stepping out of a bay into the
+ * hall. They face across the hall; the Rotunda is back along the wing axis.
+ */
+export function rotundaHandFromBay(wing: WingSpec, side: 'left' | 'right'): 'left' | 'right' {
+  const dir = faceDirection(wing.face);
+  const r = rightOf(dir);
+  const sign = side === 'right' ? 1 : -1;
+  const facing: Vec3 = [-sign * r[0], 0, -sign * r[2]];
+  const theirRight = rightOf(facing);
+  return theirRight[0] * -dir[0] + theirRight[2] * -dir[2] > 0 ? 'right' : 'left';
+}
+
+/** Copy of the way-back cue inside each bay opening, arrows on the right hands. */
+export function bayWayBackLine(wing: WingSpec, side: 'left' | 'right'): string {
+  const hand = rotundaHandFromBay(wing, side);
+  const back = wing.level === 1 ? 'Balcony & stairs down' : 'Rotunda';
+  const toward = (text: string, h: 'left' | 'right') => h === 'left' ? `← ${text}` : `${text} →`;
+  if (wing.id === 'south') {
+    // The entrance hall is the one hall with a way out at its far end.
+    const exit = hand === 'left' ? 'right' : 'left';
+    return hand === 'left' ? `${toward(back, hand)}   ·   ${toward('Exit', exit)}` : `${toward('Exit', exit)}   ·   ${toward(back, hand)}`;
+  }
+  return toward(back, hand);
+}
+
+const BLADE_CELL = [256, 128] as const;
+const BLADE_ATLAS_COLUMNS = 7;
+const BLADE_ATLAS_ROWS = Math.ceil(PLACEMENTS.length / BLADE_ATLAS_COLUMNS);
+
+/** Point a blade plane's UVs at its exhibit number's cell of the shared atlas. */
+export function bladeAtlasUv(geometry: THREE.PlaneGeometry, exhibitId: string): void {
+  const index = PLACEMENTS.findIndex((placement) => placement.exhibitId === exhibitId);
+  const column = index % BLADE_ATLAS_COLUMNS;
+  const row = Math.floor(index / BLADE_ATLAS_COLUMNS);
+  const uv = geometry.getAttribute('uv') as THREE.BufferAttribute;
+  for (let i = 0; i < uv.count; i++) {
+    uv.setXY(i, (column + uv.getX(i)) / BLADE_ATLAS_COLUMNS, 1 - (row + 1 - uv.getY(i)) / BLADE_ATLAS_ROWS);
+  }
+  uv.needsUpdate = true;
+}
+
+/** Height of a hall's projecting bay-number blade signs, above head height. */
+export const BAY_BLADE_HEIGHT = 3.9;
+/** Along-hall gap between a bay opening's Rotunda-side edge and its blade sign. */
+export const BAY_BLADE_SETBACK = 1.1;
 
 /** Side length of the octagon whose apothem is `a`. */
 const side = (a: number) => 2 * a * Math.tan(Math.PI / 8);
@@ -24,6 +90,9 @@ const side = (a: number) => 2 * a * Math.tan(Math.PI / 8);
  * by construction rather than by re-verification.
  */
 export class Detailing {
+  private readonly wayBackMaterials = new Map<string, THREE.Material>();
+  private bladeMaterial: THREE.Material | null = null;
+
   constructor(
     private readonly scope: ResourceScope,
     private readonly pal: PaletteSet,
@@ -114,7 +183,8 @@ export class Detailing {
       const wing = WINGS.find((w) => w.face === face && w.level === 0);
       if (wing) {
         const record = WINGS_BY_ID.get(wing.id)!;
-        const sign = buildWingSign(this.scope, record.name, record.subtitle);
+        const sign = buildWingSign(this.scope, record.name, wingThresholdSubtitle(wing));
+        sign.name = `wing-threshold-sign:${wing.id}`;
         sign.position.set(
           dir[0] * (ROTUNDA_APOTHEM - 0.7),
           wing.archHeight + 0.95,
@@ -249,7 +319,8 @@ export class Detailing {
       const wing = WINGS.find((w) => w.face === face && w.level === 1);
       if (wing) {
         const record = WINGS_BY_ID.get(wing.id)!;
-        const sign = buildWingSign(this.scope, record.name, record.subtitle);
+        const sign = buildWingSign(this.scope, record.name, wingThresholdSubtitle(wing));
+        sign.name = `wing-threshold-sign:${wing.id}`;
         sign.scale.setScalar(0.78);
         sign.position.set(
           dir[0] * (ROTUNDA_APOTHEM - 0.7),
@@ -399,6 +470,27 @@ export class Detailing {
       parent.add(rail);
     }
 
+    // One way-back cue per hall side, shared by every bay on that side: the
+    // copy only depends on the side, so the bays share one small texture.
+    // Wide and short, with large type: it is read from the visitor spot deep
+    // in the bay, about 8 m away.
+    const wayBackGeometry = this.scope.track(new THREE.PlaneGeometry(2.6, 0.54));
+    // Identical copy shares one material across wings, so the static merge
+    // folds every cue with the same words into one draw.
+    const wayBack = new Map<'left' | 'right', THREE.Material>();
+    for (const side of ['left', 'right'] as const) {
+      const line = bayWayBackLine(wing, side);
+      let material = this.wayBackMaterials.get(line);
+      if (!material) {
+        material = textMaterial(this.scope, [], {
+          width: 640, height: 133, title: line, titleSize: 76, fitTitle: true, align: 'center',
+          rule: false, paddingX: 18, paddingY: 12, background: '#141118', titleColor: '#e8d9b0',
+        });
+        this.wayBackMaterials.set(line, material);
+      }
+      wayBack.set(side, material);
+    }
+
     // Threshold framing and a title over every bay opening, so an exhibit can
     // be identified from the hall without walking into it.
     for (const placement of PLACEMENTS) {
@@ -413,6 +505,36 @@ export class Detailing {
       sign.rotation.y = Math.atan2(-sign_sign * r[0], -sign_sign * r[2]);
       parent.add(sign);
       this.scope.track(sign.geometry);
+
+      // A double-sided blade sign projecting from the wall just before the
+      // opening. Doorway titles face across the hall and read edge-on from
+      // along it; the blade carries the exhibit number into the long view, so
+      // the bay order (and where a numbered exhibit is) reads down the hall.
+      const bayCentre = wing.hallFrom + wing.bayLead + placement.slot * wing.bayPitch;
+      const bladeAt = place(dir, bayCentre - wing.bayOpening / 2 - BAY_BLADE_SETBACK, sign_sign * (wing.hallHalfWidth - 0.6), y);
+      const bladeGeometry = this.scope.track(new THREE.PlaneGeometry(1.0, 0.5));
+      bladeAtlasUv(bladeGeometry, record.id);
+      const bladeMaterial = this.bladeAtlasMaterial();
+      for (const face of [-1, 1] as const) {
+        const blade = new THREE.Mesh(bladeGeometry, bladeMaterial);
+        blade.name = `bay-number-blade:${record.id}`;
+        blade.position.set(bladeAt[0] + face * dir[0] * 0.012, y + BAY_BLADE_HEIGHT, bladeAt[2] + face * dir[2] * 0.012);
+        // Face each way along the hall: toward the Rotunda and away from it.
+        blade.rotation.y = Math.atan2(face * dir[0], face * dir[2]);
+        parent.add(blade);
+      }
+
+      // Inside the bay, over the opening, a cue for the visitor leaving: which
+      // way along the hall leads back to the Rotunda (and, in the entrance
+      // hall, to the exit).
+      const cue = new THREE.Mesh(wayBackGeometry, wayBack.get(placement.side)!);
+      cue.name = `bay-way-back:${record.id}`;
+      // Set toward the Rotunda side of the opening, clear of the bay's central
+      // pendant, which otherwise hides the middle of a centred sign.
+      const cueAt = place(dir, bayCentre - wing.bayOpening / 2 + 1.6, sign_sign * (wing.hallHalfWidth + 0.34), y);
+      cue.position.set(cueAt[0], y + wing.bayHeight * 0.72 + 0.45, cueAt[2]);
+      cue.rotation.y = Math.atan2(sign_sign * r[0], sign_sign * r[2]);
+      parent.add(cue);
 
       // Jambs framing the opening.
       for (const s of [-1, 1]) {
@@ -477,6 +599,41 @@ export class Detailing {
       column.position.set(columnAt[0], 4.2, columnAt[2]);
       parent.add(column);
     }
+  }
+
+  /**
+   * One shared texture holds every exhibit number, so all 70 blade faces use
+   * one material and the static merge folds them into a handful of draws.
+   */
+  private bladeAtlasMaterial(): THREE.Material {
+    if (this.bladeMaterial) return this.bladeMaterial;
+    let map: THREE.Texture;
+    if (canRenderText()) {
+      const canvas = document.createElement('canvas');
+      canvas.width = BLADE_ATLAS_COLUMNS * BLADE_CELL[0];
+      canvas.height = BLADE_ATLAS_ROWS * BLADE_CELL[1];
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('2D canvas context unavailable — cannot render museum text');
+      ctx.fillStyle = '#141118';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#e8c65a';
+      ctx.font = '600 76px Georgia, "Iowan Old Style", serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      PLACEMENTS.forEach((placement, index) => {
+        const column = index % BLADE_ATLAS_COLUMNS;
+        const row = Math.floor(index / BLADE_ATLAS_COLUMNS);
+        ctx.fillText(placement.exhibitId, (column + 0.5) * BLADE_CELL[0], (row + 0.54) * BLADE_CELL[1], BLADE_CELL[0] - 20);
+      });
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = 4;
+      map = this.scope.track(texture);
+    } else {
+      map = createFallbackTexture(this.scope);
+    }
+    this.bladeMaterial = this.scope.track(new THREE.MeshStandardMaterial({ map, roughness: 0.85, metalness: 0 }));
+    return this.bladeMaterial;
   }
 
   private accentGlow(source: THREE.Material, opacity: number): THREE.MeshBasicMaterial {

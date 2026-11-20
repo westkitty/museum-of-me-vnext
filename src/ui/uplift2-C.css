@@ -1,0 +1,106 @@
+/* Uplift 2 (C): map route preview, exhibit numbers, floor note and key. */
+
+.map__plan .map__bay-number {
+  fill: #f4ecda;
+  font-size: 4.1px;
+  font-weight: 700;
+  font-family: var(--font-ui);
+  text-anchor: middle;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: rgba(11, 10, 16, 0.85);
+  stroke-width: 0.9px;
+}
+
+.map__plan .map__route {
+  stroke: var(--gold-bright);
+  stroke-width: 2.2;
+  stroke-dasharray: 3 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.map__plan .map__route-change circle {
+  fill: #17141d;
+  stroke: var(--gold-bright);
+  stroke-width: 0.9;
+}
+
+.map__plan .map__route-change-arrow {
+  fill: var(--gold-bright);
+  font-size: 4.4px;
+  font-weight: 700;
+  font-family: var(--font-ui);
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.map__floor-note {
+  margin: 0.6rem 0;
+  padding: 0.55rem 0.75rem;
+  border-left: 3px solid var(--focus);
+  background: rgba(127, 214, 255, 0.08);
+}
+
+.map__floor-note p { margin: 0 0 0.45rem; }
+
+.map__legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 0.3rem 1rem;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.82rem;
+  color: var(--parchment-dim);
+}
+
+.map__legend li { display: flex; align-items: center; gap: 0.5rem; }
+
+.map__key {
+  flex: none;
+  display: inline-block;
+  width: 1.05rem;
+  height: 0.8rem;
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+.map__key--you { width: 0.8rem; border-radius: 50%; background: var(--gold-bright); box-shadow: 0 0 0 2px rgba(232, 198, 90, 0.4); }
+.map__key--unvisited { background: rgba(255, 255, 255, 0.1); border: 1px solid #8a6bb5; }
+.map__key--visited { background: #8a6bb5; border: 1px solid #8a6bb5; }
+.map__key--target { background: rgba(255, 255, 255, 0.1); border: 2px solid var(--focus); }
+.map__key--route { height: 0; border-top: 3px dashed var(--gold-bright); border-radius: 0; }
+.map__key--change { width: 0.8rem; border-radius: 50%; background: #17141d; border: 2px solid var(--gold-bright); }
+.map__key--stair { height: 0.5rem; background: repeating-linear-gradient(90deg, rgba(232, 220, 192, 0.55) 0 3px, transparent 3px 5px); }
+.map__key--thread { width: 0.8rem; border-radius: 50%; background: #17141d; border: 1px solid var(--gold-bright); }
+
+@media (forced-colors: active) {
+  .map__plan .map__bay-number { fill: CanvasText; stroke: Canvas; }
+  .map__plan .map__route { stroke: Highlight; }
+  .map__plan .map__route-change circle { fill: Canvas; stroke: Highlight; }
+  .map__plan .map__route-change-arrow { fill: CanvasText; }
+  .map__floor-note { border-left-color: Highlight; background: Canvas; }
+  .map__key { forced-color-adjust: none; border: 1px solid CanvasText; }
+  .map__key--route { border: 0; border-top: 3px dashed Highlight; }
+  .map__key--target { border: 2px solid Highlight; }
+  .map__key--you, .map__key--visited { background: CanvasText; }
+}
+
+@media (prefers-contrast: more) {
+  .map__plan .map__route { stroke: #fff2c4; stroke-width: 2.6; }
+  .map__plan .map__bay-number { fill: #fff; }
+}
+
+/* The visitor's position seen from the other floor's plan: hollow, dashed. */
+.map__plan .map__you-elsewhere circle {
+  fill: none;
+  stroke: var(--gold-bright);
+  stroke-width: 0.9;
+  stroke-dasharray: 1.2 0.9;
+}
+.map__key--elsewhere { width: 0.8rem; border-radius: 50%; border: 2px dashed var(--gold-bright); }
+@media (forced-colors: active) {
+  .map__plan .map__you-elsewhere circle { stroke: CanvasText; }
+}
