@@ -662,6 +662,9 @@ export class App implements LoopCallbacks {
       }
     }
 
+    // Switch worlds first: a door crossing can carry the visitor across the
+    // seam (SEAM_OFFSET_Z), and zone, culling and audio must see where they are now.
+    this.worldDirector.update(this.player.position);
     const eye = this.player.writeEyePosition(this.eyePositionScratch);
     // currentZone is spatial: culling, streaming and atmosphere key off it in
     // both worlds. What the visitor is told is decided after the world switch.
@@ -678,7 +681,6 @@ export class App implements LoopCallbacks {
     this.developmentTool?.update(dt);
     this.developerOverlay?.update();
 
-    this.worldDirector.update(this.player.position);
     this.updateLocationAnnouncement(eye, zoneChanged);
     this.secrets.update(this.isOutside ? 'exterior' : 'interior', this.player.position, this.currentZone);
 

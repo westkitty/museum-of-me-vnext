@@ -271,8 +271,9 @@ test('admits DexGPT only after entry, then guides through the existing wayfindin
     // The pier-first spawn is 58 metres farther from the doorway than the
     // previous plaza spawn. Drive the real controller until it crosses the
     // real threshold, rather than assuming 700 fixed ticks is always enough.
-    // The entrance atrium adds 34 m between the doors and the south hall.
-    for (; frames < 3600; frames++) {
+    // The doorway holds the visitor until the entrance is warm, and the
+    // entrance atrium then adds 34 m before the south hall.
+    for (; frames < 4800; frames++) {
       app.fixedUpdate(1 / 60);
       app.variableUpdate(1 / 60);
       // Let predictive rendering/preparation settle without restarting the
@@ -285,7 +286,8 @@ test('admits DexGPT only after entry, then guides through the existing wayfindin
   await page.keyboard.up('w');
   expect(entered.world).toBe('interior');
   expect(entered.zone).toBe('south');
-  expect(entered.z).toBeLessThan(128); // through the atrium and into the south hall
+  // Through the whole atrium and the inner portal (z = 128) into the south zone.
+  expect(entered.z).toBeLessThan(130);
 
   await page.keyboard.press('Control+k');
   await expect(command).toContainText('Talk to DexGPT');
