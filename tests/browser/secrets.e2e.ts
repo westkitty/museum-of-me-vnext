@@ -31,7 +31,7 @@ test('finding secrets shows a card, counts in the Journal, and is remembered', a
   // An object secret, through the same interaction surface as the exhibits.
   const stone = await page.evaluate(() => {
     const app = window.__museum!;
-    app.player.teleport([42.8, -0.5, -84], Math.atan2(1.6, 1.6));
+    app.player.teleport([55.4, -0.5, -80], Math.atan2(1.6, 1.6));
     app.player.pitch = -0.55;
     app.variableUpdate(1 / 60);
     app.render(1);

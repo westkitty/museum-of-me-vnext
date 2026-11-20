@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../../assets/ResourceScope';
 import type { CollisionWorld } from '../CollisionWorld';
-import { buildWingSign } from '../../exhibits/Furniture';
+import { canRenderText, createFallbackTexture, createTextTexture } from '../../assets/TextTexture';
 import {
   ANCIENT_TREE_CENTER, LAND_SUPPORT_Y, PATH_LOOP_LENGTH, projectOntoLoop, walkingDistancesToDoors,
 } from './IslandSiteLayout';
@@ -122,7 +122,7 @@ export class ExteriorWaymarkers {
       group.userData.subtitle = text.subtitle;
       const faces = post.doubleSided ? [0, Math.PI] : [0];
       for (const turn of faces) {
-        const blade = buildWingSign(this.scope, text.title, text.subtitle);
+        const blade = waymarkerSign(this.scope, text.title, text.subtitle);
         blade.name = `waymarker-blade:${post.id}:${turn === 0 ? 'front' : 'back'}`;
         blade.scale.setScalar(0.42);
         blade.rotation.y = turn;
@@ -137,4 +137,21 @@ export class ExteriorWaymarkers {
     }
     return this.group;
   }
+}
+
+/**
+ * The same face as the interior wing signs, built from the core text module.
+ * The exterior must not import `exhibits/Furniture`: that pulls the exhibit
+ * chunk into the cold exterior boot (see tests/browser/exterior-first.e2e.ts).
+ */
+function waymarkerSign(scope: ResourceScope, name: string, subtitle: string): THREE.Mesh {
+  const opts = {
+    width: 1080, height: 300, title: name, titleSize: 76, bodySize: 34, align: 'center' as const,
+    rule: false, padding: 22, background: '#141118', titleColor: '#e8c65a', color: '#b9b2a5',
+  };
+  const map = canRenderText() ? createTextTexture(scope, [subtitle], opts) : createFallbackTexture(scope);
+  return new THREE.Mesh(
+    scope.track(new THREE.PlaneGeometry(5.4, 1.5)),
+    scope.track(new THREE.MeshStandardMaterial({ map, roughness: 0.85, metalness: 0 })),
+  );
 }

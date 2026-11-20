@@ -288,7 +288,7 @@ test('admits DexGPT only after entry, then guides through the existing wayfindin
 
   await page.keyboard.press('Control+k');
   await expect(command).toContainText('Talk to DexGPT');
-  await command.getByRole('button', { name: 'Talk to DexGPT — Local museum guide' }).click();
+  await command.getByRole('option', { name: 'Talk to DexGPT — Local museum guide' }).click();
 
   const guide = page.getByRole('dialog', { name: 'DexGPT' });
   await expect(guide).toBeVisible();
@@ -416,7 +416,7 @@ test('replays a recent Command Palette action even when the current search no lo
   await page.keyboard.press('Control+k');
   const command = page.locator('#panel-command');
   await expect(command).toBeVisible();
-  await command.getByRole('button', { name: 'Open map — Wayfinding' }).click();
+  await command.getByRole('option', { name: 'Open map — Wayfinding' }).click();
   await expect(page.locator('#panel-map')).toBeVisible();
   await page.keyboard.press('Escape');
 
@@ -449,7 +449,8 @@ test('searches and filters the local Journal against exhibit, project, bookmark,
   await search.fill('2D Game Factory');
   await expect(journal.getByRole('status')).toContainText('1 entry shown');
   await expect(journal).toContainText('Creative Tools Studio');
-  await expect(journal).not.toContainText('BigMac Backbone / AndrewOS Control Plane');
+  // The filter governs the results grid; the wing overview below lists every room by design.
+  await expect(journal.locator('.journal-grid')).not.toContainText('BigMac Backbone / AndrewOS Control Plane');
 
   await search.fill('');
   await journal.getByRole('button', { name: 'With notes' }).click();

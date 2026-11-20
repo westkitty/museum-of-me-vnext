@@ -55,7 +55,7 @@ export function showCollectionPage(exhibitParam: string | null, unavailable = fa
   if (exhibitParam !== null) root.append(el('p', { role: 'status', text: 'This exhibit link does not match the collection. Choose an exhibit below.' }));
 
   const initialQuery = new URLSearchParams(window.location.search).get('q') ?? '';
-  const count = el('p', { class: 'collection-page__count', role: 'status', 'aria-live': 'polite' });
+  const count = el('p', { class: 'collection-page__count', 'aria-live': 'polite', 'aria-atomic': 'true' });
   const input = el('input', {
     type: 'search', id: 'collection-find', value: initialQuery, autocomplete: 'off',
     placeholder: 'Room, project, capability or repository…',

@@ -42,7 +42,7 @@ test('project searches guide to the correct exhibit and can be saved and recalle
     window.__museum?.stop();
     window.__museum?.ui.command.open();
   });
-  const command = page.getByRole('searchbox', { name: 'Search commands, exhibits, and projects' });
+  const command = page.getByRole('combobox', { name: 'Search commands, exhibits, and projects' });
   await command.fill('Large Language Launcher');
   await command.press('Enter');
   expect(await page.evaluate(() => window.__museum?.ui.map.currentTarget)).toBe('E34');
