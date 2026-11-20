@@ -41,6 +41,21 @@ const BINDINGS: Record<string, Action> = {
 /** Degrees per second when looking with the keyboard. */
 export const KEYBOARD_LOOK_SPEED = 110;
 
+/** Touch-drag pixels are amplified relative to mouse counts at default settings. */
+export const TOUCH_LOOK_BASE_GAIN = 1.6;
+
+/**
+ * Multiplier for the touch look delta. The player controller scales every
+ * look delta by the mouse sensitivity, so that is divided back out here: the
+ * visitor's touch sensitivity alone decides how far a drag turns the view.
+ * At the defaults (both 1) this is exactly the historical 1.6.
+ */
+export function touchLookGain(touchSensitivity: number, mouseSensitivity: number): number {
+  const touch = Number.isFinite(touchSensitivity) && touchSensitivity > 0 ? touchSensitivity : 1;
+  const mouse = Number.isFinite(mouseSensitivity) && mouseSensitivity > 0 ? mouseSensitivity : 1;
+  return TOUCH_LOOK_BASE_GAIN * touch / mouse;
+}
+
 /** Actions that fire once per physical key press rather than being held. */
 const EDGE_ACTIONS = new Set<Action>([
   'jump', 'interact', 'map', 'journal', 'settings', 'diagnostics', 'accessibility',

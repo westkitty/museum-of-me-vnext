@@ -1,4 +1,5 @@
 import { el, clear, trapFocus } from './dom';
+import './uplift2-D.css';
 
 /**
  * Base modal surface. Every reading panel in the museum is one of these:
@@ -21,12 +22,18 @@ export abstract class Panel {
     private title: string,
     private subtitle: string,
   ) {
-    this.titleNode = el('h2', { text: title });
-    this.subtitleNode = el('span', { class: 'panel__sub', text: subtitle });
+    // The dialog is named by its visible heading and described by its visible
+    // kicker, so assistive technology announces exactly what is on screen.
+    this.titleNode = el('h2', { id: `panel-${id}-title`, text: title });
+    this.subtitleNode = el('span', { class: 'panel__sub', id: `panel-${id}-desc`, text: subtitle });
     this.content = el('div', { class: 'panel__content' });
     this.body = el(
       'div',
-      { class: 'panel__body', role: 'dialog', 'aria-modal': 'true', 'aria-label': title, tabindex: '-1' },
+      {
+        class: 'panel__body', role: 'dialog', 'aria-modal': 'true', tabindex: '-1',
+        'aria-labelledby': `panel-${id}-title`,
+        'aria-describedby': subtitle ? `panel-${id}-desc` : undefined,
+      },
       el(
         'header',
         { class: 'panel__head' },
@@ -75,7 +82,8 @@ export abstract class Panel {
     this.root.hidden = true;
     this.releaseTrap?.();
     this.releaseTrap = null;
-    this.lastFocused?.focus?.();
+    restoreFocusAfterClose(this.lastFocused);
+    this.lastFocused = null;
     for (const fn of this.closeListeners) fn();
   }
 
@@ -90,7 +98,8 @@ export abstract class Panel {
     this.subtitle = subtitle;
     this.titleNode.textContent = title;
     this.subtitleNode.textContent = subtitle;
-    this.body.setAttribute('aria-label', title);
+    if (subtitle) this.body.setAttribute('aria-describedby', this.subtitleNode.id);
+    else this.body.removeAttribute('aria-describedby');
   }
 
   /** Rebuild the panel contents. Called on every open. */
@@ -126,4 +135,34 @@ export abstract class Panel {
   protected get subtitleText(): string {
     return this.subtitle;
   }
+}
+
+/**
+ * Return focus after a panel closes. The opener is preferred, but only while
+ * it can still take focus: a panel opened from inside another panel that then
+ * closed (Journal -> Visit Thread) or re-rendered would otherwise park focus
+ * on an element inside a hidden dialog, where screen readers lose their place
+ * and the underlying panel's focus trap no longer sees Tab. Then the topmost
+ * still-open panel takes focus; with none open, focus goes back to the page so
+ * the museum's own keys work.
+ */
+export function restoreFocusAfterClose(opener: HTMLElement | null): void {
+  if (opener && isFocusReturnable(opener)) {
+    opener.focus({ preventScroll: true });
+    if (document.activeElement === opener) return;
+  }
+  const open = [...document.querySelectorAll<HTMLElement>('.panel:not([hidden]) > .panel__body')];
+  const top = open[open.length - 1];
+  if (top) {
+    top.focus({ preventScroll: true });
+    return;
+  }
+  const active = document.activeElement;
+  if (active instanceof HTMLElement && active !== document.body) active.blur();
+}
+
+function isFocusReturnable(node: HTMLElement): boolean {
+  if (!node.isConnected || node === document.body || node === document.documentElement) return false;
+  if (node.closest('[hidden], [inert]')) return false;
+  return node.getClientRects().length > 0;
 }

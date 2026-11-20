@@ -27,7 +27,7 @@ import type { ArrivalGarden } from '../world/ArrivalGarden';
 import { canEnterArrival, sampleArrivalCamera } from '../world/ArrivalCamera';
 import { Lighting } from '../render/Lighting';
 import { AtmosphereDirector } from '../render/AtmosphereDirector';
-import { InputManager } from '../player/Input';
+import { InputManager, touchLookGain } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
 import { zoneAtXYZ, ZONE_BY_ID, isOnFlightPad, exteriorLocationLabel, EXTERIOR_PLAZA_LABEL, type ZoneId } from '../world/layout';
 import { START_POSITION } from '../world/start';
@@ -599,9 +599,11 @@ export class App implements LoopCallbacks {
       this.worldDirector.firstExteriorInteractiveMs = performance.now();
     }
     const keyboardLook = this.input.keyboardLookReusable(dt, this.preferences.mouseSensitivity);
+    // uplift2(D): touch look follows its own sensitivity setting.
+    const touchGain = touchLookGain(this.preferences.touchSensitivity, this.preferences.mouseSensitivity);
     this.player.applyLook(
-      this.input.mouseDeltaX + this.input.touchDeltaX * 1.6 + keyboardLook.dx,
-      this.input.mouseDeltaY + this.input.touchDeltaY * 1.6 + keyboardLook.dy,
+      this.input.mouseDeltaX + this.input.touchDeltaX * touchGain + keyboardLook.dx,
+      this.input.mouseDeltaY + this.input.touchDeltaY * touchGain + keyboardLook.dy,
       this.preferences.mouseSensitivity,
       this.preferences.invertY,
     );

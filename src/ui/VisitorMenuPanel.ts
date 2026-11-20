@@ -3,7 +3,7 @@ import { el } from './dom';
 
 export class VisitorMenuPanel extends Panel {
   constructor(private readonly actions: () => ReadonlyArray<{ label: string; open: () => void }>) {
-    super('visitor-menu', 'Museum', '');
+    super('visitor-menu', 'Museum', 'Visitor tools');
   }
 
   protected render(): void {

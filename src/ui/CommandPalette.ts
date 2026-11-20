@@ -19,6 +19,8 @@ export class CommandPalette extends Panel {
   private query = '';
   private selected = 0;
   private recent: Array<{ id: string; label: string; at: number }> = [];
+  /** One persistent polite status line: result count and the keys to use. */
+  private readonly status = el('p', { class: 'command-status', id: 'command-status', role: 'status', 'aria-live': 'polite' });
   constructor(
     private readonly guideTo: (exhibitId: string) => void,
     private readonly getActions: () => CommandAction[],
@@ -30,7 +32,7 @@ export class CommandPalette extends Panel {
     this.query = '';
     this.selected = 0;
     super.open();
-    queueMicrotask(() => this.body.querySelector('input')?.focus());
+    queueMicrotask(() => this.focusSearch());
   }
 
   protected render(): void {
@@ -40,10 +42,17 @@ export class CommandPalette extends Panel {
     // negative, which then never matches any row's index and desyncs Enter
     // (matches[-1] is undefined) until enough ArrowDown presses recover it.
     this.selected = Math.max(0, Math.min(this.selected, Math.max(0, matches.length - 1)));
+    // A real combobox + listbox: the search field keeps focus, the arrows move
+    // the active option, and assistive technology hears which option that is
+    // (aria-activedescendant / aria-selected) instead of a purely visual ring.
     const list = matches.map((entry, index) =>
       el('button', {
         type: 'button',
         class: 'command-result',
+        id: `command-option-${index}`,
+        role: 'option',
+        tabindex: '-1',
+        'aria-selected': index === this.selected ? 'true' : 'false',
         'data-selected': index === this.selected ? 'true' : 'false',
         text: `${entry.label} — ${entry.detail}`,
         onclick: () => this.run(index, matches),
@@ -52,28 +61,45 @@ export class CommandPalette extends Panel {
     const input = el('input', {
       type: 'search',
       id: 'command-search',
+      role: 'combobox',
       'aria-label': 'Search commands, exhibits, and projects',
+      'aria-autocomplete': 'list',
+      'aria-controls': 'command-results',
+      'aria-expanded': matches.length > 0 ? 'true' : 'false',
+      'aria-activedescendant': matches.length > 0 ? `command-option-${this.selected}` : undefined,
+      'aria-describedby': 'command-status',
       value: this.query,
       placeholder: 'Guide, journal, Starsilk, Dexter…',
-      'aria-expanded': 'true',
       oninput: (e: Event) => {
         this.query = (e.target as HTMLInputElement).value;
         this.selected = 0;
         this.render();
-        this.body.querySelector('input')?.focus();
+        this.focusSearch();
       },
       onkeydown: (e: Event) => this.onKey(e as KeyboardEvent, matches),
     });
+    this.status.textContent = commandStatusText(matches.length, this.query);
     this.setContent(
       input,
+      this.status,
       matches.length === 0 && this.query
         ? el('p', { text: `No command or collection item matches “${this.query}”. Try “guide”, “journal”, or clear the search.` })
-        : el('div', { class: 'command-results' }, ...list),
+        : el('div', { class: 'command-results', id: 'command-results', role: 'listbox', 'aria-label': 'Places and actions' }, ...list),
       el('h3', { text: 'Recent' }),
       this.recent.length
         ? el('div', {}, ...this.recent.map((item) => el('button', { type: 'button', text: item.label, onclick: () => this.runRecent(item.id) })))
         : el('p', { class: 'panel__note', text: 'No commands run in this tab yet.' }),
     );
+    this.body.querySelector<HTMLElement>(`#command-option-${this.selected}`)?.scrollIntoView?.({ block: 'nearest' });
+  }
+
+  private focusSearch(): void {
+    const input = this.body.querySelector<HTMLInputElement>('#command-search');
+    if (!input) return;
+    input.focus();
+    // Keep the caret where typing continues, not at the start of the query.
+    const end = input.value.length;
+    input.setSelectionRange?.(end, end);
   }
 
   private availableActions(): CommandAction[] {
@@ -119,11 +145,12 @@ export class CommandPalette extends Panel {
   }
 
   private onKey(event: KeyboardEvent, matches: CommandAction[]): void {
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    const next = moveCommandSelection(this.selected, event.key, matches.length);
+    if (next !== null) {
       event.preventDefault();
-      this.selected += event.key === 'ArrowDown' ? 1 : -1;
+      this.selected = next;
       this.render();
-      this.body.querySelector('input')?.focus();
+      this.focusSearch();
     }
     else if (event.key === 'Enter' && matches[this.selected]) { event.preventDefault(); this.run(this.selected, matches); }
   }
@@ -148,4 +175,28 @@ export class CommandPalette extends Panel {
     const entry = this.availableActions().find((item) => item.id === id);
     if (entry) this.execute(entry);
   }
+}
+
+/**
+ * Arrow-key movement through the results. Wraps at both ends so the last
+ * result is one key away from the first; PageUp/PageDown jump five. Returns
+ * null for keys that are not list navigation (the field keeps them).
+ */
+export function moveCommandSelection(current: number, key: string, count: number): number | null {
+  const navigation = key === 'ArrowDown' || key === 'ArrowUp' || key === 'PageDown' || key === 'PageUp';
+  if (!navigation) return null;
+  if (count <= 0) return 0;
+  const at = Math.max(0, Math.min(current, count - 1));
+  if (key === 'ArrowDown') return (at + 1) % count;
+  if (key === 'ArrowUp') return (at - 1 + count) % count;
+  if (key === 'PageDown') return Math.min(count - 1, at + 5);
+  return Math.max(0, at - 5);
+}
+
+/** The palette's status line: how many results, and how to use them. */
+export function commandStatusText(count: number, query: string): string {
+  const keys = 'Up and Down arrows choose, Enter goes, Escape closes.';
+  if (count === 0) return query.trim() ? 'No results.' : keys;
+  if (!query.trim()) return `${count} suggestions. Type to search every exhibit and project. ${keys}`;
+  return `${count} ${count === 1 ? 'result' : 'results'}. ${keys}`;
 }

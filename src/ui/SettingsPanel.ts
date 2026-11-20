@@ -16,7 +16,7 @@ export interface SettingsHandlers {
 /** The comfort settings a visitor can change here, restored together. Quality
  * goes through its own handler; the version and stored-only fields are left. */
 export const RESTORABLE_SETTINGS = [
-  'uiScale', 'highContrast', 'reducedMotion', 'fieldOfView', 'mouseSensitivity', 'invertY',
+  'uiScale', 'highContrast', 'reducedMotion', 'fieldOfView', 'mouseSensitivity', 'touchSensitivity', 'invertY',
   'masterVolume', 'ambienceVolume', 'subtitles', 'hudOpacity', 'autoPauseOnBlur', 'frameCap',
   'wakeLock', 'showMapVisitors', 'reducedTransparency', 'showTooltips', 'interfaceDensity',
 ] as const satisfies readonly (keyof VisitorPreferences)[];
@@ -25,6 +25,32 @@ type RestorableSettings = Pick<VisitorPreferences, (typeof RESTORABLE_SETTINGS)[
 
 export function pickRestorable(source: VisitorPreferences): RestorableSettings {
   return Object.fromEntries(RESTORABLE_SETTINGS.map((key) => [key, source[key]])) as RestorableSettings;
+}
+
+/**
+ * Slider bounds. They match the clamps in sanitizePreferences exactly, so the
+ * value a visitor sees on the slider is the value that survives a reload.
+ */
+export const SETTING_RANGES = {
+  uiScale: { min: 0.85, max: 1.6, step: 0.05 },
+  fieldOfView: { min: 55, max: 95, step: 1 },
+  mouseSensitivity: { min: 0.45, max: 2.25, step: 0.05 },
+  touchSensitivity: { min: 0.45, max: 2.25, step: 0.05 },
+  masterVolume: { min: 0, max: 1, step: 0.05 },
+  ambienceVolume: { min: 0, max: 1, step: 0.05 },
+  hudOpacity: { min: 0.5, max: 1, step: 0.02 },
+} as const satisfies Partial<Record<keyof VisitorPreferences, { min: number; max: number; step: number }>>;
+
+export type RangeSetting = keyof typeof SETTING_RANGES;
+
+/** Visible and spoken value of a slider, with its unit, e.g. "120%", "65°", "×1.20". */
+export function settingValueText(key: RangeSetting, value: number): string {
+  switch (key) {
+    case 'fieldOfView': return `${Math.round(value)}°`;
+    case 'mouseSensitivity':
+    case 'touchSensitivity': return `×${value.toFixed(2)}`;
+    default: return `${Math.round(value * 100)}%`;
+  }
 }
 
 export class SettingsPanel extends Panel {
@@ -46,7 +72,7 @@ export class SettingsPanel extends Panel {
         p.quality,
         (v) => this.handlers.setQuality(v as QualityTier | 'auto'),
       ),
-      this.range('Interface scale', 'Scales all museum text and panels.', p.uiScale, 0.8, 1.6, 0.05,
+      this.range('uiScale', 'Interface scale', 'Scales all museum text and panels. Long panels scroll; their Close button stays in view.', p.uiScale,
         (v) => this.handlers.update({ uiScale: v })),
       this.check('High contrast', 'Increases contrast in every reading surface.', p.highContrast,
         (v) => this.handlers.update({ highContrast: v })),
@@ -54,24 +80,26 @@ export class SettingsPanel extends Panel {
       el('h3', { text: 'Motion' }),
       this.check('Reduced motion', 'Stops exhibit animation and camera easing. Every exhibit stays fully usable — its moving parts simply hold still.', p.reducedMotion,
         (v) => this.handlers.update({ reducedMotion: v })),
-      this.range('Field of view', 'Wider views reduce motion discomfort for some visitors.', p.fieldOfView, 55, 95, 1,
+      this.range('fieldOfView', 'Field of view', 'Wider views reduce motion discomfort for some visitors. The view changes as you drag.', p.fieldOfView,
         (v) => this.handlers.update({ fieldOfView: v })),
 
       el('h3', { text: 'Looking and moving' }),
-      this.range('Mouse sensitivity', '', p.mouseSensitivity, 0.3, 2.5, 0.05,
+      this.range('mouseSensitivity', 'Mouse sensitivity', 'How far the view turns for each movement of the mouse. Q / E and Page Up / Page Down turn at a fixed speed whatever this is set to.', p.mouseSensitivity,
         (v) => this.handlers.update({ mouseSensitivity: v })),
-      this.check('Invert vertical look', '', p.invertY, (v) => this.handlers.update({ invertY: v })),
+      this.range('touchSensitivity', 'Touch look sensitivity', 'How far the view turns when you drag on the right half of a touch screen. Separate from the mouse.', p.touchSensitivity,
+        (v) => this.handlers.update({ touchSensitivity: v })),
+      this.check('Invert vertical look', 'Moving the mouse or your finger up looks down, like an aircraft stick.', p.invertY, (v) => this.handlers.update({ invertY: v })),
 
       el('h3', { text: 'Sound' }),
-      this.range('Overall volume', 'Muted by default. Raise this only when you want sound.', p.masterVolume, 0, 1, 0.05,
+      this.range('masterVolume', 'Overall volume', 'Muted by default. Raise this only when you want sound.', p.masterVolume,
         (v) => this.handlers.update({ masterVolume: v })),
-      this.range('Ambience', 'Controls the room-tone mix once Overall volume is raised.', p.ambienceVolume, 0, 1, 0.05,
+      this.range('ambienceVolume', 'Ambience', 'Controls the room-tone mix once Overall volume is raised.', p.ambienceVolume,
         (v) => this.handlers.update({ ambienceVolume: v })),
       this.check('Subtitles', 'Shows a text line for museum dialogue and audio cues.', p.subtitles,
         (v) => this.handlers.update({ subtitles: v })),
 
       el('h3', { text: 'Source comfort' }),
-      this.range('HUD opacity', 'Dims the overlay without hiding required museum text.', p.hudOpacity, 0.5, 1, 0.02,
+      this.range('hudOpacity', 'HUD opacity', 'Dims the overlay without hiding required museum text.', p.hudOpacity,
         (v) => this.handlers.update({ hudOpacity: v })),
       this.check('Pause simulation when the tab hides', 'Stops the loop on blur. Keyboard paths still work when you return.', p.autoPauseOnBlur,
         (v) => this.handlers.update({ autoPauseOnBlur: v })),
@@ -88,7 +116,7 @@ export class SettingsPanel extends Panel {
         (v) => this.handlers.update({ reducedTransparency: v })),
       this.check('Show tooltips', 'Adds hover titles to map exhibits and visitor markers; accessible names remain available either way.', p.showTooltips,
         (v) => this.handlers.update({ showTooltips: v })),
-      this.select('Interface density', '',
+      this.select('Interface density', 'Compact uses less padding around panels, leaving more room for text on small screens.',
         [['comfortable', 'Comfortable'], ['compact', 'Compact']],
         p.interfaceDensity,
         (v) => this.handlers.update({ interfaceDensity: v as VisitorPreferences['interfaceDensity'] }),
@@ -124,21 +152,29 @@ export class SettingsPanel extends Panel {
     this.render();
   }
 
-  private range(label: string, hint: string, value: number, min: number, max: number, step: number, onChange: (v: number) => void): HTMLElement {
-    const output = el('output', { text: format(value) });
+  private range(key: RangeSetting, label: string, hint: string, value: number, onChange: (v: number) => void): HTMLElement {
+    const { min, max, step } = SETTING_RANGES[key];
+    const id = `set-${key}`;
+    const hintId = `${id}-hint`;
+    const output = el('output', { for: id, text: settingValueText(key, value) });
     const input = el('input', {
-      type: 'range', min, max, step, value,
+      type: 'range', id, min, max, step, value,
       'aria-label': label,
+      'aria-valuetext': settingValueText(key, value),
+      'aria-describedby': hint ? hintId : undefined,
       oninput: (e: Event) => {
-        const v = Number((e.target as HTMLInputElement).value);
-        output.textContent = format(v);
+        const target = e.target as HTMLInputElement;
+        const v = Number(target.value);
+        const text = settingValueText(key, v);
+        output.textContent = text;
+        target.setAttribute('aria-valuetext', text);
         onChange(v);
       },
     });
     return el('div', { class: 'field' },
-      el('label', {}, `${label} `, output),
+      el('label', { for: id }, `${label} `, output),
       input,
-      hint ? el('small', { text: hint }) : el('span', {}),
+      hint ? el('small', { id: hintId, text: hint }) : el('span', {}),
     );
   }
 
@@ -147,18 +183,22 @@ export class SettingsPanel extends Panel {
     return el('div', { class: 'field field--check' },
       el('input', {
         type: 'checkbox', id, checked: value,
+        'aria-describedby': hint ? `${id}-hint` : undefined,
         onchange: (e: Event) => onChange((e.target as HTMLInputElement).checked),
       }),
       el('div', {},
         el('label', { for: id, text: label }),
-        hint ? el('small', { text: hint }) : el('span', {}),
+        hint ? el('small', { id: `${id}-hint`, text: hint }) : el('span', {}),
       ),
     );
   }
 
   private select(label: string, hint: string, options: [string, string][], value: string, onChange: (v: string) => void): HTMLElement {
+    const id = `set-${label.replace(/\W+/g, '-').toLowerCase()}`;
     const select = el('select', {
+      id,
       'aria-label': label,
+      'aria-describedby': hint ? `${id}-hint` : undefined,
       onchange: (e: Event) => onChange((e.target as HTMLSelectElement).value),
     });
     for (const [v, text] of options) {
@@ -166,10 +206,7 @@ export class SettingsPanel extends Panel {
       if (v === value) option.selected = true;
       select.append(option);
     }
-    return el('div', { class: 'field' }, el('label', { text: label }), select, hint ? el('small', { text: hint }) : el('span', {}));
+    return el('div', { class: 'field' }, el('label', { for: id, text: label }), select, hint ? el('small', { id: `${id}-hint`, text: hint }) : el('span', {}));
   }
 }
 
-function format(v: number): string {
-  return Number.isInteger(v) ? String(v) : v.toFixed(2);
-}
