@@ -20,7 +20,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  # The release gate and the browser suite run side by side. The browser suite
+  # is split by file across three runners, as in ci.yml: the same tests as one
+  # serial job (~27 min), finishing in about a third of the time. Nothing is
+  # published unless all four pass.
+  gate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,10 +37,39 @@ jobs:
         run: npm run gate
       - name: production dependency audit
         run: npm audit --omit=dev --audit-level=high
+
+  browser-shard:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        shard: [1, 2, 3]
+    name: browser (${{ matrix.shard }}/3)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Some browser cases read the production build, as in ci.yml.
+      - name: build production-style museum artifact
+        run: npm run build
       - name: install Chromium for real browser gate
         run: npx playwright install --with-deps chromium
-      - name: real browser visitor-path gate
-        run: npm run test:e2e
+      - name: real browser visitor-path gate (shard ${{ matrix.shard }}/3)
+        run: npm run test:e2e -- --shard=${{ matrix.shard }}/3
+
+  build:
+    needs: [gate, browser-shard]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - name: build GitHub Pages artifact
         env:
           VITE_PUBLIC_BASE: /museum-of-me-vnext/
