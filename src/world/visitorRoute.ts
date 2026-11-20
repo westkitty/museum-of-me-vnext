@@ -1,5 +1,5 @@
 import {
-  ENTRANCE_DOOR, GROUND_Y, LEVEL_1_Y, OCTAGON_FACES, PLAZA_DEPTH, PLAZA_HALF_WIDTH,
+  ATRIUM_DOOR, ENTRANCE_DOOR, GROUND_Y, LEVEL_1_Y, OCTAGON_FACES, PLAZA_DEPTH, PLAZA_HALF_WIDTH,
   PLACEMENT_BY_EXHIBIT, SANCTUARY_CENTER, SANCTUARY_DIR, SANCTUARY_FLOOR_Y, SANCTUARY_RAMP_FROM,
   SANCTUARY_RAMP_TO, STAIRS, WINGS, faceDirection, place, rightOf, stairArcPoint, stairArrivalFace, stairLanding, type Vec3,
 } from './layout';
@@ -163,7 +163,9 @@ for (const wing of WINGS) {
     }
   }
   hall.push(place(dir, wing.hallTo, 0, wing.floorY));
-  if (wing.id === 'south') hall.push(ENTRANCE_DOOR);
+  // The south hall runs on through the vestibule and the entrance atrium to
+  // the atrium's front door, the interior side of the exterior doors.
+  if (wing.id === 'south') hall.push(ENTRANCE_DOOR, ATRIUM_DOOR);
   inside.connect(hall);
 }
 inside.connect([
@@ -294,7 +296,8 @@ export function isGuideTarget(id: string): boolean {
 
 export function guideDestination(world: GuideWorld, id: string): Vec3 | undefined {
   if (!isGuideTarget(id)) return undefined;
-  if (world === 'exterior' || id === MUSEUM_ENTRANCE_TARGET) return ENTRANCE_DOOR;
+  if (world === 'exterior') return ENTRANCE_DOOR;
+  if (id === MUSEUM_ENTRANCE_TARGET) return ATRIUM_DOOR;
   return PLACEMENT_BY_EXHIBIT.get(id)?.doorway;
 }
 

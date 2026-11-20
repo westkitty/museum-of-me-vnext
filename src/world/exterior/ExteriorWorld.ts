@@ -9,6 +9,7 @@ import { IslandLandscape } from './IslandLandscape';
 import { ExteriorWildlife } from './ExteriorWildlife';
 import { ExteriorSignatureFeatures } from './ExteriorSignatureFeatures';
 import { ExteriorWaymarkers } from './ExteriorWaymarkers';
+import { TicketKiosk } from './TicketKiosk';
 import { addIslandSupport } from './IslandSiteLayout';
 import { START_POSITION, START_YAW } from '../start';
 import {
@@ -45,6 +46,8 @@ export class ExteriorWorld {
   readonly wildlife: ExteriorWildlife;
   readonly signatureFeatures: ExteriorSignatureFeatures;
   readonly waymarkers: ExteriorWaymarkers;
+  /** Admissions kiosk; App builds it and registers its interaction. */
+  readonly ticketKiosk: TicketKiosk;
 
   readonly spawnPosition: Vec3 = START_POSITION;
   readonly spawnYaw = START_YAW;
@@ -90,6 +93,8 @@ export class ExteriorWorld {
 
     this.waymarkers = new ExteriorWaymarkers(this.scope, this.collision);
     this.root.add(this.waymarkers.build());
+
+    this.ticketKiosk = new TicketKiosk(this.scope, this.collision);
 
     this.arrivalBeacons = new ArrivalBeacons(this.scope);
     this.root.add(this.arrivalBeacons.group);
@@ -273,6 +278,7 @@ export class ExteriorWorld {
   variableUpdate(dt: number, eye: readonly [number, number, number], _zone: ZoneId, reducedMotion = false): void {
     this.wildlife.update(dt, eye, reducedMotion);
     this.signatureFeatures.update(dt, reducedMotion);
+    this.ticketKiosk.update(dt);
   }
 
   dispose(): void {

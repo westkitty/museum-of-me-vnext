@@ -274,7 +274,29 @@ export const PORTAL_HEIGHT = 5.2;
 /** Sightline buffer behind the real 7 m exterior doorway; not a world-wide Z plane. */
 export const PORTAL_VESTIBULE_DEPTH = 6;
 export const EXTERIOR_RETURN_POSITION: Vec3 = [0, GROUND_Y, ENTRANCE_PORTAL_Z + 4]; // [0, 0, 132]
-export const INTERIOR_ENTRY_POSITION: Vec3 = [0, GROUND_Y, ENTRANCE_PORTAL_Z - 3]; // [0, 0, 125]
+
+// ── Entrance atrium (interior world only) ──────────────────────────────────
+/**
+ * The impossible reveal. Outside, the visitor walks through a 7 m doorway in a
+ * facade a few storeys tall. Inside, that same doorway is the FRONT of a grand
+ * hall far wider, deeper and taller than the facade could contain. The two
+ * worlds meet at the seam: exterior z = ENTRANCE_PORTAL_Z maps to interior
+ * z = ATRIUM_FRONT_Z (the visitor is carried SEAM_OFFSET_Z across it), and the
+ * atrium runs from there back to the old vestibule at ENTRANCE_PORTAL_Z.
+ */
+export const ATRIUM_DEPTH = 34;
+export const ATRIUM_HALF_WIDTH = 18;
+export const ATRIUM_HEIGHT = 20;
+export const ATRIUM_FRONT_Z = ENTRANCE_PORTAL_Z + ATRIUM_DEPTH; // 162, interior only
+export const SEAM_OFFSET_Z = ATRIUM_DEPTH;
+/** The atrium's own front door, inside. Walking out through it returns outside. */
+export const ATRIUM_DOOR: Vec3 = [0, GROUND_Y, ATRIUM_FRONT_Z];
+/** Width and height of the opening from the atrium into the vestibule. */
+export const ATRIUM_INNER_OPENING_WIDTH = 14;
+export const ATRIUM_INNER_OPENING_HEIGHT = 8.6;
+export const INTERIOR_ENTRY_POSITION: Vec3 = [0, GROUND_Y, ATRIUM_FRONT_Z - 3]; // [0, 0, 159]
+/** Exterior forecourt ticket kiosk, beside the approach to the doors. */
+export const TICKET_KIOSK_POSITION: Vec3 = [5.6, GROUND_Y, ENTRANCE_PORTAL_Z + 9.5];
 
 // ── Dexter Sanctuary ───────────────────────────────────────────────────────
 
@@ -580,15 +602,17 @@ export const ZONES: readonly Zone[] = [
     neighbours: ['rotunda', 'media', 'infra'],
   },
   {
-    id: 'plaza', label: 'Arrival Plaza', level: 0,
+    // Outside, the HUD names exterior places itself (exteriorLocationLabel);
+    // inside, this zone is the entrance atrium and its own front plaza.
+    id: 'plaza', label: 'Entrance Atrium', level: 0,
     shapes: [{
       kind: 'slab',
       dir: faceDirection('s'),
-      alongMin: VESTIBULE_TO + 1,
-      alongMax: VESTIBULE_TO + PLAZA_DEPTH + 12,
+      alongMin: VESTIBULE_TO + 0.5,
+      alongMax: VESTIBULE_TO + ATRIUM_DEPTH + PLAZA_DEPTH + 12,
       halfWidth: PLAZA_HALF_WIDTH + 6,
       yMin: -4,
-      yMax: 14,
+      yMax: 24,
     }],
     center: place(faceDirection('s'), VESTIBULE_TO + 10, 0, GROUND_Y),
     neighbours: ['south'],

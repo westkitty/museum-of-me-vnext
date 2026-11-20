@@ -1,36 +1,34 @@
 import { expect, test } from '@playwright/test';
 
-test('visitor enters the real museum through the cinematic arrival', async ({ page }) => {
+/**
+ * The welcome is a title over the live island, not a gate (2026-11-20): it has
+ * no "Enter the museum" button. Admission is the ticket kiosk by the doors,
+ * which also starts loading the galleries. See docs/ENTRANCE_ATRIUM_2026-11-20.md.
+ */
+
+test('visitor arrives under a non-modal welcome and can walk at once', async ({ page }) => {
   await page.goto('/', { waitUntil: 'commit' });
-  const intro = page.getByRole('dialog', { name: 'Welcome to the Museum of Me' });
+  const intro = page.getByRole('region', { name: 'Welcome to the Museum of Me' });
   await expect(intro).toBeVisible({ timeout: 30_000 });
-  // The first render may still be preparing galleries, so its button initially
-  // reads "Preparing your arrival" or "Preparing the galleries". Locate the
-  // stable real button, then verify the actual ready label and enabled state.
-  // The 15-second label-based locator was flaky under CI software WebGL even
-  // though the independently tested browser journeys completed successfully.
-  const enter = intro.locator('button');
-  await expect(enter).toHaveText('Enter the museum', { timeout: 60_000 });
-  await expect(enter).toBeEnabled();
-  // Verify the real ready introduction first; pause only continuous rendering
-  // for deterministic entry-state assertions on software-WebGL CI runners.
+  await expect(intro).toContainText('take a ticket at the kiosk');
+  await expect(page.getByRole('button', { name: /^Enter the museum$/ })).toHaveCount(0);
+  // Pause continuous rendering for deterministic state assertions on
+  // software-WebGL CI runners.
   await page.evaluate(() => window.__museum?.stop());
-  await enter.click();
-  await expect(intro).toHaveCount(0);
   const state = await page.evaluate(() => ({
-    running: Boolean(window.__museum),
     frozen: window.__museum?.player.isFrozen ?? null,
     captured: window.__museum?.input.uiCaptured,
+    ticket: window.__museum?.ticket ?? null,
   }));
-  expect(state.running).toBe(true);
-  expect(state.captured).toBe(false);
+  expect(state).toEqual({ frozen: false, captured: false, ticket: null });
+  // Nothing behind the title is made inert.
   expect(await page.evaluate(() => ['museum-canvas', 'ui-root', 'a11y-root']
     .every((id) => document.getElementById(id)?.inert === false))).toBe(true);
 });
 
-test('desktop entry never captures mouse implicitly; mouse-look remains a separate choice', async ({ page }) => {
-  // Observe the native API call without replacing its behavior. Initial entry
-  // must not request capture; otherwise software-WebGL CI can stall input.
+test('desktop arrival never captures mouse implicitly; mouse-look remains a separate choice', async ({ page }) => {
+  // Observe the native API call without replacing its behavior. Arrival must
+  // not request capture; otherwise software-WebGL CI can stall input.
   await page.addInitScript(() => {
     const stats = window as typeof window & { __pointerRequests?: number };
     stats.__pointerRequests = 0;
@@ -40,21 +38,12 @@ test('desktop entry never captures mouse implicitly; mouse-look remains a separa
       return native.call(this);
     };
   });
-  // Navigation only needs the first response. Waiting for every asset to
-  // finish can starve the browser driver under software WebGL.
   await page.goto('/', { waitUntil: 'commit' });
-  const intro = page.getByRole('dialog', { name: 'Welcome to the Museum of Me' });
+  const intro = page.getByRole('region', { name: 'Welcome to the Museum of Me' });
   await expect(intro.getByText('Six wings. Thirty-five exhibits.', { exact: false })).toBeVisible({ timeout: 30_000 });
   await expect(intro.getByText('Walk with WASD or arrow keys', { exact: false })).toBeVisible();
-  await expect(intro.getByText('After entering, select Resume mouse look', { exact: false })).toBeVisible();
-  const enter = intro.getByRole('button', { name: 'Enter the museum' });
-  await expect(enter).toBeEnabled({ timeout: 20_000 });
-  // The real app already rendered and completed its title prewarm. Prevent
-  // software-WebGL frames from starving the browser protocol while asserting
-  // DOM entry and keyboard input (the normal game loop is covered elsewhere).
+  await expect(intro.getByText('Select Resume mouse look', { exact: false })).toBeVisible();
   await page.evaluate(() => window.__museum?.stop());
-  await enter.click();
-  await expect(intro).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Resume mouse look' })).toBeVisible();
   expect(await page.evaluate(() => ({
     coarse: window.matchMedia('(pointer: coarse)').matches,
@@ -73,15 +62,13 @@ test('coarse-pointer arrival exposes touch instructions without mouse-only recov
   });
   try {
     const page = await context.newPage();
-    await page.goto('/');
-    const intro = page.getByRole('dialog', { name: 'Welcome to the Museum of Me' });
+    await page.goto('/', { waitUntil: 'commit' });
+    const intro = page.getByRole('region', { name: 'Welcome to the Museum of Me' });
     await expect(intro).toBeVisible({ timeout: 30_000 });
     await expect(intro.locator('.cinematic-arrival__orientation--touch')).toBeVisible();
+    await page.evaluate(() => window.__museum?.stop());
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    const enter = intro.getByRole('button', { name: 'Enter the museum' });
-    await expect(enter).toBeEnabled({ timeout: 20_000 });
-    await enter.tap();
-    await expect(intro).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Museum', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Resume mouse look' })).toBeHidden();
     expect(await page.evaluate(() => document.pointerLockElement)).toBeNull();
   } finally {
@@ -94,46 +81,16 @@ test('QA route bypasses the visitor title', async ({ page }) => {
   await expect(page.locator('.cinematic-arrival')).toHaveCount(0);
 });
 
-
-test('keyboard visitor can dismiss the ready introduction', async ({ page }) => {
-  await page.goto('/');
-  const intro = page.getByRole('dialog', { name: 'Welcome to the Museum of Me' });
-  // The first production visitor test already allows 30 seconds for software-WebGL
-  // initialization. The keyboard path must make the same cold-start allowance,
-  // while still requiring a real dialog and an enabled entry action.
+test('keyboard visitor can dismiss the welcome with Escape', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'commit' });
+  const intro = page.getByRole('region', { name: 'Welcome to the Museum of Me' });
   await expect(intro).toBeVisible({ timeout: 30_000 });
-  const enter = intro.getByRole('button', { name: 'Enter the museum' });
-  await expect(enter).toBeEnabled({ timeout: 15_000 });
-  const browse = intro.getByRole('link', { name: 'Browse the collection' });
-  await enter.focus();
-  await page.keyboard.press('Tab');
-  await expect(browse).toBeFocused();
-  await page.keyboard.press('Shift+Tab');
-  await expect(enter).toBeFocused();
+  await page.evaluate(() => window.__museum?.stop());
+  await expect(intro.getByRole('link', { name: 'Browse the collection' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(intro).toHaveCount(0);
-  expect(await page.evaluate(() => window.__museum?.input.uiCaptured)).toBe(false);
-});
-
-
-test('prewarming introduction owns keyboard focus before entry is enabled', async ({ page }) => {
-  await page.goto('/');
-  const intro = page.getByRole('dialog', { name: 'Welcome to the Museum of Me' });
-  await expect(intro).toBeVisible({ timeout: 30_000 });
-  const enter = intro.getByRole('button');
-  // Containment rather than brittle text-node matching under slow software WebGL.
-  await expect.poll(async () => page.evaluate(() =>
-    Boolean(document.querySelector('.cinematic-arrival')?.contains(document.activeElement)),
-  ), { timeout: 20_000 }).toBe(true);
-  expect(await page.evaluate(() => ['museum-canvas', 'ui-root', 'a11y-root']
-    .every((id) => document.getElementById(id)?.inert === true))).toBe(true);
-  if (await enter.isDisabled()) {
-    await page.keyboard.press('Tab');
-    // Browse stays available during prewarm. Enter can become enabled on the
-    // same frame as Tab, so either visitor action keeps focus inside the dialog.
-    await expect.poll(async () => page.evaluate(() => {
-      const active = document.activeElement;
-      return Boolean(active?.closest('.cinematic-arrival__actions') && ['BUTTON', 'A'].includes(active.tagName));
-    }), { timeout: 20_000 }).toBe(true);
-  }
+  expect(await page.evaluate(() => ({
+    entered: window.__museum?.arrivalEntered,
+    captured: window.__museum?.input.uiCaptured,
+  }))).toEqual({ entered: true, captured: false });
 });

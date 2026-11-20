@@ -300,6 +300,31 @@ html[data-contrast='high'] .hud__secret { background: #000; border-color: #ffdf7
   .hud__threshold, .hud__threshold button { transition: none; }
 }
 
+.hud__ticket {
+  position: absolute;
+  z-index: 2;
+  right: 1rem;
+  top: 4.2rem;
+  display: grid;
+  gap: .15rem;
+  min-width: 11.5rem;
+  padding: .7rem 1rem .75rem;
+  color: #2a2016;
+  background: #f1e7cf;
+  border: 1px dashed #8d6b3a;
+  border-radius: .25rem;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .35);
+  font: 500 .78rem/1.35 var(--font-ui);
+  animation: hud-ticket-in .6s ease-out;
+}
+.hud__ticket[hidden] { display: none; }
+.hud__ticket-eyebrow { font-size: .66rem; letter-spacing: .16em; text-transform: uppercase; color: #6b4f2a; }
+.hud__ticket-number { font: 400 1.35rem/1.1 var(--font-body); }
+.hud__ticket-status { margin-top: .2rem; color: #4b3a24; font-style: italic; }
+@keyframes hud-ticket-in { from { transform: translateY(-.8rem); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .hud__ticket { animation: none; } }
+@media (forced-colors: active) { .hud__ticket { background: Canvas; color: CanvasText; border-color: CanvasText; } }
+
 .hud__lock {
   position: absolute;
   inset: 0;

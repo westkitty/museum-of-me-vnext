@@ -234,3 +234,62 @@ describe('owner fixes 2026-11-20: sprint speed and collision during flight', () 
     expect(player.position.z).toBeGreaterThan(-96 + 0.4 - PLAYER_RADIUS);
   });
 });
+
+describe('entrance atrium (2026-11-20): larger inside, ticketed, lit on entry', () => {
+  async function walker(built: ReturnType<typeof buildMuseum>, held: string[]) {
+    const { PlayerController } = await import('../src/player/PlayerController');
+    const keys = new Set<string>(held);
+    const input = { isDown: (action: string) => keys.has(action), uiCaptured: false, touchMoveX: 0, touchMoveY: 0, on: () => () => undefined };
+    return new PlayerController(built.collision, input as never);
+  }
+
+  it('walks from the atrium front door through the inner portal into the south hall', async () => {
+    const { INTERIOR_ENTRY_POSITION } = await import('../src/world/layout');
+    const built = buildMuseum();
+    const player = await walker(built, ['forward']);
+    player.teleport(INTERIOR_ENTRY_POSITION, 0);
+    for (let i = 0; i < 60 * 20; i++) player.fixedUpdate(1 / 60);
+    expect(player.position.z).toBeLessThan(110);
+    expect(Math.abs(player.position.y - GROUND_Y)).toBeLessThan(0.05);
+  });
+
+  it('is enclosed: its side walls and fountain basins stop the visitor', async () => {
+    const { ATRIUM_HALF_WIDTH } = await import('../src/world/layout');
+    const built = buildMuseum();
+    const right = await walker(built, ['right']);
+    right.teleport([15, 0, 142], 0);
+    for (let i = 0; i < 240; i++) right.fixedUpdate(1 / 60);
+    expect(right.position.x).toBeLessThan(ATRIUM_HALF_WIDTH);
+    // Toward the middle fountain on the east side (centre x = 8.5).
+    const toFountain = await walker(built, ['right']);
+    toFountain.teleport([3, 0, 146], 0);
+    for (let i = 0; i < 240; i++) toFountain.fixedUpdate(1 / 60);
+    expect(toFountain.position.x).toBeLessThan(8.5 - 1.85);
+  });
+
+  it('guides inside to the atrium front door, and plans routes from it', async () => {
+    const { ATRIUM_DOOR, ENTRANCE_DOOR } = await import('../src/world/layout');
+    const { guideDestination, MUSEUM_ENTRANCE_TARGET } = await import('../src/world/visitorRoute');
+    expect(guideDestination('interior', MUSEUM_ENTRANCE_TARGET)).toEqual(ATRIUM_DOOR);
+    expect(guideDestination('exterior', MUSEUM_ENTRANCE_TARGET)).toEqual(ENTRANCE_DOOR);
+    const route = planVisitorRoute('interior', ATRIUM_DOOR, PLACEMENTS[0].exhibitId);
+    expect(route.length).toBeGreaterThan(2);
+  });
+
+  it('waits dark and lights up in order once the visitor steps in', () => {
+    const built = buildMuseum();
+    const runner = built.root.getObjectByName('atrium-runner') as THREE.Mesh | undefined;
+    const mat = runner?.material as THREE.MeshStandardMaterial | undefined;
+    expect(mat).toBeDefined();
+    if (!mat) return;
+    const dark = mat.color.getHSL({ h: 0, s: 0, l: 0 }).l;
+    built.museum.updateAtrium(1, false, false);
+    expect(mat.color.getHSL({ h: 0, s: 0, l: 0 }).l).toBeCloseTo(dark, 6); // not in the atrium yet
+    built.museum.updateAtrium(1, false, true);
+    expect(mat.color.getHSL({ h: 0, s: 0, l: 0 }).l).toBeCloseTo(dark, 6); // the floor lights last
+    for (let i = 0; i < 8; i++) built.museum.updateAtrium(1, false, true);
+    expect(mat.color.getHSL({ h: 0, s: 0, l: 0 }).l).toBeGreaterThan(dark * 4);
+    built.museum.resetAtrium();
+    expect(mat.color.getHSL({ h: 0, s: 0, l: 0 }).l).toBeCloseTo(dark, 6);
+  });
+});

@@ -52,7 +52,9 @@ test.describe('P2 Minimum viable impossible threshold and reversible world switc
         museumBuildCount: app.museumBuildCount, samples };
     });
     expect(entry.world).toBe('interior');
-    expect(entry.position[2]).toBeLessThan(128);
+    // The exterior door opens into the atrium's front door (interior z = 162).
+    expect(entry.position[2]).toBeGreaterThan(150);
+    expect(entry.position[2]).toBeLessThan(162.5);
     expect(entry.museumBuildCount).toBe(1);
     expect(entry.samples.some((sample) => sample.z >= 164 && sample.y < -0.4 && sample.grounded)).toBe(true);
     expect(entry.samples.some((sample) => sample.z > 158 && sample.z < 164 && sample.grounded)).toBe(true);
@@ -224,11 +226,12 @@ test.describe('P2 Minimum viable impossible threshold and reversible world switc
       app.variableUpdate(1 / 60);
     });
 
-    // Step back south out through the doorway to z = 132
+    // Step back south out through the atrium's front door (interior z = 162),
+    // which opens outside the exterior doors (z = 128)
     const exitState = await page.evaluate(() => {
       const app = window.__museum;
       if (!app) throw new Error('museum missing');
-      app.player.teleport([0, 0, 132]);
+      app.player.teleport([0, 0, 164]);
       app.fixedUpdate(1 / 60);
       app.variableUpdate(1 / 60);
 
@@ -354,7 +357,7 @@ test.describe('P2 Minimum viable impossible threshold and reversible world switc
         });
 
         // Step outside
-        app.player.teleport([0, 0, 132]);
+        app.player.teleport([0, 0, 164]);
         app.variableUpdate(1 / 60);
         results.push({
           iter: i,
@@ -433,7 +436,7 @@ test.describe('P2 Minimum viable impossible threshold and reversible world switc
       const sanctuaryZone = app.currentZone;
 
       // Now travel back to south vestibule and step outside
-      app.player.teleport([0, 0, 132]);
+      app.player.teleport([0, 0, 164]);
       app.fixedUpdate(1 / 60);
       app.variableUpdate(1 / 60);
 

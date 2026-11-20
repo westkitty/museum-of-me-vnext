@@ -23,7 +23,7 @@ test('the readable collection and exhibit links work without WebGL', async ({ pa
 
 test('the welcome links to the collection and a shared record can set a walking guide', async ({ page }) => {
   await page.goto('/', { waitUntil: 'commit' });
-  const intro = page.getByRole('dialog', { name: 'Welcome to the Museum of Me' });
+  const intro = page.getByRole('region', { name: 'Welcome to the Museum of Me' });
   await page.waitForFunction(() => Boolean(window.__museum), null, { timeout: 30_000 });
   await page.evaluate(() => window.__museum?.stop());
   await intro.getByRole('link', { name: 'Browse the collection' }).click();

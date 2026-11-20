@@ -21,6 +21,8 @@ export class HUD {
   private readonly thresholdEnter: HTMLButtonElement;
   private readonly thresholdRetry: HTMLButtonElement;
   private readonly thresholdReturn: HTMLButtonElement;
+  private readonly ticketCard: HTMLElement;
+  private readonly ticketStatus: HTMLElement;
   private thresholdFocusReturn: HTMLElement | null = null;
   private readonly hints: HTMLElement;
   private readonly lockPrompt: HTMLElement;
@@ -59,7 +61,9 @@ export class HUD {
     this.secretCard = el('div', { class: 'hud__secret', role: 'status', 'aria-live': 'polite' });
     this.thresholdStatus = el('p', { text: 'The museum entrance is ready.' });
     this.thresholdEnter = el('button', {
-      type: 'button', text: 'Enter museum', onclick: () => onEnterMuseum?.(),
+      // Admission is a ticket from the kiosk; this is the same action for
+      // visitors who prefer a button (it does not bypass the ticket).
+      type: 'button', text: 'Take a ticket', onclick: () => onEnterMuseum?.(),
     }) as HTMLButtonElement;
     this.thresholdRetry = el('button', {
       type: 'button', text: 'Reload and retry', hidden: true, onclick: () => onRetryMuseum?.(),
@@ -71,6 +75,10 @@ export class HUD {
       class: 'hud__threshold', hidden: true,
       'aria-label': 'Museum entrance',
     }, this.thresholdStatus, this.thresholdEnter, this.thresholdRetry, this.thresholdReturn);
+    this.ticketStatus = el('span', { class: 'hud__ticket-status' });
+    this.ticketCard = el('div', {
+      class: 'hud__ticket', hidden: true, role: 'status', 'aria-live': 'polite',
+    });
     this.threadStatus = el('button', {
       class: 'hud__thread', type: 'button', hidden: true,
       'aria-label': 'Open current Visit Thread', onclick: () => onOpenThread?.(),
@@ -151,6 +159,7 @@ export class HUD {
       this.subtitle,
       this.secretCard,
       this.thresholdPanel,
+      this.ticketCard,
       this.lockPrompt,
       this.resumeLook,
       this.visitorMenu,
@@ -304,7 +313,23 @@ export class HUD {
     this.secretTimer = seconds;
   }
 
-  setThresholdStatus(visible: boolean, message: string, failed = false, preparing = false): void {
+  /** The visitor's admission ticket, shown while they walk to the doors. */
+  showTicket(ticket: { readonly number: string; readonly date: string } | null, status = ''): void {
+    if (!ticket) { this.ticketCard.hidden = true; return; }
+    if (this.ticketCard.hidden || this.ticketCard.dataset.number !== ticket.number) {
+      this.ticketCard.dataset.number = ticket.number;
+      this.ticketCard.replaceChildren(
+        el('span', { class: 'hud__ticket-eyebrow', text: 'Museum of Me · Admit one' }),
+        el('strong', { class: 'hud__ticket-number', text: `No. ${ticket.number}` }),
+        el('span', { class: 'hud__ticket-date', text: ticket.date }),
+        this.ticketStatus,
+      );
+      this.ticketCard.hidden = false;
+    }
+    if (this.ticketStatus.textContent !== status) this.ticketStatus.textContent = status;
+  }
+
+  setThresholdStatus(visible: boolean, message: string, failed = false, preparing = false, needsTicket = false): void {
     const wasVisible = !this.thresholdPanel.hidden;
     const active = document.activeElement;
     if (visible && !wasVisible && active instanceof HTMLElement && !this.thresholdPanel.contains(active)) {
@@ -312,8 +337,8 @@ export class HUD {
     }
     this.thresholdPanel.hidden = !visible;
     this.thresholdStatus.textContent = message;
-    this.thresholdEnter.hidden = failed || preparing;
-    this.thresholdEnter.disabled = preparing;
+    this.thresholdEnter.hidden = failed || !needsTicket;
+    this.thresholdEnter.disabled = false;
     this.thresholdRetry.hidden = !failed;
     this.thresholdReturn.hidden = !failed && !preparing;
     this.thresholdStatus.setAttribute('role', failed ? 'alert' : 'status');
@@ -361,7 +386,8 @@ export class HUD {
 /** Which floor a zone is on, as a visitor would say it. The building has two
  * architectural levels plus the Sanctuary below the Rotunda. */
 export function floorLabelForZone(zone: ZoneId): string | null {
-  if (zone === 'plaza') return null;
+  // 'plaza' inside is the entrance atrium, on the ground floor; outside, the
+  // HUD passes an exterior label and asks for no floor.
   if (zone === 'sanctuary') return 'Lower level';
   return ZONE_BY_ID.get(zone)?.level === 1 ? 'Upper floor' : 'Ground floor';
 }

@@ -11,7 +11,20 @@
   text-align: center;
   color: #f6ebdb;
   background: linear-gradient(180deg, rgba(2,4,12,0) 0%, rgba(2,4,12,.06) 38%, rgba(3,5,13,.55) 62%, rgba(2,3,9,.88));
+  /* A title over the live island, not a modal: clicks and keys reach the world. */
+  pointer-events: none;
+  transition: opacity .7s ease;
 }
+.cinematic-arrival--leaving { opacity: 0; }
+.cinematic-arrival a { pointer-events: auto; }
+.cinematic-arrival__invitation {
+  margin: 0 auto 1rem;
+  color: #f4d1a4;
+  font: 600 .85rem/1.5 var(--font-ui);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+@media (prefers-reduced-motion: reduce) { .cinematic-arrival { transition: none; } }
 .cinematic-arrival__content { max-width: 58rem; max-height: 100%; overflow-y: auto; }
 .cinematic-arrival__eyebrow {
   font: 600 .75rem/1.6 var(--font-ui);

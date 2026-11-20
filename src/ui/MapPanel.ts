@@ -3,7 +3,7 @@ import type { CollisionWorld } from '../world/CollisionWorld';
 import { el, isActivationKey } from './dom';
 import {
   WINGS, PLACEMENTS, ROTUNDA_APOTHEM, VESTIBULE_TO, SANCTUARY_CENTER, SANCTUARY_RADIUS, LEVEL_1_Y,
-  SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_DIR, STAIRS, ENTRANCE_DOOR, PLACEMENT_BY_EXHIBIT, WING_BY_ID,
+  SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_DIR, STAIRS, ATRIUM_DOOR, ATRIUM_HALF_WIDTH, PLACEMENT_BY_EXHIBIT, WING_BY_ID,
   faceDirection, place, stairArcPoint, stairLanding, type Vec3,
 } from '../world/layout';
 import { SANCTUARY_DESCRIPTION, SANCTUARY_TITLE } from '../content/sanctuaryCopy';
@@ -17,7 +17,7 @@ import './uplift2-C.css';
 
 const SVG = 'http://www.w3.org/2000/svg';
 /** Plan extent in metres, mapped onto the SVG viewBox. */
-const EXTENT = 150;
+const EXTENT = 172; // reaches the entrance atrium's front door (z = 162)
 
 function svg<K extends keyof SVGElementTagNameMap>(
   tag: K,
@@ -374,8 +374,15 @@ export class MapPanel extends Panel {
       if (wing.id === 'south') {
         const [vx, vy] = toSvg(place(dir, VESTIBULE_TO));
         plan.append(svg('line', { x1: x2, y1: y2, x2: vx, y2: vy, stroke: colour, 'stroke-width': wing.hallHalfWidth * 2, 'stroke-opacity': '0.18' }));
-        plan.append(svg('circle', { cx: vx, cy: vy, r: 2.4, fill: '#e8c65a' }));
-        plan.append(textAt(vx, vy + 7, 'Entrance'));
+        // The entrance atrium: larger inside than the building outside holds.
+        const [ax, ay] = toSvg(ATRIUM_DOOR);
+        plan.append(svg('rect', {
+          class: 'map__atrium', x: ax - ATRIUM_HALF_WIDTH, y: vy, width: ATRIUM_HALF_WIDTH * 2, height: ay - vy,
+          fill: colour, 'fill-opacity': '0.14', stroke: colour, 'stroke-opacity': '0.4',
+        }));
+        plan.append(textAt(ax, (vy + ay) / 2, 'Atrium'));
+        plan.append(svg('circle', { cx: ax, cy: ay, r: 2.4, fill: '#e8c65a' }));
+        plan.append(textAt(ax, ay + 7, 'Entrance'));
       }
 
       const wingRecord = WINGS_BY_ID.get(wing.id);
@@ -571,7 +578,7 @@ export class MapPanel extends Panel {
     const target = this.target;
     if (!target || target === MUSEUM_ENTRANCE_TARGET) return [];
     return this.isOutside()
-      ? planVisitorRoute('interior', ENTRANCE_DOOR, target)
+      ? planVisitorRoute('interior', ATRIUM_DOOR, target)
       : planVisitorRoute('interior', this.getPosition(), target, this.getCollision());
   }
 

@@ -4,7 +4,8 @@ test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 }
 
 test('touch visitors can open museum tools and start walking guidance', async ({ page }) => {
   await page.goto('/', { waitUntil: 'commit' });
-  await page.getByRole('button', { name: 'Enter the museum', exact: true }).tap({ timeout: 60_000 });
+  // The welcome is non-modal: the museum tools are available at once.
+  await page.waitForFunction(() => Boolean(window.__museum), null, { timeout: 60_000 });
   const tools = page.getByRole('button', { name: 'Museum', exact: true });
   await expect(tools).toBeVisible();
   await page.evaluate(() => window.__museum!.stop());

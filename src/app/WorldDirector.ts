@@ -7,6 +7,8 @@ import {
   PORTAL_WIDTH,
   PORTAL_HEIGHT,
   PORTAL_VESTIBULE_DEPTH,
+  ATRIUM_FRONT_Z,
+  SEAM_OFFSET_Z,
 } from '../world/layout';
 import { PLAYER_RADIUS, PLAYER_HEIGHT } from '../player/PlayerController';
 
@@ -38,11 +40,15 @@ export function isApproachingEntrance(pos: PortalPosition): boolean {
     && pos.z <= APPROACH_START_Z;
 }
 
-/** Return must also cross the doorway; a side path is not an exit portal. */
+/**
+ * Return must also cross the doorway; a side path is not an exit portal.
+ * Interior coordinates: the way out is the atrium's front door at
+ * ATRIUM_FRONT_Z, which opens onto the exterior door at ENTRANCE_PORTAL_Z.
+ */
 export function isExitingEntrance(pos: PortalPosition): boolean {
   return insideDoorwayOpening(pos)
-    && pos.z > ENTRANCE_PORTAL_Z
-    && pos.z <= THRESHOLD_PREPARE_Z;
+    && pos.z > ATRIUM_FRONT_Z
+    && pos.z <= ATRIUM_FRONT_Z + (THRESHOLD_PREPARE_Z - ENTRANCE_PORTAL_Z);
 }
 
 export type WorldId = 'exterior' | 'interior';
@@ -138,8 +144,9 @@ export class WorldDirector {
 
         // Preparation can finish while the visitor walks around the island.
         // Only the physical doorway is allowed to trigger a world switch.
-        if (this.activeWorld === 'exterior' && isAtEntrancePortal(this.app.player.position)) {
-          this.commitToInterior();
+        if (this.activeWorld === 'exterior' && this.app.ticket
+          && isAtEntrancePortal(this.app.player.position)) {
+          this.commitToInterior(true);
         }
       } catch (err) {
         console.error('[WorldDirector] failed to prepare interior', err);
@@ -160,8 +167,14 @@ export class WorldDirector {
   /**
    * Synchronous atomic handoff to the interior world.
    * Can be called during a frame tick once interior is constructed.
+   *
+   * `viaDoor`: the visitor walked through the exterior door. The exterior
+   * door (z = ENTRANCE_PORTAL_Z) opens into the interior atrium's front door
+   * (z = ATRIUM_FRONT_Z): the atrium is longer than the building outside
+   * holds, so the visitor is carried SEAM_OFFSET_Z metres on. Programmatic
+   * callers (Workshop, tests) keep their coordinates.
    */
-  commitToInterior(): boolean {
+  commitToInterior(viaDoor = false): boolean {
     if (this.activeWorld === 'interior' || this.isCommitting) return true;
     if (this.app.renderer.isContextLost || !this.interiorConstructed || !this.app.interiorWorld
       || !this.entranceIsReady()) return false;
@@ -185,6 +198,7 @@ export class WorldDirector {
       if (this.app.player.position.y < GROUND_Y) {
         this.app.player.position.y = GROUND_Y;
       }
+      if (viaDoor) this.app.player.shift(0, 0, SEAM_OFFSET_Z);
 
       // 4. Update world mode and state
       this.activeWorld = 'interior';
@@ -204,7 +218,8 @@ export class WorldDirector {
     return this.commitToInterior();
   }
 
-  switchToExterior(): boolean {
+  /** `viaDoor`: leaving through the atrium's front door (see commitToInterior). */
+  switchToExterior(viaDoor = false): boolean {
     if (this.activeWorld === 'exterior' || this.isCommitting) return true;
     if (this.app.renderer.isContextLost) return false;
 
@@ -226,6 +241,7 @@ export class WorldDirector {
       if (this.app.player.position.y < GROUND_Y) {
         this.app.player.position.y = GROUND_Y;
       }
+      if (viaDoor) this.app.player.shift(0, 0, -SEAM_OFFSET_Z);
 
       this.activeWorld = 'exterior';
       this.transition('EXTERIOR_ACTIVE');
@@ -255,16 +271,17 @@ export class WorldDirector {
     if (inApproach && !this.thresholdPromptDismissed && this.activeWorld === 'exterior') {
       const failed = this.phase === 'PREPARATION_FAILED';
       const preparing = this.interiorImportStarted && !entranceReady && !failed;
+      const ticketed = Boolean(this.app.ticket);
       const message = failed
         ? 'The galleries could not be opened this time. The island remains available: retry, or keep exploring outside.'
-        : entranceReady
-          ? 'The doors are open. Walk on in.'
-          : this.interiorConstructed
-            ? 'Lighting the entrance hall…'
-            : this.interiorImportStarted
-              ? 'Opening the galleries…'
-              : 'You are at the museum doors. Walk in, or choose Enter museum.';
-      this.app.ui?.hud.setThresholdStatus(true, message, failed, preparing);
+        : !ticketed
+          ? 'Admission is by ticket. Take one from the kiosk beside the doors.'
+          : entranceReady
+            ? 'The doors are open. Walk on in.'
+            : this.interiorConstructed
+              ? 'Your ticket is printing… lighting the entrance hall.'
+              : 'Your ticket is printing… opening the galleries.';
+      this.app.ui?.hud.setThresholdStatus(true, message, failed, preparing && ticketed, !ticketed);
     } else if (!inApproach || this.activeWorld !== 'exterior') {
       this.app.ui?.hud.setThresholdStatus(false, '');
     }
@@ -285,14 +302,16 @@ export class WorldDirector {
         // constructed interior can still be waiting for its entrance prewarm;
         // without the hold the visitor walks past the portal window in the
         // exterior world and can never be admitted.
-        const committed = this.interiorConstructed && Boolean(this.app.interiorWorld)
-          && this.commitToInterior();
+        // Admission is by ticket: without one the doorway holds the visitor
+        // however ready the galleries are.
+        const committed = Boolean(this.app.ticket) && this.interiorConstructed
+          && Boolean(this.app.interiorWorld) && this.commitToInterior(true);
         if (!committed) {
           playerPosition.z = Math.max(ENTRANCE_PORTAL_Z + 0.05, playerPosition.z);
         }
       }
     } else if (this.activeWorld === 'interior') {
-      if (isExitingEntrance(playerPosition)) this.switchToExterior();
+      if (isExitingEntrance(playerPosition)) this.switchToExterior(true);
     }
   }
 }
