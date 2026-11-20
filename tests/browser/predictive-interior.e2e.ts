@@ -257,7 +257,7 @@ test('slow module transfer holds only the doorway seam, reports real state, and 
   expect(waiting.world).toBe('exterior');
   expect(waiting.phase).toBe('PREPARING_INTERIOR');
   expect(waiting.z).toBeGreaterThanOrEqual(128.05);
-  expect(waiting.status).toMatch(/Opening the galleries|Lighting the entrance hall/);
+  expect(waiting.status).toMatch(/Opening the galleries|Lighting the entrance hall|ticket is printing/);
   expect(waiting.ready).toBe(false);
   expect(waiting.hasFakePercent).toBe(false);
   expect(waiting.canContinueOutside).toBe(true);

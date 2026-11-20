@@ -80,11 +80,11 @@ test('side-path threshold crossing keeps the island rendered; only the actual en
       collision: app.player.collisionWorld === app.interiorWorld!.collision,
     };
 
-    app.player.teleport([20, 0, 132]);
+    app.player.teleport([20, 0, 164]);
     app.variableUpdate(1 / 60);
     const falseExit = app.activeWorld;
 
-    app.player.teleport([0, 0, 132]);
+    app.player.teleport([0, 0, 164]);
     app.variableUpdate(1 / 60);
     const returned = {
       active: app.activeWorld,
