@@ -31,7 +31,12 @@ describe('static geometry merging', () => {
     // which failed when 2026-11-21 removed source meshes (pilasters standing in
     // bay doorways, obsolete door columns, per-gap skirting pieces) while the
     // merged result stayed at 424; the absolute ceiling is the stricter guard.
-    expect(after, `merge left ${after} meshes from ${before}`).toBeLessThanOrEqual(424);
+    // The Museum Cinema (a new room, 2026-11-21) adds exactly 39, all in its own
+    // zone root, which is drawn only from the cinema, balcony and Rotunda: one
+    // merged mesh per cinema material (7 split again by the global merge grid at
+    // z = 0), the screen, beam, marquee bulbs, 3 instanced seat parts and 3
+    // invisible interaction proxies that are never drawn. 424 + 39 = 463.
+    expect(after, `merge left ${after} meshes from ${before}`).toBeLessThanOrEqual(463);
     scope.dispose();
   });
 

@@ -28,6 +28,7 @@ const LOOKS: Record<ZoneId, Atmosphere> = {
   media: atmosphere(0x473323, 70, 225, 1.0),
   infra: atmosphere(0x24372a, 65, 215, 1.01),
   sanctuary: atmosphere(0x211e24, 50, 175, 1.0),
+  cinema: atmosphere(0x0a0f1d, 80, 260, 1.0),
 };
 
 export class AtmosphereDirector {

@@ -273,27 +273,22 @@ export class GeometryKit {
     m.rotation.y = Math.atan2(-dz, dx);
     m.rotation.z = Math.atan2(toY - fromY, length);
 
-    const segments = Math.max(2, Math.ceil(length / 1.5));
-    for (let i = 0; i < segments; i++) {
-      const t0 = i / segments;
-      const t1 = (i + 1) / segments;
-      const x0 = from[0] + dx * t0;
-      const z0 = from[2] + dz * t0;
-      const x1 = from[0] + dx * t1;
-      const z1 = from[2] + dz * t1;
-      const useX = Math.abs(dx) >= Math.abs(dz);
-      const y0 = fromY + (toY - fromY) * t0;
-      const y1 = fromY + (toY - fromY) * t1;
-      const pad = halfWidth;
-      const ascending = useX ? x1 >= x0 : z1 >= z0;
-      this.collision.add({
-        kind: 'ramp',
-        minX: Math.min(x0, x1) - pad, maxX: Math.max(x0, x1) + pad,
-        minZ: Math.min(z0, z1) - pad, maxZ: Math.max(z0, z1) + pad,
-        axis: useX ? 'x' : 'z',
-        yAtMin: ascending ? y0 : y1,
-        yAtMax: ascending ? y1 : y0,
-      });
-    }
+    // One exact oriented ramp. Padded axis-aligned pieces on this diagonal
+    // overlapped, and the walker stood on the higher neighbour: up to ~0.5 m
+    // above the visible Sanctuary ramp (2026-11-21 walkthrough).
+    const ux = dx / length, uz = dz / length;
+    const halfX = length / 2;
+    const cx = (from[0] + to[0]) / 2, cz = (from[2] + to[2]) / 2;
+    const broadX = Math.abs(ux) * halfX + Math.abs(uz) * halfWidth;
+    const broadZ = Math.abs(uz) * halfX + Math.abs(ux) * halfWidth;
+    this.collision.add({
+      kind: 'ramp',
+      minX: cx - broadX, maxX: cx + broadX,
+      minZ: cz - broadZ, maxZ: cz + broadZ,
+      axis: 'x',
+      yAtMin: fromY,
+      yAtMax: toY,
+      oriented: { centerX: cx, centerZ: cz, halfX, halfZ: halfWidth, yaw: Math.atan2(-uz, ux) },
+    });
   }
 }

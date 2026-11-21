@@ -523,7 +523,7 @@ export function isOnFlightPad(x: number, z: number): boolean {
 
 // ── Zones (streaming, audio, wayfinding, the map) ──────────────────────────
 
-export type ZoneId = 'rotunda' | 'plaza' | 'sanctuary' | 'balcony' | WingId;
+export type ZoneId = 'rotunda' | 'plaza' | 'sanctuary' | 'balcony' | 'cinema' | WingId;
 
 /**
  * Zone volumes. Wings run on diagonals, so an axis-aligned box would swallow the
@@ -623,7 +623,7 @@ export const ZONES: readonly Zone[] = [
     id: 'balcony', label: 'Rotunda Balcony', level: 1,
     shapes: [{ kind: 'cylinder', c: [0, 0, 0], radius: ROTUNDA_APOTHEM + 1.5, yMin: LEVEL_1_Y - 0.5, yMax: LEVEL_1_Y + 8 }],
     center: [0, LEVEL_1_Y, ROTUNDA_APOTHEM - 3],
-    neighbours: ['rotunda', 'media', 'infra'],
+    neighbours: ['rotunda', 'media', 'infra', 'cinema'],
   },
   {
     // Outside, the HUD names exterior places itself (exteriorLocationLabel);
@@ -665,6 +665,18 @@ export const ZONES: readonly Zone[] = [
     ],
     center: SANCTUARY_CENTER,
     neighbours: ['rotunda'],
+  },
+  {
+    // The Museum Cinema (src/world/cinemaLayout.ts): lobby and auditorium over
+    // the east wing, entered from the balcony. Listed before the wings: the NE
+    // wing's zone slab is wide enough to reach across the auditorium.
+    id: 'cinema', label: 'Museum Cinema', level: 1,
+    shapes: [
+      { kind: 'box', c: [21.6, LEVEL_1_Y + 3, 0], h: [5.2, 3.6, 5.1] },
+      { kind: 'box', c: [41.85, LEVEL_1_Y + 6, 12.4], h: [17.65, 6.6, 12.4] },
+    ],
+    center: [30, LEVEL_1_Y + 0.6, 12.4],
+    neighbours: ['balcony'],
   },
   ...WINGS.map(
     (w): Zone => ({

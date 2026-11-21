@@ -1,0 +1,226 @@
+{
+  "$comment": "Museum Cinema programme. Only real, locally shipped media may be listed; every file is hash-checked by tests/cinema.test.ts. Add a film by adding an entry; the room and the player do not change.",
+  "version": 1,
+  "source": {
+    "projectId": "P039",
+    "artifact": "public/embedded/full-weasel (see docs/FULL_WEASEL_PROVENANCE.md)",
+    "license": "Unlicense / public-domain dedication stated by the canonical first-party repository.",
+    "creator": "westkitty"
+  },
+  "excluded": [
+    {
+      "file": "grok_video_2026-02-08-15-27-24.mp4",
+      "reason": "Byte-identical to grok_video_2026-02-08-15-27-23.mp4 (same SHA-256); listed once."
+    }
+  ],
+  "films": [
+    {
+      "id": "full-weasel-loop-1",
+      "title": "The Full Weasel · Background loop 1",
+      "projectId": "P039",
+      "exhibitId": "E27",
+      "description": "A green-lit disco ball over a wooden room, a \"Happy Birthday Nana Cheese\" banner and floating flecks of light.",
+      "context": "One of the animated background loops The Full Weasel plays behind its rhythm game (\"Primary animated background loop\" in the game's asset manifest). Shown here on its own, exactly as shipped.",
+      "media": {
+        "src": "embedded/full-weasel/assets/backgrounds/grok_video_2026-02-08-15-25-06.mp4",
+        "type": "video/mp4",
+        "sha256": "698258664652c80ee7e8071305d78f1cbd24b2c5d4d6ad1c0cf16411fcf57348",
+        "bytes": 5026486,
+        "width": 832,
+        "height": 1504,
+        "durationSeconds": 6.04,
+        "hasAudio": false
+      },
+      "poster": {
+        "src": "cinema/posters/grok_video_2026-02-08-15-25-06.jpg",
+        "sha256": "5a5fab3a03a2d04e7e726a209d6c4593319f2dde40afa89256e91ede743906e8",
+        "frameAtSeconds": 3
+      },
+      "captions": null,
+      "captionsNote": "No captions: the clip has no soundtrack and no speech.",
+      "sourceFile": "grok_video_2026-02-08-15-25-06.mp4 (created 15:25:06, 8 February 2026, per its filename)"
+    },
+    {
+      "id": "full-weasel-loop-2",
+      "title": "The Full Weasel · Background loop 2",
+      "projectId": "P039",
+      "exhibitId": "E27",
+      "description": "A silver disco ball in blue and violet light, balloons either side of the \"Happy Birthday Nana Cheese\" banner.",
+      "context": "One of the animated background loops The Full Weasel plays behind its rhythm game (\"Primary animated background loop\" in the game's asset manifest). Shown here on its own, exactly as shipped.",
+      "media": {
+        "src": "embedded/full-weasel/assets/backgrounds/grok_video_2026-02-08-15-25-49.mp4",
+        "type": "video/mp4",
+        "sha256": "4c235d2f685ee6e43badcfb6c7f96161d5cfd42c55ef21c7a75974988f597c76",
+        "bytes": 6010873,
+        "width": 832,
+        "height": 1504,
+        "durationSeconds": 6.04,
+        "hasAudio": false
+      },
+      "poster": {
+        "src": "cinema/posters/grok_video_2026-02-08-15-25-49.jpg",
+        "sha256": "a6797c5ebc87d6b26818a074b4e8a1f031e54640a1a9a5dc214067922fa8b25a",
+        "frameAtSeconds": 3
+      },
+      "captions": null,
+      "captionsNote": "No captions: the clip has no soundtrack and no speech.",
+      "sourceFile": "grok_video_2026-02-08-15-25-49.mp4 (created 15:25:49, 8 February 2026, per its filename)"
+    },
+    {
+      "id": "full-weasel-loop-3",
+      "title": "The Full Weasel · Background loop 3",
+      "projectId": "P039",
+      "exhibitId": "E27",
+      "description": "A brick wall hung with streamers and balloons above a wooden pallet stage, the birthday banner across it.",
+      "context": "One of the animated background loops The Full Weasel plays behind its rhythm game (\"Primary animated background loop\" in the game's asset manifest). Shown here on its own, exactly as shipped.",
+      "media": {
+        "src": "embedded/full-weasel/assets/backgrounds/grok_video_2026-02-08-15-26-44.mp4",
+        "type": "video/mp4",
+        "sha256": "c857ab396c472c3407b8d9f4d34e1be45c2865fbce77775855e31cefa3cf8daf",
+        "bytes": 2725955,
+        "width": 832,
+        "height": 1504,
+        "durationSeconds": 6.04,
+        "hasAudio": false
+      },
+      "poster": {
+        "src": "cinema/posters/grok_video_2026-02-08-15-26-44.jpg",
+        "sha256": "38de1de430965831c4be8a02dbfef1a3b83aa93bcfb19522103db261122c38b4",
+        "frameAtSeconds": 3
+      },
+      "captions": null,
+      "captionsNote": "No captions: the clip has no soundtrack and no speech.",
+      "sourceFile": "grok_video_2026-02-08-15-26-44.mp4 (created 15:26:44, 8 February 2026, per its filename)"
+    },
+    {
+      "id": "full-weasel-loop-4",
+      "title": "The Full Weasel · Background loop 4",
+      "projectId": "P039",
+      "exhibitId": "E27",
+      "description": "The brick-wall party stage again: balloons, streamers and the birthday banner over an empty pallet stage.",
+      "context": "One of the animated background loops The Full Weasel plays behind its rhythm game (\"Primary animated background loop\" in the game's asset manifest). Shown here on its own, exactly as shipped.",
+      "media": {
+        "src": "embedded/full-weasel/assets/backgrounds/grok_video_2026-02-08-15-27-23.mp4",
+        "type": "video/mp4",
+        "sha256": "f9e2eac00010c145c0e251a77d22d918c549d355be223be2c6f7ddb0831f253b",
+        "bytes": 2871495,
+        "width": 832,
+        "height": 1504,
+        "durationSeconds": 6.04,
+        "hasAudio": false
+      },
+      "poster": {
+        "src": "cinema/posters/grok_video_2026-02-08-15-27-23.jpg",
+        "sha256": "89ab21cb2fb2781c34ee700dd4fc6e24c0b4edc29fb38d769ab8183a2ee0821d",
+        "frameAtSeconds": 3
+      },
+      "captions": null,
+      "captionsNote": "No captions: the clip has no soundtrack and no speech.",
+      "sourceFile": "grok_video_2026-02-08-15-27-23.mp4 (created 15:27:23, 8 February 2026, per its filename)"
+    },
+    {
+      "id": "full-weasel-loop-5",
+      "title": "The Full Weasel · Background loop 5",
+      "projectId": "P039",
+      "exhibitId": "E27",
+      "description": "A single spotlight falls on a pallet stage with a glowing orb; the birthday banner is faint in the dark behind.",
+      "context": "One of the animated background loops The Full Weasel plays behind its rhythm game (\"Primary animated background loop\" in the game's asset manifest). Shown here on its own, exactly as shipped.",
+      "media": {
+        "src": "embedded/full-weasel/assets/backgrounds/grok_video_2026-02-08-15-28-17.mp4",
+        "type": "video/mp4",
+        "sha256": "d2e5567ee3e803b3ff4dfd55e86f016b3f942512a6a573a01897772606a11589",
+        "bytes": 973190,
+        "width": 832,
+        "height": 1504,
+        "durationSeconds": 6.04,
+        "hasAudio": false
+      },
+      "poster": {
+        "src": "cinema/posters/grok_video_2026-02-08-15-28-17.jpg",
+        "sha256": "3930908db2703eb1158319c3446163d4be184985fd2be5f3117c9eadc8a60683",
+        "frameAtSeconds": 3
+      },
+      "captions": null,
+      "captionsNote": "No captions: the clip has no soundtrack and no speech.",
+      "sourceFile": "grok_video_2026-02-08-15-28-17.mp4 (created 15:28:17, 8 February 2026, per its filename)"
+    },
+    {
+      "id": "full-weasel-loop-6",
+      "title": "The Full Weasel · Background loop 6",
+      "projectId": "P039",
+      "exhibitId": "E27",
+      "description": "A spotlight on an empty pallet stage in a dark room, the birthday banner faint above it.",
+      "context": "One of the animated background loops The Full Weasel plays behind its rhythm game (\"Primary animated background loop\" in the game's asset manifest). Shown here on its own, exactly as shipped.",
+      "media": {
+        "src": "embedded/full-weasel/assets/backgrounds/grok_video_2026-02-08-15-30-04.mp4",
+        "type": "video/mp4",
+        "sha256": "0dff3271f73c594aba251d5a0b4d6ad3add5ba696e667ff7530a0c115012d252",
+        "bytes": 1045289,
+        "width": 832,
+        "height": 1504,
+        "durationSeconds": 6.04,
+        "hasAudio": false
+      },
+      "poster": {
+        "src": "cinema/posters/grok_video_2026-02-08-15-30-04.jpg",
+        "sha256": "00798392b9e1329208d69c8e446c0db3cce366504be5deca194f03145e8c17e8",
+        "frameAtSeconds": 3
+      },
+      "captions": null,
+      "captionsNote": "No captions: the clip has no soundtrack and no speech.",
+      "sourceFile": "grok_video_2026-02-08-15-30-04.mp4 (created 15:30:04, 8 February 2026, per its filename)"
+    },
+    {
+      "id": "full-weasel-loop-7",
+      "title": "The Full Weasel · Background loop 7",
+      "projectId": "P039",
+      "exhibitId": "E27",
+      "description": "A weathered wooden wall with the birthday banner, balloons and long ribbons trailing to the floor.",
+      "context": "One of the animated background loops The Full Weasel plays behind its rhythm game (\"Primary animated background loop\" in the game's asset manifest). Shown here on its own, exactly as shipped.",
+      "media": {
+        "src": "embedded/full-weasel/assets/backgrounds/grok_video_2026-02-08-15-31-03.mp4",
+        "type": "video/mp4",
+        "sha256": "c6e8bfb522d8440ac9b3516ab530d0b06e6d015b99940d490c22d858b78bf5cf",
+        "bytes": 2307096,
+        "width": 832,
+        "height": 1504,
+        "durationSeconds": 6.04,
+        "hasAudio": false
+      },
+      "poster": {
+        "src": "cinema/posters/grok_video_2026-02-08-15-31-03.jpg",
+        "sha256": "374c8cadd61954dd029ec5e1382b82f00c0c4d1cc9dbfc42827a068a92b48fde",
+        "frameAtSeconds": 3
+      },
+      "captions": null,
+      "captionsNote": "No captions: the clip has no soundtrack and no speech.",
+      "sourceFile": "grok_video_2026-02-08-15-31-03.mp4 (created 15:31:03, 8 February 2026, per its filename)"
+    },
+    {
+      "id": "full-weasel-loop-8",
+      "title": "The Full Weasel · Background loop 8",
+      "projectId": "P039",
+      "exhibitId": "E27",
+      "description": "Balloons and long coloured ribbons in front of a wooden wall bearing the birthday banner.",
+      "context": "One of the animated background loops The Full Weasel plays behind its rhythm game (\"Primary animated background loop\" in the game's asset manifest). Shown here on its own, exactly as shipped.",
+      "media": {
+        "src": "embedded/full-weasel/assets/backgrounds/grok_video_2026-02-08-15-32-25.mp4",
+        "type": "video/mp4",
+        "sha256": "039639f29984c5e9199ee0a0c19b2ef2c2f8d7e150d260e2830e544b77e5d0ee",
+        "bytes": 2643024,
+        "width": 832,
+        "height": 1504,
+        "durationSeconds": 6.04,
+        "hasAudio": false
+      },
+      "poster": {
+        "src": "cinema/posters/grok_video_2026-02-08-15-32-25.jpg",
+        "sha256": "7a9f24f0aa5aed4fefcbd9e4f94ae40fbc672d9e6afc77f87a6322d0087db1ea",
+        "frameAtSeconds": 3
+      },
+      "captions": null,
+      "captionsNote": "No captions: the clip has no soundtrack and no speech.",
+      "sourceFile": "grok_video_2026-02-08-15-32-25.mp4 (created 15:32:25, 8 February 2026, per its filename)"
+    }
+  ]
+}

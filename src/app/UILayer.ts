@@ -17,6 +17,8 @@ import { CuratorPanel } from '../ui/CuratorPanel';
 import { StudyPanel } from '../ui/StudyPanel';
 import { CommandPalette } from '../ui/CommandPalette';
 import { FullWeaselPanel } from '../ui/FullWeaselPanel';
+import { CinemaConsole, CinemaProgrammePanel } from '../ui/CinemaPanel';
+import { CINEMA_PROGRAMME } from '../cinema/programme';
 import { MuseumGuidePanel } from '../ui/MuseumGuidePanel';
 import { VisitThreadPanel } from '../ui/VisitThreadPanel';
 import { JOURNAL_KEY } from '../state/Journal';
@@ -50,6 +52,8 @@ export class UILayer {
   readonly study: StudyPanel;
   readonly command: CommandPalette;
   readonly fullWeasel: FullWeaselPanel;
+  readonly cinemaProgramme: CinemaProgrammePanel;
+  readonly cinemaConsole: CinemaConsole;
   private hudElapsed = 1 / 30;
   private embeddedPaused = false;
   private disposing = false;
@@ -147,6 +151,21 @@ export class UILayer {
         { id: 'clear-guide', label: 'Clear guide', detail: 'Wayfinding', run: () => this.mapGuide(null) },
       ],
     );
+    this.cinemaProgramme = new CinemaProgrammePanel(
+      CINEMA_PROGRAMME,
+      (filmId) => { void app.interiorWorld?.cinema?.choose(filmId); },
+      () => app.interiorWorld?.cinema?.playback.film?.id ?? null,
+    );
+    this.cinemaConsole = new CinemaConsole({
+      programme: () => this.openCinemaProgramme(),
+      toggle: () => { void app.interiorWorld?.cinema?.playback.toggle(); },
+      restart: () => app.interiorWorld?.cinema?.playback.restart(),
+      skip: (seconds) => app.interiorWorld?.cinema?.playback.skip(seconds),
+      seek: (seconds) => app.interiorWorld?.cinema?.playback.seek(seconds),
+      captions: (on) => app.interiorWorld?.cinema?.playback.setCaptions(on),
+      sound: (on) => app.interiorWorld?.cinema?.playback.setSound(on),
+      stand: () => app.interiorWorld?.cinema?.stand(),
+    });
     this.fullWeasel = new FullWeaselPanel();
     this.unbind.push(this.fullWeasel.onClose(() => {
       if (this.disposing) return;
@@ -198,6 +217,8 @@ export class UILayer {
       this.study.root,
       this.command.root,
       this.fullWeasel.root,
+      this.cinemaProgramme.root,
+      this.cinemaConsole.root,
       this.dexgptGuide.root,
       this.visitThread.root,
     );
@@ -210,7 +231,7 @@ export class UILayer {
 
     // A panel takes over input while it is open; movement stops and the mouse
     // is released so the visitor can actually use it.
-    for (const panel of [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.dexgptGuide, this.visitThread, this.visitorMenu]) {
+    for (const panel of [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.cinemaProgramme, this.dexgptGuide, this.visitThread, this.visitorMenu]) {
       const originalOpen = panel.open.bind(panel);
       panel.open = () => {
         input.releasePointerLock();
@@ -285,6 +306,12 @@ export class UILayer {
       this.embeddedPaused = true;
       this.app.stop();
     }
+  }
+
+  /** The cinema programme: from the lobby board, a seat, or the seated controls. */
+  openCinemaProgramme(): void {
+    if (this.cinemaProgramme.isOpen) return;
+    this.cinemaProgramme.open();
   }
 
   /** Wire the development-only Workshop affordance through the HUD. */
@@ -544,7 +571,7 @@ export class UILayer {
   }
 
   private get modalPanels(): { isOpen: boolean }[] {
-    return [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.dexgptGuide, this.visitThread, this.visitorMenu];
+    return [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.cinemaProgramme, this.dexgptGuide, this.visitThread, this.visitorMenu];
   }
 
   dispose(): void {
@@ -569,6 +596,8 @@ export class UILayer {
     this.study.dispose();
     this.command.dispose();
     this.fullWeasel.dispose();
+    this.cinemaProgramme.dispose();
+    this.cinemaConsole.root.remove();
     this.dexgptGuide.dispose();
     this.visitThread.dispose();
     this.visitorMenu.dispose();

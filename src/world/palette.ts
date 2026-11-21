@@ -39,6 +39,9 @@ const HEX: Record<ZoneId | 'shell' | 'sanctuaryZone', { floor: number; wall: num
   // Local systems: moss, forest, restrained mint.
   infra:     { floor: 0x314334, wall: 0x405946, trim: 0x78a86b, ceiling: 0x202d22, accent: 0xa8d696 },
 
+  // Museum Cinema: midnight blue and bronze (its own materials live in Cinema.ts).
+  cinema:    { floor: 0x22283c, wall: 0x141a2e, trim: 0xb08a4a, ceiling: 0x0c1020, accent: 0x4f9ad0 },
+
   // Exterior stays pale so garden colour and the building silhouette dominate.
   plaza:     { floor: 0xd8d4ca, wall: 0xe4e0d7, trim: 0xb8a47a, ceiling: 0xf0ede6, accent: 0xd7bd83 },
 

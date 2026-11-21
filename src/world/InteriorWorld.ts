@@ -13,6 +13,7 @@ import { SourceInstallations, INSTALLATION_HELD_CODES } from './SourceInstallati
 import { PersistentEnvironment } from './PersistentEnvironment';
 import { EventLoopYieldBudget } from '../util/yieldToEventLoop';
 import type { App } from '../app/App';
+import { CinemaVenue } from '../cinema/CinemaVenue';
 import { ATRIUM_DEPTH, ATRIUM_FRONT_Z, ENTRANCE_PORTAL_Z, type ZoneId } from './layout';
 
 /**
@@ -40,6 +41,8 @@ export class InteriorWorld {
   supplementary!: SupplementaryCases;
   sourceInstallations!: SourceInstallations;
   persistentEnvironment!: PersistentEnvironment;
+  /** The Museum Cinema's runtime (seats, programme, house lights, playback). */
+  cinema: CinemaVenue | null = null;
 
   private lightingResidencyRevision = -1;
 
@@ -60,6 +63,21 @@ export class InteriorWorld {
     }
     this.root.add(this.built.root);
     await yieldBudget.checkpoint();
+
+    if (this.museum.cinema) {
+      const app = this.app;
+      this.cinema = this.measureBuildStage('cinema-venue', () => new CinemaVenue({
+        interaction: app.interaction,
+        player: app.player,
+        input: app.input,
+        reducedMotion: () => app.preferences.reducedMotion
+          || Boolean(typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches),
+        announce: (message) => { app.ui?.hud.announce(message); app.ui?.mirror.announce(message); },
+        openProgramme: () => app.ui?.openCinemaProgramme(),
+        get console() { return app.ui?.cinemaConsole ?? null; },
+        filmUnavailable: (id, reason) => app.ui?.cinemaProgramme.markUnavailable(id, reason),
+      }, this.museum.cinema!));
+    }
 
     this.sanctuary = this.measureBuildStage('sanctuary', () => new DexterSanctuary(this.scope));
     this.root.add(this.sanctuary.group);
@@ -166,6 +184,8 @@ export class InteriorWorld {
     this.root.add(envGroup);
 
     this.app.input.setCodeCapture((code, down, repeat) => {
+      // Seated in the cinema, its playback keys come first (never while walking).
+      if (this.cinema?.handleKey(code, down, repeat)) return true;
       const active = this.sourceInstallations.activeId;
       if (!active) return false;
       if (code === 'Escape') {
@@ -214,6 +234,8 @@ export class InteriorWorld {
     this.runtimeState = active ? 'active' : 'retained';
     // Leaving the museum returns the atrium to darkness for the next entry.
     if (!active) this.museum?.resetAtrium();
+    // Leaving the interior ends any screening and frees its media.
+    if (!active) this.cinema?.leave();
     this.streaming?.setWorldActive(active);
   }
 
@@ -285,6 +307,7 @@ export class InteriorWorld {
     );
     this.persistentEnvironment.updateVisibility(zone, deep, this.museum.visibleWingIds);
     this.streaming.evaluate(eye, dt, zone);
+    this.cinema?.update(dt, zone, this.museum.zoneGroups.get('cinema')?.visible ?? false);
 
     if (this.lightingResidencyRevision !== this.streaming.residencyRevision) {
       this.lightingResidencyRevision = this.streaming.residencyRevision;
@@ -296,6 +319,8 @@ export class InteriorWorld {
   }
 
   dispose(): void {
+    this.cinema?.dispose();
+    this.cinema = null;
     this.streaming?.dispose();
     this.sourceInstallations?.dispose();
     this.scope.dispose();

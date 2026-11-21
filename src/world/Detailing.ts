@@ -346,7 +346,7 @@ export class Detailing {
    * wall, clear of the treads and of every walking line.
    */
   private stairSigns(parent: THREE.Group, level: 0 | 1): void {
-    const upper = WINGS.filter((wing) => wing.level === 1).map((wing) => WINGS_BY_ID.get(wing.id)?.name ?? wing.id);
+    const upper = [...WINGS.filter((wing) => wing.level === 1).map((wing) => WINGS_BY_ID.get(wing.id)?.name ?? wing.id), 'Museum Cinema'];
     for (const stair of STAIRS) {
       const point = level === 0 ? stairArcPoint(stair, 0.04) : stairLanding(stair, 1.6);
       const angle = Math.atan2(point[2], point[0]);

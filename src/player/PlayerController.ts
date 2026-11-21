@@ -19,6 +19,8 @@ export const RUN_SPEED = 15.5;
 export const WATER_WALK_FACTOR = 0.62;
 export const WATER_RUN_FACTOR = 0.62 * 1.35;
 export const WATER_EASE_SECONDS = 0.45;
+/** Thickness a flying visitor treats beneath any floor or ramp surface. */
+export const FLIGHT_SLAB_DEPTH = 0.6;
 export const JUMP_SPEED = 7.2;
 const ACCEL = 34;
 const FRICTION = 14;
@@ -145,6 +147,7 @@ export class PlayerController {
   teleport(p: Vec3, yaw = this.yaw): void {
     this.water = 0;
     this.waterTarget = 0;
+    this.seat = null;
     this.position.set(p[0], p[1], p[2]);
     this.prevPosition.copy(this.position);
     this.velocity.set(0, 0, 0);
@@ -172,6 +175,56 @@ export class PlayerController {
     this.velocity.set(0, 0, 0);
     this.jumpQueued = false;
     return () => { this.freezeOwners.delete(owner); };
+  }
+
+  /**
+   * Seated viewing (the cinema). Movement and gravity stop and the eye drops
+   * to `eyeHeight`; looking around stays free. `stand()` puts the visitor back
+   * exactly where they stood before sitting, so sitting never moves their
+   * walking position. Not a freeze: panels and scripted moves still freeze on
+   * top of it, and a seat never blocks them.
+   */
+  private seat: { eyeHeight: number; returnTo: THREE.Vector3 } | null = null;
+
+  get isSeated(): boolean {
+    return this.seat !== null;
+  }
+
+  get seatedEyeHeight(): number | null {
+    return this.seat?.eyeHeight ?? null;
+  }
+
+  sit(feet: Vec3, yaw: number, eyeHeight: number): boolean {
+    if (this.flightMode || this.isFrozen) return false;
+    const returnTo = this.seat?.returnTo ?? this.position.clone();
+    this.position.set(feet[0], feet[1], feet[2]);
+    this.prevPosition.copy(this.position);
+    this.velocity.set(0, 0, 0);
+    this.yaw = yaw;
+    this.prevYaw.v = yaw;
+    this.pitch = 0;
+    this.prevPitch.v = 0;
+    this.jumpQueued = false;
+    this.eyeLag = 0;
+    this.prevEyeLag = 0;
+    this.seat = { eyeHeight, returnTo };
+    return true;
+  }
+
+  /** Leave the seat. Returns false when not seated. */
+  stand(): boolean {
+    if (!this.seat) return false;
+    this.position.copy(this.seat.returnTo);
+    this.prevPosition.copy(this.position);
+    this.velocity.set(0, 0, 0);
+    this.jumpQueued = false;
+    this.seat = null;
+    this.grounded = true;
+    return true;
+  }
+
+  private get eyeHeight(): number {
+    return this.seat?.eyeHeight ?? EYE_HEIGHT;
   }
 
   /** Entered from the flight pad while grounded. Gravity and walls let go,
@@ -239,7 +292,7 @@ export class PlayerController {
     this.prevYaw.v = this.yaw;
     this.prevPitch.v = this.pitch;
     this.prevEyeLag = this.eyeLag;
-    if (this.isFrozen) return;
+    if (this.isFrozen || this.seat) return;
     if (this.flightMode) {
       this.eyeLag = 0;
       this.fixedUpdateFlight(dt);
@@ -431,6 +484,7 @@ export class PlayerController {
       this.position.y = Math.max(ceiling - PLAYER_HEIGHT, this.prevPosition.y);
       this.launchVelocityY = 0;
     }
+    this.resolveFlightSlabs();
     this.world.resolveHorizontal(this.position, PLAYER_RADIUS, PLAYER_HEIGHT);
 
     // Landing ends flight. A margin above the last known support means
@@ -447,12 +501,43 @@ export class PlayerController {
     }
   }
 
+  /**
+   * Floors and ramps are solid slabs to a flying visitor, not just surfaces
+   * to land on. Rising from below, the head stops under a slab's underside
+   * (FLIGHT_SLAB_DEPTH below its top); moving sideways into a slab's thickness
+   * is refused. Without this the visitor flew up through the balcony ring and
+   * other slabs with the camera inside them, and out of the building
+   * (2026-11-21 walkthrough). Open stair wells (masked floors) stay open.
+   */
+  private resolveFlightSlabs(): void {
+    const p = this.position;
+    const prev = this.prevPosition;
+    // A slab whose top is above the visitor's feet and whose underside is
+    // below the top of their head overlaps the capsule.
+    const overlapping = (x: number, z: number, y: number) =>
+      this.world.walkableSurfaceBetween(x, z, y + 0.05, y + PLAYER_HEIGHT + FLIGHT_SLAB_DEPTH);
+    const slab = overlapping(p.x, p.z, p.y);
+    if (slab === null) return;
+    const wasBelow = prev.y + PLAYER_HEIGHT <= slab - FLIGHT_SLAB_DEPTH + 1e-6;
+    if (wasBelow) {
+      // Rising into the underside: stop with the head just beneath it.
+      p.y = Math.min(p.y, slab - FLIGHT_SLAB_DEPTH - PLAYER_HEIGHT);
+      this.launchVelocityY = 0;
+      if (overlapping(p.x, p.z, p.y) === null) return;
+    }
+    // Sideways into a slab's thickness: refuse the horizontal move.
+    if (overlapping(prev.x, prev.z, p.y) === null) {
+      p.x = prev.x;
+      p.z = prev.z;
+    }
+  }
+
   /** Write the interpolated eye transform into the camera. */
   applyToCamera(camera: THREE.PerspectiveCamera, alpha: number): void {
     const x = lerp(this.prevPosition.x, this.position.x, alpha);
     const y = lerp(this.prevPosition.y - this.prevEyeLag, this.position.y - this.eyeLag, alpha);
     const z = lerp(this.prevPosition.z, this.position.z, alpha);
-    camera.position.set(x, y + EYE_HEIGHT, z);
+    camera.position.set(x, y + this.eyeHeight, z);
     camera.rotation.order = 'YXZ';
     camera.rotation.y = this.yaw;
     camera.rotation.x = this.pitch;
@@ -461,13 +546,13 @@ export class PlayerController {
 
   /** Eye-position snapshot for ordinary callers. */
   get eyePosition(): Vec3 {
-    return [this.position.x, this.position.y + EYE_HEIGHT, this.position.z];
+    return [this.position.x, this.position.y + this.eyeHeight, this.position.z];
   }
 
   /** Write eye position into caller-owned scratch storage for hot paths. */
   writeEyePosition(out: [number, number, number]): Vec3 {
     out[0] = this.position.x;
-    out[1] = this.position.y + EYE_HEIGHT;
+    out[1] = this.position.y + this.eyeHeight;
     out[2] = this.position.z;
     return out;
   }
