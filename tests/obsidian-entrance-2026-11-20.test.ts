@@ -54,6 +54,17 @@ describe('obsidian spherical entrance: real passage, two-way and light', () => {
     expect(names).toContain('obsidian-circulation-arc-east');
     expect([...Array(32).keys()].filter(isSphereWallSector).length).toBeGreaterThan(16);
 
+    const wallBatch = entrance.group.getObjectByName('obsidian-sphere-curved-wall-batch') as THREE.InstancedMesh;
+    expect(wallBatch.isInstancedMesh).toBe(true);
+    expect(wallBatch.count).toBe([...Array(32).keys()].filter(isSphereWallSector).length);
+    expect(entrance.group.getObjectByName('obsidian-sphere-meridian-batch')).toBeDefined();
+    expect(entrance.group.getObjectByName('obsidian-open-sky-oculus')).toBeDefined();
+    // One batched wall draw and one merged meridian draw keep the actual
+    // shadowless sphere affordable; do not reintroduce 46 individual meshes.
+    let meshes = 0;
+    entrance.group.traverse((node) => { if ((node as THREE.Mesh).isMesh) meshes++; });
+    expect(meshes).toBeLessThanOrEqual(20);
+
     const inside = { x: 0, y: 0, z: OBSIDIAN_SPHERE_CENTER_Z };
     expect(collision.resolveHorizontal(inside, PLAYER_RADIUS, PLAYER_HEIGHT)).toBe(true);
     expect(Math.hypot(inside.x, inside.z - OBSIDIAN_SPHERE_CENTER_Z)).toBeGreaterThan(2.9);
@@ -101,6 +112,21 @@ describe('obsidian spherical entrance: real passage, two-way and light', () => {
     expect((ring.material as THREE.MeshBasicMaterial).opacity).toBeGreaterThan(before);
     entrance.update(1 / 60, [0, 0, 135], true);
     expect((ring.material as THREE.MeshBasicMaterial).opacity).toBeCloseTo(0.04 + 0.52 * 0.62);
+    const vaults = [1, 2, 3].map((number) => entrance.group.getObjectByName(
+      'obsidian-reveal-vault-' + number,
+    ) as THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>);
+    expect(vaults.every(Boolean)).toBe(true);
+    const opacity = (index: number) => vaults[index].material.opacity;
+    // The first arch responds before the two inner arches, so the route
+    // emerges through walking rather than a simultaneous flashing effect.
+    entrance.update(1 / 60, [0, 0, 145], false);
+    expect(opacity(0)).toBeGreaterThan(opacity(1));
+    expect(opacity(1)).toBeCloseTo(opacity(2), 5);
+    for (let t = 0; t < 120; t++) entrance.update(1 / 60, [0, 0, 130], false);
+    expect(opacity(2)).toBeGreaterThan(0.1);
+    entrance.update(1 / 60, [0, 0, 140], true);
+    expect(opacity(0)).toBeCloseTo(opacity(1));
+    expect(opacity(1)).toBeCloseTo(opacity(2));
     scope.dispose();
   });
 });
