@@ -295,8 +295,13 @@ export const ATRIUM_DOOR: Vec3 = [0, GROUND_Y, ATRIUM_FRONT_Z];
 export const ATRIUM_INNER_OPENING_WIDTH = 14;
 export const ATRIUM_INNER_OPENING_HEIGHT = 8.6;
 export const INTERIOR_ENTRY_POSITION: Vec3 = [0, GROUND_Y, ATRIUM_FRONT_Z - 3]; // [0, 0, 159]
-/** Exterior forecourt ticket kiosk, beside the approach to the doors. */
-export const TICKET_KIOSK_POSITION: Vec3 = [5.6, GROUND_Y, ENTRANCE_PORTAL_Z + 9.5];
+/** The exterior-only physical sphere conceals the existing seam at z=128. */
+export const OBSIDIAN_SPHERE_CENTER_Z = ENTRANCE_PORTAL_Z + 10; // 138
+export const OBSIDIAN_SPHERE_RADIUS = 10.2;
+/** Prepare before reaching the sphere, without changing the narrow portal exit aperture. */
+export const ENTRANCE_PREWARM_START_Z = ENTRANCE_PORTAL_Z + 30; // 158
+/** Kiosk moved from inside the new sphere onto the approach path. */
+export const TICKET_KIOSK_POSITION: Vec3 = [-5.6, GROUND_Y, ENTRANCE_PORTAL_Z + 25.5]; // 153.5
 
 // ── Dexter Sanctuary ───────────────────────────────────────────────────────
 

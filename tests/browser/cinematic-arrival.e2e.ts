@@ -45,15 +45,30 @@ test('admission is by ticket: the doorway holds the visitor until the kiosk issu
   const held = await page.evaluate(() => ({
     world: window.__museum!.activeWorld,
     z: window.__museum!.player.position.z,
-    message: document.querySelector('.hud__threshold p')?.textContent,
+    panelHidden: (document.querySelector('.hud__threshold') as HTMLElement).hidden,
   }));
   expect(held.world).toBe('exterior');
   expect(held.z).toBeGreaterThan(128);
-  expect(held.message).toContain('Take one from the kiosk');
-  await page.getByRole('button', { name: 'Take a ticket' }).click();
+  // No blocking "take ticket" screen at the doorway.
+  expect(held.panelHidden).toBe(true);
+
+  // Move to the actual freestanding kiosk. Aim at its screen and use the
+  // same world-space F interaction a visitor uses, not a HUD gate.
+  const kiosk = await page.evaluate(() => {
+    const app = window.__museum!;
+    const p = app.exteriorWorld.ticketKiosk.group.position;
+    app.player.teleport([p.x, 0, p.z + 2.5], 0);
+    app.variableUpdate(1 / 60);
+    app.render(0);
+    app.interaction.update(app.camera, 1);
+    return { focus: app.interaction.currentFocus?.exhibitId ?? null };
+  });
+  expect(kiosk.focus).toBe('ticket-kiosk');
+  await page.keyboard.press('f');
   const ticket = await page.evaluate(() => ({ ticket: window.__museum!.ticket, started: window.__museum!.interiorImportStarted }));
   expect(ticket.ticket?.number).toMatch(/^\d{4}$/);
   expect(ticket.started).toBe(true);
+  expect(await page.locator('.hud__threshold').isHidden()).toBe(true);
 });
 
 test('QA and Workshop paths bypass the visitor title dwell', async ({ page }) => {

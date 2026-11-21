@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { walkToMuseumInterior } from './helpers/obsidian-entrance-walk';
 
 async function bootMuseum(page: Page, path = '/?qa=1'): Promise<string[]> {
   const errors: string[] = [];
@@ -175,22 +176,9 @@ test('operates the visual map and reduced-motion setting with the keyboard', asy
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog', { name: 'Museum map' })).toBeHidden();
 
-  // Walk in through the south doorway, driving the real controller while the
-  // render loop is stopped (as the DexGPT entry test does).
-  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-  await page.keyboard.down('w');
-  const entered = await page.evaluate(async () => {
-    const app = window.__museum!;
-    for (let frames = 0; frames < 2400; frames++) {
-      app.fixedUpdate(1 / 60);
-      app.variableUpdate(1 / 60);
-      if (frames % 120 === 0) await new Promise<void>((resolve) => setTimeout(resolve, 0));
-      if (app.activeWorld === 'interior' && app.currentZone === 'south') break;
-    }
-    return app.activeWorld;
-  });
-  await page.keyboard.up('w');
-  expect(entered).toBe('interior');
+  // Walk on the real route around the obsidian centre, then down the atrium.
+  const entered = await walkToMuseumInterior(page, 'south');
+  expect(entered.world).toBe('interior');
   expect(await page.evaluate(() => {
     const app = window.__museum!;
     return { target: app.wayfinding.currentTarget, parent: app.wayfinding.group.parent?.name, visible: app.wayfinding.group.visible };
@@ -259,34 +247,10 @@ test('admits DexGPT only after entry, then guides through the existing wayfindin
   await page.keyboard.press('Escape');
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 
-  // Enter through the actual south doorway using the same keyboard input and
-  // collision path as a visitor. The stopped render loop means the test must
-  // advance the real fixed and variable updates itself.
-  await page.keyboard.down('w');
-  const entered = await page.evaluate(async () => {
-    const app = window.__museum;
-    if (!app) throw new Error('museum app missing');
-    await app.ensureInteriorLoaded();
-    let frames = 0;
-    // The pier-first spawn is 58 metres farther from the doorway than the
-    // previous plaza spawn. Drive the real controller until it crosses the
-    // real threshold, rather than assuming 700 fixed ticks is always enough.
-    // The doorway holds the visitor until the entrance is warm, and the
-    // entrance atrium then adds 34 m before the south hall.
-    for (; frames < 4800; frames++) {
-      app.fixedUpdate(1 / 60);
-      app.variableUpdate(1 / 60);
-      // Let predictive rendering/preparation settle without restarting the
-      // GPU loop or bypassing the visitor's collision path.
-      if (frames % 120 === 0) await new Promise<void>((resolve) => setTimeout(resolve, 0));
-      if (app.activeWorld === 'interior' && app.currentZone === 'south') break;
-    }
-    return { world: app.activeWorld, zone: app.currentZone, z: app.player.position.z, frames };
-  });
-  await page.keyboard.up('w');
+  // Same keyboard/physics path via the actual obsidian walk-around entrance.
+  const entered = await walkToMuseumInterior(page, 'south');
   expect(entered.world).toBe('interior');
   expect(entered.zone).toBe('south');
-  // Through the whole atrium and the inner portal (z = 128) into the south zone.
   expect(entered.z).toBeLessThan(130);
 
   await page.keyboard.press('Control+k');

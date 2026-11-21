@@ -579,8 +579,19 @@ export function exteriorJury(index: MuseumSceneIndex, manifest: WorkshopPlacemen
   const door = islandPoint('museum door', index.threshold.exterior[0], index.threshold.exterior[2], index.threshold.exterior[1]);
   const plaza = islandPoint('arrival plaza', PIER_CENTERLINE[0][0], PIER_CENTERLINE[0][1], 0);
   const pier = PIER_CENTERLINE.map(([x, z], k) => islandPoint(`pier ${k + 1}`, x, z));
-  const arrivalIn = walker.journey([start, pier[1], plaza, door]);
-  const arrivalOut = walker.journey([door, plaza, pier[1], start]);
+  // Follow the authored, physically walkable obsidian-sphere orbit. The
+  // central monolith is intentionally solid: a straight jury leg from plaza
+  // to the door must fail, not be silently exempted from collision checks.
+  const sphereOrbit = [
+    islandPoint('sphere forecourt', 0, 150),
+    islandPoint('sphere outer aperture', 0, 145.7),
+    islandPoint('sphere east turn', 4.8, 143),
+    islandPoint('sphere east flank', 5.2, 138),
+    islandPoint('sphere inner turn', 4.8, 133),
+    islandPoint('sphere exit aperture', 0, 130),
+  ];
+  const arrivalIn = walker.journey([start, pier[1], plaza, ...sphereOrbit, door]);
+  const arrivalOut = walker.journey([door, ...sphereOrbit.slice().reverse(), plaza, pier[1], start]);
   const pierLegs = [...walker.journey(pier), ...walker.journey([...pier].reverse())];
   const routes: JuryRouteVerdict[] = [
     { id: ids[0][0], label: ids[0][1], legs: arrivalIn.length + arrivalOut.length,

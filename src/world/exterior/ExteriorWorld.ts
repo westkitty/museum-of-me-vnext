@@ -10,6 +10,7 @@ import { ExteriorWildlife } from './ExteriorWildlife';
 import { ExteriorSignatureFeatures } from './ExteriorSignatureFeatures';
 import { ExteriorWaymarkers } from './ExteriorWaymarkers';
 import { TicketKiosk } from './TicketKiosk';
+import { ObsidianSphereEntrance } from './ObsidianSphereEntrance';
 import { addIslandSupport } from './IslandSiteLayout';
 import { START_POSITION, START_YAW } from '../start';
 import {
@@ -48,6 +49,8 @@ export class ExteriorWorld {
   readonly waymarkers: ExteriorWaymarkers;
   /** Admissions kiosk; App builds it and registers its interaction. */
   readonly ticketKiosk: TicketKiosk;
+  /** Physical obsidian walk-around entrance before the existing world seam. */
+  readonly sphereEntrance: ObsidianSphereEntrance;
 
   readonly spawnPosition: Vec3 = START_POSITION;
   readonly spawnYaw = START_YAW;
@@ -119,6 +122,9 @@ export class ExteriorWorld {
 
     // Build outer threshold buffer and doorway occluder
     this.buildThresholdVestibule();
+
+    this.sphereEntrance = new ObsidianSphereEntrance(this.scope, this.collision);
+    this.root.add(this.sphereEntrance.build());
   }
 
   /**
@@ -279,6 +285,7 @@ export class ExteriorWorld {
     this.wildlife.update(dt, eye, reducedMotion);
     this.signatureFeatures.update(dt, reducedMotion);
     this.ticketKiosk.update(dt);
+    this.sphereEntrance.update(dt, eye, reducedMotion);
   }
 
   dispose(): void {

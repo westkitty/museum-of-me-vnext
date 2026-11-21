@@ -67,15 +67,17 @@ test('cold exterior stays lazy; accessible entrance intent records real preparat
   await page.evaluate(() => {
     const app = window.__museum;
     if (!app) throw new Error('museum missing');
-    // QA sessions start holding a ticket; take it back to exercise admission.
+    // QA starts ticketed. Clear the ticket and approach the *physical*
+    // admissions kiosk rather than any click-through entrance panel.
     app.ticket = null;
-    app.player.teleport([0, 0, 148]);
-    app.worldDirector.update(app.player.position);
+    const p = app.exteriorWorld.ticketKiosk.group.position;
+    app.player.teleport([p.x, 0, p.z + 2.5], 0);
+    app.variableUpdate(1 / 60);
+    app.render(0);
+    app.interaction.update(app.camera, 1);
   });
-  const enter = page.getByRole('button', { name: 'Take a ticket' });
-  await expect(enter).toBeVisible();
-  await enter.focus();
-  await enter.press('Enter');
+  expect(await page.evaluate(() => window.__museum?.interaction.currentFocus?.exhibitId)).toBe('ticket-kiosk');
+  await page.keyboard.press('f');
   await page.evaluate(() => {
     const app = window.__museum;
     (window as Window & { __p5LongTaskStartAt?: number }).__p5LongTaskStartAt = performance.now();
@@ -189,15 +191,17 @@ test('low-tier mobile viewport and reduced-motion visitors can request entrance 
     if (!app) throw new Error('museum missing');
     app.stop();
     app.setQuality('low');
-    // QA sessions start holding a ticket; take it back to exercise admission.
+    // QA starts ticketed. Clear the ticket and approach the *physical*
+    // admissions kiosk rather than any click-through entrance panel.
     app.ticket = null;
-    app.player.teleport([0, 0, 148]);
-    app.worldDirector.update(app.player.position);
+    const p = app.exteriorWorld.ticketKiosk.group.position;
+    app.player.teleport([p.x, 0, p.z + 2.5], 0);
+    app.variableUpdate(1 / 60);
+    app.render(0);
+    app.interaction.update(app.camera, 1);
   });
-  const enter = page.getByRole('button', { name: 'Take a ticket' });
-  await expect(enter).toBeVisible();
-  await enter.focus();
-  await enter.press('Enter');
+  expect(await page.evaluate(() => window.__museum?.interaction.currentFocus?.exhibitId)).toBe('ticket-kiosk');
+  await page.keyboard.press('f');
   const state = await page.evaluate(() => {
     const app = window.__museum;
     if (!app) throw new Error('museum missing');
@@ -214,8 +218,10 @@ test('low-tier mobile viewport and reduced-motion visitors can request entrance 
   expect(state.quality).toBe('low');
   expect(state.requested).toBe(true);
   expect(state.world).toBe('exterior');
-  expect(state.status).toMatch(/Opening the galleries|ticket is printing|The doors are open/);
-  expect(state.focusedControl).toBe('Continue outside');
+  // No modal, no click-through gate and no entry HUD; the ticket itself
+  // triggers preparation and the visitor continues walking.
+  expect(state.status).not.toMatch(/Click to enter|Take a ticket/);
+  expect(state.focusedControl).not.toBe('Take a ticket');
   expect(state.horizontalOverflow).toBe(false);
   expect(state.reducedMotion).toBe(true);
 });
@@ -247,20 +253,20 @@ test('slow module transfer holds only the doorway seam, reports real state, and 
       world: app.activeWorld,
       phase: app.worldDirector.phase,
       z: app.player.position.z,
-      status: document.querySelector('.hud__threshold p')?.textContent ?? '',
+      hint: document.querySelector('.hud__subtitle')?.textContent ?? '',
+      panelHidden: document.querySelector<HTMLElement>('.hud__threshold')?.hidden ?? false,
       ready: app.interiorWorld?.streaming.telemetry.prewarmReady ?? false,
       hasFakePercent: /\b\d{1,3}%\b/.test(document.querySelector('.hud__threshold')?.textContent ?? ''),
-      canContinueOutside: document.querySelector<HTMLButtonElement>('.hud__threshold button:last-child')?.hidden === false,
       committedAt: app.interiorLoadTelemetry.transitionCommittedAtMs,
     };
   });
   expect(waiting.world).toBe('exterior');
   expect(waiting.phase).toBe('PREPARING_INTERIOR');
   expect(waiting.z).toBeGreaterThanOrEqual(128.05);
-  expect(waiting.status).toMatch(/Opening the galleries|Lighting the entrance hall|ticket is printing/);
+  expect(waiting.hint).toContain('museum is waking beyond the obsidian');
+  expect(waiting.panelHidden).toBe(true); // preparation is not a click-through screen
   expect(waiting.ready).toBe(false);
   expect(waiting.hasFakePercent).toBe(false);
-  expect(waiting.canContinueOutside).toBe(true);
   expect(waiting.committedAt).toBeNull();
 
   await page.evaluate(() => {

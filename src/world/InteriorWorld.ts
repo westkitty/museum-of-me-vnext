@@ -13,7 +13,7 @@ import { SourceInstallations, INSTALLATION_HELD_CODES } from './SourceInstallati
 import { PersistentEnvironment } from './PersistentEnvironment';
 import { EventLoopYieldBudget } from '../util/yieldToEventLoop';
 import type { App } from '../app/App';
-import { ATRIUM_FRONT_Z, type ZoneId } from './layout';
+import { ATRIUM_DEPTH, ATRIUM_FRONT_Z, ENTRANCE_PORTAL_Z, type ZoneId } from './layout';
 
 /**
  * Autonomous Interior World context.
@@ -269,8 +269,11 @@ export class InteriorWorld {
   ): { deep: boolean; visibleWingIds: ReadonlySet<string> } {
     if (this.runtimeState !== 'active') return { deep: false, visibleWingIds: this.museum.visibleWingIds };
     this.sourceArtwork.update(eye[0], eye[2], dt);
-    // The atrium lights up when the visitor steps inside it (not in the plaza beyond its door).
-    this.museum.updateAtrium(dt, this.app.preferences.reducedMotion, zone === 'plaza' && eye[2] < ATRIUM_FRONT_Z);
+    // The impossible atrium reveals itself through actual walking distance.
+    // The exterior sphere and the interior never share a visible scene root.
+    const inAtrium = zone === 'plaza' && eye[2] >= ENTRANCE_PORTAL_Z && eye[2] < ATRIUM_FRONT_Z;
+    const progress = Math.max(0, Math.min(1, (ATRIUM_FRONT_Z - eye[2]) / ATRIUM_DEPTH));
+    this.museum.updateAtrium(dt, this.app.preferences.reducedMotion, inAtrium, progress);
     this.supplementary.update(eye[0], eye[2], dt);
     const deep = this.museum.updateVisibility(
       zone,

@@ -928,7 +928,7 @@ export class Museum {
     const plaqueMat = this.scope.track(new THREE.MeshStandardMaterial({
         map: canRenderText()
           ? createTextTexture(this.scope, [
-            'The doors you came through open from a foyer six metres deep.',
+            'The obsidian sphere concealed what stood beyond its second doorway.',
             'This hall is thirty-four metres long and twenty metres high.',
             'Inside, the museum is larger than the building that holds it.',
           ], {
@@ -963,7 +963,7 @@ export class Museum {
   private atriumStages: { start: number; duration: number; items: Dimmable[] }[] = [];
   private holoMats: THREE.Material[] = [];
   private fountainMats: THREE.Material[] = [];
-  /** Seconds since the visitor stepped into the atrium; −1 while it is dark. */
+  /** Ignition progress on the existing staged-light timeline; −1 while dark. */
   private atriumIgnition = -1;
   private atriumLastApplied = -1;
 
@@ -1177,14 +1177,29 @@ export class Museum {
   }
 
   /**
-   * Lighting sequence and motion for the atrium. `inAtrium`: the visitor is
-   * standing inside it, which starts the light-up. Reduced motion lights it
-   * at once and keeps the hologram and water still.
+   * Progression through the atrium ignites the hologram first, then fountains,
+   * wall banners and finally the floor. Spatial travel, rather than a timer or
+   * a click, drives the real visitor journey. Calls without spatialProgress
+   * preserve the legacy diagnostic/test timeline. Reduced motion is instantly
+   * and stably illuminated.
    */
-  updateAtrium(dt: number, reducedMotion: boolean, inAtrium: boolean): void {
+  updateAtrium(
+    dt: number, reducedMotion: boolean, inAtrium: boolean,
+    spatialProgress?: number,
+  ): void {
     if (this.atriumIgnition < 0 && inAtrium) this.atriumIgnition = 0;
     if (this.atriumIgnition >= 0) {
-      this.atriumIgnition = reducedMotion ? 10 : this.atriumIgnition + dt;
+      if (reducedMotion) {
+        this.atriumIgnition = 10;
+      } else if (spatialProgress !== undefined) {
+        if (inAtrium) {
+          const desired = 0.65 + THREE.MathUtils.clamp(spatialProgress, 0, 1) * 5.35;
+          // Monotone even if the visitor hesitates or retraces their steps.
+          this.atriumIgnition = Math.max(this.atriumIgnition, desired);
+        }
+      } else {
+        this.atriumIgnition += dt;
+      }
       const end = 6;
       if (this.atriumLastApplied < end) this.applyAtriumLight(Math.min(this.atriumIgnition, end));
     }
