@@ -4,6 +4,7 @@ import { PaletteSet } from './palette';
 import { CollisionWorld } from './CollisionWorld';
 import { Detailing } from './Detailing';
 import { GalleryPlinthKit } from './GalleryPlinth';
+import { bayOpeningSpan } from './installationPlacement';
 import { NO_MERGE, mergeStatic, mergeStaticCooperatively, type MergeReport } from './MergeStatic';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { canRenderText, createFallbackTexture, createTextTexture } from '../assets/TextTexture';
@@ -680,9 +681,12 @@ export class Museum {
 
     // Hall side walls, opened where a bay sits.
     const bayAlongs = new Map<'left' | 'right', number[]>([['left', []], ['right', []]]);
+    const spanAt = new Map<string, { from: number; to: number }>();
     for (const pl of PLACEMENTS) {
       if (pl.wing !== w.id) continue;
-      bayAlongs.get(pl.side)!.push(w.hallFrom + w.bayLead + pl.slot * w.bayPitch);
+      const centre = w.hallFrom + w.bayLead + pl.slot * w.bayPitch;
+      bayAlongs.get(pl.side)!.push(centre);
+      spanAt.set(`${pl.side}:${centre}`, bayOpeningSpan(pl.exhibitId));
     }
 
     for (const side of ['left', 'right'] as const) {
@@ -692,6 +696,18 @@ export class Museum {
       for (const centre of openings) {
         const openFrom = centre - w.bayOpening / 2;
         const openTo = centre + w.bayOpening / 2;
+        // Where a source installation could not be set back clear of the
+        // threshold, the wall returns to its edge (bayOpeningSpan): a solid
+        // jamb, not a plinth standing in the doorway's corner.
+        const span = spanAt.get(`${side}:${centre}`)!;
+        for (const [a, b] of [[openFrom, centre + span.from], [centre + span.to, openTo]]) {
+          if (b - a < 0.01) continue;
+          kit.wall(
+            place(d, a, sign * w.hallHalfWidth, y),
+            place(d, b, sign * w.hallHalfWidth, y),
+            y, w.bayHeight * 0.72, 0.6, p.wall,
+          );
+        }
         if (openFrom > cursor) {
           kit.wall(
             place(d, cursor, sign * w.hallHalfWidth, y),

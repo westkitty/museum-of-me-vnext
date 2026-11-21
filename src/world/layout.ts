@@ -298,8 +298,16 @@ export const INTERIOR_ENTRY_POSITION: Vec3 = [0, GROUND_Y, ATRIUM_FRONT_Z - 3]; 
 /** The exterior-only physical sphere conceals the existing seam at z=128. */
 export const OBSIDIAN_SPHERE_CENTER_Z = ENTRANCE_PORTAL_Z + 10; // 138
 export const OBSIDIAN_SPHERE_RADIUS = 10.2;
-/** Prepare before reaching the sphere, without changing the narrow portal exit aperture. */
-export const ENTRANCE_PREWARM_START_Z = ENTRANCE_PORTAL_Z + 30; // 158
+/**
+ * Predictive preparation starts when a visitor walks north past the pier
+ * junction on the arrival axis (and always when a ticket is printed). Measured
+ * 2026-11-21 on the production build under software WebGL: ticket → entrance
+ * ready 11.9 s (17.5 s at 4× CPU throttle). From z = 158 a sprinting visitor
+ * reached the seam in ~8 s and was held at the doorway; from here a walk takes
+ * ~21 s and a sprint ~10 s, including the obsidian chamber's wading pace.
+ * Cold boot on the pier (z = 196) still requests nothing.
+ */
+export const ENTRANCE_PREWARM_START_Z = ENTRANCE_PORTAL_Z + 56; // 184
 /** Kiosk moved from inside the new sphere onto the approach path. */
 export const TICKET_KIOSK_POSITION: Vec3 = [-5.6, GROUND_Y, ENTRANCE_PORTAL_Z + 25.5]; // 153.5
 
@@ -415,6 +423,17 @@ export function isOverStairOpening(x: number, z: number): boolean {
     if (t !== null && t >= STAIR_OPENING_FROM_T && t <= 1) return true;
   }
   return false;
+}
+
+/**
+ * Ground-floor point in front of a stair foot, on its walking line: where a
+ * visitor steps onto the flight from (and off it at the bottom). Routes join
+ * the stair here, never diagonally across its lowest treads, whose open inner
+ * side drops back to the rotunda floor.
+ */
+export function stairApproach(stair: StairSpec): Vec3 {
+  const p = stairArcPoint(stair, -0.2);
+  return [p[0], stair.fromY, p[2]];
 }
 
 /** Balcony-level point just beyond a stair head, continuing its ascent

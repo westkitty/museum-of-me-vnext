@@ -326,10 +326,22 @@ export class SourceInstallations {
 
     // Source collision footprint: the installation is solid, so a visitor walks
     // around it rather than through it.
-    collisions.addBox(
-      [placement.position[0], placement.position[1] + 1.2, placement.position[2]],
-      [placement.footprint[0], 1.2, placement.footprint[1]],
-    );
+    // Exact oriented box: on the diagonal media/infra wings the world-aligned
+    // enclosure is ~40% larger than the turned plinth and reached 1.15 m out
+    // into the hall (2026-11-21 walkthrough, E14).
+    collisions.add({
+      kind: 'wall',
+      minX: placement.position[0] - placement.footprint[0],
+      maxX: placement.position[0] + placement.footprint[0],
+      minY: placement.position[1], maxY: placement.position[1] + 2.4,
+      minZ: placement.position[2] - placement.footprint[1],
+      maxZ: placement.position[2] + placement.footprint[1],
+      oriented: {
+        centerX: placement.position[0], centerZ: placement.position[2],
+        halfX: placement.orientedFootprint.halfX, halfZ: placement.orientedFootprint.halfZ,
+        yaw: placement.orientedFootprint.yaw,
+      },
+    });
 
     const lectern = this.measurePart(spec.id, 'lectern', () => this.buildLectern(spec, placement, state));
     group.add(lectern);

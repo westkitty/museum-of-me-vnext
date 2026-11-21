@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { WINGS, faceDirection, place, type Vec3, type WingSpec } from './layout';
+import { alongClearOfBayOpenings } from './bayClearance';
 import { PaletteSet } from './palette';
 
 /**
@@ -58,7 +59,8 @@ export class WingFurnishings {
       [0, 0.29, -1],
       [1, 0.66, 1],
     ] as const) {
-      const along = wing.hallFrom + span * fraction;
+      // Against solid wall, never in front of a bay doorway.
+      const along = alongClearOfBayOpenings(wing, wing.hallFrom + span * fraction, side);
       const at = place(d, along, side * (wing.hallHalfWidth - 1.05), wing.floorY);
       const furnishing = new THREE.Group();
       furnishing.name = `wing-furnishing:${wing.id}`;

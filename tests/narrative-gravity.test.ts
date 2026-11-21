@@ -7,6 +7,7 @@ import {
 } from '../src/workshop/NarrativeGravity';
 import { validateWorkshopManifest, type WorkshopPlacementManifest, type WorkshopPlacementRecord, type WorkshopVec3 } from '../src/workshop/schema';
 import { PLACEMENTS } from '../src/world/layout';
+import { INSTALLATION_PLACEMENTS } from '../src/world/installationPlacement';
 import { buildMuseum } from './helpers/walk';
 
 /** Each record is a 0.8 m wide, 1.8 m tall box standing at its position; `unknown` ids have no bounds yet. */
@@ -61,8 +62,13 @@ describe('Narrative Gravity', () => {
   it.each(NARRATIVE_GRAVITY_PILOTS)('moves a sightline blocker in %s sideways to a conservation-safe spot, and only on approval', (exhibit) => {
     const bay = PLACEMENTS.find((placement) => placement.exhibitId === exhibit)!;
     const m = manifest(object('blocker', onSightline(exhibit)));
-    // The blocker is exactly what conservation forbids: the visitor's read zone.
-    expect(validateWorkshopManifestForMuseum(m, []).errors.join(' ')).toContain(`${exhibit} interaction/read zone`);
+    // The blocker is exactly what conservation forbids: a visitor read zone in
+    // this bay. Conservation names the first protected area it meets; where the
+    // bay hosts a source installation (E03: orbital-tomb), that installation's
+    // reading zone can be met before the exhibit's own.
+    const hosted = INSTALLATION_PLACEMENTS.filter((p) => p.host === exhibit).map((p) => `${p.id} interaction/read zone`);
+    const conservation = validateWorkshopManifestForMuseum(m, []).errors.join(' ');
+    expect([`${exhibit} interaction/read zone`, ...hosted].some((zone) => conservation.includes(zone)), conservation).toBe(true);
     const report = gravity(m, exhibit);
     expect(report.verdict).toBe('SUGGESTIONS');
     expect(report.sightline.blockers).toEqual(['blocker']);

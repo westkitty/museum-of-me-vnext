@@ -117,7 +117,12 @@ describe('museum environment coherence', () => {
     expect(names.has('facade-entablature')).toBe(true);
     expect(names.has('facade-glass-panel:west')).toBe(true);
     expect(names.has('facade-glass-panel:east')).toBe(true);
-    expect(names.has('baseline-vestibule-floor')).toBe(true);
+    // The white "neutral baseline" vestibule overlays (floor strip and two
+    // 8 m × 12.6 m wall panels) were removed on 2026-11-21: next to the dark
+    // atrium they read as a blank white void, and the non-colliding panels
+    // stood inside the atrium's inner portal (docs/PASSAGE_INTEGRITY_2026-11-21.md).
+    expect(names.has('baseline-vestibule-floor')).toBe(false);
+    expect(names.has('baseline-vestibule-wall')).toBe(false);
     expect(names.has('welcome-information-desk')).toBe(true);
     expect(names.has('indoor-plant')).toBe(true);
     expect(names.has('interior-bench')).toBe(true);

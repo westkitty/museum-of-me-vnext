@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { PaletteSet } from './palette';
 import { WINGS, ROTUNDA_APOTHEM, faceDirection, place, rightOf, type WingSpec, type Vec3 } from './layout';
+import { alongClearOfBayOpenings } from './bayClearance';
 
 /**
  * Strong, non-colliding spatial identity at every wing threshold.
@@ -46,7 +47,9 @@ export class WingIdentity {
     // Paired slim markers reinforce the same family at eye level while leaving
     // the central path completely clear.
     for (const side of [-1, 1]) {
-      const at = place(d, ROTUNDA_APOTHEM + 2.2, side * (wing.corridorHalfWidth - 0.48), y);
+      // Flush against the corridor wall's face (0.3 m inside its line); at
+      // −0.48 they stood 0.29 m proud of it, in the corridor's walking width.
+      const at = place(d, ROTUNDA_APOTHEM + 2.2, side * (wing.corridorHalfWidth - 0.38), y);
       const marker = new THREE.Mesh(
         this.scope.track(new THREE.BoxGeometry(0.22, Math.min(4.8, wing.archHeight * 0.62), 0.26)),
         side < 0 ? palette.accent : palette.trim,
@@ -59,8 +62,10 @@ export class WingIdentity {
 
     // One authored motif at the near hall edge and a smaller echo near the far
     // end give each wing a recognisable shape language rather than a recolour.
-    const near = place(d, wing.hallFrom + 4.5, wing.hallHalfWidth - 1.35, y);
-    const far = place(d, wing.hallTo - 5.0, -(wing.hallHalfWidth - 1.35), y);
+    // Against solid wall, never beside a bay doorway (2026-11-21 walkthrough:
+    // the near motif stood at the first bay's jamb in every ground wing).
+    const near = place(d, alongClearOfBayOpenings(wing, wing.hallFrom + 4.5, 1), wing.hallHalfWidth - 1.35, y);
+    const far = place(d, alongClearOfBayOpenings(wing, wing.hallTo - 5.0, -1), -(wing.hallHalfWidth - 1.35), y);
     this.motif(wing.id, near, y, angle, palette.accent, palette.trim, 1.0);
     this.motif(wing.id, far, y, angle + Math.PI, palette.accent, palette.trim, 0.72);
 

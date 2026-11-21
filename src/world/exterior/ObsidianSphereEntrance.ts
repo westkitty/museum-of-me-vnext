@@ -29,6 +29,16 @@ export function isSphereWallSector(index: number): boolean {
   return Math.abs(Math.sin(angle)) <= Math.cos(OPENING_HALF_ANGLE);
 }
 
+/** Radius of the chamber's walkable interior, measured from its centre. */
+export const OBSIDIAN_CHAMBER_RADIUS = 8.8;
+
+/** True inside the obsidian chamber (exterior coordinates), where movement is
+ * slowed as if wading through dense water. */
+export function isInsideObsidianChamber(x: number, z: number): boolean {
+  const dz = z - CENTER_Z;
+  return x * x + dz * dz < OBSIDIAN_CHAMBER_RADIUS * OBSIDIAN_CHAMBER_RADIUS;
+}
+
 /** The light follows actual traversed depth, not an arbitrary loading timer. */
 export function sphereRevealLevel(x: number, z: number, reducedMotion = false): number {
   if (reducedMotion) return 0.52;
@@ -210,9 +220,25 @@ export class ObsidianSphereEntrance {
       new THREE.CylinderGeometry(2.55, 2.95, 8.0, 7),
       this.monolith, 0, GROUND_Y + 4, CENTER_Z,
     );
-    this.collision.addBox(
-      [0, GROUND_Y + 4, CENTER_Z], [2.95, 4, 2.95],
-    );
+    // Solid exactly where the column is: four overlapping oriented bands
+    // (0°, 45°, 90°, 135°), half 2.8 × 2.8·tan(π/8), whose union is an
+    // octagon between 2.8 and 3.03 m around the heptagonal shaft (base radius
+    // 2.95). The former single 5.9 m square reached 4.17 m on its diagonals,
+    // an invisible 1.2 m beyond the visible column on both walk-around routes.
+    const bandHalfX = 2.8;
+    const bandHalfZ = bandHalfX * Math.tan(Math.PI / 8);
+    for (let k = 0; k < 4; k++) {
+      const yaw = (k * Math.PI) / 4;
+      const c = Math.abs(Math.cos(yaw)), sn = Math.abs(Math.sin(yaw));
+      const broadX = c * bandHalfX + sn * bandHalfZ;
+      const broadZ = sn * bandHalfX + c * bandHalfZ;
+      this.collision.add({
+        kind: 'wall',
+        minX: -broadX, maxX: broadX, minY: GROUND_Y, maxY: GROUND_Y + 8,
+        minZ: CENTER_Z - broadZ, maxZ: CENTER_Z + broadZ,
+        oriented: { centerX: 0, centerZ: CENTER_Z, halfX: bandHalfX, halfZ: bandHalfZ, yaw },
+      });
+    }
     this.mesh(
       'obsidian-column-plinth',
       new THREE.CylinderGeometry(3.15, 3.4, 0.22, 12),

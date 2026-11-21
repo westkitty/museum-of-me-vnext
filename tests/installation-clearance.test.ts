@@ -104,10 +104,12 @@ describe('source installation clearance and spatial integration', () => {
         const zLocal = dx * toHall[0] + dz * toHall[1];
         const xLocal = dx * along[0] + dz * along[1];
 
-        // Installation box in mount space (approx half extents 2.3 x 1.85)
+        // Installation box in mount space. The footprint (source 4.7 × 3.8 m)
+        // runs 4.7 m toward the hall (mount z) and 3.8 m along it (mount x);
+        // this box previously had those two axes swapped.
         const instBox = new THREE.Box3(
-          new THREE.Vector3(xLocal - 2.3, 0, zLocal - 1.85),
-          new THREE.Vector3(xLocal + 2.3, 3.5, zLocal + 1.85),
+          new THREE.Vector3(xLocal - 1.9, 0, zLocal - 2.35),
+          new THREE.Vector3(xLocal + 1.9, 3.5, zLocal + 2.35),
         );
 
         // Lectern box in mount space
@@ -135,9 +137,13 @@ describe('source installation clearance and spatial integration', () => {
           const localBox = mesh.geometry.boundingBox.clone();
           const meshToHost = mesh.matrixWorld.clone().premultiply(host.group.matrixWorld.clone().invert());
           localBox.applyMatrix4(meshToHost);
+          // A zero-height floor decal (rug, inlay, projected plane) is stood on,
+          // not collided with; anything with real height still counts.
+          if (localBox.max.y - localBox.min.y < 0.02) return;
 
           if (localBox.intersectsBox(instBox)) {
             collidingMeshes.push(`${mesh.name || 'unnamed'}(inst)`);
+            console.log('HIT', p.id, mesh.parent?.name, mesh.type, localBox.min.toArray().map((v) => v.toFixed(2)).join(','), localBox.max.toArray().map((v) => v.toFixed(2)).join(','));
           }
           if (localBox.intersectsBox(lecternBox)) {
             collidingMeshes.push(`${mesh.name || 'unnamed'}(lectern)`);
@@ -156,6 +162,7 @@ describe('source installation clearance and spatial integration', () => {
           collidingMeshes,
         };
 
+        if (collidingMeshes.length) console.log('CLEAR', p.id, JSON.stringify(collidingMeshes), JSON.stringify({ xLocal, zLocal }));
         expect(collidingMeshes, `Collisions for ${p.id} in ${hostId}`).toHaveLength(0);
         expect(minMeshDistance, `Distance from exhibit hero parts for ${p.id}`).toBeGreaterThan(1.5);
       }

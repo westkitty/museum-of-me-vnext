@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { buildWingSign } from '../exhibits/Furniture';
+import { alongClearOfBayOpenings } from './bayClearance';
+export { alongClearOfBayOpenings, BAY_OPENING_CLEARANCE } from './bayClearance';
 import {
-  GROUND_Y, LEVEL_1_Y, ROTUNDA_APOTHEM, VESTIBULE_FROM, VESTIBULE_TO, PLACEMENTS, ATRIUM_FRONT_Z,
+  GROUND_Y, LEVEL_1_Y, ROTUNDA_APOTHEM, VESTIBULE_FROM, ATRIUM_FRONT_Z,
   WINGS, faceDirection, place, rightOf, type Vec3,
 } from './layout';
 
@@ -15,7 +17,6 @@ import {
 export class EnvironmentDressing {
   readonly group = new THREE.Group();
 
-  private readonly white: THREE.MeshStandardMaterial;
   private readonly ivory: THREE.MeshStandardMaterial;
   private readonly brass: THREE.MeshStandardMaterial;
   private readonly leaf: THREE.MeshStandardMaterial;
@@ -29,7 +30,6 @@ export class EnvironmentDressing {
 
   constructor(private readonly scope: ResourceScope) {
     this.group.name = 'environment-dressing';
-    this.white = this.mat(0xf8f7f2, 0.9);
     this.ivory = this.mat(0xe8e4da, 0.95);
     this.brass = this.mat(0xbca46f, 0.48, 0.3);
     this.leaf = this.mat(0x315f3a, 0.94);
@@ -136,27 +136,13 @@ export class EnvironmentDressing {
 
   private buildNeutralVestibule(): void {
     const d = faceDirection('s');
-    const from = place(d, VESTIBULE_FROM + 0.8, 0, GROUND_Y);
-    const to = place(d, VESTIBULE_TO - 0.8, 0, GROUND_Y);
-    const length = Math.hypot(to[0] - from[0], to[2] - from[2]);
-    const mid: Vec3 = [(from[0] + to[0]) / 2, GROUND_Y, (from[2] + to[2]) / 2];
 
-    // Neutral overlays create a perceptual baseline before the coloured south
-    // wing begins. They are slightly inset so the proven architecture remains.
-    const floor = this.box('baseline-vestibule-floor', [mid[0], GROUND_Y + 0.04, mid[2]], [4.7, 0.035, length / 2], this.white);
-    floor.rotation.y = Math.atan2(d[0], d[2]);
-
-    for (const side of [-1, 1]) {
-      const wallAt = place(d, (VESTIBULE_FROM + VESTIBULE_TO) / 2, side * 5.0, GROUND_Y);
-      const wall = this.box(
-        'baseline-vestibule-wall',
-        [wallAt[0], 4.1, wallAt[2]],
-        [0.06, 4.0, length / 2 - 0.7],
-        this.white,
-      );
-      wall.rotation.y = Math.atan2(d[0], d[2]);
-    }
-
+    // No overlay panels here. Two featureless 8 m × 12.6 m white boxes and a
+    // white floor strip used to stand inside the vestibule as a "neutral
+    // baseline" before the south wing; beside the dark-blue atrium they read
+    // as a blank white void, and being non-colliding they stood inside the
+    // 14 m atrium portal where visitors walked straight through them
+    // (2026-11-21 walkthrough). The vestibule shows its own south-wing walls.
     const welcome = buildWingSign(this.scope, 'Welcome', 'Try the star window on your right. Rotunda straight ahead.');
     welcome.scale.setScalar(0.86);
     const at = place(d, VESTIBULE_FROM + 2.2, 0, GROUND_Y);
@@ -164,8 +150,10 @@ export class EnvironmentDressing {
     this.group.add(welcome);
     this.scope.track(welcome.geometry);
 
-    this.indoorPlant(place(d, VESTIBULE_FROM + 3.6, -3.8, GROUND_Y), 1.2, 'vestibule-plant-left');
-    this.indoorPlant(place(d, VESTIBULE_FROM + 3.6, 3.8, GROUND_Y), 1.2, 'vestibule-plant-right');
+    // Against the vestibule's walls, flanking the way into the south hall: at
+    // ±3.8 they stood inside the 8 m doorway's walking width.
+    this.indoorPlant(place(d, VESTIBULE_FROM + 3.6, -7.0, GROUND_Y), 1.2, 'vestibule-plant-left');
+    this.indoorPlant(place(d, VESTIBULE_FROM + 3.6, 7.0, GROUND_Y), 1.2, 'vestibule-plant-right');
   }
 
   private buildRotundaWelcome(): void {
@@ -187,10 +175,12 @@ export class EnvironmentDressing {
     this.scope.track(deskSign.geometry);
     this.authorableRoots.push({ id: 'rotunda-information-sign', root: deskSign });
 
-    // Plants occupy diagonal blind zones, leaving all radial routes unobstructed.
+    // A plant in the one diagonal that is still a blind zone (NE: solid wall on
+    // the ground floor). The other three diagonals now carry the Sanctuary
+    // threshold (NW) and the grand stairs (SW, SE); plants there stood in the
+    // Sanctuary doorway and on the stairs' feet (2026-11-21 walkthrough).
     for (const [x, z, s] of [
-      [-11.2, 11.2, 1.5], [11.2, 11.2, 1.45],
-      [-11.2, -11.2, 1.55], [11.2, -11.2, 1.4],
+      [11.2, -11.2, 1.4],
     ] as const) {
       this.indoorPlant([x, GROUND_Y, z], s);
     }
@@ -314,23 +304,4 @@ export class EnvironmentDressing {
 }
 
 /** Clearance kept between a hall-side object and the edge of a bay opening. */
-export const BAY_OPENING_CLEARANCE = 1.3;
 
-/**
- * Nearest position along a hall, on one side, that stands against solid wall
- * rather than in a bay opening. Bay openings are where visitors turn into an
- * exhibit and where the guide's floor line ends.
- */
-export function alongClearOfBayOpenings(wing: (typeof WINGS)[number], along: number, side: -1 | 1): number {
-  const centres = PLACEMENTS
-    .filter((placement) => placement.wing === wing.id && (placement.side === 'right' ? 1 : -1) === side)
-    .map((placement) => wing.hallFrom + wing.bayLead + placement.slot * wing.bayPitch);
-  const keep = wing.bayOpening / 2 + BAY_OPENING_CLEARANCE;
-  const clear = (value: number) => value >= wing.hallFrom + 1.5 && value <= wing.hallTo - 1.5
-    && centres.every((centre) => Math.abs(value - centre) >= keep);
-  for (let offset = 0; offset <= wing.bayPitch; offset += 0.25) {
-    if (clear(along + offset)) return along + offset;
-    if (clear(along - offset)) return along - offset;
-  }
-  return along;
-}

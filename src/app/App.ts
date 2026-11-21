@@ -32,6 +32,7 @@ import { InputManager, touchLookGain } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
 import { zoneAtXYZ, ZONE_BY_ID, isOnFlightPad, exteriorLocationLabel, EXTERIOR_PLAZA_LABEL, ENTRANCE_PORTAL_Z, type ZoneId } from '../world/layout';
 import { TICKET_KIOSK_ID } from '../world/exterior/TicketKiosk';
+import { isInsideObsidianChamber } from '../world/exterior/ObsidianSphereEntrance';
 import { START_POSITION } from '../world/start';
 import type { StreamingManager } from '../exhibits/StreamingManager';
 
@@ -625,6 +626,9 @@ export class App implements LoopCallbacks {
       this.player.enterFlight();
       this.ui?.hud.announce('Launched. Fly with W/A/S/D and look. Shift for speed. Land to walk again.');
     }
+    // The obsidian chamber slows the visitor as if wading (eased, both ways).
+    this.player.setInWater(this.activeWorld === 'exterior'
+      && isInsideObsidianChamber(this.player.position.x, this.player.position.z));
     this.player.fixedUpdate(dt);
     const fixedEye = this.player.writeEyePosition(this.eyePositionScratch);
 

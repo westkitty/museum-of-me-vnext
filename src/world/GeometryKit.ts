@@ -75,36 +75,46 @@ export class GeometryKit {
     return m;
   }
 
-  /** Collision-only version of `wall`, for openings framed by separate visuals. */
+  /**
+   * Collision-only version of `wall`, for openings framed by separate visuals.
+   *
+   * The collider is exactly the visible box: `length` along the wall and
+   * `thickness` across it. It used to be padded by half the thickness at both
+   * ends, and diagonal walls were chunked into axis-aligned boxes padded on
+   * both axes. That put an invisible 0.3–0.6 m stub into every doorway, arch
+   * and bay opening (each opening was narrower in collision than it looked),
+   * and made every 45° wall about 0.3 m fatter per side than its visual.
+   * Diagonal walls now use one exact oriented collider, as the obsidian
+   * sphere's curved wall sectors already do.
+   */
   wallCollision(from: Vec3, to: Vec3, baseY: number, height: number, thickness: number): void {
     const dx = to[0] - from[0];
     const dz = to[2] - from[2];
     const length = Math.hypot(dx, dz);
     if (length < 1e-4) return;
-    const axisAligned = Math.abs(dx) < 1e-6 || Math.abs(dz) < 1e-6;
-    // A diagonal wall (every octagon face but the four cardinal ones, plus
-    // corridors in the diagonally-oriented wings) is chunked into axis-aligned
-    // boxes, each padded by half the wall's own thickness on both axes. At the
-    // old 1.5 m chunk length that padding made a 0.35 m-thick balustrade's real
-    // collision footprint over 1.2 m wide -- wide enough to catch a capsule
-    // walking a good half-metre from the visible wall and deflect it off
-    // course. Finer chunking shrinks that excess toward zero; 0.4 m keeps it
-    // under a few centimetres without materially growing collider count.
-    const segments = axisAligned ? 1 : Math.max(1, Math.ceil(length / 0.4));
     const halfT = thickness / 2;
-    for (let i = 0; i < segments; i++) {
-      const t0 = i / segments;
-      const t1 = (i + 1) / segments;
-      const x0 = from[0] + dx * t0;
-      const z0 = from[2] + dz * t0;
-      const x1 = from[0] + dx * t1;
-      const z1 = from[2] + dz * t1;
-      const cx = (x0 + x1) / 2;
-      const cz = (z0 + z1) / 2;
-      const hx = Math.abs(x1 - x0) / 2 + halfT;
-      const hz = Math.abs(z1 - z0) / 2 + halfT;
+    const cx = (from[0] + to[0]) / 2;
+    const cz = (from[2] + to[2]) / 2;
+    if (Math.abs(dx) < 1e-6 || Math.abs(dz) < 1e-6) {
+      const hx = Math.abs(dx) < 1e-6 ? halfT : Math.abs(dx) / 2;
+      const hz = Math.abs(dz) < 1e-6 ? halfT : Math.abs(dz) / 2;
       this.collision.addBox([cx, baseY + height / 2, cz], [hx, height / 2, hz]);
+      return;
     }
+    // Local x runs along the wall (CollisionWorld: localX = cos·dx − sin·dz).
+    const ux = dx / length;
+    const uz = dz / length;
+    const yaw = Math.atan2(-uz, ux);
+    const halfX = length / 2;
+    const broadX = Math.abs(ux) * halfX + Math.abs(uz) * halfT;
+    const broadZ = Math.abs(uz) * halfX + Math.abs(ux) * halfT;
+    this.collision.add({
+      kind: 'wall',
+      minX: cx - broadX, maxX: cx + broadX,
+      minY: baseY, maxY: baseY + height,
+      minZ: cz - broadZ, maxZ: cz + broadZ,
+      oriented: { centerX: cx, centerZ: cz, halfX, halfZ: halfT, yaw },
+    });
   }
 
   /**
@@ -226,31 +236,28 @@ export class GeometryKit {
       step.rotation.y = angle;
     }
 
-    // Ramp collision along the dominant horizontal axis.
-    const segments = Math.max(2, Math.ceil(length / 1.2));
-    for (let i = 0; i < segments; i++) {
-      const t0 = i / segments;
-      const t1 = (i + 1) / segments;
-      const x0 = from[0] + dx * t0;
-      const z0 = from[2] + dz * t0;
-      const x1 = from[0] + dx * t1;
-      const z1 = from[2] + dz * t1;
-      const useX = Math.abs(dx) >= Math.abs(dz);
-      const y0 = fromY + (toY - fromY) * t0;
-      const y1 = fromY + (toY - fromY) * t1;
-      const minX = Math.min(x0, x1) - (useX ? 0 : halfWidth);
-      const maxX = Math.max(x0, x1) + (useX ? 0 : halfWidth);
-      const minZ = Math.min(z0, z1) - (useX ? halfWidth : 0);
-      const maxZ = Math.max(z0, z1) + (useX ? halfWidth : 0);
-      const ascendingAlongAxis = useX ? x1 >= x0 : z1 >= z0;
-      this.collision.add({
-        kind: 'ramp',
-        minX, maxX, minZ, maxZ,
-        axis: useX ? 'x' : 'z',
-        yAtMin: ascendingAlongAxis ? y0 : y1,
-        yAtMax: ascendingAlongAxis ? y1 : y0,
-      });
-    }
+    // One exact oriented ramp along the flight: its height follows the chord
+    // across the full tread width. Axis-aligned pieces could follow a diagonal
+    // flight only along its centreline; at the edges of the curved grand
+    // stairs the walking surface lay up to ~1.3 m away from the visible
+    // treads (2026-11-21 walkthrough). A short overlap at each end joins
+    // consecutive chords of a curved stair without a seam.
+    const overlap = 0.12;
+    const ux = dx / length, uz = dz / length;
+    const halfX = length / 2 + overlap;
+    const slope = (toY - fromY) / length;
+    const cx = (from[0] + to[0]) / 2, cz = (from[2] + to[2]) / 2;
+    const broadX = Math.abs(ux) * halfX + Math.abs(uz) * halfWidth;
+    const broadZ = Math.abs(uz) * halfX + Math.abs(ux) * halfWidth;
+    this.collision.add({
+      kind: 'ramp',
+      minX: cx - broadX, maxX: cx + broadX,
+      minZ: cz - broadZ, maxZ: cz + broadZ,
+      axis: 'x',
+      yAtMin: fromY - slope * overlap,
+      yAtMax: toY + slope * overlap,
+      oriented: { centerX: cx, centerZ: cz, halfX, halfZ: halfWidth, yaw: Math.atan2(-uz, ux) },
+    });
   }
 
   /** A smooth ramp with no visible steps — used for the Sanctuary descent. */

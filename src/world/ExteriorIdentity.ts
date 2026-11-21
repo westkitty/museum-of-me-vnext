@@ -18,7 +18,12 @@ export class ExteriorIdentity {
   private readonly bronze: THREE.MeshStandardMaterial;
   private readonly amber: THREE.MeshBasicMaterial;
 
-  constructor(private readonly scope: ResourceScope) {
+  /**
+   * `zOffset`: the interior builds the same facade at the atrium's front door
+   * (SEAM_OFFSET_Z further on), where the exterior doorway leads. Built at the
+   * exterior door plane inside, its piers stood in the atrium's inner portal.
+   */
+  constructor(private readonly scope: ResourceScope, private readonly zOffset = 0) {
     this.group.name = 'exterior-museum-identity';
     this.stone = this.mat(0x121820, 0.82, 0.16);
     this.warmStone = this.mat(0x0b1016, 0.78, 0.22);
@@ -46,7 +51,7 @@ export class ExteriorIdentity {
 
   build(): THREE.Group {
     const d = faceDirection('s');
-    const z = place(d, VESTIBULE_TO + 0.72, 0, GROUND_Y)[2];
+    const z = place(d, VESTIBULE_TO + 0.72, 0, GROUND_Y)[2] + this.zOffset;
 
     // A monumental portico is layered behind the actual doorway. Every added
     // element is visual-only and leaves collision, navigation and the verified

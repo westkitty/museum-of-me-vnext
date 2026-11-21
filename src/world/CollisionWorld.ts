@@ -46,6 +46,18 @@ export interface Ramp {
   /** Height at the axis minimum and maximum. */
   readonly yAtMin: number;
   readonly yAtMax: number;
+  /**
+   * Exact rotated ramp: a rectangle whose height rises along its local x, from
+   * `yAtMin` at local −halfX to `yAtMax` at +halfX (same yaw convention as
+   * oriented walls). The min/max box stays the broad phase. Used for the
+   * curved grand stairs, whose diagonal chords an axis-aligned ramp could only
+   * follow along their centreline.
+   */
+  readonly oriented?: {
+    readonly centerX: number; readonly centerZ: number;
+    readonly halfX: number; readonly halfZ: number;
+    readonly yaw: number;
+  };
 }
 
 export type Collider = Wall | Floor | Ramp;
@@ -259,6 +271,7 @@ export class CollisionWorld {
       if (c.kind === 'wall') continue;
       if (x < c.minX || x > c.maxX || z < c.minZ || z > c.maxZ) continue;
       if (c.kind === 'floor' && c.contains && !c.contains(x, z)) continue;
+      if (c.kind === 'ramp' && c.oriented && orientedRampT(c, x, z) === null) continue;
       const y = c.kind === 'floor' ? c.y : rampHeight(c, x, z);
       if (y > ceiling) continue;
       if (best === null || y > best) best = y;
@@ -370,7 +383,22 @@ export class CollisionWorld {
   }
 }
 
+/** Position (0–1) along an oriented ramp's rise, or null outside its rectangle. */
+function orientedRampT(r: Ramp, x: number, z: number): number | null {
+  const o = r.oriented!;
+  const cos = Math.cos(o.yaw), sin = Math.sin(o.yaw);
+  const dx = x - o.centerX, dz = z - o.centerZ;
+  const localX = cos * dx - sin * dz;
+  const localZ = sin * dx + cos * dz;
+  if (Math.abs(localX) > o.halfX || Math.abs(localZ) > o.halfZ) return null;
+  return (localX + o.halfX) / (2 * o.halfX);
+}
+
 export function rampHeight(r: Ramp, x: number, z: number): number {
+  if (r.oriented) {
+    const along = orientedRampT(r, x, z) ?? 0;
+    return r.yAtMin + (r.yAtMax - r.yAtMin) * along;
+  }
   const t =
     r.axis === 'x'
       ? (x - r.minX) / Math.max(1e-6, r.maxX - r.minX)
