@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import * as THREE from 'three';
 import { buildMuseum } from './helpers/walk';
 import { PlayerController } from '../src/player/PlayerController';
-import { CINEMA_PROGRAMME, isLocalMediaPath, parseProgramme } from '../src/cinema/programme';
+import { CINEMA_PROGRAMME, isLocalMediaPath, parseProgramme, type LocalFilm } from '../src/cinema/programme';
 import {
   ACCESSIBLE_POSITIONS, AUDITORIUM, CINEMA_FLOOR_Y, CINEMA_POINTS, CINEMA_SEATS, EXIT_PASSAGE, LOBBY, REAR_PLATFORM,
   SCREEN_FACING_YAW, SEATED_EYE_HEIGHT, TIER_RISE, tierY,
@@ -197,8 +197,9 @@ describe('walking into and around the cinema (real PlayerController)', () => {
 describe('cinema programme (source-grounded)', () => {
   it('lists only real local media whose bytes match the recorded hashes', () => {
     expect(CINEMA_PROGRAMME.rejected).toEqual([]);
-    expect(CINEMA_PROGRAMME.films.length).toBeGreaterThan(0);
-    for (const film of CINEMA_PROGRAMME.films) {
+    const local = CINEMA_PROGRAMME.films.filter((f): f is LocalFilm => f.kind === 'local');
+    expect(local).toHaveLength(8);
+    for (const film of local) {
       const file = `public/${film.media.src}`;
       expect(existsSync(file), file).toBe(true);
       const bytes = readFileSync(file);
@@ -216,7 +217,7 @@ describe('cinema programme (source-grounded)', () => {
 
   it('rejects malformed, remote and traversal entries instead of repairing them', () => {
     const film = (over: Record<string, unknown>) => ({
-      id: 'x', title: 'X', description: 'd',
+      id: 'x', source: 'local', title: 'X', description: 'd',
       media: { src: 'a/b.mp4', type: 'video/mp4', width: 1, height: 1, durationSeconds: 1 },
       ...over,
     });

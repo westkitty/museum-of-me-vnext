@@ -106,3 +106,93 @@
 }
 html[data-contrast='high'] .cinema-console__bar { background: #000; border-color: #ffdf7a; }
 html[data-contrast='high'] .cinema-console__button { background: #000; border-color: #fff; }
+
+/* ── YouTube screenings ─────────────────────────────────────────────────── */
+/* The player layer: under every HUD element and panel, over the canvas. It
+   never takes pointer input unless the visitor turns on YouTube's controls. */
+.ui-root > .cinema-youtube {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+.cinema-youtube[hidden] { display: none; }
+.cinema-youtube__frame {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  background: #000;
+  pointer-events: none;
+}
+.cinema-youtube--interactive .cinema-youtube__frame { pointer-events: auto; }
+.cinema-youtube__player, .cinema-youtube__frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.cinema-console__watch { font-size: 0.82rem; color: #9fd4ff; }
+.cinema-console__watch:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.cinema-film--external { border-style: dashed; }
+.cinema-film[aria-disabled='true'] { opacity: 0.6; cursor: not-allowed; }
+.cinema-film__poster--wide { height: 54px; align-self: start; }
+.cinema-film__poster--provider {
+  display: grid;
+  place-content: center;
+  width: 96px;
+  height: 54px;
+  border: 1px solid rgba(159, 212, 255, 0.45);
+  border-radius: 2px;
+  font: 600 0.72rem var(--font-ui);
+  letter-spacing: 0.08em;
+  color: #ffb4a8;
+  background: #14090c;
+}
+.cinema-film__draft { font-size: 0.78rem; color: #f2d28a; }
+.cinema-film__watch { display: inline-block; margin: 0.25rem 0 0.4rem 0.6rem; font-size: 0.8rem; color: #9fd4ff; }
+.cinema-programme__curate, .cinema-consent__accept, .cinema-consent__back,
+.cinema-curator__add, .cinema-curator__tool, .cinema-curator__promote {
+  min-height: 2.25rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid rgba(159, 212, 255, 0.45);
+  border-radius: var(--radius);
+  background: #111a33;
+  color: #e9f2ff;
+  font: inherit;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+.cinema-consent__accept, .cinema-curator__add, .cinema-curator__promote { background: #1f5fa8; border-color: #9fd4ff; }
+.cinema-programme__curate:focus-visible, .cinema-consent__accept:focus-visible, .cinema-consent__back:focus-visible,
+.cinema-curator__add:focus-visible, .cinema-curator__tool:focus-visible, .cinema-curator__promote:focus-visible,
+.cinema-curator__input:focus-visible, .cinema-curator__textarea:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.cinema-consent__title { margin: 0.4rem 0; font-family: var(--font-body); color: var(--gold-bright); }
+.cinema-consent__text { line-height: 1.5; }
+.cinema-consent__actions, .cinema-curator__tools, .cinema-curator__row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.cinema-curator__form { display: grid; gap: 0.35rem; margin: 0.6rem 0; }
+.cinema-curator__label { font-weight: 600; }
+.cinema-curator__input, .cinema-curator__textarea {
+  flex: 1 1 18rem;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid rgba(159, 212, 255, 0.45);
+  border-radius: var(--radius);
+  background: #070b16;
+  color: #e9f2ff;
+  font: inherit;
+}
+.cinema-curator__message { min-height: 1.2em; margin: 0; font-size: 0.86rem; }
+.cinema-curator__message--ok { color: #9fe0b8; }
+.cinema-curator__message--error { color: #ffb4a8; }
+.cinema-curator__heading { margin: 0.9rem 0 0.3rem; font-family: var(--font-body); color: var(--gold-bright); font-size: 1rem; }
+.cinema-curator__list { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.7rem; }
+.cinema-curator__item { display: grid; grid-template-columns: 160px 1fr; gap: 0.7rem; align-items: start; }
+.cinema-curator__fields { display: grid; gap: 0.3rem; }
+.cinema-curator__source { margin: 0; font-size: 0.78rem; color: #9fd4ff; }
+.cinema-curator__thumb { width: 160px; height: 90px; object-fit: cover; border-radius: 2px; }
+@media (max-width: 640px) {
+  .cinema-curator__item { grid-template-columns: 1fr; }
+}

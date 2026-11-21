@@ -23,6 +23,15 @@ export function registerCinemaAssets(): void {
     attribution: 'The Full Weasel by westkitty — first-party background loops, shown as shipped.',
   });
   registerAsset({
+    id: 'cinema-youtube-screenings',
+    title: 'Museum Cinema YouTube screenings (external, online only, after visitor consent)',
+    kind: 'bundle', source: 'external', project: null, creator: 'Each film\'s YouTube uploader, as credited in the programme',
+    license: 'Streamed by YouTube under its terms through the official embed player; nothing is downloaded, cached or proxied by the museum.',
+    url: 'https://www.youtube-nocookie.com/embed/',
+    budgetKB: 0, streamingGroup: 'cinema',
+    attribution: 'Plays from YouTube. Title and channel are shown for every screening.',
+  });
+  registerAsset({
     id: 'cinema-programme-posters',
     title: 'Museum Cinema poster frames (one frame at 3 s from each programme film)',
     kind: 'texture', source: 'derived:P039', project: 'P039', creator: 'westkitty',

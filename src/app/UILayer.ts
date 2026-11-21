@@ -17,8 +17,9 @@ import { CuratorPanel } from '../ui/CuratorPanel';
 import { StudyPanel } from '../ui/StudyPanel';
 import { CommandPalette } from '../ui/CommandPalette';
 import { FullWeaselPanel } from '../ui/FullWeaselPanel';
-import { CinemaConsole, CinemaProgrammePanel } from '../ui/CinemaPanel';
-import { CINEMA_PROGRAMME } from '../cinema/programme';
+import { CinemaConsole, CinemaCuratorPanel, CinemaProgrammePanel, type ExternalConsent } from '../ui/CinemaPanel';
+import { CINEMA_PROGRAMME_DATA, type Programme } from '../cinema/programme';
+import { CinemaDrafts, type DraftEntry } from '../cinema/curatorDraft';
 import { MuseumGuidePanel } from '../ui/MuseumGuidePanel';
 import { VisitThreadPanel } from '../ui/VisitThreadPanel';
 import { JOURNAL_KEY } from '../state/Journal';
@@ -54,6 +55,12 @@ export class UILayer {
   readonly fullWeasel: FullWeaselPanel;
   readonly cinemaProgramme: CinemaProgrammePanel;
   readonly cinemaConsole: CinemaConsole;
+  readonly cinemaCurator: CinemaCuratorPanel;
+  /** This browser's YouTube drafts (never the published programme). */
+  readonly cinemaDrafts: CinemaDrafts;
+  /** The visitor's acceptance of the YouTube notice, for this visit (session). */
+  readonly youtubeConsent: ExternalConsent;
+  private youtubeConsentGiven = readSessionFlag(YOUTUBE_CONSENT_KEY);
   private hudElapsed = 1 / 30;
   private embeddedPaused = false;
   private disposing = false;
@@ -151,11 +158,29 @@ export class UILayer {
         { id: 'clear-guide', label: 'Clear guide', detail: 'Wayfinding', run: () => this.mapGuide(null) },
       ],
     );
+    this.cinemaDrafts = new CinemaDrafts(safeLocalStorage(), () => CINEMA_PROGRAMME_DATA);
+    this.youtubeConsent = {
+      given: () => this.youtubeConsentGiven,
+      accept: () => {
+        this.youtubeConsentGiven = true;
+        writeSessionFlag(YOUTUBE_CONSENT_KEY);
+        const player = app.interiorWorld?.cinema?.playback;
+        if (player) player.externalConsent = true;
+      },
+    };
     this.cinemaProgramme = new CinemaProgrammePanel(
-      CINEMA_PROGRAMME,
+      () => this.cinemaProgrammeNow(),
       (filmId) => { void app.interiorWorld?.cinema?.choose(filmId); },
       () => app.interiorWorld?.cinema?.playback.film?.id ?? null,
+      this.youtubeConsent,
+      () => this.cinemaCurator.open(),
     );
+    this.cinemaCurator = new CinemaCuratorPanel({
+      drafts: this.cinemaDrafts,
+      published: () => this.cinemaProgrammeNow(),
+      consent: this.youtubeConsent,
+      promote: import.meta.env.DEV ? promoteCinemaDrafts : null,
+    });
     this.cinemaConsole = new CinemaConsole({
       programme: () => this.openCinemaProgramme(),
       toggle: () => { void app.interiorWorld?.cinema?.playback.toggle(); },
@@ -165,6 +190,7 @@ export class UILayer {
       captions: (on) => app.interiorWorld?.cinema?.playback.setCaptions(on),
       sound: (on) => app.interiorWorld?.cinema?.playback.setSound(on),
       stand: () => app.interiorWorld?.cinema?.stand(),
+      providerControls: (on) => app.interiorWorld?.cinema?.overlay?.setInteractive(on),
     });
     this.fullWeasel = new FullWeaselPanel();
     this.unbind.push(this.fullWeasel.onClose(() => {
@@ -218,6 +244,7 @@ export class UILayer {
       this.command.root,
       this.fullWeasel.root,
       this.cinemaProgramme.root,
+      this.cinemaCurator.root,
       this.cinemaConsole.root,
       this.dexgptGuide.root,
       this.visitThread.root,
@@ -231,7 +258,7 @@ export class UILayer {
 
     // A panel takes over input while it is open; movement stops and the mouse
     // is released so the visitor can actually use it.
-    for (const panel of [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.cinemaProgramme, this.dexgptGuide, this.visitThread, this.visitorMenu]) {
+    for (const panel of [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.cinemaProgramme, this.cinemaCurator, this.dexgptGuide, this.visitThread, this.visitorMenu]) {
       const originalOpen = panel.open.bind(panel);
       panel.open = () => {
         input.releasePointerLock();
@@ -306,6 +333,11 @@ export class UILayer {
       this.embeddedPaused = true;
       this.app.stop();
     }
+  }
+
+  /** The published programme plus this browser's drafts, validated together. */
+  cinemaProgrammeNow(): Programme {
+    return this.cinemaDrafts.programme();
   }
 
   /** The cinema programme: from the lobby board, a seat, or the seated controls. */
@@ -571,7 +603,7 @@ export class UILayer {
   }
 
   private get modalPanels(): { isOpen: boolean }[] {
-    return [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.cinemaProgramme, this.dexgptGuide, this.visitThread, this.visitorMenu];
+    return [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.cinemaProgramme, this.cinemaCurator, this.dexgptGuide, this.visitThread, this.visitorMenu];
   }
 
   dispose(): void {
@@ -597,6 +629,7 @@ export class UILayer {
     this.command.dispose();
     this.fullWeasel.dispose();
     this.cinemaProgramme.dispose();
+    this.cinemaCurator.dispose();
     this.cinemaConsole.root.remove();
     this.dexgptGuide.dispose();
     this.visitThread.dispose();
@@ -649,4 +682,51 @@ export function guideContextQuestion(app: Pick<App, 'isOutside' | 'player'>): st
   if (y >= LEVEL_1_Y - 2) return 'How do I get downstairs?';
   if (y < GROUND_Y - 1) return 'How do I get back to the Rotunda?';
   return 'How do I get upstairs?';
+}
+
+const YOUTUBE_CONSENT_KEY = 'museum-of-me:cinema-youtube-consent';
+
+function safeLocalStorage(): Storage | null {
+  try {
+    return typeof window !== 'undefined' ? window.localStorage : null;
+  } catch {
+    return null;
+  }
+}
+
+function readSessionFlag(key: string): boolean {
+  try {
+    return typeof window !== 'undefined' && window.sessionStorage.getItem(key) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeSessionFlag(key: string): void {
+  try {
+    window.sessionStorage.setItem(key, '1');
+  } catch {
+    // Storage refused: the answer still holds for this page.
+  }
+}
+
+/**
+ * Development server only (tree-shaken from production builds; the release
+ * verifier checks the route never ships): promote drafts into
+ * data/cinema/programme.json through scripts/cinema-programme-plugin.ts.
+ */
+async function promoteCinemaDrafts(drafts: readonly DraftEntry[]): Promise<{ ok: boolean; message: string }> {
+  if (!import.meta.env.DEV) return { ok: false, message: 'Saving is available only on the development server.' };
+  try {
+    const response = await fetch('/__museum-cinema/programme', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ drafts }),
+    });
+    const body = await response.json() as { ok?: boolean; added?: string[]; errors?: string[]; error?: string };
+    if (response.ok && body.ok) {
+      return { ok: true, message: `Saved ${body.added?.length ?? 0} screening(s) to data/cinema/programme.json after checking them with YouTube. Commit that file to publish them.` };
+    }
+    return { ok: false, message: `Not saved: ${(body.errors ?? [body.error ?? `HTTP ${response.status}`]).join('; ')}` };
+  } catch (error) {
+    return { ok: false, message: `Not saved: ${error instanceof Error ? error.message : 'the development server did not answer'}` };
+  }
 }

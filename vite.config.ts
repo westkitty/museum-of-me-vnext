@@ -3,13 +3,14 @@ import { fileURLToPath, URL } from 'node:url';
 import { readFile, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { museumWorkshopSavePlugin } from './scripts/workshop-save-plugin';
+import { museumCinemaProgrammePlugin } from './scripts/cinema-programme-plugin';
 
 export default defineConfig({
   // GitHub Pages serves this repository below /museum-of-me-vnext/. Normal
   // local/release builds keep the portable relative base unless explicitly set.
   base: process.env.VITE_PUBLIC_BASE || './',
   assetsInclude: ['**/*.glb'],
-  plugins: [museumWorkshopSavePlugin(), {
+  plugins: [museumWorkshopSavePlugin(), museumCinemaProgrammePlugin(), {
     name: 'museum-private-workshop-assets',
     apply: 'build',
     async buildStart() {

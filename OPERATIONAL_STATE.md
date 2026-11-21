@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 105,
+  "state_revision": 107,
   "last_updated": "2026-11-21",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -1187,3 +1187,33 @@ The owner subsequently authorized staging, committing, pushing the correction ta
   - real-device FPS;
   - human visual acceptance of the threshold floor and the Sanctuary view;
   - the Bible append.
+
+### 2026-11-21 — Museum Cinema: YouTube and unlisted-video screenings (r107)
+
+- **Continuity note:**
+  - **The gap:** r106 was never written. That revision is the Museum Cinema entry, PR #68, which `docs/MUSEUM_CINEMA_2026-11-21.md` references.
+  - **Left open deliberately:** it is not backfilled or claimed here.
+  - **What this entry is:** r107.
+- **Base:** `main` `eb03d1a` (PR #68). Local working tree only: not committed, pushed, merged or deployed. Full record: `docs/MUSEUM_CINEMA_YOUTUBE_2026-11-21.md`.
+- **IMPLEMENTED:**
+  - **Discriminated programme:** `local` vs `youtube`. The 8 local films are unchanged and in order.
+  - **YouTube link handling:** links are normalised to the 11-character ID. Unlisted links are accepted, and a listed link is public. Malformed or malicious links and duplicates are refused.
+  - **YouTube backend:** YouTube's official IFrame Player API, through `youtube-nocookie`. It starts muted, plays only on the visitor's choice, and is destroyed on leaving the cinema, leaving the interior, or switching films. Stale loads cannot resurrect a player.
+  - **Unified `CinemaPlayer`:** one interface over the local and YouTube backends.
+  - **`ScreenOverlay`:** CSS `matrix3d` homography of the player onto the projected 3D screen each frame. No second renderer and no new loop.
+  - **External-content consent:** nothing is loaded from YouTube before acceptance.
+  - **Failure handling:** honest messages, with "Watch on YouTube" where useful.
+  - **Curator "Add video":** drafts in this browser only; dev-only save route with oEmbed verification; export and import.
+  - **Governance:** CSP hosts, the `cinema-youtube-screenings` governed asset, and an ASSET_POLICY exception.
+  - **First screening:** `f6hUqtFVgD8` ("the first dirt demo", DigitalGhost; 51 s from YouTube's player), added ninth.
+- **VERIFIED locally:**
+  - `npm run gate` PASS, with 1,283 Vitest tests.
+  - New YouTube browser tests 5/5. These use the real museum with a stubbed API script, so they prove the museum side only.
+  - Standalone build and verify PASS, with 0 remote requests.
+  - Real `file://` standalone: the YouTube screening refuses cleanly, and a local film plays.
+  - Real YouTube API in the real museum: the player reached `ready` and reported its title and duration. No YouTube request was made before consent.
+  - The dev route refuses cross-origin and non-POST requests, writes atomically and refuses duplicates.
+- **NOT VERIFIED:**
+  - **Visible YouTube picture playback.** From this build environment, YouTube returned error 150 at play for this video and for its own documentation sample `M7lc1UVf-VE`, which oEmbed reports as embeddable. That is a refusal of this browser and network, and frames never played. The entry is therefore marked `availability: unverified`.
+  - **Needs an ordinary browser:** real pointer and touch use of YouTube's own controls; real devices; exact-head CI; human acceptance.
+- **Known limitation:** the iframe always draws above the canvas, so no 3D occlusion or room lighting applies to the picture.

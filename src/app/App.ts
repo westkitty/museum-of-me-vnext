@@ -768,6 +768,8 @@ export class App implements LoopCallbacks {
     }
     this.workshopCameraOverride?.();
     this.renderer.render();
+    // A YouTube screening is laid over the cinema screen as this frame's camera sees it.
+    if (this.activeWorld === 'interior') this.interiorWorld?.cinema?.afterRender(this.camera, this.renderer.canvas);
     if (!this.renderer.isContextLost && this.activeWorld === 'interior'
       && this.interiorLoadTelemetry.firstInteriorFrameAtMs === null) {
       this.interiorLoadTelemetry.firstInteriorFrameAtMs = performance.now();

@@ -277,7 +277,7 @@ export class Museum {
     const group = this.zoneGroup('cinema');
     this.cinema = buildCinemaArchitecture(
       this.scope, this.collision, group,
-      CINEMA_PROGRAMME.films.map((film) => `${film.title} · ${formatDuration(film.media.durationSeconds)}`),
+      CINEMA_PROGRAMME.films.map((film) => `${film.title} · ${film.kind === 'local' ? formatDuration(film.media.durationSeconds) : 'YouTube, online'}`),
     );
   }
 

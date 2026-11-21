@@ -14,6 +14,7 @@ import { PersistentEnvironment } from './PersistentEnvironment';
 import { EventLoopYieldBudget } from '../util/yieldToEventLoop';
 import type { App } from '../app/App';
 import { CinemaVenue } from '../cinema/CinemaVenue';
+import { CINEMA_PROGRAMME } from '../cinema/programme';
 import { ATRIUM_DEPTH, ATRIUM_FRONT_Z, ENTRANCE_PORTAL_Z, type ZoneId } from './layout';
 
 /**
@@ -76,7 +77,9 @@ export class InteriorWorld {
         openProgramme: () => app.ui?.openCinemaProgramme(),
         get console() { return app.ui?.cinemaConsole ?? null; },
         filmUnavailable: (id, reason) => app.ui?.cinemaProgramme.markUnavailable(id, reason),
-      }, this.museum.cinema!));
+        overlayParent: app.uiRoot,
+      }, this.museum.cinema!, () => app.ui?.cinemaProgrammeNow() ?? CINEMA_PROGRAMME));
+      this.cinema.playback.externalConsent = app.ui?.youtubeConsent.given() ?? false;
     }
 
     this.sanctuary = this.measureBuildStage('sanctuary', () => new DexterSanctuary(this.scope));
