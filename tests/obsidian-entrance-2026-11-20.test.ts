@@ -9,6 +9,8 @@ import {
   OBSIDIAN_SPHERE_CENTER_Z, ENTRANCE_PORTAL_Z, TICKET_KIOSK_POSITION,
 } from '../src/world/layout';
 import { PlayerController, PLAYER_HEIGHT, PLAYER_RADIUS } from '../src/player/PlayerController';
+import { ExteriorWorld } from '../src/world/exterior/ExteriorWorld';
+import { MUSEUM_ENTRANCE_TARGET, planVisitorRoute } from '../src/world/visitorRoute';
 
 function build(): { collision: CollisionWorld; entrance: ObsidianSphereEntrance; scope: ResourceScope } {
   const scope = new ResourceScope('obsidian-entrance-test');
@@ -93,6 +95,27 @@ describe('obsidian spherical entrance: real passage, two-way and light', () => {
       expect(controller.position.z).toBeGreaterThan(149);
       scope.dispose();
     }
+  });
+
+  it('guides visitors beside the physical kiosk instead of into its collision box', () => {
+    const exterior = new ExteriorWorld('low');
+    exterior.ticketKiosk.build(() => undefined, () => false);
+    const route = planVisitorRoute(
+      'exterior', [0, 0, 164], MUSEUM_ENTRANCE_TARGET, exterior.collision,
+    );
+    expect(route.length).toBeGreaterThan(5);
+    // The kiosk is no longer an impassable waypoint in the exterior graph.
+    for (const waypoint of route) {
+      const distance = Math.hypot(
+        waypoint[0] - TICKET_KIOSK_POSITION[0],
+        waypoint[2] - TICKET_KIOSK_POSITION[2],
+      );
+      expect(distance).toBeGreaterThan(0.95);
+    }
+    // A solid centre is also never a valid guide sample.
+    expect(route.some(([x, , z]) =>
+      Math.abs(x) < 3.3 && Math.abs(z - OBSIDIAN_SPHERE_CENTER_Z) < 3.3)).toBe(false);
+    exterior.dispose();
   });
 
   it('fades restrained threshold lighting in by depth, with stable reduced motion', () => {
