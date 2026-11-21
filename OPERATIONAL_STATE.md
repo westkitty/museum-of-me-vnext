@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 102,
+  "state_revision": 103,
   "last_updated": "2026-11-20",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -1110,3 +1110,12 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - **UNKNOWN / PENDING (do not promote):** Final exact-head pull request GitHub Actions suite; all browser shards; standalone offline gate; Workshop gate; real in-and-out visitor trajectory on the final source; visual screenshots and subjective atmosphere; representative touch/reduced-motion device test; final merge and deployed SHA. A new source commit requires checking its own CI result, not the earlier head.
 - **Continuity:** Existing pre-1.0 owner correction remains controlling. No side effects to `main`, `pages-preview`, release workflows, or customer/visitor data from this feature branch.
 - **Release gate:** Before any live Pages promotion, verify the same exact source head across development, Workshop, offline standalone and browser paths and check visual/collision/ticket behavior. Do not conflate shipping code with human aesthetic acceptance.
+
+### 2026-11-20 — Obsidian entrance CI repair and performance closure attempt (r103)
+
+- **Evidence from exact-source GitHub CI 44844891907 (head `40e189d`):** canonical development gate PASS, offline standalone PASS, Workshop PASS, Chromium browser shard 3 PASS. Browser shard 1 FAIL (1 of 31): a deterministic fast-forward test reached the legitimate prewarm hold at exterior z=128.05 and incorrectly classified it as collision blockage. Browser shard 2 FAIL (2 of 24): 18 shader programs compiled inside visible frames on the exterior→interior seam, and new obelisk silhouette changed the Linux `arrival-plaza` snapshot by 3% versus previous baseline. **Not releasable at this head.**
+- **Root-cause correction, implemented on PR branch and pending new CI:** Physical walk-around route remains unchanged; the test now waits for real asynchronous entrance prewarm wall time before attempting the world seam and still uses keyboard collision traversal. One added exterior `THREE.PointLight` altered Three.js shader light-count defines when switching to the interior; removed this light completely, restored zero exterior-root lights in `tests/uplift2-A.test.ts`, and locked it in the new obsidian test. All sphere illumination now derives from emissive materials updated through the existing loop. The intended look of the obsidian entrance remains.
+- **Visual baseline evidence, not disabled:** Reviewed actual Linux Chromium `arrival-plaza-actual.png` from Actions artifact `14682338942` (SHA256 `5821d0804ea08b6f7c8c573580f529d743daa209ed6b10bf69445fef9876df15`) against the old committed image and visual diff. Committed that exact CI image as the single new `arrival-plaza-chromium-linux.png` golden (Git blob `a986881c23c2f31ac82957ca2a3741f1484aeb0e`); 2% screenshot tolerance and three other canonical camera goldens unchanged. New exact-head visual regression still needs confirmation after emissive-only modification.
+- **Measured performance (scoped, before additional shader fix):** Matched Big Mac Chromium/SwiftShader, low tier 800×450 CSS/DPR0.5, 46→16 sphere renderables, 521→490 outside draw calls, 393→385 inside draw calls, 540→510 GPU geometries. These are render submission/allocations, **not FPS**; returning light-count variants to parity addresses the CI-observed shader stall, but is pending post-fix Chromium proof.
+- **Still UNKNOWN:** post-repair exact-head CI all jobs; verified live Pages revision, real-device FPS and thermal stability, slow-network visitor perception, and human visual acceptance. No user-authored exhibit or museum structure outside the entrance has been modified; no `main` or `pages-preview` promotion yet.
+
