@@ -48,7 +48,11 @@ describe('D1: an opening is as wide in collision as it looks', () => {
 
 describe('D1/D2: every passage lane is collision-free where it crosses its aperture', () => {
   const built = buildMuseum();
-  for (const passage of PASSAGES.filter((p) => p.world === 'interior' && p.kind !== 'stair' && p.kind !== 'sanctuary')) {
+  // Level crossings only: a lane that changes height (stairs, the Sanctuary
+  // ramp, the cinema's lobby ramp and ramped aisle) is walked by the browser
+  // harness and tests/cinema.test.ts, since one sample height cannot describe it.
+  const level = (p: (typeof PASSAGES)[number]) => p.lanes.every((lane) => lane.path.every((point) => point[1] === lane.path[0][1]));
+  for (const passage of PASSAGES.filter((p) => p.world === 'interior' && p.kind !== 'stair' && p.kind !== 'sanctuary' && level(p))) {
     it(passage.id, () => {
       for (const lane of passage.lanes) {
         const [a, b] = [lane.path[0], lane.path[lane.path.length - 1]];

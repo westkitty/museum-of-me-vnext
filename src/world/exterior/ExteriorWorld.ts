@@ -146,10 +146,12 @@ export class ExteriorWorld {
     // sconces, which from inside the obsidian sphere looked like a closed
     // wall at the end of the passage (2026-11-21 walkthrough). Unlit
     // materials only: no light may join the exterior root (shader variants).
-    const voidMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x03070f }));
-    const wallMat = voidMat;
-    const floorMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x050a14 }));
-    const portalBackdropMat = voidMat;
+    // Deep navy rather than black (2026-11-21 walkthrough: the opening read as
+    // solid black and the walking surface could not be seen). Still darker
+    // than the lit exterior, so the threshold stays dramatic.
+    const wallMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x0b1729 }));
+    const floorMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x10213a }));
+    const portalBackdropMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x07101f }));
 
     // Vestibule floor inside doorway buffer
     const floorGeo = this.scope.track(new THREE.PlaneGeometry(hw * 2, depth));
@@ -238,9 +240,9 @@ export class ExteriorWorld {
     const midZ = (fromZ + toZ) / 2;
     // Toned to the atrium as it waits in the dark: its sky-blue runner and
     // coffers barely lit, continuing the arrival axis into the deep navy.
-    const runnerMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x0b1a2a }));
-    const inlayMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x123049 }));
-    const glowMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x1a4a6e, toneMapped: false }));
+    const runnerMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x24507a }));
+    const inlayMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x4f9ad0 }));
+    const glowMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x2f7fbf, toneMapped: false }));
 
     const runner = new THREE.Mesh(this.scope.track(new THREE.PlaneGeometry(10.8, depth - 0.1)), runnerMat);
     runner.name = 'vestibule-arrival-runner';

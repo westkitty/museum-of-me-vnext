@@ -52,7 +52,7 @@ if (existsSync('dist')) {
     errors.push(`initial visit bundle is ${mb.toFixed(2)} MB, over the ${INITIAL_VISIT_MB} MB budget`);
   }
   if (deferredBytes > 0) {
-    notes.push(`deferred local iframe artifact: ${(deferredBytes / (1024 * 1024)).toFixed(2)} MB; fetched only on E27 engagement`);
+    notes.push(`deferred local iframe artifact: ${(deferredBytes / (1024 * 1024)).toFixed(2)} MB; fetched only on E27 engagement (or one cinema film at a time, when a visitor chooses it)`);
   }
 } else {
   notes.push('no dist/ — run npm run build first to check the transfer budget');

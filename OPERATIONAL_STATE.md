@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 104,
+  "state_revision": 105,
   "last_updated": "2026-11-21",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -1157,3 +1157,33 @@ The owner subsequently authorized staging, committing, pushing the correction ta
   - human visual acceptance of the retoned seam buffer and the narrower E01/E08/E14 doorways;
   - the Bible append.
 
+
+### 2026-11-21 — Forensic visual, camera and traversal repair (r105)
+
+- **Base:** `main` `3840551` (PR #67, the deployed Pages revision). Local working tree only: not committed, pushed, merged or published. Full record: `docs/FORENSIC_REPAIR_2026-11-21.md`.
+- **CONFIRMED defects, repaired:**
+  - **Flight escaped the building (critical).** The camera passed through the rotunda dome (no collider; reached y 78) and rose through floor slabs (floor colliders only act as tops; exited over the south wing at y 34).
+    - Fix: `CollisionWorld.walkableSurfaceBetween` plus `PlayerController.resolveFlightSlabs`. To a flyer, floors and ramps are 0.6 m solid slabs: the climb stops beneath them and sideways entry is refused. Stair-well masks are honoured.
+    - Fix: tiled dome ceiling colliders just inside the glass.
+    - Launch, look-steered flight, Shift speed and landing are unchanged.
+  - **Sanctuary descent hidden and floating (high).**
+    - The interior world's uncut 600 m plaza-coloured ground plane crossed the ramp trench at eye height. It is now a `ShapeGeometry` with the trench cut.
+    - The ramp's padded axis-aligned collision held the visitor about 0.5 m above the visible ramp. `GeometryKit.ramp` now emits one exact oriented ramp (within 0.05 m).
+    - Dexter is unchanged.
+  - **Entrance read solid black (medium).** The r104 seam buffer was retoned to a lit navy walking surface with an azure runner and inlays; still unlit. The sphere floor guide holds at least 0.3 opacity.
+- **Latent defect exposed and fixed:** the Visitor Jury walker could tunnel through thin overlay blockers by lateral nudges (`crossesOverlay`).
+- **Classified, not changed:**
+  - Atrium: NOT A DEFECT.
+  - Gallery/Rotunda doorway clutter and stairs: HISTORICAL, FIXED in r104.
+  - "Click to resume museum look": INTENTIONAL pointer-lock resume prompt.
+  - White viewport pressed against a wall: the normal capsule-radius wall press.
+  - Ticket/entry: protected and covered.
+- **Tests:**
+  - New: `tests/forensic-repair-2026-11-21.test.ts` (6 cases; 5 fail on the unfixed code).
+  - Updated: one obsidian-entrance expectation for the raised floor-guide minimum.
+- **UNKNOWN / pending:**
+  - exact-head CI (nothing pushed);
+  - real pointer-lock and touch feel;
+  - real-device FPS;
+  - human visual acceptance of the threshold floor and the Sanctuary view;
+  - the Bible append.

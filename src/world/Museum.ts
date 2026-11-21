@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import { buildCinemaArchitecture, type CinemaArchitecture } from './Cinema';
+import { CINEMA_FACE, CINEMA_THRESHOLD_HEIGHT, CINEMA_THRESHOLD_WIDTH } from './cinemaLayout';
+import { CINEMA_PROGRAMME, formatDuration } from '../cinema/programme';
 import { GeometryKit } from './GeometryKit';
 import { PaletteSet } from './palette';
 import { CollisionWorld } from './CollisionWorld';
@@ -94,6 +97,8 @@ export class Museum {
   private readonly pal: PaletteSet;
   private readonly plinthKit: GalleryPlinthKit;
   readonly buildStageMs: Record<string, number> = {};
+  /** The Museum Cinema's architecture (screen, seats, house lights); runtime lives in src/cinema/. */
+  cinema: CinemaArchitecture | null = null;
 
   constructor(private readonly scope: ResourceScope) {
     this.root.name = 'museum-building';
@@ -111,6 +116,7 @@ export class Museum {
     this.measureBuildStep('wings', () => { for (const w of WINGS) this.buildWing(w); });
     this.measureBuildStep('entrance', () => this.buildEntrance());
     this.measureBuildStep('sanctuary', () => this.buildSanctuary());
+    this.measureBuildStep('cinema', () => this.buildCinema());
 
     // Production dressing on geometry that is already proven traversable.
     // Nothing here moves a wall, so every traversal test stays valid.
@@ -147,6 +153,7 @@ export class Museum {
     this.buildStageMs.wings = WINGS.reduce((total, wing) => total + (this.buildStageMs[`wing:${wing.id}`] ?? 0), 0);
     await step('entrance', () => this.buildEntrance());
     await step('sanctuary', () => this.buildSanctuary());
+    await step('cinema', () => this.buildCinema());
 
     const detailing = new Detailing(this.scope, this.pal);
     const detailZones = ['rotunda', 'balcony', ...WINGS.map((wing) => wing.id), 'entrance-detail', 'sanctuary'];
@@ -255,9 +262,23 @@ export class Museum {
       group.visible = visible;
       if (visible) this.visibleWingIds.add(wing.id);
     }
+    // The cinema is seen only from its own rooms, the balcony and the Rotunda
+    // floor (its marquee faces the atrium); elsewhere it draws nothing.
+    const cinema = this.zoneGroups.get('cinema');
+    if (cinema) {
+      cinema.visible = !enabled || zone === 'cinema' || zone === 'balcony' || zone === 'rotunda';
+    }
     // The Rotunda and Sanctuary roots themselves are always present; only
     // portal-connected wing render roots can be culled.
     return cull || anyPortalHidden;
+  }
+
+  private buildCinema(): void {
+    const group = this.zoneGroup('cinema');
+    this.cinema = buildCinemaArchitecture(
+      this.scope, this.collision, group,
+      CINEMA_PROGRAMME.films.map((film) => `${film.title} · ${formatDuration(film.media.durationSeconds)}`),
+    );
   }
 
   private zoneGroup(id: string): THREE.Group {
@@ -372,8 +393,32 @@ export class Museum {
     // Ground plane wide enough that the building reads as sited, not floating.
     // This belongs to the separately visible INTERIOR world; it cannot be the
     // source of outside island/water seams while ExteriorWorld is active.
-    const groundGeo = this.scope.track(new THREE.PlaneGeometry(600, 600));
+    // The Sanctuary ramp descends through it: its trench is cut out of the
+    // visible plane as it already is out of the collision. Seen from the upper
+    // ramp (eye above y = -0.5) the uncut plane lay across the descent at eye
+    // height and hid the ramp (2026-11-21 walkthrough).
+    const outline = new THREE.Shape([
+      new THREE.Vector2(-300, -300), new THREE.Vector2(300, -300),
+      new THREE.Vector2(300, 300), new THREE.Vector2(-300, 300),
+    ]);
+    const sd = SANCTUARY_DIR;
+    const sr: Vec3 = [-sd[2], 0, sd[0]];
+    const trenchHalf = SANCTUARY_RAMP_HALF_WIDTH + 0.4;
+    const corner = (along: number, side: number) => {
+      const wx = sd[0] * along + sr[0] * side * trenchHalf;
+      const wz = sd[2] * along + sr[2] * side * trenchHalf;
+      return new THREE.Vector2(wx, -wz); // the plane is laid flat by rotation.x = -π/2
+    };
+    outline.holes.push(new THREE.Path([
+      corner(SANCTUARY_RAMP_FROM - 1, -1), corner(SANCTUARY_RAMP_TO, -1),
+      corner(SANCTUARY_RAMP_TO, 1), corner(SANCTUARY_RAMP_FROM - 1, 1),
+    ]));
+    const groundGeo = this.scope.track(new THREE.ShapeGeometry(outline));
+    // Same 0–1 texture mapping across the 600 m square as the former plane.
+    const uv = groundGeo.getAttribute('uv') as THREE.BufferAttribute;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) + 300) / 600, (uv.getY(i) + 300) / 600);
     const ground = new THREE.Mesh(groundGeo, p.floor);
+    ground.name = 'interior-site-ground';
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = GROUND_Y - 0.5;
     ground.receiveShadow = true;
@@ -450,6 +495,9 @@ export class Museum {
       const wing = WINGS.find((w) => w.level === 1 && w.face === face);
       if (wing) {
         kit.wallWithOpening(a, b, LEVEL_1_Y, drumTop - LEVEL_1_Y, ROTUNDA_WALL, wing.archWidth, wing.archHeight, p.wall);
+      } else if (face === CINEMA_FACE) {
+        // The Museum Cinema's threshold (src/world/Cinema.ts builds the room beyond).
+        kit.wallWithOpening(a, b, LEVEL_1_Y, drumTop - LEVEL_1_Y, ROTUNDA_WALL, CINEMA_THRESHOLD_WIDTH, CINEMA_THRESHOLD_HEIGHT, p.wall);
       } else {
         // Solid below, clerestory glazing above — light without an opening.
         kit.wall(a, b, LEVEL_1_Y, 3.2, ROTUNDA_WALL, p.wall);
@@ -481,6 +529,23 @@ export class Museum {
     const dome = new THREE.Mesh(domeGeo, this.pal.glass());
     dome.position.y = sphereCenterY;
     g.add(dome);
+
+    // The glass is a ceiling for a flying visitor (the flight contract stops
+    // the climb at ceilings). It had no collider, so flight passed through
+    // the dome with the camera inside it and out of the museum (2026-11-21
+    // walkthrough). Thin tiles on a 2 m grid sit just inside the glass, each
+    // at the dome's lowest height over its square; walkers never reach them.
+    const TILE = 2;
+    const insideGlass = 0.45;
+    for (let x = -domeRadius; x < domeRadius; x += TILE) {
+      for (let z = -domeRadius; z < domeRadius; z += TILE) {
+        const nearest = Math.hypot(Math.max(0, Math.abs(x + TILE / 2) - TILE / 2), Math.max(0, Math.abs(z + TILE / 2) - TILE / 2));
+        if (nearest >= domeRadius) continue;
+        const farthest = Math.min(domeRadius, Math.hypot(Math.max(Math.abs(x), Math.abs(x + TILE)), Math.max(Math.abs(z), Math.abs(z + TILE))));
+        const y = sphereCenterY + Math.sqrt(sphereRadius * sphereRadius - farthest * farthest) - insideGlass;
+        this.collision.addBox([x + TILE / 2, y + 0.1, z + TILE / 2], [TILE / 2, 0.1, TILE / 2]);
+      }
+    }
 
     // Eight meridian ribs follow the same cap, from one spring-line point
     // over the apex to the opposite point. No second, incompatible dome shape.

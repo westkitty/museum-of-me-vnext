@@ -6,6 +6,10 @@ import {
   stairLanding, type Vec3,
 } from './layout';
 import { bayOpeningSpan } from './installationPlacement';
+import {
+  CINEMA_ENTRY_Y, CINEMA_FLOOR_Y, CINEMA_THRESHOLD_HEIGHT, CINEMA_THRESHOLD_WIDTH, ENTRY_DOOR, EXIT_DOOR, EXIT_PASSAGE,
+  FRONT_ZONE_TO_X, LIGHT_LOCK, LOBBY, NORTH_AISLE, REAR_PLATFORM,
+} from './cinemaLayout';
 
 /**
  * The museum's visitor-accessible passages, derived from the same layout
@@ -28,7 +32,7 @@ export const CLEARANCE_TOLERANCE = 0.15;
 export type PassageKind =
   | 'exterior-approach' | 'kiosk' | 'sphere-aperture' | 'sphere-route' | 'world-seam'
   | 'atrium-portal' | 'vestibule' | 'wing-arch' | 'corridor-hall' | 'exhibit-bay'
-  | 'stair' | 'sanctuary';
+  | 'stair' | 'sanctuary' | 'cinema';
 
 export interface PassageLane {
   /** Signed offset across the aperture from its centreline, metres. */
@@ -234,6 +238,31 @@ export function buildPassageInventory(): readonly Passage[] {
       ],
     })),
   });
+
+  // ── Museum Cinema (src/world/cinemaLayout.ts) ───────────────────────────
+  const cinema = (id: string, origin: string, destination: string, center: Vec3, width: number, height: number, lanes: PassageLane[]) =>
+    add({ id: `interior:cinema:${id}`, kind: 'cinema', world: 'interior', origin, destination, aperture: { center, width, height }, lanes });
+  const across = (halfClear: number, path: (o: number) => Vec3[]): PassageLane[] =>
+    laneOffsets(halfClear).map((o) => ({ offset: o, path: path(o) }));
+  cinema('threshold', 'balcony', 'cinema lobby', [ROTUNDA_APOTHEM, CINEMA_ENTRY_Y, 0], CINEMA_THRESHOLD_WIDTH, CINEMA_THRESHOLD_HEIGHT,
+    across(CINEMA_THRESHOLD_WIDTH / 2, (o) => [[ROTUNDA_APOTHEM - 3.4, CINEMA_ENTRY_Y, o], [ROTUNDA_APOTHEM + 3, CINEMA_ENTRY_Y, o]]));
+  cinema('lobby-ramp', 'cinema lobby', 'auditorium doors', [(LOBBY.rampFromX + LOBBY.rampToX) / 2, CINEMA_ENTRY_Y, 0], LOBBY.maxZ - LOBBY.minZ, 4,
+    across(1.6, (o) => [[LOBBY.rampFromX - 1, CINEMA_ENTRY_Y, o], [LIGHT_LOCK.x - 0.65, CINEMA_FLOOR_Y, o]]));
+  const lockMid = (LOBBY.minZ + LIGHT_LOCK.minZ) / 2;
+  cinema('light-lock', 'cinema lobby', 'auditorium doors', [LIGHT_LOCK.x, CINEMA_FLOOR_Y, lockMid], LIGHT_LOCK.minZ - LOBBY.minZ, 4,
+    across((LIGHT_LOCK.minZ - LOBBY.minZ) / 2, (o) => [[LIGHT_LOCK.x - 2, CINEMA_FLOOR_Y, lockMid + o], [LIGHT_LOCK.x + 1.25, CINEMA_FLOOR_Y, lockMid + o]]));
+  const entryMid = (ENTRY_DOOR.minZ + ENTRY_DOOR.maxZ) / 2;
+  cinema('entry-door', 'cinema lobby', 'auditorium', [LOBBY.maxX + 0.15, CINEMA_FLOOR_Y, entryMid], ENTRY_DOOR.maxZ - ENTRY_DOOR.minZ, ENTRY_DOOR.height,
+    across((ENTRY_DOOR.maxZ - ENTRY_DOOR.minZ) / 2, (o) => [[LOBBY.maxX - 1.1, CINEMA_FLOOR_Y, entryMid + o], [LOBBY.maxX + 2.2, CINEMA_FLOOR_Y, entryMid + o]]));
+  const exitMid = (EXIT_DOOR.minZ + EXIT_DOOR.maxZ) / 2;
+  const passageMid = (EXIT_PASSAGE.minX + EXIT_PASSAGE.maxX) / 2;
+  cinema('exit-door', 'auditorium', 'exit passage', [LOBBY.maxX + 0.15, CINEMA_FLOOR_Y, exitMid], EXIT_DOOR.maxZ - EXIT_DOOR.minZ, EXIT_DOOR.height,
+    across((EXIT_DOOR.maxZ - EXIT_DOOR.minZ) / 2, (o) => [[LOBBY.maxX + 2.2, CINEMA_FLOOR_Y, exitMid + o], [passageMid, CINEMA_FLOOR_Y, exitMid + o]]));
+  cinema('exit-passage', 'exit passage', 'cinema lobby', [passageMid, CINEMA_FLOOR_Y, LOBBY.maxZ], EXIT_PASSAGE.maxX - EXIT_PASSAGE.minX, 3.8,
+    across((EXIT_PASSAGE.maxX - EXIT_PASSAGE.minX) / 2, (o) => [[passageMid + o, CINEMA_FLOOR_Y, EXIT_PASSAGE.maxZ - 2.5], [passageMid + o, CINEMA_FLOOR_Y, LIGHT_LOCK.minZ - 1.2]]));
+  const aisleMid = (NORTH_AISLE.minZ + NORTH_AISLE.maxZ) / 2;
+  cinema('north-aisle-ramp', 'auditorium front', 'rear platform', [(FRONT_ZONE_TO_X + REAR_PLATFORM.minX) / 2, CINEMA_FLOOR_Y, aisleMid], NORTH_AISLE.maxZ - NORTH_AISLE.minZ, 4,
+    across((NORTH_AISLE.maxZ - NORTH_AISLE.minZ) / 2, (o) => [[FRONT_ZONE_TO_X - 2, CINEMA_FLOOR_Y, aisleMid + o], [REAR_PLATFORM.minX + 1, REAR_PLATFORM.y, aisleMid + o]]));
   return out;
 }
 

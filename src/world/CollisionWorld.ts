@@ -364,6 +364,27 @@ export class CollisionWorld {
     return touched;
   }
 
+  /**
+   * Walkable surfaces (floors and ramps, honouring masks) at (x, z) whose top
+   * lies within (minY, maxY]. A floor collider only records its top face; for
+   * free flight the slab beneath that face is solid too (FLIGHT_SLAB_DEPTH),
+   * so a flying visitor can neither rise through a slab nor slide into its
+   * edge. Returns the lowest such surface, or null.
+   */
+  walkableSurfaceBetween(x: number, z: number, minY: number, maxY: number): number | null {
+    let best: number | null = null;
+    for (const c of this.near(x, z, 0.6)) {
+      if (c.kind === 'wall') continue;
+      if (x < c.minX || x > c.maxX || z < c.minZ || z > c.maxZ) continue;
+      if (c.kind === 'floor' && c.contains && !c.contains(x, z)) continue;
+      if (c.kind === 'ramp' && c.oriented && orientedRampT(c, x, z) === null) continue;
+      const y = c.kind === 'floor' ? c.y : rampHeight(c, x, z);
+      if (y <= minY || y > maxY) continue;
+      if (best === null || y < best) best = y;
+    }
+    return best;
+  }
+
   /** Lowest ceiling above the visitor's head at (x, z), or Infinity. */
   ceilingHeight(x: number, z: number, headY: number): number {
     let best = Infinity;

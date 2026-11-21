@@ -137,7 +137,8 @@ describe('obsidian spherical entrance: real passage, two-way and light', () => {
     for (let t = 0; t < 120; t++) entrance.update(1 / 60, [0, 0, 130], false);
     expect((ring.material as THREE.MeshBasicMaterial).opacity).toBeGreaterThan(before);
     entrance.update(1 / 60, [0, 0, 135], true);
-    expect((ring.material as THREE.MeshBasicMaterial).opacity).toBeCloseTo(0.04 + 0.52 * 0.62);
+    // Reduced motion holds one stable level (floor guide minimum raised 2026-11-21).
+    expect((ring.material as THREE.MeshBasicMaterial).opacity).toBeCloseTo(0.3 + 0.52 * 0.5);
     const vaults = [1, 2, 3].map((number) => entrance.group.getObjectByName(
       'obsidian-reveal-vault-' + number,
     ) as THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>);

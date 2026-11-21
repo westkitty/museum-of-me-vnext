@@ -23,6 +23,8 @@ const BEDS: Record<ZoneId, ZoneBed> = {
   infra:     { base: 41,  cutoff: 300, level: 0.44, noise: 0.16, label: 'Low machine hum' },
   plaza:     { base: 110, cutoff: 1400, level: 0.26, noise: 0.22, label: 'Outside, open air' },
   sanctuary: { base: 58,  cutoff: 260, level: 0.20, noise: 0.04, label: 'Very quiet' },
+  // Room tone only (no music): a hushed, carpeted auditorium.
+  cinema:    { base: 52,  cutoff: 240, level: 0.14, noise: 0.03, label: 'A hushed, carpeted auditorium' },
 };
 
 const CROSSFADE_SECONDS = 2.2;

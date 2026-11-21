@@ -17,6 +17,7 @@ import type { SourceArtwork } from '../world/SourceArtwork';
 import { registerCuratedAssets, shellUrl, entranceUrl } from '../assets/curatedAssets';
 import { registerQuaterniusAssets } from '../assets/quaterniusAssets';
 import { registerFullWeaselArtifact } from '../assets/fullWeaselArtifact';
+import { registerCinemaAssets } from '../assets/cinemaAssets';
 import {
   SOURCE_INSTALLATIONS, SOURCE_SUPPLEMENTARY, SOURCE_VISITORS,
 } from '../content/sourceParity';
@@ -166,6 +167,7 @@ export class App implements LoopCallbacks {
     registerCuratedAssets();
     registerQuaterniusAssets();
     registerFullWeaselArtifact();
+    registerCinemaAssets();
     if (typeof document !== 'undefined') {
       document.documentElement.style.setProperty('--reliquary-shell', `url(${shellUrl})`);
       document.documentElement.style.setProperty('--reliquary-entrance', `url(${entranceUrl})`);
@@ -243,7 +245,8 @@ export class App implements LoopCallbacks {
 
   recordInteractionVisit(): void {
     const id = this.interaction.currentFocus?.exhibitId;
-    if (!id || isSecretControlId(id) || id === TICKET_KIOSK_ID) return;
+    // Cinema seats and boards are places, not exhibits: they stay out of the visit journal.
+    if (!id || isSecretControlId(id) || id === TICKET_KIOSK_ID || id.startsWith('cinema-')) return;
     this.journal.markVisited(id);
     this.visitThread.recordVisit(id);
   }
@@ -619,6 +622,7 @@ export class App implements LoopCallbacks {
     if (
       !this.player.flightMode
       && !this.player.isFrozen
+      && !this.player.isSeated
       && !this.input.uiCaptured
       && this.player.grounded
       && isOnFlightPad(this.player.position.x, this.player.position.z)

@@ -1,0 +1,108 @@
+/* The Museum Cinema: programme panel and the seated playback bar. */
+
+.cinema-programme__list {
+  list-style: none;
+  margin: 0.6rem 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.cinema-film {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 0.55rem;
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  border-radius: var(--radius);
+  background: rgba(16, 23, 44, 0.72);
+  color: var(--parchment);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.cinema-film:hover { border-color: var(--gold-bright); background: rgba(24, 34, 64, 0.85); }
+.cinema-film:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.cinema-film[aria-current='true'] { border-color: var(--focus); }
+.cinema-film__poster {
+  width: 96px;
+  height: 173px;
+  object-fit: cover;
+  border-radius: 2px;
+  background: #070a14;
+}
+.cinema-film__text { display: grid; align-content: start; gap: 0.3rem; }
+.cinema-film__title { font-family: var(--font-body); font-size: 1.05rem; color: var(--gold-bright); }
+.cinema-film__meta { font-family: var(--font-ui); font-size: 0.78rem; color: #9fd4ff; }
+.cinema-film__about { font-size: 0.9rem; line-height: 1.45; color: var(--parchment); }
+.cinema-film__unavailable { font-size: 0.82rem; color: #ffb4a8; }
+.cinema-programme__empty { font-size: 1rem; line-height: 1.5; }
+
+.cinema-console {
+  position: absolute;
+  top: max(0.8rem, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(1040px, 96vw);
+  /* Under the panels (z 30): the programme dialog always sits on top. */
+  z-index: 25;
+  font-family: var(--font-ui);
+  color: var(--parchment);
+  pointer-events: auto;
+}
+.cinema-console[hidden] { display: none; }
+.cinema-console__bar {
+  padding: 0.55rem 0.8rem 0.5rem;
+  border: 1px solid rgba(201, 162, 39, 0.4);
+  border-radius: var(--radius);
+  background: rgba(7, 10, 20, 0.86);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+}
+.cinema-console__heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 0.9rem; }
+.cinema-console__title { margin: 0; font-family: var(--font-body); font-size: 1rem; color: var(--gold-bright); }
+.cinema-console__status { margin: 0; font-size: 0.82rem; color: #c9d6ea; }
+.cinema-console__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+.cinema-console__button {
+  min-height: 2.25rem;
+  min-width: 2.75rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid rgba(159, 212, 255, 0.45);
+  border-radius: var(--radius);
+  background: #111a33;
+  color: #e9f2ff;
+  font: inherit;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+.cinema-console__button:hover:not(:disabled) { background: #1b2a50; }
+.cinema-console__button:focus-visible,
+.cinema-console__seek:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.cinema-console__button:disabled { opacity: 0.45; cursor: default; }
+.cinema-console__button[aria-pressed='true'] { background: #1f5fa8; border-color: #9fd4ff; }
+.cinema-console__seek { flex: 1 1 140px; min-width: 120px; accent-color: #f2d28a; }
+.cinema-console__time { font-variant-numeric: tabular-nums; font-size: 0.82rem; color: #c9d6ea; }
+.cinema-console__hint { margin: 0.4rem 0 0; font-size: 0.74rem; color: #9fb0c8; }
+.cinema-console__caption {
+  margin: 0 auto 0.5rem;
+  width: fit-content;
+  max-width: 92%;
+  padding: 0.4rem 0.9rem;
+  background: rgba(0, 0, 0, 0.86);
+  border-radius: var(--radius);
+  font-size: 1.05rem;
+  line-height: 1.45;
+  text-align: center;
+  white-space: pre-line;
+}
+@media (pointer: coarse) {
+  .cinema-console__button { min-height: 2.75rem; min-width: 3rem; }
+  .cinema-console__hint { display: none; }
+}
+html[data-contrast='high'] .cinema-console__bar { background: #000; border-color: #ffdf7a; }
+html[data-contrast='high'] .cinema-console__button { background: #000; border-color: #fff; }

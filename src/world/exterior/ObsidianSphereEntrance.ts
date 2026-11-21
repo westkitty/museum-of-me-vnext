@@ -346,7 +346,9 @@ export class ObsidianSphereEntrance {
     const target = sphereRevealLevel(eye[0], eye[2], reducedMotion);
     const mix = reducedMotion ? 1 : 1 - Math.exp(-Math.max(0, Math.min(dt, 0.1)) * 2.1);
     this.lightLevel += (target - this.lightLevel) * mix;
-    this.floorGlow.opacity = 0.04 + this.lightLevel * 0.62;
+    // The floor guide never falls below a readable glow: from the kiosk the
+    // chamber's walking line was near-invisible (2026-11-21 walkthrough).
+    this.floorGlow.opacity = 0.3 + this.lightLevel * 0.5;
     this.traceryGlow.opacity = 0.02 + this.lightLevel * 0.82;
     this.doorwayGlow.opacity = 0.04 + this.lightLevel * 0.72;
     this.monolith.emissiveIntensity = 0.05 + this.lightLevel * 0.34;

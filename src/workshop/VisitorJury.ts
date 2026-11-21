@@ -116,6 +116,29 @@ const inBand = (feetY: number, b: SceneBounds) => b.max[1] > feetY + WALKABLE_HE
 const centre = (b: SceneBounds): Vec3 => [round((b.min[0] + b.max[0]) / 2), round((b.min[1] + b.max[1]) / 2), round((b.min[2] + b.max[2]) / 2)];
 const uniq = (items: readonly JuryAffected[]) => [...new Map(items.map((item) => [`${item.kind}:${item.id}`, item])).values()];
 
+/** True when the straight move (ax, az) → (bx, bz) passes through the inside
+ * of a solid overlay box at the capsule's height (2-D slab test). */
+function crossesOverlay(ax: number, az: number, bx: number, bz: number, feetY: number, overlay: readonly Obstacle[]): boolean {
+  for (const { box } of overlay) {
+    if (feetY + PLAYER_HEIGHT <= box.min[1] || feetY >= box.max[1]) continue;
+    let t0 = 0, t1 = 1;
+    const d = [bx - ax, bz - az];
+    const o = [ax, az];
+    const lo = [box.min[0] + 1e-3, box.min[2] + 1e-3];
+    const hi = [box.max[0] - 1e-3, box.max[2] - 1e-3];
+    let hit = true;
+    for (let k = 0; k < 2 && hit; k++) {
+      if (Math.abs(d[k]) < 1e-12) { if (o[k] < lo[k] || o[k] > hi[k]) hit = false; continue; }
+      let ta = (lo[k] - o[k]) / d[k], tb = (hi[k] - o[k]) / d[k];
+      if (ta > tb) [ta, tb] = [tb, ta];
+      t0 = Math.max(t0, ta); t1 = Math.min(t1, tb);
+      if (t0 > t1) hit = false;
+    }
+    if (hit) return true;
+  }
+  return false;
+}
+
 /**
  * A capsule walker over the real collision world plus any authored solid
  * placements the world does not already contain. It never mutates the world.
@@ -254,6 +277,9 @@ class Walker {
       pos.x += ux * STEP;
       pos.z += uz * STEP;
       this.resolve(pos, overlay);
+      // A thin obstacle must not be crossed by expelling the capsule out of
+      // its far side: a stride or nudge that passes through one is refused.
+      if (crossesOverlay(prevX, prevZ, pos.x, pos.z, pos.y, overlay)) { pos.x = prevX; pos.z = prevZ; }
       const support = this.world.supportHeight(pos.x, pos.z, pos.y, STEP_UP);
       if (support === null) return finish(false, 'walked over a hole in the floor');
       if (support - pos.y > STEP_UP + 1e-6) return finish(false, `step of ${(support - pos.y).toFixed(2)} m exceeds the ${STEP_UP} m step-up limit`);
@@ -272,6 +298,7 @@ class Walker {
       for (const side of [SLIDE, -SLIDE, SLIDE * 2, -SLIDE * 2]) {
         const probe = { x: prevX - uz * side + ux * STEP, y: pos.y, z: prevZ + ux * side + uz * STEP };
         this.resolve(probe, overlay);
+        if (crossesOverlay(prevX, prevZ, probe.x, probe.z, pos.y, overlay)) continue;
         const probeRemaining = Math.hypot(target[0] - probe.x, target[2] - probe.z);
         if (probeRemaining < best - 1e-3 && this.world.supportHeight(probe.x, probe.z, pos.y, STEP_UP) !== null) {
           pos.x = probe.x; pos.z = probe.z; best = probeRemaining; stalled = 0; recovered = true;
