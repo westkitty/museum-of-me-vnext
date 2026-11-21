@@ -124,6 +124,38 @@ Software WebGL also slows game time relative to wall time, so a fast device is t
 
 A device or network slower than that would still be held at the doorway. The hold is non-modal, with a one-time spoken/subtitled line; there is no loading screen, button or camera cut. The interior chunk is 608 KB uncompressed. Real-device timing remains unverified.
 
+## Matched performance (production builds of `main` and this branch)
+
+Conditions: `vite preview`, Chromium with SwiftShader, 800 × 450 CSS, DPR 0.5, low tier, render loop stopped, two runs each. These are render submissions, allocations and seam behaviour, not device FPS.
+
+| Metric | `main` | This branch |
+|---|---|---|
+| Exterior arrival draw calls / triangles | 735 / 119,374 | 733 / 118,968 |
+| Sphere interior draw calls | 387 | 385 |
+| Atrium draw calls | 441 | 439 |
+| North hall / rotunda draw calls | 90 / 169 | 90 / 169 |
+| Exterior geometries / textures | 510 / 9 | 508 / 10 |
+| Interior geometries / textures | 1,545 / 108 | 1,528 / 109 |
+| Shader programs: exterior / interior | 32 / 63 | 33 / 63 |
+| **New programs compiled at the seam (1st / 2nd entry)** | **0 / 0** | **0 / 0** |
+| Commit time, 1st / 2nd entry | 131–133 / 30–39 ms | 135–157 / 32–33 ms |
+| Worst frame in the 30 frames after commit | 15–19 ms | 16–27 ms |
+| Static colliders | 2,743 | 851 |
+| Merged interior meshes | 424 | 424 |
+
+- **The extra exterior program and texture** come from the hologram-glow material behind the doorway. It's compiled with the exterior at boot, not at the seam.
+- **No light-count shader variant was added.** The exterior root still has no lights, and the browser stability test (no shader compiled inside a visible frame while entering and touring) passes.
+- **Timing differences are within run-to-run noise** on software WebGL.
+
+## Validation (local, this branch)
+
+| Check | Result |
+|---|---|
+| `npm run gate` (typecheck, lint, all Vitest, release tools, validators, build, budgets, `verify:dist`) | PASS |
+| Full Playwright suite | 84/84 PASS, including the passage traversal, the grand tour, shader stability and the Workshop browser tests |
+| Offline standalone (`build:standalone` then `verify:standalone`) | PASS: 14/14 installations, 17/17 visitors, 0 remote requests |
+| Exact-head CI | see PR #67 |
+
 ## Protected and unchanged
 
 - 73 identities, 35 exhibit slots and six wings.
