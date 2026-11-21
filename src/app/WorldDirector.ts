@@ -9,6 +9,7 @@ import {
   PORTAL_VESTIBULE_DEPTH,
   ATRIUM_FRONT_Z,
   SEAM_OFFSET_Z,
+  ENTRANCE_PREWARM_START_Z,
 } from '../world/layout';
 import { PLAYER_RADIUS, PLAYER_HEIGHT } from '../player/PlayerController';
 
@@ -16,7 +17,7 @@ import { PLAYER_RADIUS, PLAYER_HEIGHT } from '../player/PlayerController';
 type PortalPosition = Pick<THREE.Vector3, 'x' | 'y' | 'z'>;
 const PORTAL_SEAM_TOLERANCE = 0.1;
 const APPROACH_HALF_WIDTH = PORTAL_WIDTH / 2 + 6;
-const APPROACH_START_Z = 154;
+const APPROACH_START_Z = ENTRANCE_PREWARM_START_Z + 8;
 
 function insideDoorwayOpening(pos: PortalPosition): boolean {
   return Math.abs(pos.x) <= PORTAL_WIDTH / 2 - PLAYER_RADIUS
@@ -133,7 +134,7 @@ export class WorldDirector {
     if (this.preparePromise) return this.preparePromise;
     this.interiorImportStarted = true;
     this.transition('PREPARING_INTERIOR');
-    this.app.ui?.hud.setThresholdStatus(true, 'Opening the galleries…', false, true);
+    // No entrance/loading screen: preparation is invisible while walking.
 
     this.preparePromise = (async () => {
       try {
@@ -268,28 +269,20 @@ export class WorldDirector {
     const entranceReady = this.entranceIsReady();
     if (entranceReady && this.activeWorld === 'exterior' && this.interiorConstructed
       && this.phase === 'PREPARING_RENDER_RESOURCES') this.transition('AT_THRESHOLD');
-    if (inApproach && !this.thresholdPromptDismissed && this.activeWorld === 'exterior') {
-      const failed = this.phase === 'PREPARATION_FAILED';
-      const preparing = this.interiorImportStarted && !entranceReady && !failed;
-      const ticketed = Boolean(this.app.ticket);
-      const message = failed
-        ? 'The galleries could not be opened this time. The island remains available: retry, or keep exploring outside.'
-        : !ticketed
-          ? 'Admission is by ticket. Take one from the kiosk beside the doors.'
-          : entranceReady
-            ? 'The doors are open. Walk on in.'
-            : this.interiorConstructed
-              ? 'Your ticket is printing… lighting the entrance hall.'
-              : 'Your ticket is printing… opening the galleries.';
-      this.app.ui?.hud.setThresholdStatus(true, message, failed, preparing && ticketed, !ticketed);
-    } else if (!inApproach || this.activeWorld !== 'exterior') {
+    // Normal entry is spatial, never a HUD click-through or a loading panel.
+    // Preserve an actionable non-modal recovery only for a real load failure.
+    if (inApproach && this.activeWorld === 'exterior' && this.phase === 'PREPARATION_FAILED'
+      && !this.thresholdPromptDismissed) {
+      this.app.ui?.hud.setThresholdStatus(true,
+        'The galleries could not be opened this time. Retry, or continue exploring outside.', true);
+    } else {
       this.app.ui?.hud.setThresholdStatus(false, '');
     }
 
     // 1. Prepare invisibly only when approaching the actual south doorway.
     // The previous Z-only condition loaded the museum from anywhere on the island.
     if (this.activeWorld === 'exterior' && !this.interiorImportStarted
-      && inApproach && playerPosition.z <= THRESHOLD_PREPARE_Z) {
+      && inApproach && playerPosition.z <= ENTRANCE_PREWARM_START_Z) {
       // prepareInterior records and displays the failure, and remains rejecting
       // for explicit callers. This predictive request has no awaiting caller.
       void this.prepareInterior().catch(() => undefined);
