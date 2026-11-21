@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { CinemaPlayback } from '../src/cinema/CinemaPlayback';
+import { CinemaPlayer } from '../src/cinema/CinemaPlayer';
+import { YouTubePlayback } from '../src/cinema/YouTubePlayback';
 import { CinemaVenue, type CinemaHost } from '../src/cinema/CinemaVenue';
-import { CINEMA_PROGRAMME, type Film } from '../src/cinema/programme';
+import { CINEMA_PROGRAMME, type LocalFilm } from '../src/cinema/programme';
 import { CINEMA_SEATS, SCREEN, SEATED_EYE_HEIGHT } from '../src/world/cinemaLayout';
 import { buildMuseum } from './helpers/walk';
 
@@ -49,7 +51,8 @@ class FakeVideo extends EventTarget {
   finish() { this.currentTime = this.duration; this.ended = true; this.paused = true; this.dispatchEvent(new Event('ended')); }
 }
 
-const film: Film = CINEMA_PROGRAMME.films[0];
+const LOCAL = CINEMA_PROGRAMME.films.filter((f): f is LocalFilm => f.kind === 'local');
+const film: LocalFilm = LOCAL[0];
 
 function player(behaviour: 'ok' | 'missing' | 'refuse' = 'ok') {
   const videos: FakeVideo[] = [];
@@ -149,10 +152,10 @@ describe('CinemaPlayback', () => {
     expect(playback.texture).toBeNull();
 
     const first = playback.load(film);
-    const second = playback.load(CINEMA_PROGRAMME.films[1]);
+    const second = playback.load(LOCAL[1]);
     expect(await first).toBe(false);
     expect(await second).toBe(true);
-    expect(playback.film?.id).toBe(CINEMA_PROGRAMME.films[1].id);
+    expect(playback.film?.id).toBe(LOCAL[1].id);
   });
 });
 
@@ -183,7 +186,7 @@ describe('CinemaVenue', () => {
       filmUnavailable: () => undefined,
     };
     const { playback, videos } = player();
-    const v = new CinemaVenue(host, room, CINEMA_PROGRAMME, playback);
+    const v = new CinemaVenue(host, room, CINEMA_PROGRAMME, new CinemaPlayer(playback, new YouTubePlayback({ mount: () => { throw new Error('no DOM in unit tests'); } })));
     return { v, controls, held, announcements, seat, playerState, playback, videos, get programmeOpens() { return programmeOpens; } };
   }
 
@@ -242,7 +245,7 @@ describe('CinemaVenue', () => {
     const t = venue();
     expect(room.pictureMaterial.map).toBe(room.idleTexture);
     await t.v.choose(CINEMA_PROGRAMME.films[0].id);
-    const media = CINEMA_PROGRAMME.films[0].media;
+    const media = LOCAL[0].media;
     expect(room.pictureMaterial.map).toBe(t.playback.texture);
     expect(room.picture.scale.y).toBeCloseTo(SCREEN.height);
     expect(room.picture.scale.x).toBeCloseTo(SCREEN.height * media.width / media.height);

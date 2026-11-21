@@ -19,9 +19,12 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
   X-Frame-Options: DENY
-  # The museum makes no outbound runtime requests. Keep this synchronized if a
-  # future governed asset host is introduced.
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'
+  # The museum makes no outbound runtime requests of its own. The one governed
+  # exception is a YouTube screening the visitor explicitly chooses and accepts
+  # in the cinema (docs/MUSEUM_CINEMA_YOUTUBE_2026-11-21.md): YouTube's official
+  # IFrame Player API script, its privacy-enhanced player frame, and video
+  # thumbnails shown after that acceptance. Keep this synchronized.
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://www.youtube.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://i.ytimg.com; media-src 'self' blob:; connect-src 'self'; font-src 'self'; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'
 
 /index.html
   Cache-Control: public, max-age=0, must-revalidate

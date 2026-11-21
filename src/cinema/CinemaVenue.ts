@@ -5,7 +5,10 @@ import {
 } from '../world/cinemaLayout';
 import type { ZoneId, Vec3 } from '../world/layout';
 import { CinemaPlayback, type PlaybackSnapshot } from './CinemaPlayback';
-import { CINEMA_PROGRAMME, type Programme } from './programme';
+import { CinemaPlayer } from './CinemaPlayer';
+import { YouTubePlayback } from './YouTubePlayback';
+import { ScreenOverlay } from './ScreenOverlay';
+import { CINEMA_PROGRAMME, PROVIDER_LABEL, type Programme } from './programme';
 
 /** What the venue needs from the app. Narrow on purpose: no new framework. */
 export interface CinemaHost {
@@ -26,6 +29,8 @@ export interface CinemaHost {
   /** The seated controls (absent in headless tests). */
   readonly console: { setContext(c: { visible: boolean; seatLabel: string | null }): void; update(s: PlaybackSnapshot): void } | null;
   filmUnavailable(filmId: string, reason: string): void;
+  /** Where the YouTube screen layer lives (the UI root); null in headless tests. */
+  readonly overlayParent?: HTMLElement | null;
 }
 
 /** House fade: about 1.6 s down and up, so the room settles rather than snaps. */
@@ -40,23 +45,32 @@ const MARQUEE_UPDATE_SECONDS = 0.1;
  * releases its media; nothing decodes video anywhere else in the museum.
  */
 export class CinemaVenue {
-  readonly playback: CinemaPlayback;
+  readonly playback: CinemaPlayer;
+  /** The YouTube player's place on the screen (absent without a DOM). */
+  readonly overlay: ScreenOverlay | null;
+  private readonly programmeSource: () => Programme;
   private readonly unbind: (() => void)[] = [];
   private seatLabel: string | null = null;
   private houseLevel = 1;
   private marqueeClock = 0;
   private marqueeElapsed = MARQUEE_UPDATE_SECONDS;
   private inCinema = false;
+  private lastState: PlaybackSnapshot['state'] = 'empty';
   private readonly bulbColor = new THREE.Color();
   private readonly onVisibility = () => { if (document.hidden) this.playback.pause(); };
 
   constructor(
     private readonly host: CinemaHost,
     private readonly room: CinemaArchitecture,
-    readonly programme: Programme = CINEMA_PROGRAMME,
-    playback: CinemaPlayback = new CinemaPlayback(),
+    programme: Programme | (() => Programme) = CINEMA_PROGRAMME,
+    playback?: CinemaPlayer,
   ) {
-    this.playback = playback;
+    this.programmeSource = typeof programme === 'function' ? programme : () => programme;
+    this.overlay = host.overlayParent ? new ScreenOverlay(host.overlayParent) : null;
+    const overlay = this.overlay;
+    this.playback = playback ?? new CinemaPlayer(new CinemaPlayback(), new YouTubePlayback({
+      mount: () => overlay?.frame ?? document.body,
+    }));
     this.unbind.push(this.playback.onChange((snapshot) => this.onPlayback(snapshot)));
     for (const block of room.seatBlocks) {
       this.unbind.push(host.interaction.register(block.id, {
@@ -81,11 +95,16 @@ export class CinemaVenue {
     this.unbind.push(host.interaction.register('cinema-programme', {
       object: room.programmeBoard,
       label: 'Read the cinema programme',
-      description: `The cinema programme: ${this.programme.films.length} film${this.programme.films.length === 1 ? '' : 's'}.`,
+      description: `The cinema programme: ${this.programme.films.length} film${this.programme.films.length === 1 ? '' : 's'}, including any YouTube screenings (online only).`,
       activate: () => host.openProgramme(),
     }));
     if (typeof document !== 'undefined') document.addEventListener('visibilitychange', this.onVisibility);
     this.showPicture();
+  }
+
+  /** The programme as it stands now (the published list plus any of this browser's drafts). */
+  get programme(): Programme {
+    return this.programmeSource();
   }
 
   get seated(): string | null {
@@ -150,7 +169,11 @@ export class CinemaVenue {
     }
     this.showPicture();
     const playing = await this.playback.play();
-    if (playing) this.host.announce(`Now playing: ${film.title}. ${film.media.hasAudio ? 'Sound is off; turn it on with the Sound button.' : 'Silent film.'}`);
+    if (playing) {
+      this.host.announce(film.kind === 'youtube'
+        ? `Starting ${film.title} from YouTube (${PROVIDER_LABEL}). Sound is off; turn it on with the Sound button.`
+        : `Now playing: ${film.title}. ${film.media.hasAudio ? 'Sound is off; turn it on with the Sound button.' : 'Silent film.'}`);
+    }
     return playing;
   }
 
@@ -196,6 +219,7 @@ export class CinemaVenue {
       if (input.isDown('forward') || input.isDown('back') || input.isDown('left') || input.isDown('right')) this.stand();
     }
 
+    this.playback.tick(dt);
     const reduced = this.host.reducedMotion();
     const state = this.playback.state;
     const target = state === 'playing' ? 0 : state === 'paused' ? 0.45 : 1;
@@ -223,6 +247,17 @@ export class CinemaVenue {
     if (bulbs.instanceColor) bulbs.instanceColor.needsUpdate = true;
   }
 
+  /**
+   * After each rendered frame: lay the YouTube player over the screen as this
+   * camera sees it (hidden unless a YouTube film is loaded and the visitor is in
+   * the cinema with the whole screen in front of them).
+   */
+  afterRender(camera: THREE.Camera, canvas: HTMLCanvasElement): void {
+    if (!this.overlay) return;
+    const active = this.inCinema && this.playback.provider === 'youtube' && this.playback.youtube.hasPlayer;
+    this.overlay.update(active, camera, this.room.picture, canvas);
+  }
+
   /** Leaving the auditorium ends the session: stand, stop, release media. */
   leave(): void {
     if (this.seatLabel) {
@@ -231,6 +266,8 @@ export class CinemaVenue {
       this.setSeatTargets(true);
     }
     if (this.playback.hasMediaElement || this.playback.state !== 'empty') this.playback.release();
+    this.overlay?.hide();
+    this.overlay?.setInteractive(false);
   }
 
   /**
@@ -261,6 +298,14 @@ export class CinemaVenue {
 
   private onPlayback(snapshot: PlaybackSnapshot): void {
     if (snapshot.state === 'empty' || snapshot.state === 'error' || snapshot.state === 'ready') this.showPicture();
+    // A provider can refuse after the film was already announced as starting
+    // (YouTube reports some refusals only when play is requested): say so.
+    if (snapshot.state === 'error' && this.lastState !== 'error' && this.lastState !== 'loading' && snapshot.film) {
+      const reason = snapshot.error ?? 'unavailable';
+      this.host.filmUnavailable(snapshot.film.id, reason);
+      this.host.announce(`${snapshot.film.title} stopped. ${reason}${snapshot.watchUrl ? ' You can still watch it on YouTube.' : ''}`);
+    }
+    this.lastState = snapshot.state;
     this.host.console?.update(snapshot);
   }
 
@@ -276,7 +321,7 @@ export class CinemaVenue {
     }
     let width = SCREEN.width;
     let height = SCREEN.height;
-    if (texture && film) {
+    if (texture && film && film.kind === 'local') {
       const aspect = film.media.width / film.media.height;
       if (aspect < SCREEN.width / SCREEN.height) width = height * aspect;
       else height = width / aspect;
@@ -294,6 +339,7 @@ export class CinemaVenue {
     for (const off of this.unbind) off();
     this.unbind.length = 0;
     this.playback.dispose();
+    this.overlay?.dispose();
     if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', this.onVisibility);
   }
 }

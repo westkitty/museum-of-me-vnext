@@ -154,3 +154,16 @@ the ring is unreachable on foot (owner review suggested).
 | 11 defects (exterior placement, stair floor line, map marker, related-room links, settings ranges, focus, wake-lock leak, journal validation) | REPAIRED | same |
 | Human acceptance | PENDING | — |
 
+
+## Museum Cinema: YouTube screenings — 2026-11-21 (local working tree, not committed)
+
+| Item | State | Evidence |
+|---|---|---|
+| Discriminated programme (local / YouTube); 8 local films unchanged and in order | IMPLEMENTED; VERIFIED BY UNIT TEST | `tests/cinema-youtube.test.ts`, `tests/cinema.test.ts` |
+| YouTube link normalisation, unlisted links, malicious-input and duplicate refusal | IMPLEMENTED; VERIFIED BY UNIT TEST | `tests/cinema-youtube.test.ts` |
+| First screening `f6hUqtFVgD8` in the programme (title and channel from oEmbed; 51 s from YouTube's player) | ADDED; METADATA VERIFIED LIVE | oEmbed; real IFrame API `ready` in the museum |
+| Player laid over the 3D screen (CSS homography), consent before any YouTube request, controls, cleanup, fallbacks | IMPLEMENTED; VERIFIED BY BROWSER WITH STUBBED API | `tests/browser/cinema-youtube.e2e.ts` 5/5 |
+| Visible YouTube picture playback inside the cinema | NOT VERIFIED (environment refused) | `tests/browser/youtube-live.capture.ts`: `ready` → error 150 here; YouTube's own sample refused identically |
+| Curator Add video: drafts in this browser only; dev save route; export and import | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TESTS; dev route exercised live | `docs/MUSEUM_CINEMA_YOUTUBE_2026-11-21.md` |
+| Offline: local films unaffected; YouTube refused in `file://` standalone with an explanation | VERIFIED BY BROWSER | standalone probe; `verify:standalone` 0 remote requests |
+| Human acceptance; real-browser YouTube playback | PENDING | — |

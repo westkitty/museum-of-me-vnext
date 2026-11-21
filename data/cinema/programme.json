@@ -1,5 +1,5 @@
 {
-  "$comment": "Museum Cinema programme. Only real, locally shipped media may be listed; every file is hash-checked by tests/cinema.test.ts. Add a film by adding an entry; the room and the player do not change.",
+  "$comment": "Museum Cinema programme. Local entries list only real, locally shipped media, each hash-checked by tests/cinema.test.ts. YouTube entries are an explicit online exception (docs/MUSEUM_CINEMA_YOUTUBE_2026-11-21.md): add them with the cinema's Add video panel (dev save route) or by importing an exported list. The room and the player do not change.",
   "version": 1,
   "source": {
     "projectId": "P039",
@@ -16,6 +16,7 @@
   "films": [
     {
       "id": "full-weasel-loop-1",
+      "source": "local",
       "title": "The Full Weasel · Background loop 1",
       "projectId": "P039",
       "exhibitId": "E27",
@@ -42,6 +43,7 @@
     },
     {
       "id": "full-weasel-loop-2",
+      "source": "local",
       "title": "The Full Weasel · Background loop 2",
       "projectId": "P039",
       "exhibitId": "E27",
@@ -68,6 +70,7 @@
     },
     {
       "id": "full-weasel-loop-3",
+      "source": "local",
       "title": "The Full Weasel · Background loop 3",
       "projectId": "P039",
       "exhibitId": "E27",
@@ -94,6 +97,7 @@
     },
     {
       "id": "full-weasel-loop-4",
+      "source": "local",
       "title": "The Full Weasel · Background loop 4",
       "projectId": "P039",
       "exhibitId": "E27",
@@ -120,6 +124,7 @@
     },
     {
       "id": "full-weasel-loop-5",
+      "source": "local",
       "title": "The Full Weasel · Background loop 5",
       "projectId": "P039",
       "exhibitId": "E27",
@@ -146,6 +151,7 @@
     },
     {
       "id": "full-weasel-loop-6",
+      "source": "local",
       "title": "The Full Weasel · Background loop 6",
       "projectId": "P039",
       "exhibitId": "E27",
@@ -172,6 +178,7 @@
     },
     {
       "id": "full-weasel-loop-7",
+      "source": "local",
       "title": "The Full Weasel · Background loop 7",
       "projectId": "P039",
       "exhibitId": "E27",
@@ -198,6 +205,7 @@
     },
     {
       "id": "full-weasel-loop-8",
+      "source": "local",
       "title": "The Full Weasel · Background loop 8",
       "projectId": "P039",
       "exhibitId": "E27",
@@ -221,6 +229,29 @@
       "captions": null,
       "captionsNote": "No captions: the clip has no soundtrack and no speech.",
       "sourceFile": "grok_video_2026-02-08-15-32-25.mp4 (created 15:32:25, 8 February 2026, per its filename)"
+    },
+    {
+      "id": "youtube-the-first-dirt-demo",
+      "source": "youtube",
+      "title": "the first dirt demo",
+      "projectId": "",
+      "exhibitId": null,
+      "description": "",
+      "context": "A YouTube screening, added by the museum owner from an unlisted link (authorised for inclusion). Unlisted means anyone with the link can watch it; listing it here makes it public.",
+      "youtube": {
+        "videoId": "f6hUqtFVgD8",
+        "submittedUrl": "https://youtu.be/f6hUqtFVgD8",
+        "titleSource": "youtube-oembed",
+        "author": {
+          "name": "DigitalGhost",
+          "url": "https://www.youtube.com/@DigitalGhost269"
+        },
+        "durationSeconds": 51,
+        "durationSource": "YouTube IFrame Player getDuration() in a real browser, 2026-11-21",
+        "availability": "unverified",
+        "availabilityNote": "Checked 2026-11-21: YouTube oEmbed answers for this link (title, channel), which it does not do for videos whose embedding is turned off; YouTube's own embed player loaded it and reported its title and 0:51 length. Picture playback could not be confirmed from the automated build browser, which YouTube refused for every video, including its own documentation sample. Not yet confirmed in an ordinary browser.",
+        "verifiedAt": "2026-11-21"
+      }
     }
   ]
 }

@@ -52,6 +52,26 @@ files for offline use. The embedded build disables the original root-scoped
 service-worker registration, uses relative paths, and forwards Escape only as
 a parent close signal. It does not add another Museum frame-loop owner.
 
+### Approved exception: visitor-chosen YouTube screenings in the cinema
+
+Owner-authorised on 2026-11-21. The Museum Cinema may list YouTube videos,
+including unlisted ones. They are the museum's only online content, and they
+are governed as `cinema-youtube-screenings` (source `external`):
+
+- Nothing is fetched from YouTube on arrival, on entering the cinema, or on
+  opening the programme. YouTube's official IFrame Player API, its
+  privacy-enhanced player (`www.youtube-nocookie.com`) and thumbnails
+  (`i.ytimg.com`) load only after the visitor chooses a YouTube screening and
+  accepts the external-content notice. That answer lasts for the visit.
+- The museum never downloads, caches or proxies YouTube media, and never works
+  around privacy, embedding or player restrictions. Where YouTube refuses,
+  the visitor is offered "Watch on YouTube".
+- An unlisted link listed in the public programme is public. It is never
+  presented as private.
+- The museum's own films stay offline-only and unaffected.
+- The release CSP (`public/_headers`) names exactly these hosts. Record:
+  [MUSEUM_CINEMA_YOUTUBE_2026-11-21.md](MUSEUM_CINEMA_YOUTUBE_2026-11-21.md).
+
 ### What this does **not** mean
 
 - It does not mean boxes. A procedural asset must still meet the exhibit contract's *physical presence*

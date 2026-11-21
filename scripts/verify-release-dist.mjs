@@ -62,6 +62,7 @@ const workshopRuntimeMarkers = [
   'Nominal source-route evidence',
   'choreo-launcher',
   '/__museum-workshop/save',
+  '/__museum-cinema/programme',
   '/__museum-workshop/tge-thumbnail',
   '/__museum-workshop/tge-import',
   '/__museum-workshop/tge-status',

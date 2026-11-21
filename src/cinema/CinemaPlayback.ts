@@ -1,18 +1,24 @@
 import * as THREE from 'three';
-import { resolveMediaUrl, type Film } from './programme';
+import { resolveMediaUrl, type Film, type LocalFilm } from './programme';
 
 export type PlaybackState = 'empty' | 'loading' | 'ready' | 'playing' | 'paused' | 'ended' | 'error';
 
 export interface PlaybackSnapshot {
   readonly state: PlaybackState;
   readonly film: Film | null;
+  /** Which backend is playing: the museum's own files, or YouTube's embed player. */
+  readonly provider: 'local' | 'youtube' | null;
   readonly currentTime: number;
   readonly duration: number;
   readonly captionsAvailable: boolean;
   readonly captionsOn: boolean;
   readonly captionText: string;
   readonly soundOn: boolean;
+  /** Whether the visitor can turn sound on (a local film with a soundtrack, or any YouTube film). */
+  readonly soundAvailable: boolean;
   readonly error: string | null;
+  /** When the film can still be watched on the provider's own site (embedding refused, etc.). */
+  readonly watchUrl: string | null;
 }
 
 export interface CinemaPlaybackOptions {
@@ -37,7 +43,7 @@ export class CinemaPlayback {
   private videoTexture: THREE.Texture | null = null;
   private track: HTMLTrackElement | null = null;
   private listeners: AbortController | null = null;
-  private currentFilm: Film | null = null;
+  private currentFilm: LocalFilm | null = null;
   private status: PlaybackState = 'empty';
   private errorMessage: string | null = null;
   private captionsWanted = true;
@@ -49,7 +55,7 @@ export class CinemaPlayback {
   constructor(private readonly options: CinemaPlaybackOptions = {}) {}
 
   get state(): PlaybackState { return this.status; }
-  get film(): Film | null { return this.currentFilm; }
+  get film(): LocalFilm | null { return this.currentFilm; }
   /** The texture the screen shows while a film is loaded; null otherwise. */
   get texture(): THREE.Texture | null { return this.videoTexture; }
   /** True while a media element exists (it is released when the visitor leaves). */
@@ -63,13 +69,16 @@ export class CinemaPlayback {
     return {
       state: this.status,
       film: this.currentFilm,
+      provider: this.currentFilm ? 'local' : null,
       currentTime: video ? video.currentTime : 0,
       duration,
       captionsAvailable: Boolean(this.currentFilm?.captions),
       captionsOn: Boolean(this.currentFilm?.captions) && this.captionsWanted,
       captionText: this.captionsWanted ? this.cue : '',
       soundOn: this.sound,
+      soundAvailable: Boolean(this.currentFilm?.media.hasAudio),
       error: this.errorMessage,
+      watchUrl: null,
     };
   }
 
@@ -83,7 +92,7 @@ export class CinemaPlayback {
    * if it could not be loaded (the reason is in the snapshot). A newer
    * `load` supersedes an older one still in flight.
    */
-  async load(film: Film): Promise<boolean> {
+  async load(film: LocalFilm): Promise<boolean> {
     this.release();
     const token = ++this.loadToken;
     this.currentFilm = film;
