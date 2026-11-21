@@ -253,20 +253,20 @@ test('slow module transfer holds only the doorway seam, reports real state, and 
       world: app.activeWorld,
       phase: app.worldDirector.phase,
       z: app.player.position.z,
-      status: document.querySelector('.hud__threshold p')?.textContent ?? '',
+      hint: document.querySelector('.hud__subtitle')?.textContent ?? '',
+      panelHidden: document.querySelector<HTMLElement>('.hud__threshold')?.hidden ?? false,
       ready: app.interiorWorld?.streaming.telemetry.prewarmReady ?? false,
       hasFakePercent: /\b\d{1,3}%\b/.test(document.querySelector('.hud__threshold')?.textContent ?? ''),
-      canContinueOutside: document.querySelector<HTMLButtonElement>('.hud__threshold button:last-child')?.hidden === false,
       committedAt: app.interiorLoadTelemetry.transitionCommittedAtMs,
     };
   });
   expect(waiting.world).toBe('exterior');
   expect(waiting.phase).toBe('PREPARING_INTERIOR');
   expect(waiting.z).toBeGreaterThanOrEqual(128.05);
-  expect(waiting.status).toMatch(/Opening the galleries|Lighting the entrance hall|ticket is printing/);
+  expect(waiting.hint).toContain('museum is waking beyond the obsidian');
+  expect(waiting.panelHidden).toBe(true); // preparation is not a click-through screen
   expect(waiting.ready).toBe(false);
   expect(waiting.hasFakePercent).toBe(false);
-  expect(waiting.canContinueOutside).toBe(true);
   expect(waiting.committedAt).toBeNull();
 
   await page.evaluate(() => {
