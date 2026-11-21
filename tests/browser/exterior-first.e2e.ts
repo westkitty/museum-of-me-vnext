@@ -63,7 +63,7 @@ test.describe('P1 Exterior-first cold boot and independent world contexts', () =
     expect(errors).toEqual([]);
   });
 
-  test('pier start stays outside the entrance prompt; approaching shows it and leaving hides it', async ({ page }) => {
+  test('pier start is cold; approach predictively prewarms without any blocking entrance panel', async ({ page }) => {
     await page.goto('/?qa=1', { waitUntil: 'commit' });
     await page.waitForFunction(() => Boolean(window.__museum));
 
@@ -77,7 +77,7 @@ test.describe('P1 Exterior-first cold boot and independent world contexts', () =
       app.worldDirector.update(app.player.position);
       const atPier = { hidden: prompt.hidden, importStarted: app.worldDirector.interiorImportStarted };
 
-      // Walking nearer the museum should still reveal the original prompt.
+      // The physical approach must invisibly prewarm; never show an entry screen.
       app.player.teleport([0, 0, 150]);
       app.worldDirector.update(app.player.position);
       const nearEntrance = { hidden: prompt.hidden, importStarted: app.worldDirector.interiorImportStarted };
@@ -89,8 +89,9 @@ test.describe('P1 Exterior-first cold boot and independent world contexts', () =
     });
 
     expect(result.atPier).toEqual({ hidden: true, importStarted: false });
-    expect(result.nearEntrance).toEqual({ hidden: false, importStarted: false });
-    expect(result.backAtPier).toEqual({ hidden: true, importStarted: false });
+    expect(result.nearEntrance).toEqual({ hidden: true, importStarted: true });
+    // Returning outdoors never interrupts an already-started background load.
+    expect(result.backAtPier).toEqual({ hidden: true, importStarted: true });
   });
 
   test('exterior player movement is physically supported without interior colliders', async ({ page }) => {
