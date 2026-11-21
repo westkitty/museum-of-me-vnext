@@ -120,9 +120,10 @@ outside.connect([
   exteriorPoint(PIER_CENTERLINE[3]), exteriorPoint(PIER_CENTERLINE[2]),
   [0, LAND_SUPPORT_Y, 184], exteriorPoint(PIER_CENTERLINE[1]),
   [0, LAND_SUPPORT_Y, 164], [0, GROUND_Y, rampTopZ],
-  // The kiosk is on the approach, then a deliberate arc around the solid
-  // central obelisk replaces the old straight path through its footprint.
-  TICKET_KIOSK_POSITION, [0, GROUND_Y, 149],
+  // Pass beside the kiosk, within F-interaction reach, not THROUGH its
+  // physical collision box. Then curve around the solid central monolith.
+  [TICKET_KIOSK_POSITION[0] + 2.8, GROUND_Y, TICKET_KIOSK_POSITION[2]],
+  [0, GROUND_Y, 149],
   [4.4, GROUND_Y, 144], [5.1, GROUND_Y, OBSIDIAN_SPHERE_CENTER_Z],
   [4.4, GROUND_Y, 132], ENTRANCE_DOOR,
 ]);
