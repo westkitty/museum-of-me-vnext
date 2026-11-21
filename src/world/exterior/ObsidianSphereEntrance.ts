@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { ResourceScope } from '../../assets/ResourceScope';
 import type { CollisionWorld } from '../CollisionWorld';
 import {
@@ -15,6 +16,7 @@ import {
 const SIDES = 32;
 const TWO_PI = Math.PI * 2;
 const LOWER_SHELL_START = 1.49;
+const OCULUS_POLAR_ANGLE = 0.12;
 const OPENING_HALF_ANGLE = 0.43;
 const CENTER_Y = 4.5;
 const R = OBSIDIAN_SPHERE_RADIUS;
@@ -45,6 +47,9 @@ export class ObsidianSphereEntrance {
   private readonly doorwayGlow: THREE.MeshBasicMaterial;
   private readonly monolith: THREE.MeshStandardMaterial;
   private readonly chamberFill: THREE.PointLight;
+  private readonly oculusGlow: THREE.MeshBasicMaterial;
+  private readonly exitGlow: THREE.MeshBasicMaterial;
+  private readonly vaultGlows: readonly THREE.MeshBasicMaterial[];
   private lightLevel = 0.10;
 
   constructor(
@@ -75,6 +80,18 @@ export class ObsidianSphereEntrance {
       color: 0x4ecbfa, transparent: true, opacity: 0.05,
       depthWrite: false, toneMapped: false,
     }));
+    this.oculusGlow = scope.track(new THREE.MeshBasicMaterial({
+      color: 0x6accfa, transparent: true, opacity: 0.1,
+      depthWrite: false, toneMapped: false,
+    }));
+    this.exitGlow = scope.track(new THREE.MeshBasicMaterial({
+      color: 0x94e5ff, transparent: true, opacity: 0.03,
+      depthWrite: false, toneMapped: false,
+    }));
+    this.vaultGlows = Array.from({ length: 3 }, () => scope.track(new THREE.MeshBasicMaterial({
+      color: 0x4cb8ef, transparent: true, opacity: 0.03,
+      depthWrite: false, toneMapped: false,
+    })));
     this.monolith = scope.track(new THREE.MeshStandardMaterial({
       color: 0x0b1018, metalness: 0.76, roughness: 0.25,
       emissive: 0x133b58, emissiveIntensity: 0.07, flatShading: true,
@@ -114,22 +131,48 @@ export class ObsidianSphereEntrance {
     // convincing dome with a full-height, walkable ring at ground level.
     this.mesh(
       'obsidian-sphere-dome',
-      new THREE.SphereGeometry(R, 64, 24, 0, TWO_PI, 0, LOWER_SHELL_START),
+      new THREE.SphereGeometry(
+        R, 64, 24, 0, TWO_PI, OCULUS_POLAR_ANGLE, LOWER_SHELL_START - OCULUS_POLAR_ANGLE,
+      ),
       obsidian, 0, GROUND_Y + CENTER_Y, CENTER_Z,
     );
+
+    // A real open oculus offers one sliver of island sky over the monolith.
+    // It lets the vast skylit atrium read as an architectural discovery, not
+    // an arbitrary portal effect. Static, one draw, and no new shader or loop.
+    const oculusRadius = R * Math.sin(OCULUS_POLAR_ANGLE);
+    const oculus = this.mesh(
+      'obsidian-open-sky-oculus',
+      new THREE.TorusGeometry(oculusRadius, 0.075, 6, 48),
+      this.oculusGlow,
+      0, GROUND_Y + CENTER_Y + R * Math.cos(OCULUS_POLAR_ANGLE), CENTER_Z,
+    );
+    oculus.rotation.x = Math.PI / 2;
 
     // Skipped sectors carve real open sightlines at both ends. Collision uses
     // the same sectors with oriented segments, not one impassable cylinder.
     const slice = TWO_PI / SIDES;
     const wallRadius = 9.2;
-    for (let i = 0; i < SIDES; i++) {
-      if (!isSphereWallSector(i)) continue;
+    const occupiedSectors = Array.from({ length: SIDES }, (_, index) => index)
+      .filter(isSphereWallSector);
+    // One instanced draw replaces every separate wall-sector draw. The real
+    // oriented collision segments are deliberately preserved one-for-one.
+    const wallBatch = new THREE.InstancedMesh(
+      this.scope.track(new THREE.SphereGeometry(
+        R, 5, 6, 0, slice, LOWER_SHELL_START, THETA_FLOOR - LOWER_SHELL_START,
+      )),
+      innerObsidian, occupiedSectors.length,
+    );
+    wallBatch.name = 'obsidian-sphere-curved-wall-batch';
+    wallBatch.receiveShadow = true;
+    const wallTransform = new THREE.Object3D();
+    occupiedSectors.forEach((i, instanceIndex) => {
       const angle = (i + 0.5) * slice;
-      this.mesh(
-        'obsidian-sphere-curved-wall-' + i,
-        new THREE.SphereGeometry(R, 5, 6, i * slice, slice, LOWER_SHELL_START, THETA_FLOOR - LOWER_SHELL_START),
-        innerObsidian, 0, GROUND_Y + CENTER_Y, CENTER_Z,
-      );
+      wallTransform.position.set(0, GROUND_Y + CENTER_Y, CENTER_Z);
+      wallTransform.rotation.y = i * slice;
+      wallTransform.updateMatrix();
+      wallBatch.setMatrixAt(instanceIndex, wallTransform.matrix);
+
       const yaw = -angle - Math.PI / 2;
       const halfX = wallRadius * slice * 0.53;
       const halfZ = 0.42;
@@ -146,7 +189,11 @@ export class ObsidianSphereEntrance {
         minZ: centerZ - broadZ, maxZ: centerZ + broadZ,
         oriented: { centerX, centerZ, halfX, halfZ, yaw },
       });
-    }
+    });
+    wallBatch.instanceMatrix.needsUpdate = true;
+    wallBatch.computeBoundingSphere();
+    this.scope.track(wallBatch);
+    this.group.add(wallBatch);
 
     // An actual dark stone floor conceals the old decorative rill where it
     // passes beneath the new threshold; outdoor garden colliders are preserved.
@@ -217,12 +264,13 @@ export class ObsidianSphereEntrance {
       this.mesh(
         direction > 0 ? 'obsidian-sphere-outside-arch' : 'obsidian-sphere-atrium-arch',
         new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 32, 0.09, 6, false),
-        this.doorwayGlow, 0, 0, 0,
+        direction > 0 ? this.doorwayGlow : this.exitGlow, 0, 0, 0,
       );
     }
 
-    // Sparse exterior meridians give the mass recognizable spherical anatomy.
-    // Pure geometry, no new lamps, shadows, texture fetches or per-frame builds.
+    // One geometrically merged draw for the twelve static meridians; preserve
+    // the authored curves and the closed-world number of rays.
+    const meridians: THREE.BufferGeometry[] = [];
     for (let m = 0; m < 12; m++) {
       const azimuth = m * TWO_PI / 12;
       const points: THREE.Vector3[] = [];
@@ -234,10 +282,34 @@ export class ObsidianSphereEntrance {
           CENTER_Z + Math.sin(azimuth) * Math.sin(polar) * (R + 0.025),
         ));
       }
+      meridians.push(new THREE.TubeGeometry(
+        new THREE.CatmullRomCurve3(points), 20, 0.065, 5, false,
+      ));
+    }
+    const mergedMeridians = mergeGeometries(meridians, false);
+    // Temporary sub-geometries are not owned by the scene; free their CPU
+    // buffers immediately after merging instead of retaining duplicate copies.
+    meridians.forEach((geometry) => geometry.dispose());
+    if (!mergedMeridians) throw new Error('Could not merge obsidian meridians');
+    this.mesh('obsidian-sphere-meridian-batch', mergedMeridians, trim, 0, 0, 0);
+
+    // Three restrained archways turn the actual walk around the monolith into
+    // the reveal: their order emerges only as the visitor changes perspective.
+    // These geometry-only stations need no light, animation loop or collision.
+    for (const [index, z] of [143, 138, 133].entries()) {
+      const points: THREE.Vector3[] = [];
+      for (let n = 0; n <= 16; n++) {
+        const t = Math.PI * n / 16;
+        points.push(new THREE.Vector3(
+          Math.cos(t) * 7.1,
+          GROUND_Y + 0.22 + Math.sin(t) * 5.85,
+          z,
+        ));
+      }
       this.mesh(
-        'obsidian-sphere-meridian-' + m,
-        new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 20, 0.065, 5, false),
-        trim, 0, 0, 0,
+        'obsidian-reveal-vault-' + (index + 1),
+        new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 24, 0.045, 5, false),
+        this.vaultGlows[index], 0, 0, 0,
       );
     }
 
@@ -258,5 +330,19 @@ export class ObsidianSphereEntrance {
     this.doorwayGlow.opacity = 0.04 + this.lightLevel * 0.72;
     this.monolith.emissiveIntensity = 0.05 + this.lightLevel * 0.34;
     this.chamberFill.intensity = 0.13 + this.lightLevel * 0.80;
+
+    // Moving inward reveals the oculus and three vaults in spatial order.
+    // Reversing the walk naturally dims them; reduced motion holds stable.
+    const front = CENTER_Z + Math.sqrt(R * R - CENTER_Y * CENTER_Y);
+    const progress = reducedMotion ? 1
+      : THREE.MathUtils.clamp((front - eye[2]) / (front - ENTRANCE_PORTAL_Z), 0, 1);
+    this.vaultGlows.forEach((mat, index) => {
+      const start = index * 0.28;
+      const stage = THREE.MathUtils.smoothstep(progress, start, start + 0.26);
+      mat.opacity = 0.025 + this.lightLevel * 0.75 * stage;
+    });
+    this.oculusGlow.opacity = 0.08 + this.lightLevel * 0.52;
+    this.exitGlow.opacity = 0.025 + this.lightLevel * 0.72
+      * THREE.MathUtils.smoothstep(progress, 0.55, 0.9);
   }
 }
