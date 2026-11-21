@@ -1,5 +1,6 @@
 import {
   ATRIUM_DOOR, ENTRANCE_DOOR, GROUND_Y, LEVEL_1_Y, OCTAGON_FACES, PLAZA_DEPTH, PLAZA_HALF_WIDTH,
+  OBSIDIAN_SPHERE_CENTER_Z, TICKET_KIOSK_POSITION,
   PLACEMENT_BY_EXHIBIT, SANCTUARY_CENTER, SANCTUARY_DIR, SANCTUARY_FLOOR_Y, SANCTUARY_RAMP_FROM,
   SANCTUARY_RAMP_TO, STAIRS, WINGS, faceDirection, place, rightOf, stairArcPoint, stairArrivalFace, stairLanding, type Vec3,
 } from './layout';
@@ -118,7 +119,12 @@ const rampTopZ = ENTRANCE_DOOR[2] + PLAZA_DEPTH;
 outside.connect([
   exteriorPoint(PIER_CENTERLINE[3]), exteriorPoint(PIER_CENTERLINE[2]),
   [0, LAND_SUPPORT_Y, 184], exteriorPoint(PIER_CENTERLINE[1]),
-  [0, LAND_SUPPORT_Y, 164], [0, GROUND_Y, rampTopZ], ENTRANCE_DOOR,
+  [0, LAND_SUPPORT_Y, 164], [0, GROUND_Y, rampTopZ],
+  // The kiosk is on the approach, then a deliberate arc around the solid
+  // central obelisk replaces the old straight path through its footprint.
+  TICKET_KIOSK_POSITION, [0, GROUND_Y, 149],
+  [4.4, GROUND_Y, 144], [5.1, GROUND_Y, OBSIDIAN_SPHERE_CENTER_Z],
+  [4.4, GROUND_Y, 132], ENTRANCE_DOOR,
 ]);
 
 function canJoinExterior(from: Vec3, to: Vec3): boolean {
@@ -128,6 +134,8 @@ function canJoinExterior(from: Vec3, to: Vec3): boolean {
     // Off-path joining keeps clear of the shell and the water. The entrance
     // ramp and pier links themselves are authored and do not need this check.
     if (!isSiteLand(x, z) && !(Math.abs(x) <= 2.5 && z >= 157 && z <= 218)) return false;
+    // Never draw an exterior guide shortcut through the sphere's solid centre.
+    if (Math.abs(x) < 3.3 && Math.abs(z - OBSIDIAN_SPHERE_CENTER_Z) < 3.3) return false;
     if (Math.abs(x) < PLAZA_HALF_WIDTH + 6 && z > -106 && z < ENTRANCE_DOOR[2] + 1 && !(Math.abs(x) < 2.5 && z >= ENTRANCE_DOOR[2])) return false;
   }
   return true;
