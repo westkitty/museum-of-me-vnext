@@ -308,7 +308,7 @@ export class WorldDirector {
           const reason = this.app.ticket ? 'preparing' : 'ticket';
           if (reason !== this.lastDoorHoldReason) {
             this.lastDoorHoldReason = reason;
-            this.app.ui?.hud.announce(reason === 'ticket'
+            this.app.ui?.hud.announce?.(reason === 'ticket'
               ? 'Admission requires a ticket. The kiosk is outside the obsidian sphere.'
               : 'The museum is waking beyond the obsidian. Continue when the doorway opens.', 5);
           }
