@@ -2,86 +2,95 @@ import { expect, test } from '@playwright/test';
 import { SANCTUARY_CENTER, SANCTUARY_FLOOR_Y } from '../../src/world/layout';
 
 test.describe('P2 Minimum viable impossible threshold and reversible world switching', () => {
-  test('real keyboard walking crosses the pier stairs, terrace, threshold and returns outside', async ({ page }) => {
+  test('real keyboard walking navigates the obsidian sphere, crosses the seam, returns and re-enters', async ({ page }) => {
     test.setTimeout(300_000);
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.goto('/?qa=1', { waitUntil: 'commit' });
-    await page.waitForFunction(() => Boolean(window.__museum));
+    await page.waitForFunction(() => Boolean(window.__museum), null, { timeout: 30_000 });
     await page.addStyleTag({ content: '#a11y-root, #ui-root, .cinematic-arrival { display: none !important; }' });
     await page.evaluate(() => {
-      const app = window.__museum;
-      if (!app) throw new Error('museum missing');
+      const app = window.__museum!;
       app.stop();
       app.player.teleport([0, 0, 174], 0);
-      app.fixedUpdate(1 / 60);
-      app.variableUpdate(1 / 60);
       app.setQuality('low');
-      // SwiftShader's default full-size framebuffer can starve the live input
-      // loop during a long traversal. Keep real keyboard and collision paths,
-      // while reducing only the test renderer's pixel workload.
       app.renderer.renderer.setPixelRatio(0.5);
       app.renderer.renderer.setSize(window.innerWidth, window.innerHeight, false);
-      (window as Window & { __p7RouteSamples?: Array<{ z: number; y: number; grounded: boolean; world: string }> })
-        .__p7RouteSamples = [];
-      window.setInterval(() => {
-        const current = window.__museum;
-        if (!current) return;
-        (window as Window & { __p7RouteSamples?: Array<{ z: number; y: number; grounded: boolean; world: string }> })
-          .__p7RouteSamples?.push({ z: current.player.position.z, y: current.player.position.y,
-            grounded: current.player.grounded, world: current.activeWorld });
-      }, 100);
-      app.start();
+      app.fixedUpdate(1 / 60);
+      app.variableUpdate(1 / 60);
       app.render(0);
     });
     await page.locator('#museum-canvas').screenshot({ path: 'test-results/p7-pier-walk.png' });
 
-    await page.keyboard.down('Shift');
+    // Genuine keyboard action and collision. Yaw follows deliberate waypoints
+    // as a person would turn; no teleporting, noclip or direct world switch.
     await page.keyboard.down('w');
-    await page.waitForFunction(() => (window.__museum?.player.position.z ?? Infinity) < 163.5, null, { timeout: 120_000 });
-    await page.waitForFunction(() => (window.__museum?.player.position.z ?? Infinity) < 157.5, null, { timeout: 120_000 });
-    await page.waitForFunction(() => window.__museum?.activeWorld === 'interior', null, { timeout: 240_000 });
-    await page.keyboard.up('w');
-    await page.keyboard.up('Shift');
-    const entry = await page.evaluate(() => {
-      const app = window.__museum;
-      const samples = (window as Window & { __p7RouteSamples?: Array<{ z: number; y: number; grounded: boolean; world: string }> })
-        .__p7RouteSamples ?? [];
-      if (!app) throw new Error('museum missing');
-      return { world: app.activeWorld, position: [app.player.position.x, app.player.position.y, app.player.position.z],
-        museumBuildCount: app.museumBuildCount, samples };
+    const journey = await page.evaluate(async () => {
+      const app = window.__museum!;
+      const samples: Array<{ x: number; z: number; y: number; world: string; grounded: boolean }> = [];
+      const record = () => samples.push({
+        x: app.player.position.x, z: app.player.position.z,
+        y: app.player.position.y, world: app.activeWorld, grounded: app.player.grounded,
+      });
+      const walk = async (x: number, z: number, untilWorld?: 'exterior' | 'interior'): Promise<void> => {
+        for (let frame = 0; frame < 1700; frame++) {
+          if (untilWorld && app.activeWorld === untilWorld) return;
+          const dx = x - app.player.position.x;
+          const dz = z - app.player.position.z;
+          if (!untilWorld && Math.hypot(dx, dz) < 0.45) return;
+          app.player.yaw = Math.atan2(-dx, -dz);
+          app.fixedUpdate(1 / 60);
+          app.variableUpdate(1 / 60);
+          if (frame % 12 === 0) record();
+          if (frame % 60 === 0) await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        }
+        throw new Error('Obsidian entrance route obstructed near ' +
+          app.player.position.toArray().map((n) => n.toFixed(2)).join(',') +
+          ' targeting ' + x + ',' + z + ' (' + untilWorld + ')');
+      };
+      const approach = async () => {
+        for (const [x, z] of [
+          [0, 164], [0, 157.7], [0, 149], [0, 145.7],
+          [4.8, 143], [5.2, 138], [4.8, 133], [0, 130],
+        ]) await walk(x, z);
+        await walk(0, 125, 'interior');
+      };
+      const crossOut = async () => {
+        await walk(0, 165, 'exterior');
+      };
+      await approach();
+      const firstEntry = { world: app.activeWorld, z: app.player.position.z };
+      await crossOut();
+      const exteriorAfterReturn = { world: app.activeWorld, z: app.player.position.z };
+      for (const [x, z] of [
+        [0, 130], [4.8, 133], [5.2, 138],
+        [4.8, 143], [0, 145.7], [0, 150.5],
+      ]) await walk(x, z);
+      const fullyOutside = { world: app.activeWorld, z: app.player.position.z };
+      await approach();
+      record();
+      app.render(0);
+      return { firstEntry, exteriorAfterReturn, fullyOutside,
+        finalWorld: app.activeWorld, museumBuildCount: app.museumBuildCount,
+        samples, illegalTransitions: app.worldDirector.illegalTransitions };
     });
-    expect(entry.world).toBe('interior');
-    // The exterior door opens into the atrium's front door (interior z = 162).
-    expect(entry.position[2]).toBeGreaterThan(150);
-    expect(entry.position[2]).toBeLessThan(162.5);
-    expect(entry.museumBuildCount).toBe(1);
-    expect(entry.samples.some((sample) => sample.z >= 164 && sample.y < -0.4 && sample.grounded)).toBe(true);
-    expect(entry.samples.some((sample) => sample.z > 158 && sample.z < 164 && sample.grounded)).toBe(true);
-    expect(entry.samples.some((sample) => sample.z >= 128 && sample.z <= 158 && Math.abs(sample.y) < 0.1 && sample.grounded)).toBe(true);
-    await page.locator('#museum-canvas').screenshot({ path: 'test-results/p7-interior-entry.png' });
-
-    await page.keyboard.down('Shift');
-    await page.keyboard.down('s');
-    await page.waitForFunction(() => window.__museum?.activeWorld === 'exterior', null, { timeout: 90_000 });
-    await page.waitForFunction(() => (window.__museum?.player.position.z ?? -Infinity) > 148, null, { timeout: 90_000 });
-    await page.keyboard.up('s');
-    await page.keyboard.up('Shift');
-    const returned = await page.evaluate(() => ({ world: window.__museum?.activeWorld,
-      z: window.__museum?.player.position.z, grounded: window.__museum?.player.grounded,
-      museumBuildCount: window.__museum?.museumBuildCount }));
-    expect(returned).toMatchObject({ world: 'exterior', grounded: true, museumBuildCount: 1 });
-    expect(returned.z).toBeGreaterThan(132);
-    await page.locator('#museum-canvas').screenshot({ path: 'test-results/p7-threshold-return.png' });
-
-    await page.keyboard.down('Shift');
-    await page.keyboard.down('w');
-    await page.waitForFunction(() => window.__museum?.activeWorld === 'interior', null, { timeout: 90_000 });
     await page.keyboard.up('w');
-    await page.keyboard.up('Shift');
-    expect(await page.evaluate(() => ({ world: window.__museum?.activeWorld,
-      museumBuildCount: window.__museum?.museumBuildCount }))).toEqual({ world: 'interior', museumBuildCount: 1 });
-    await page.evaluate(() => window.__museum?.stop());
+
+    expect(journey.firstEntry.world).toBe('interior');
+    expect(journey.firstEntry.z).toBeGreaterThan(158);
+    expect(journey.firstEntry.z).toBeLessThan(163);
+    expect(journey.exteriorAfterReturn.world).toBe('exterior');
+    expect(journey.exteriorAfterReturn.z).toBeGreaterThan(127);
+    expect(journey.fullyOutside).toMatchObject({ world: 'exterior' });
+    expect(journey.fullyOutside.z).toBeGreaterThan(148);
+    expect(journey.finalWorld).toBe('interior');
+    expect(journey.museumBuildCount).toBe(1);
+    expect(journey.illegalTransitions).toEqual([]);
+    expect(journey.samples.some((s) => s.z >= 164 && s.y < -0.4 && s.grounded)).toBe(true);
+    expect(journey.samples.some((s) => s.z > 158 && s.z < 164 && s.grounded)).toBe(true);
+    expect(journey.samples.some((s) => s.world === 'exterior'
+      && s.x > 4 && s.z > 135 && s.z < 141 && s.grounded)).toBe(true);
+    await page.locator('#museum-canvas').screenshot({ path: 'test-results/p7-interior-entry.png' });
     expect(errors).toEqual([]);
   });
 
