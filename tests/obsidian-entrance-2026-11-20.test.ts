@@ -61,6 +61,9 @@ describe('obsidian spherical entrance: real passage, two-way and light', () => {
     expect(wallBatch.count).toBe([...Array(32).keys()].filter(isSphereWallSector).length);
     expect(entrance.group.getObjectByName('obsidian-sphere-meridian-batch')).toBeDefined();
     expect(entrance.group.getObjectByName('obsidian-open-sky-oculus')).toBeDefined();
+    const liveLights: THREE.Light[] = [];
+    entrance.group.traverse((node) => { if ((node as THREE.Light).isLight) liveLights.push(node as THREE.Light); });
+    expect(liveLights).toHaveLength(0); // emissive only: no seam shader recompile
     // One batched wall draw and one merged meridian draw keep the actual
     // shadowless sphere affordable; do not reintroduce 46 individual meshes.
     let meshes = 0;
