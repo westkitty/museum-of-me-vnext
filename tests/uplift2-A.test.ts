@@ -265,19 +265,14 @@ describe('uplift2 A — exterior, arrival and ambient life', () => {
     const coffers: THREE.Object3D[] = [];
     world.root.traverse((node) => { if (node.name === 'vestibule-soffit-coffer') coffers.push(node); });
     expect(coffers).toHaveLength(3);
-    // The old threshold is still walkable, but the newer physical sphere
-    // deliberately adds one SHORT-RANGE bounce light around its obsidian
-    // centre. Guard the local, shadowless budget instead of forbidding it.
+    // The old threshold remains walkable, but the new centre is solid.
+    // Do not introduce exterior lights: switching a light-bearing world root
+    // changed shader variant counts and caused visible-frame compiles.
     expect(world.collision.resolveHorizontal({ x: 0, y: 0, z: 125 }, 0.35, 1.8)).toBe(false);
+    expect(world.collision.resolveHorizontal({ x: 0, y: 0, z: 138 }, 0.35, 1.8)).toBe(true);
     const lights: THREE.Light[] = [];
     world.root.traverse((node) => { if ((node as THREE.Light).isLight) lights.push(node as THREE.Light); });
-    expect(lights.map((light) => light.name)).toEqual(['obsidian-chamber-bounce']);
-    const chamber = lights[0] as THREE.PointLight;
-    expect(chamber.isPointLight).toBe(true);
-    expect(chamber.castShadow).toBe(false);
-    expect(chamber.distance).toBeLessThanOrEqual(9.5);
-    // The centre must remain solid: this is an intentional walk-around reveal.
-    expect(world.collision.resolveHorizontal({ x: 0, y: 0, z: 138 }, 0.35, 1.8)).toBe(true);
+    expect(lights).toHaveLength(0);
   });
 
   it('I8 ambient walkers keep one real walking pace, pause at corners and turn smoothly', () => {
