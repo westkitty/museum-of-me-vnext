@@ -41,6 +41,19 @@ export async function walkToMuseumInterior(
         [0, 145.7], [4.8, 143], [5.2, 138],
         [4.8, 133], [0, 130],
       ]) await aim(x, z);
+      // Fast fixed-step replay is not elapsed network/GPU time: preserve the
+      // real preparation barrier before attempting the physical seam.
+      if (!app.worldDirector.interiorImportStarted) {
+        throw new Error('Predictive preparation never started on the approach');
+      }
+      await app.worldDirector.prepareInterior();
+      for (let attempt = 0; attempt < 1200 && !app.interiorWorld?.streaming.telemetry.prewarmReady; attempt++) {
+        app.variableUpdate(1 / 60);
+        await new Promise<void>((resolve) => setTimeout(resolve, 100));
+      }
+      if (!app.interiorWorld?.streaming.telemetry.prewarmReady) {
+        throw new Error('Interior entrance never became ready');
+      }
       await aim(0, 125, true);
       if (stopIn === 'south') await aim(0, 100);
       return {
