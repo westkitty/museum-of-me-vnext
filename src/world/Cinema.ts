@@ -278,10 +278,10 @@ export function buildCinemaArchitecture(
   // the auditorium doors (see LIGHT_LOCK).
   kit.wall([LIGHT_LOCK.x, 0, LIGHT_LOCK.minZ], [LIGHT_LOCK.x, 0, LIGHT_LOCK.maxZ], SLAB_BASE_Y, lobbyTop - SLAB_BASE_Y, WALL_T, mat.velvet);
   kit.prop([LIGHT_LOCK.x, CINEMA_FLOOR_Y + 1.6, LIGHT_LOCK.minZ - 0.04], [WALL_T / 2 + 0.03, 1.6, 0.05], mat.trim);
-  // Velvet drapes either side of the auditorium door.
-  for (const z of [ENTRY_DOOR.minZ - 0.25, ENTRY_DOOR.maxZ + 0.25]) {
-    kit.prop([LOBBY.maxX - 0.18, CINEMA_FLOOR_Y + 1.9, z], [0.12, 1.9, 0.24], mat.velvet);
-  }
+  // A velvet drape beside the auditorium door, flush to the wall. (Only the
+  // north side: on the south side the exit passage meets the lobby, and a
+  // drape there stood in the passage's walking width.)
+  kit.prop([LOBBY.maxX - 0.05, CINEMA_FLOOR_Y + 1.9, ENTRY_DOOR.minZ - 0.25], [0.05, 1.9, 0.24], mat.velvet);
 
   // ── Front wall (lobby | auditorium), with the entry and exit doors ───────
   const frontX = LOBBY.maxX + WALL_T / 2;
