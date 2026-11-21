@@ -119,6 +119,7 @@ export class WorldDirector {
   private preparePromise: Promise<void> | null = null;
   private isCommitting = false;
   private thresholdPromptDismissed = false;
+  private lastDoorHoldReason: 'ticket' | 'preparing' | null = null;
 
   private entranceIsReady(): boolean {
     return Boolean(this.app.interiorLoadTelemetry.entranceReadyAtMs !== null
@@ -259,6 +260,7 @@ export class WorldDirector {
 
     const inApproach = isApproachingEntrance(playerPosition);
     if (!inApproach) this.thresholdPromptDismissed = false;
+    if (!isAtEntrancePortal(playerPosition)) this.lastDoorHoldReason = null;
     // The doorway opens on the entrance exhibits alone. The rest of the
     // building warms in the background (App.interiorWorldWarmed) and is normally
     // done long before the visitor reaches the door; it never holds them there.
@@ -301,6 +303,17 @@ export class WorldDirector {
           && Boolean(this.app.interiorWorld) && this.commitToInterior(true);
         if (!committed) {
           playerPosition.z = Math.max(ENTRANCE_PORTAL_Z + 0.05, playerPosition.z);
+          // This is a short spoken/subtitled in-world orientation cue, NOT an
+          // entrance screen or button to dismiss. Announce once per hold reason.
+          const reason = this.app.ticket ? 'preparing' : 'ticket';
+          if (reason !== this.lastDoorHoldReason) {
+            this.lastDoorHoldReason = reason;
+            this.app.ui?.hud.announce(reason === 'ticket'
+              ? 'Admission requires a ticket. The kiosk is outside the obsidian sphere.'
+              : 'The museum is waking beyond the obsidian. Continue when the doorway opens.', 5);
+          }
+        } else {
+          this.lastDoorHoldReason = null;
         }
       }
     } else if (this.activeWorld === 'interior') {
