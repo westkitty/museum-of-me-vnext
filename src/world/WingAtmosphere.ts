@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { PaletteSet } from './palette';
 import { WINGS, faceDirection, place, type WingSpec } from './layout';
+import { alongClearOfBayOpenings } from './bayClearance';
 
 /**
  * Decorative, non-light-source atmosphere for the themed wings.
@@ -89,8 +90,9 @@ export class WingAtmosphere {
     const ribGeometry = this.scope.track(new THREE.BoxGeometry(0.14, 1, 0.14));
     const ribCount = Math.max(3, Math.min(8, Math.floor(span / 12)));
     for (let i = 0; i < ribCount; i++) {
-      const along = wing.hallFrom + (i + 0.5) * span / ribCount;
-      for (const side of [-1, 1]) {
+      for (const side of [-1, 1] as const) {
+        // On solid wall only: a rib in a bay opening stood in the doorway.
+        const along = alongClearOfBayOpenings(wing, wing.hallFrom + (i + 0.5) * span / ribCount, side);
         const at = place(d, along, side * (wing.hallHalfWidth - 0.16), wing.floorY);
         const rib = new THREE.Mesh(ribGeometry, ribMaterial);
         rib.name = `wing-monumental-rib:${wing.id}`;

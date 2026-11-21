@@ -27,7 +27,11 @@ describe('static geometry merging', () => {
     const { before, after, merged } = built.merge;
 
     expect(merged, 'nothing was merged').toBeGreaterThan(200);
-    expect(after, `merge left ${after} meshes from ${before}`).toBeLessThan(before / 3);
+    // Draw objects after merging must not grow. This was a ratio (< before/3),
+    // which failed when 2026-11-21 removed source meshes (pilasters standing in
+    // bay doorways, obsolete door columns, per-gap skirting pieces) while the
+    // merged result stayed at 424; the absolute ceiling is the stricter guard.
+    expect(after, `merge left ${after} meshes from ${before}`).toBeLessThanOrEqual(424);
     scope.dispose();
   });
 
@@ -88,7 +92,9 @@ describe('static geometry merging', () => {
     const built = museum.build();
     // Collision is recorded during construction, before any merge, so the
     // building's walls cannot move as a result of a rendering optimisation.
-    expect(built.collision.size).toBeGreaterThan(900);
+    // Each diagonal wall is one exact oriented collider (2026-11-21), not a
+    // chain of 0.4 m axis-aligned chunks: 851 colliders, down from 2,743.
+    expect(built.collision.size).toBeGreaterThan(800);
     const support = built.collision.supportHeight(SPAWN_POSITION[0], SPAWN_POSITION[2], 2, 3);
     expect(support).not.toBeNull();
     scope.dispose();

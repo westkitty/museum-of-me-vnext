@@ -2,7 +2,7 @@ import {
   ATRIUM_DOOR, ENTRANCE_DOOR, GROUND_Y, LEVEL_1_Y, OCTAGON_FACES, PLAZA_DEPTH, PLAZA_HALF_WIDTH,
   OBSIDIAN_SPHERE_CENTER_Z, TICKET_KIOSK_POSITION,
   PLACEMENT_BY_EXHIBIT, SANCTUARY_CENTER, SANCTUARY_DIR, SANCTUARY_FLOOR_Y, SANCTUARY_RAMP_FROM,
-  SANCTUARY_RAMP_TO, STAIRS, WINGS, faceDirection, place, rightOf, stairArcPoint, stairArrivalFace, stairLanding, type Vec3,
+  SANCTUARY_RAMP_TO, STAIRS, WINGS, faceDirection, place, rightOf, stairApproach, stairArcPoint, stairArrivalFace, stairLanding, type Vec3,
 } from './layout';
 import { LAND_SUPPORT_Y, PATH_CENTERLINES, PIER_CENTERLINE, isSiteLand } from './exterior/IslandSiteLayout';
 import { BALCONY_ROUTE_RADIUS, BALCONY_WALK_FACES, ROTUNDA_ROUTE_RADIUS } from './route';
@@ -156,7 +156,7 @@ for (const stair of STAIRS) {
     stairArcPoint(stair, i / stair.collisionSegments));
   const index = OCTAGON_FACES.indexOf(stair.face);
   const arrival = OCTAGON_FACES.indexOf(stairArrivalFace(stair));
-  inside.connect([groundRing[index], ...arc, stairLanding(stair), upperRing[arrival]]);
+  inside.connect([groundRing[index], stairApproach(stair), ...arc, stairLanding(stair), upperRing[arrival]]);
 }
 for (const wing of WINGS) {
   const ring = wing.level === 0 ? groundRing : upperRing;

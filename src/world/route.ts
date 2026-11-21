@@ -2,7 +2,7 @@ import {
   WINGS, PLACEMENTS, faceDirection, place,
   SPAWN_POSITION, ROTUNDA_APOTHEM, LEVEL_1_Y, GROUND_Y,
   SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_CENTER, SANCTUARY_FLOOR_Y,
-  STAIRS, stairArcPoint, stairArrivalFace, stairLanding, type Vec3, type WingSpec,
+  STAIRS, stairApproach, stairArcPoint, stairArrivalFace, stairLanding, type Vec3, type WingSpec,
 } from './layout';
 import { START_POSITION } from './start';
 
@@ -83,7 +83,7 @@ function stairWaypoints(): Waypoint[] {
   // The verification route follows the same arc as the visible treads and
   // collision ramps. A straight foot-to-head chord would cut inside the
   // curved stair and falsely exercise the atrium rather than its walking path.
-  return Array.from({ length: s.collisionSegments + 1 }, (_, index) => {
+  const rise = Array.from({ length: s.collisionSegments + 1 }, (_, index) => {
     const t = index / s.collisionSegments;
     const label = index === 0
       ? 'stair foot'
@@ -92,6 +92,8 @@ function stairWaypoints(): Waypoint[] {
         : `stair rise ${index}`;
     return { label, at: stairArcPoint(s, t) };
   }).concat(landing);
+  // Step on from in front of the foot, not diagonally across the lowest treads.
+  return [{ label: 'stair approach', at: stairApproach(s) }, ...rise];
 }
 
 /**

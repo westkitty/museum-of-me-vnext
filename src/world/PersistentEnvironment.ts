@@ -4,6 +4,7 @@ import { EnvironmentDressing } from './EnvironmentDressing';
 import { MonumentalRotunda } from './MonumentalRotunda';
 import { ExhibitColorFields } from './ExhibitColorFields';
 import { ExhibitThresholds } from './ExhibitThresholds';
+import { SEAM_OFFSET_Z } from './layout';
 import { ExteriorIdentity } from './ExteriorIdentity';
 import { RotundaWayfinding } from './RotundaWayfinding';
 import { WingAtmosphere } from './WingAtmosphere';
@@ -78,7 +79,7 @@ export class PersistentEnvironment {
   private buildLayerDefinitions(): { name: string; build: () => THREE.Group; steps?: () => Generator<void, THREE.Group> }[] {
     return [
       { name: 'dressing', build: () => this.dressing.build(), steps: () => this.dressing.buildSteps() },
-      { name: 'exterior-identity', build: () => new ExteriorIdentity(this.scope).build() },
+      { name: 'exterior-identity', build: () => new ExteriorIdentity(this.scope, SEAM_OFFSET_Z).build() },
       { name: 'monumental-rotunda', build: () => new MonumentalRotunda(this.scope).build() },
       { name: 'rotunda-wayfinding', build: () => new RotundaWayfinding(this.scope).build() },
       { name: 'wing-identity', build: () => new WingIdentity(this.scope).build() },

@@ -10,6 +10,15 @@ export const EYE_HEIGHT = 1.64;
 export const WALK_SPEED = 3.4;
 /** Shift sprint: 2.5x the earlier 6.2 m/s (owner request: +150%). */
 export const RUN_SPEED = 15.5;
+/**
+ * Inside the obsidian sphere the visitor moves as if through dense water:
+ * walking at WATER_WALK_FACTOR of normal walking speed, and a sprint is only
+ * a little faster (still slower than an ordinary walk). The change eases in and
+ * out over WATER_EASE_SECONDS; acceleration and turning are unchanged.
+ */
+export const WATER_WALK_FACTOR = 0.62;
+export const WATER_RUN_FACTOR = 0.62 * 1.35;
+export const WATER_EASE_SECONDS = 0.45;
 export const JUMP_SPEED = 7.2;
 const ACCEL = 34;
 const FRICTION = 14;
@@ -119,7 +128,23 @@ export class PlayerController {
     this.prevPosition.x += dx; this.prevPosition.y += dy; this.prevPosition.z += dz;
   }
 
+  /** 0 on dry ground, 1 fully in the sphere's water; eased toward the target. */
+  private water = 0;
+  private waterTarget = 0;
+
+  /** Set each frame by the app: whether the visitor stands in the obsidian chamber. */
+  setInWater(inWater: boolean): void {
+    this.waterTarget = inWater ? 1 : 0;
+  }
+
+  /** Current water blend (0–1), for tests and diagnostics. */
+  get waterLevel(): number {
+    return this.water;
+  }
+
   teleport(p: Vec3, yaw = this.yaw): void {
+    this.water = 0;
+    this.waterTarget = 0;
     this.position.set(p[0], p[1], p[2]);
     this.prevPosition.copy(this.position);
     this.velocity.set(0, 0, 0);
@@ -238,7 +263,11 @@ export class PlayerController {
     }
 
     const len = Math.hypot(ix, iz);
-    const speed = this.input.isDown('run') ? RUN_SPEED : WALK_SPEED;
+    const running = this.input.isDown('run');
+    this.water += (this.waterTarget - this.water) * (1 - Math.exp(-dt / WATER_EASE_SECONDS));
+    const dry = running ? RUN_SPEED : WALK_SPEED;
+    const wet = WALK_SPEED * (running ? WATER_RUN_FACTOR : WATER_WALK_FACTOR);
+    const speed = dry + (wet - dry) * this.water;
     let wishX = 0;
     let wishZ = 0;
     if (len > 0) {

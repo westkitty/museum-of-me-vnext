@@ -6,8 +6,8 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 103,
-  "last_updated": "2026-11-20",
+  "state_revision": 104,
+  "last_updated": "2026-11-21",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
 -->
@@ -1118,4 +1118,42 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - **Visual baseline evidence, not disabled:** Reviewed actual Linux Chromium `arrival-plaza-actual.png` from Actions artifact `14682338942` (SHA256 `5821d0804ea08b6f7c8c573580f529d743daa209ed6b10bf69445fef9876df15`) against the old committed image and visual diff. Committed that exact CI image as the single new `arrival-plaza-chromium-linux.png` golden (Git blob `a986881c23c2f31ac82957ca2a3741f1484aeb0e`); 2% screenshot tolerance and three other canonical camera goldens unchanged. New exact-head visual regression still needs confirmation after emissive-only modification.
 - **Measured performance (scoped, before additional shader fix):** Matched Big Mac Chromium/SwiftShader, low tier 800×450 CSS/DPR0.5, 46→16 sphere renderables, 521→490 outside draw calls, 393→385 inside draw calls, 540→510 GPU geometries. These are render submission/allocations, **not FPS**; returning light-count variants to parity addresses the CI-observed shader stall, but is pending post-fix Chromium proof.
 - **Still UNKNOWN:** post-repair exact-head CI all jobs; verified live Pages revision, real-device FPS and thermal stability, slow-network visitor perception, and human visual acceptance. No user-authored exhibit or museum structure outside the entrance has been modified; no `main` or `pages-preview` promotion yet.
+
+### 2026-11-21 — Passage integrity: complete walkthrough, doorway/collision/visual repairs, wading sphere (r104)
+
+- **Base:** `main` `148c8d0` (PR #66). Branch `claude/new-session-wyjula`. Pre-1.0; not merged, not published. Full record: `docs/PASSAGE_INTEGRITY_2026-11-21.md`.
+- **New proof infrastructure:**
+  - `src/world/passages.ts` is the authoritative passage inventory: 57 passages and 169 lanes, derived from layout, capsule-based.
+  - `tests/browser/passage-traversal.e2e.ts` walks every lane inbound and back out, with the real held key, `PlayerController` and assembled `CollisionWorld`. It also detects visible solid geometry the capsule enters.
+  - `tests/browser/museum-grand-tour.e2e.ts` is one continuous no-teleport visit: kiosk ticket by F → sphere → seam → all 35 exhibits → Sanctuary → exit → re-entry.
+- **VERIFIED locally (headless Chromium, software WebGL):**
+  - Passages: baseline 43/57 PASS, 152/169 lanes; after **57/57 PASS, 169/169 lanes both ways, 35/35 visitor spots, 0 walk-through visuals**.
+  - Grand tour: 2,179 m, 303 legs.
+- **Repairs (root causes):**
+  - wall colliders padded into every opening, and diagonal walls fattened by axis-aligned chunking (exact colliders now; 2,743 → 851 static colliders);
+  - installation plinths in 13/13 host bay doorways (set back 1.55 m; E01/E08/E14 get an honest wall return);
+  - oversized installation colliders on diagonal wings;
+  - oversized sphere-column collider (corners 1.2 m beyond the column);
+  - curved-stair walking surface up to ~1.3 m off the treads at the edges (new oriented ramp; routes step on from the front);
+  - benches, pilasters, skirting, jambs, motifs, ribs, markers and plants standing in doorways;
+  - blank white vestibule panels and floor strip, plus walk-through door columns (removed);
+  - facade piers inside the atrium inner portal;
+  - the opaque backdrop wall and arch seen through the sphere's inner exit (now the dark atrium with a faint hologram glow; no lights).
+- **Sphere:**
+  - Wading movement: 62% walking speed, eased over 0.45 s, both ways, chamber only.
+  - Predictive preparation now starts at the pier junction (z ≤ 184).
+  - Production build: ticket → ready 11.9 s (17.5 s at 4× throttle).
+  - Real-time walk (render loop running): ready 5.2 s / 11.1 s after the preparation request, long before arrival; no doorway hold.
+- **Test changes, with stated reasons:**
+  - The merge-ratio proxy became an absolute ceiling (≤ 424, unchanged output).
+  - The collider-count proxy was updated (851).
+  - The installation-clearance test's box axes were corrected, and flat floor decals ignored.
+  - The Narrative Gravity E03 zone name accepts the hosted installation's read zone.
+  - The white-baseline assertion was inverted.
+  - Stair-route tests step on from in front of the foot.
+- **UNKNOWN / pending:**
+  - exact-head CI;
+  - real-device FPS and real-network preparation timing;
+  - human visual acceptance of the retoned seam buffer and the narrower E01/E08/E14 doorways;
+  - the Bible append.
 

@@ -138,23 +138,18 @@ export class ExteriorWorld {
     const depth = toZ - fromZ;
     const midZ = (fromZ + toZ) / 2;
 
-    const wallMat = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x1c222a, roughness: 0.85, metalness: 0.15,
-    }));
-    const floorMat = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x181e26, roughness: 0.7, metalness: 0.2,
-    }));
-    // Warm, softly illuminated foyer backdrop prevents doorway from reading as a dead black void
-    const portalBackdropMat = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x2d2218, roughness: 0.82, metalness: 0.1,
-      emissive: 0x24180d, emissiveIntensity: 0.5,
-    }));
-    const bronzeArchMat = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0xb89252, metalness: 0.65, roughness: 0.35,
-    }));
-    const amberSconceMat = this.scope.track(new THREE.MeshBasicMaterial({
-      color: 0xffbf78, toneMapped: false,
-    }));
+    // Beyond the doorway is the atrium, which waits in the dark until the
+    // visitor steps in (Museum.updateAtrium). The buffer therefore reads as
+    // that darkness: one unlit deep-navy tone on every surface, so no corner,
+    // edge or arch reads as a wall. It used to be a lit slate foyer with a
+    // warm emissive backdrop, a bronze "rotunda portal" arch and amber
+    // sconces, which from inside the obsidian sphere looked like a closed
+    // wall at the end of the passage (2026-11-21 walkthrough). Unlit
+    // materials only: no light may join the exterior root (shader variants).
+    const voidMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x03070f }));
+    const wallMat = voidMat;
+    const floorMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x050a14 }));
+    const portalBackdropMat = voidMat;
 
     // Vestibule floor inside doorway buffer
     const floorGeo = this.scope.track(new THREE.PlaneGeometry(hw * 2, depth));
@@ -187,22 +182,31 @@ export class ExteriorWorld {
     back.position.set(0, GROUND_Y + 4.5, fromZ);
     this.root.add(back);
 
-    // Warm rotunda portal arch preview on the foyer backdrop
-    const foyerArch = new THREE.Mesh(
-      this.scope.track(new THREE.TorusGeometry(3.5, 0.18, 8, 24, Math.PI)),
-      bronzeArchMat,
-    );
-    foyerArch.position.set(0, GROUND_Y + 0.5, fromZ + 0.05);
-    this.root.add(foyerArch);
-
-    // Warm architectural foyer sconces
-    for (const s of [-1, 1]) {
-      const sconce = new THREE.Mesh(
-        this.scope.track(new THREE.BoxGeometry(0.18, 0.45, 0.18)),
-        amberSconceMat,
-      );
-      sconce.position.set(s * (hw - 0.2), GROUND_Y + 3.8, midZ);
-      this.root.add(sconce);
+    // The one thing a visitor would make out in the dark atrium from here: a
+    // faint azure glow high up where the "Museum of Me" hologram hangs, which
+    // lights first as they step in. Unlit, additive, no light source.
+    if (typeof document !== 'undefined') {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128; canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const glow = ctx.createRadialGradient(64, 64, 2, 64, 64, 64);
+        glow.addColorStop(0, 'rgba(70,170,255,0.55)');
+        glow.addColorStop(0.45, 'rgba(30,110,230,0.16)');
+        glow.addColorStop(1, 'rgba(0,40,160,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, 128, 128);
+        const hint = new THREE.Mesh(
+          this.scope.track(new THREE.PlaneGeometry(hw * 1.6, 4.2)),
+          this.scope.track(new THREE.MeshBasicMaterial({
+            map: this.scope.track(new THREE.CanvasTexture(canvas)), transparent: true,
+            blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false,
+          })),
+        );
+        hint.name = 'threshold-atrium-hologram-hint';
+        hint.position.set(0, GROUND_Y + 5.6, fromZ + 0.05);
+        this.root.add(hint);
+      }
     }
 
     this.buildThresholdContinuity(hw, fromZ, toZ);
@@ -232,11 +236,11 @@ export class ExteriorWorld {
   private buildThresholdContinuity(hw: number, fromZ: number, toZ: number): void {
     const depth = toZ - fromZ;
     const midZ = (fromZ + toZ) / 2;
-    const runnerMat = this.scope.track(new THREE.MeshStandardMaterial({ color: 0x6d7880, roughness: 0.92 }));
-    const inlayMat = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x8b6951, metalness: 0.58, roughness: 0.4,
-    }));
-    const glowMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x9a6a3c, toneMapped: false }));
+    // Toned to the atrium as it waits in the dark: its sky-blue runner and
+    // coffers barely lit, continuing the arrival axis into the deep navy.
+    const runnerMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x0b1a2a }));
+    const inlayMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x123049 }));
+    const glowMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0x1a4a6e, toneMapped: false }));
 
     const runner = new THREE.Mesh(this.scope.track(new THREE.PlaneGeometry(10.8, depth - 0.1)), runnerMat);
     runner.name = 'vestibule-arrival-runner';

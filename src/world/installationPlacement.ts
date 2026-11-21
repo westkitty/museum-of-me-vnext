@@ -1,5 +1,5 @@
 import {
-  PLACEMENT_BY_EXHIBIT, WING_BY_ID, rightOf, add,
+  PLACEMENT_BY_EXHIBIT, WING_BY_ID, rightOf, add, faceDirection,
   SANCTUARY_CENTER, SANCTUARY_DIR, SANCTUARY_FLOOR_Y,
   type Vec3,
 } from './layout';
@@ -42,8 +42,10 @@ export interface InstallationPlacement {
   readonly interactionRadius: number;
   readonly cameraSafeDistance: number;
   readonly lecternCollisionRadius: number;
-  /** Half-extents of the installation's collision footprint. */
+  /** World axis-aligned half-extents enclosing the collision footprint (broad phase). */
   readonly footprint: readonly [number, number];
+  /** The footprint as an exact oriented box: halfX toward the hall, halfZ along it. */
+  readonly orientedFootprint: { readonly halfX: number; readonly halfZ: number; readonly yaw: number };
   /** Unit vector from the lectern toward the installation. */
   readonly facing: Vec3;
   /** Source room this installation shared with its neighbours. */
@@ -65,6 +67,26 @@ function sourceOrderWithinWing(id: string): number {
     .sort((a, b) => b.position[2] - a.position[2]);
   return peers.findIndex((i) => i.id === id);
 }
+
+/** Metres from the hall wall line to an installation footprint's hall-side
+ * edge: wall face (0.3 m) plus one visitor capsule plus tolerance. */
+export const DOORWAY_SETBACK = 1.55;
+
+/**
+ * Installations whose bay cannot take the full setback, measured against the
+ * host exhibit's real geometry (tests/installation-clearance.test.ts):
+ * - starsilk-atlas (E01): a 1.1 m-high part of the E01 exhibit stands 2.1–2.9 m
+ *   in front of the anchor, inside the plinth's corner at any deeper seat.
+ * - heliocide (E08): a 0.7 m-high part of the Heliocide exhibit stands in both
+ *   front corners from 0.9 m behind the wall line.
+ * - vibe-nexus (E14): the media wing's 14 m bays leave 0.8 m before the
+ *   footprint would reach the exhibit's build zone in front of the anchor.
+ */
+export const DOORWAY_SETBACK_LIMIT: Readonly<Record<string, number>> = {
+  'starsilk-atlas': 0.4,
+  heliocide: 0.8,
+  'vibe-nexus': 0.75,
+};
 
 export function computeInstallationPlacements(): readonly InstallationPlacement[] {
   const out: InstallationPlacement[] = [];
@@ -106,6 +128,7 @@ export function computeInstallationPlacements(): readonly InstallationPlacement[
         cameraSafeDistance: contract.cameraSafeDistance,
         lecternCollisionRadius: contract.lecternCollisionRadius,
         footprint: half,
+        orientedFootprint: { halfX: half[0], halfZ: half[1], yaw: 0 },
         facing: unit(SANCTUARY_DIR),
         sourceWing: spec.wing,
         sourceOrder: sourceOrderWithinWing(spec.id),
@@ -139,8 +162,17 @@ export function computeInstallationPlacements(): readonly InstallationPlacement[
     // `half[1]` deep. Turned sideways, its depth runs along the hall and its
     // width runs from the back of the corner toward the doorway wall.
     const WALL_CLEARANCE = 0.4;
+    // The front corner behind the hall wall's return is only
+    // bayHalfAlong − bayOpening/2 deep along the hall (3.5 m in most wings),
+    // less than the footprint (3.8 m), so a plinth seated against the hall wall
+    // spilled ~0.6 m into the doorway's span and blocked a visitor stepping in
+    // near the jamb (2026-11-21 walkthrough: 13 of 13 host bays). Its hall-side
+    // edge now stands DOORWAY_SETBACK behind the wall line, so the threshold is
+    // clear across its whole width; it stays in the front corner. The
+    // footprint itself is frozen source-parity data and is not shrunk.
+    const doorwaySetback = DOORWAY_SETBACK_LIMIT[spec.id] ?? DOORWAY_SETBACK;
     const alongOffset = wing.bayHalfAlong - half[1] - WALL_CLEARANCE;
-    const towardHall = wing.bayDepth / 2 - half[0] - WALL_CLEARANCE;
+    const towardHall = wing.bayDepth / 2 - half[0] - doorwaySetback;
 
     const position = add(add(placement.anchor, toHall, towardHall), outward, alongOffset);
     const lectern = add(position, inward, 2.9);
@@ -160,6 +192,8 @@ export function computeInstallationPlacements(): readonly InstallationPlacement[
       cameraSafeDistance: contract.cameraSafeDistance,
       lecternCollisionRadius: contract.lecternCollisionRadius,
       footprint: worldFootprint,
+      // Local x along `toHall` (CollisionWorld: localX = cos·dx − sin·dz).
+      orientedFootprint: { halfX: half[0], halfZ: half[1], yaw: Math.atan2(-toHall[2], toHall[0]) },
       facing: outward,
       sourceWing: spec.wing,
       sourceOrder: sourceOrderWithinWing(spec.id),
@@ -172,3 +206,28 @@ export const INSTALLATION_PLACEMENTS = computeInstallationPlacements();
 export const INSTALLATION_PLACEMENT_BY_ID = new Map(
   INSTALLATION_PLACEMENTS.map((p) => [p.id, p]),
 );
+
+/**
+ * The clear doorway of an exhibit bay, as along-hall offsets from the bay's
+ * centre. Normally ±bayOpening/2. Where a source installation cannot be set
+ * back far enough to clear the threshold (DOORWAY_SETBACK_LIMIT), the hall
+ * wall returns to the installation's edge on that side: the doorway is then a
+ * little narrower, but it is honestly what it looks like and clear across its
+ * whole width, instead of a plinth standing in its corner.
+ */
+export function bayOpeningSpan(exhibitId: string): { readonly from: number; readonly to: number } {
+  const bay = PLACEMENT_BY_EXHIBIT.get(exhibitId);
+  const wing = bay ? WING_BY_ID.get(bay.wing) : undefined;
+  if (!bay || !wing) return { from: 0, to: 0 };
+  let from = -wing.bayOpening / 2;
+  let to = wing.bayOpening / 2;
+  const dir = faceDirection(wing.face);
+  for (const install of INSTALLATION_PLACEMENTS) {
+    if (install.host !== exhibitId || DOORWAY_SETBACK_LIMIT[install.id] === undefined) continue;
+    const offset = (install.position[0] - bay.doorway[0]) * dir[0] + (install.position[2] - bay.doorway[2]) * dir[2];
+    const inner = Math.abs(offset) - install.orientedFootprint.halfZ;
+    if (offset > 0) to = Math.min(to, inner);
+    else from = Math.max(from, -inner);
+  }
+  return { from, to };
+}

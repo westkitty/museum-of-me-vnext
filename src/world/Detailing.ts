@@ -1,10 +1,13 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { PaletteSet } from './palette';
 import { architecturalStoneFinish } from './SurfaceFinish';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { buildWingSign, textMaterial } from '../exhibits/Furniture';
 import { canRenderText, createFallbackTexture } from '../assets/TextTexture';
 import { buildBench } from '../assets/generators';
+import { bayOpeningSpan } from './installationPlacement';
+import { alongClearOfBayOpenings } from './bayClearance';
 import { EXHIBIT_DOORWAY_LINES } from '../content/exhibitDoorways';
 import { WINGS_BY_ID, EXHIBITS_BY_ID, COLLECTION } from '../content/collection.generated';
 import {
@@ -383,11 +386,19 @@ export class Detailing {
       parent.add(rail);
     }
 
-    // A rhythm of pilasters and lights down both hall walls.
+    // A rhythm of pilasters down both hall walls, on solid wall only. On the
+    // 6 m rhythm two pilasters fell inside most 9 m bay openings, free-standing
+    // 13 m posts in the doorway (2026-11-21 walkthrough).
+    const bayOpenings = PLACEMENTS.filter((placement) => placement.wing === wing.id).map((placement) => {
+      const centre = wing.hallFrom + wing.bayLead + placement.slot * wing.bayPitch;
+      const span = bayOpeningSpan(placement.exhibitId);
+      return { side: placement.side === 'right' ? 1 : -1, from: centre + span.from - 0.5, to: centre + span.to + 0.5 };
+    });
     const bays = Math.max(2, Math.round((wing.hallTo - wing.hallFrom) / 6));
     for (let i = 0; i <= bays; i++) {
       const along = wing.hallFrom + (i / bays) * (wing.hallTo - wing.hallFrom);
       for (const s of [-1, 1]) {
+        if (bayOpenings.some((opening) => opening.side === s && along > opening.from && along < opening.to)) continue;
         const at = place(dir, along, s * (wing.hallHalfWidth - 0.22), y);
         const pilaster = new THREE.Mesh(
           this.scope.track(new THREE.BoxGeometry(0.5, wing.hallHeight - 0.6, 0.3)),
@@ -399,19 +410,59 @@ export class Detailing {
       }
     }
 
-    // Continuous cornice and skirting along both hall walls.
-    for (const s of [-1, 1]) {
-      const from = place(dir, wing.hallFrom, s * (wing.hallHalfWidth - 0.18), y);
-      const to = place(dir, wing.hallTo, s * (wing.hallHalfWidth - 0.18), y);
-      for (const [height, thickness] of [[wing.hallHeight - 0.4, 0.34], [0.3, 0.28]] as const) {
+    // A continuous cornice along both hall walls, and a skirting that stops at
+    // every bay doorway. The skirting (0.13–0.47 m) used to run straight across
+    // each opening: a knee-high strip through every exhibit threshold that
+    // visitors walked through (2026-11-21 walkthrough, all 35 bays).
+    for (const s of [-1, 1] as const) {
+      const lateral = s * (wing.hallHalfWidth - 0.18);
+      const openings = PLACEMENTS
+        .filter((placement) => placement.wing === wing.id && (placement.side === 'right' ? 1 : -1) === s)
+        .map((placement) => {
+          const centre = wing.hallFrom + wing.bayLead + placement.slot * wing.bayPitch;
+          const span = bayOpeningSpan(placement.exhibitId);
+          return [centre + span.from, centre + span.to] as const;
+        })
+        .sort((a, b) => a[0] - b[0]);
+      const runs: Array<readonly [number, number]> = [];
+      let cursor = wing.hallFrom;
+      for (const [open, close] of openings) {
+        if (open > cursor) runs.push([cursor, open]);
+        cursor = Math.max(cursor, close);
+      }
+      if (cursor < wing.hallTo) runs.push([cursor, wing.hallTo]);
+      const band = (alongFrom: number, alongTo: number, height: number, thickness: number) => {
+        const from = place(dir, alongFrom, lateral, y);
+        const to = place(dir, alongTo, lateral, y);
         const length = Math.hypot(to[0] - from[0], to[2] - from[2]);
-        const band = new THREE.Mesh(
+        if (length < 0.05) return;
+        const mesh = new THREE.Mesh(
           this.scope.track(new THREE.BoxGeometry(length, 0.34, thickness)),
           p.trim,
         );
-        band.position.set((from[0] + to[0]) / 2, y + height, (from[2] + to[2]) / 2);
-        band.rotation.y = Math.atan2(-(to[2] - from[2]), to[0] - from[0]);
-        parent.add(band);
+        mesh.position.set((from[0] + to[0]) / 2, y + height, (from[2] + to[2]) / 2);
+        mesh.rotation.y = Math.atan2(-(to[2] - from[2]), to[0] - from[0]);
+        parent.add(mesh);
+      };
+      band(wing.hallFrom, wing.hallTo, wing.hallHeight - 0.4, 0.34);
+      // One merged skirting mesh per wall, as before the doorway gaps.
+      const pieces: THREE.BufferGeometry[] = [];
+      for (const [a, b] of runs) {
+        const from = place(dir, a, lateral, y);
+        const to = place(dir, b, lateral, y);
+        const length = Math.hypot(to[0] - from[0], to[2] - from[2]);
+        if (length < 0.05) continue;
+        const piece = new THREE.BoxGeometry(length, 0.34, 0.28);
+        piece.rotateY(Math.atan2(-(to[2] - from[2]), to[0] - from[0]));
+        piece.translate((from[0] + to[0]) / 2, y + 0.3, (from[2] + to[2]) / 2);
+        pieces.push(piece);
+      }
+      const skirting = pieces.length ? mergeGeometries(pieces, false) : null;
+      pieces.forEach((piece) => piece.dispose());
+      if (skirting) {
+        const mesh = new THREE.Mesh(this.scope.track(skirting), p.trim);
+        mesh.name = `hall-skirting:${wing.id}`;
+        parent.add(mesh);
       }
     }
 
@@ -523,9 +574,13 @@ export class Detailing {
       cue.rotation.y = Math.atan2(sign_sign * r[0], sign_sign * r[2]);
       parent.add(cue);
 
-      // Jambs framing the opening.
+      // Jambs framing the opening from outside its clear span: centred on the
+      // edge they stood 0.21 m into the doorway with no collider, so a visitor
+      // near the jamb walked through them.
+      const span = bayOpeningSpan(placement.exhibitId);
       for (const s of [-1, 1]) {
-        const along = wing.hallFrom + wing.bayLead + placement.slot * wing.bayPitch + s * (wing.bayOpening / 2);
+        const along = wing.hallFrom + wing.bayLead + placement.slot * wing.bayPitch
+          + (s < 0 ? span.from - 0.21 : span.to + 0.21);
         const at = place(dir, along, sign_sign * wing.hallHalfWidth, y);
         const jamb = new THREE.Mesh(
           this.scope.track(new THREE.BoxGeometry(0.42, wing.bayHeight * 0.76, 0.5)),
@@ -536,8 +591,11 @@ export class Detailing {
         parent.add(jamb);
       }
 
-      // A bench opposite each bay.
-      const oppositeAlong = wing.hallFrom + wing.bayLead + placement.slot * wing.bayPitch;
+      // A bench opposite each bay, against solid wall. Where the opposite side
+      // has its own bay at the same position (most halls), the bench used to
+      // stand in that bay's doorway, a non-colliding seat across its entrance.
+      const oppositeAlong = alongClearOfBayOpenings(wing,
+        wing.hallFrom + wing.bayLead + placement.slot * wing.bayPitch, (-sign_sign) as -1 | 1);
       const benchAt = place(dir, oppositeAlong, -sign_sign * (wing.hallHalfWidth - 0.7), y);
       const bench = buildBench(this.scope, 1.5);
       bench.position.set(benchAt[0], y, benchAt[2]);
@@ -576,16 +634,10 @@ export class Detailing {
     parent.add(welcome);
     this.scope.track(welcome.geometry);
 
-    // Columns flanking the doors.
-    for (const s of [-1, 1]) {
-      const columnAt = place(dir, VESTIBULE_TO - 1.2, s * 5.0, GROUND_Y);
-      const column = new THREE.Mesh(
-        this.scope.track(new THREE.CylinderGeometry(0.55, 0.65, 8.4, 16)),
-        p.trim,
-      );
-      column.position.set(columnAt[0], 4.2, columnAt[2]);
-      parent.add(column);
-    }
+    // The two columns that flanked the old front doors stood at x = ±5 inside
+    // what is now the atrium's 14 m inner portal, with no collider: a visitor
+    // walked through them. The portal is framed by the atrium wall itself.
+    void p;
   }
 
   /**

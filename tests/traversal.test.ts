@@ -6,7 +6,7 @@ import {
   PLACEMENTS, WINGS, zoneAt, zoneAtXYZ, ZONES,
   SANCTUARY_DIR, SANCTUARY_RAMP_FROM, SANCTUARY_RAMP_TO, SANCTUARY_FLOOR_Y,
   SANCTUARY_CENTER, GROUND_Y, place, PLINTH_RADIUS, PLINTH_TOP_Y,
-  STAIRS, stairArcPoint, faceDirection, LEVEL_1_Y, stairLanding, stairArrivalFace,
+  STAIRS, stairApproach, stairArcPoint, faceDirection, LEVEL_1_Y, stairLanding, stairArrivalFace,
   isOverStairOpening, STAIR_OPENING_FROM_T,
 } from '../src/world/layout';
 import { START_POSITION } from '../src/world/start';
@@ -107,10 +107,15 @@ describe('curved grand stairs', () => {
         label: `${stair.id} balcony ring`,
         at: place(faceDirection(stairArrivalFace(stair)), 13.5, 0, LEVEL_1_Y),
       };
-      for (const failure of walkRoute(built.collision, [lowerRing, ...arc, landing, upperRing])) {
+      // Step on and off from in front of the foot (stairApproach): since the
+      // stair collision follows the treads across their full width, a straight
+      // line from the foot to the ring would climb the lowest treads and drop
+      // off their open side, as a visitor cutting the corner would.
+      const approach = { label: `${stair.id} approach`, at: stairApproach(stair) };
+      for (const failure of walkRoute(built.collision, [lowerRing, approach, ...arc, landing, upperRing])) {
         failures.push(`${stair.id} upward: ${failure.label}: ${failure.reason}`);
       }
-      for (const failure of walkRoute(built.collision, [upperRing, landing, ...[...arc].reverse(), lowerRing])) {
+      for (const failure of walkRoute(built.collision, [upperRing, landing, ...[...arc].reverse(), approach, lowerRing])) {
         failures.push(`${stair.id} downward: ${failure.label}: ${failure.reason}`);
       }
     }
