@@ -56,7 +56,9 @@ test.describe('P2 Minimum viable impossible threshold and reversible world switc
         // The deterministic test advances ~minutes of simulated walking in
         // milliseconds of actual wall time. Wait for genuine async streaming/
         // shader prewarm rather than calling a valid seam hold an obstruction.
-        expect(app.worldDirector.interiorImportStarted).toBe(true);
+        if (!app.worldDirector.interiorImportStarted) {
+          throw new Error('Predictive preparation never started before the seam');
+        }
         await app.worldDirector.prepareInterior();
         for (let attempt = 0; attempt < 1200 && !app.interiorWorld?.streaming.telemetry.prewarmReady; attempt++) {
           app.variableUpdate(1 / 60);
