@@ -46,7 +46,6 @@ export class ObsidianSphereEntrance {
   private readonly traceryGlow: THREE.MeshBasicMaterial;
   private readonly doorwayGlow: THREE.MeshBasicMaterial;
   private readonly monolith: THREE.MeshStandardMaterial;
-  private readonly chamberFill: THREE.PointLight;
   private readonly oculusGlow: THREE.MeshBasicMaterial;
   private readonly exitGlow: THREE.MeshBasicMaterial;
   private readonly vaultGlows: readonly THREE.MeshBasicMaterial[];
@@ -60,13 +59,9 @@ export class ObsidianSphereEntrance {
     this.group.userData.spatialFeatureId = 'obsidian-sphere-entrance';
     this.group.userData.visualRole = 'walkthrough-loading-threshold';
 
-    // One low-range, shadowless bounce source makes the obsidian tangible
-    // without lighting the entire island or adding an expensive shadow map.
-    this.chamberFill = new THREE.PointLight(0x6bb9ec, 0.2, 9, 2);
-    this.chamberFill.name = 'obsidian-chamber-bounce';
-    this.chamberFill.castShadow = false;
-    this.chamberFill.position.set(1.2, GROUND_Y + 3.5, CENTER_Z - 1.4);
-    this.group.add(this.chamberFill);
+    // Emissive material-only glow: adding even one real exterior PointLight
+    // changes THREE's light-count shader programs across the world seam and
+    // caused 18 costly visible-frame recompilations on real Chromium CI.
 
     this.floorGlow = scope.track(new THREE.MeshBasicMaterial({
       color: 0x248ac0, transparent: true, opacity: 0.04,
@@ -329,7 +324,6 @@ export class ObsidianSphereEntrance {
     this.traceryGlow.opacity = 0.02 + this.lightLevel * 0.82;
     this.doorwayGlow.opacity = 0.04 + this.lightLevel * 0.72;
     this.monolith.emissiveIntensity = 0.05 + this.lightLevel * 0.34;
-    this.chamberFill.intensity = 0.13 + this.lightLevel * 0.80;
 
     // Moving inward reveals the oculus and three vaults in spatial order.
     // Reversing the walk naturally dims them; reduced motion holds stable.
