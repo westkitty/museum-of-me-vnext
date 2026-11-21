@@ -62,6 +62,9 @@ test.describe('P2 Minimum viable impossible threshold and reversible world switc
         await app.worldDirector.prepareInterior();
         for (let attempt = 0; attempt < 1200 && !app.interiorWorld?.streaming.telemetry.prewarmReady; attempt++) {
           app.variableUpdate(1 / 60);
+          // The normal RAF loop is stopped for deterministic keyboard replay;
+          // renderer warmWorld advances only when render() drains its frame queue.
+          app.render(0);
           await new Promise<void>((resolve) => setTimeout(resolve, 100));
         }
         if (!app.interiorWorld?.streaming.telemetry.prewarmReady) {
