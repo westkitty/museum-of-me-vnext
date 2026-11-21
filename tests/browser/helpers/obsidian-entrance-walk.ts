@@ -49,6 +49,9 @@ export async function walkToMuseumInterior(
       await app.worldDirector.prepareInterior();
       for (let attempt = 0; attempt < 1200 && !app.interiorWorld?.streaming.telemetry.prewarmReady; attempt++) {
         app.variableUpdate(1 / 60);
+        // No normal RAF in this test. Flush the renderer's prewarm frame queue
+        // without bypassing streaming or collision.
+        app.render(0);
         await new Promise<void>((resolve) => setTimeout(resolve, 100));
       }
       if (!app.interiorWorld?.streaming.telemetry.prewarmReady) {
