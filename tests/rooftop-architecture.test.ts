@@ -34,6 +34,8 @@ import {
 import { FLIGHT_PAD_CENTER, isOnFlightPad, type Vec3 } from '../src/world/layout';
 import { FLIGHT_LAUNCH_SPEED, PLAYER_HEIGHT, PLAYER_RADIUS, PlayerController } from '../src/player/PlayerController';
 import { walkRoute } from './helpers/walk';
+import { JUMP_SPEED } from '../src/player/PlayerController';
+import { ROOF_RAIL_COLLIDER_HEIGHT } from '../src/world/exterior/rooftopLayout';
 import { AUDITORIUM, LOBBY, WALL_T, EXIT_PASSAGE } from '../src/world/cinemaLayout';
 
 describe('ISLAND-03 rooftop architecture & west flank access', () => {
@@ -294,6 +296,30 @@ describe('ISLAND-03 rooftop architecture & west flank access', () => {
     }
     expect(padIIPlayer.position.y).toBeGreaterThan(padIPlayer.position.y + 4);
 
+    world.dispose();
+  });
+
+  it('keeps a running, repeatedly jumping visitor on the roof in every direction (rail colliders clear the jump apex)', () => {
+    // Analytic apex v^2 / 2g with g = 22 m/s^2 is ~1.18 m; colliders must clear it with margin.
+    expect(ROOF_RAIL_COLLIDER_HEIGHT).toBeGreaterThan((JUMP_SPEED * JUMP_SPEED) / (2 * 22) + 0.15);
+    const world = new ExteriorWorld('low');
+    for (const yaw of [0, Math.PI / 2, Math.PI, -Math.PI / 2, Math.PI / 4, -3 * Math.PI / 4]) {
+      let jump = null as (() => void) | null;
+      const input = {
+        isDown: (action: string) => action === 'forward' || action === 'run',
+        uiCaptured: false, touchMoveX: 0, touchMoveY: 0,
+        on: (name: string, cb: () => void) => { if (name === 'jump') jump = cb; return () => undefined; },
+      };
+      const player = new PlayerController(world.collision, input as never);
+      player.teleport([0, ROOF_DECK_Y, 30], yaw);
+      let lowest = Infinity;
+      for (let i = 0; i < 60 * 5; i++) {
+        if (player.grounded) jump?.();
+        player.fixedUpdate(1 / 60);
+        lowest = Math.min(lowest, player.position.y);
+      }
+      expect(lowest, `yaw ${yaw.toFixed(2)}`).toBeGreaterThan(ROOF_DECK_Y - 1);
+    }
     world.dispose();
   });
 });

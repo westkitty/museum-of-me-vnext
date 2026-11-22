@@ -31,6 +31,7 @@ import {
   ROOF_GROUND_Y,
   ROOF_MID_LANDING_Y,
   ROOF_PROMENADE_DECK,
+  ROOF_RAIL_COLLIDER_HEIGHT,
   ROOF_RAIL_HEIGHT,
   ROOF_RAIL_THICKNESS,
   ROOF_SLAB_THICKNESS,
@@ -487,8 +488,8 @@ export class ExteriorRooftop {
 
     // Solid collider extending down to deck underside (minY = y - 0.35) so ceilingHeight never traps walkers.
     this.collision.addBox(
-      [cx, y + (ROOF_RAIL_HEIGHT - ROOF_SLAB_THICKNESS) / 2, cz],
-      [sx / 2, (ROOF_RAIL_HEIGHT + ROOF_SLAB_THICKNESS) / 2, sz / 2],
+      [cx, y + (ROOF_RAIL_COLLIDER_HEIGHT - ROOF_SLAB_THICKNESS) / 2, cz],
+      [sx / 2, (ROOF_RAIL_COLLIDER_HEIGHT + ROOF_SLAB_THICKNESS) / 2, sz / 2],
     );
   }
 
@@ -548,7 +549,7 @@ export class ExteriorRooftop {
       const sz0 = zMin + (len * s) / segments;
       const sz1 = zMin + (len * (s + 1)) / segments;
       const segMinY = Math.min(yAt(sz0), yAt(sz1)) - ROOF_SLAB_THICKNESS;
-      const segMaxY = Math.max(yAt(sz0), yAt(sz1)) + ROOF_RAIL_HEIGHT;
+      const segMaxY = Math.max(yAt(sz0), yAt(sz1)) + ROOF_RAIL_COLLIDER_HEIGHT;
       this.collision.addBox(
         [x, (segMinY + segMaxY) / 2, (sz0 + sz1) / 2],
         [ROOF_RAIL_THICKNESS / 2, (segMaxY - segMinY) / 2, (sz1 - sz0) / 2],

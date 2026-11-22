@@ -22,6 +22,8 @@ export const ROOF_DECK_Y = 18.6;
 export const ROOF_SLAB_THICKNESS = 0.35;
 export const ROOF_DECK_UNDERSIDE_Y = ROOF_DECK_Y - ROOF_SLAB_THICKNESS; // 18.25
 export const ROOF_RAIL_HEIGHT = 1.15;
+/** Rail collider height: above the 1.18 m analytic jump apex (same policy as LAGOON_EDGE_HEIGHT); visible rails stay at ROOF_RAIL_HEIGHT. */
+export const ROOF_RAIL_COLLIDER_HEIGHT = 1.4;
 export const ROOF_RAIL_THICKNESS = 0.16;
 
 export const ROOF_MID_LANDING_Y = 9.5;

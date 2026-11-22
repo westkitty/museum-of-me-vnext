@@ -5,7 +5,7 @@ Contract: `docs/plans/WORLD_EXPANSION_GROKBOT_MASTER_20261121.md` §6 (rooftop),
 
 ## What is built (IMPLEMENTED)
 
-- West Flank Ascent from Path 5 (`[-42, -0.5, 114]`): lower ramp → landing (Y 9.5) → upper ramp → bridge onto the roof at `ROOF_DECK_Y = 18.6` (slab 0.35, underside 18.25 above barrel peak 18.17). Guardrails on every ramp and deck edge.
+- West Flank Ascent from Path 5 (`[-42, -0.5, 114]`): lower ramp → landing (Y 9.5) → upper ramp → bridge onto the roof at `ROOF_DECK_Y = 18.6` (slab 0.35, underside 18.25 above barrel peak 18.17). Guardrails on every ramp and deck edge: visible rails 1.15 m, rail colliders 1.4 m (above the 1.18 m analytic jump apex, the same policy as the lagoon edge). A unit test runs and jumps repeatedly at the rails in six directions and stays on the roof.
 - Rooftop Café terrace with tables (collision-backed) and the Hot Dog Stand at `[7.5, 18.6, 29.0]` (`rooftop-hot-dog-stand`; awaits its chef, ISLAND-04).
 - Glass Greenhouse (X −35..−17.5, Z −2..22) with the exotic W05 portal flower at `[-26, 18.6, 10]` (`rooftop-greenhouse-flower-w05`, dormant).
 - Flight Pad II at `[0, 18.6, 54]`, stronger than the Rotunda pad (`ROOF_FLIGHT_PAD_II_LAUNCH_SPEED`), with two aim arcs (NE → W06, S → W10). Exterior-only; the Rotunda Flight Pad I is interior-only and unchanged.
