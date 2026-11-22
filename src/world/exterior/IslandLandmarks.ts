@@ -1,7 +1,7 @@
 import type { Vec3 } from '../layout';
 import {
   ANCIENT_TREE_CENTER, ANCIENT_TREE_CLEARING_RADIUS, LIGHTHOUSE_PENINSULA_CENTER,
-  OBSERVATORY_CENTER, SPIRE_GARDEN_CENTER, SPIRE_GARDEN_RADIUS,
+  OBSERVATORY_CENTER, ROOTBOUND_HOLLOW_PORTAL, SPIRE_GARDEN_CENTER, SPIRE_GARDEN_RADIUS,
 } from './IslandSiteLayout';
 
 /**
@@ -57,6 +57,10 @@ export const ISLAND_LANDMARKS: readonly IslandLandmark[] = [
   { id: 'ancient-tree', label: 'Ancient tree', featureName: 'ancient-tree-landmark',
     focus: [ANCIENT_TREE_CENTER[0], GROUND + 4, ANCIENT_TREE_CENTER[2]], approach: [45, -84], inspection: [50.5, -84],
     clearing: ANCIENT_TREE_CLEARING_RADIUS, corridor: 1.8 },
+  { id: 'rootbound-hollow', label: 'Rootbound Hollow', featureName: 'rootbound-hollow-portal',
+    focus: [ROOTBOUND_HOLLOW_PORTAL[0] + 0.4, GROUND + 1.4, ROOTBOUND_HOLLOW_PORTAL[1]],
+    approach: [45, -88], inspection: [54.2, -88.8],
+    clearing: 5.0, corridor: 1.6 },
   { id: 'lantern-path', label: 'Moonlit lantern path', featureName: 'moonlit-lantern-path',
     focus: [46, GROUND + 0.6, -48], approach: [46, -40], inspection: [46, -48], clearing: 4, corridor: 1.6 },
   { id: 'observation-hide', label: 'Wildlife observation hide', featureName: 'wildlife-observation-hide',

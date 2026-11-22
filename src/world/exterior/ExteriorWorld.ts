@@ -12,8 +12,11 @@ import { ExteriorWaymarkers } from './ExteriorWaymarkers';
 import { TicketKiosk } from './TicketKiosk';
 import { ObsidianSphereEntrance } from './ObsidianSphereEntrance';
 import { ExteriorLighthouse } from './ExteriorLighthouse';
+import { ExteriorRooftop } from './ExteriorRooftop';
 import { ExteriorObservatory } from './ExteriorObservatory';
-import { addIslandSupport } from './IslandSiteLayout';
+import { ExteriorRootboundHollow } from './ExteriorRootboundHollow';
+import { ExteriorDistantIslands } from './ExteriorDistantIslands';
+import { addIslandSupport, addLagoonEdge } from './IslandSiteLayout';
 import { START_POSITION, START_YAW } from '../start';
 import {
   GROUND_Y,
@@ -57,6 +60,12 @@ export class ExteriorWorld {
   readonly lighthouse: ExteriorLighthouse;
   /** Southern wooded hill ruined observatory (ISLAND-02B). */
   readonly observatory: ExteriorObservatory;
+  /** Discoverable vaulted root grotto beneath the Ancient Tree roots (ISLAND-02C). */
+  readonly rootboundHollow: ExteriorRootboundHollow;
+  /** Visual-only distant Floating Sky Islands (W06) and Wild Island silhouette (W10) (ISLAND-02D). */
+  readonly distantIslands: ExteriorDistantIslands;
+  /** Rooftop Cafe, Hot Dog Stand, Glass Greenhouse, Flight Pad II, and West Flank Ascent (ISLAND-03). */
+  readonly rooftop: ExteriorRooftop;
 
   readonly spawnPosition: Vec3 = START_POSITION;
   readonly spawnYaw = START_YAW;
@@ -67,6 +76,7 @@ export class ExteriorWorld {
     // Bounded support is derived from the closed site outline and leaves the
     // lagoon, ocean and offshore space unsupported.
     addIslandSupport(this.collision);
+    addLagoonEdge(this.collision);
 
     // Raised arrival plaza terrace: floor at GROUND_Y (0) from z = 128 to 158
     this.collision.addFloor(
@@ -137,6 +147,13 @@ export class ExteriorWorld {
 
     this.observatory = new ExteriorObservatory(this.scope, this.collision);
     this.root.add(this.observatory.group);
+
+    this.rootboundHollow = new ExteriorRootboundHollow(this.scope, this.collision);
+    this.root.add(this.rootboundHollow.group);
+    this.distantIslands = new ExteriorDistantIslands(this.scope, qualityTier);
+    this.root.add(this.distantIslands.root);
+    this.rooftop = new ExteriorRooftop(this.scope, this.collision);
+    this.root.add(this.rooftop.group);
   }
 
   /**
@@ -283,6 +300,7 @@ export class ExteriorWorld {
   setQuality(tier: QualityTier): void {
     this.islandLandscape.setQuality(tier);
     this.signatureFeatures.setQuality(tier);
+    this.distantIslands.setQuality(tier);
     this.setWaterQuality(tier);
   }
 
@@ -306,6 +324,9 @@ export class ExteriorWorld {
     this.sphereEntrance.update(dt, eye, reducedMotion);
     this.lighthouse.update(dt, reducedMotion);
     this.observatory.update(dt, reducedMotion);
+    this.rootboundHollow.update(dt, reducedMotion);
+    this.distantIslands.update(dt, reducedMotion);
+    this.rooftop.update(dt, eye, reducedMotion);
   }
 
   dispose(): void {

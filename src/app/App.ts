@@ -35,6 +35,8 @@ import { zoneAtXYZ, ZONE_BY_ID, isOnFlightPad, exteriorLocationLabel, EXTERIOR_P
 import { TICKET_KIOSK_ID } from '../world/exterior/TicketKiosk';
 import { LIGHTHOUSE_LENS_ID } from '../world/exterior/ExteriorLighthouse';
 import { OBSERVATORY_ORRERY_ID } from '../world/exterior/ExteriorObservatory';
+import { ROOTBOUND_RELIC_ID } from '../world/exterior/ExteriorRootboundHollow';
+import { isOnRooftopFlightPad, ROOF_FLIGHT_PAD_II_LAUNCH_SPEED } from '../world/exterior/rooftopLayout';
 import { isInsideObsidianChamber } from '../world/exterior/ObsidianSphereEntrance';
 import { START_POSITION } from '../world/start';
 import type { StreamingManager } from '../exhibits/StreamingManager';
@@ -215,6 +217,13 @@ export class App implements LoopCallbacks {
       OBSERVATORY_ORRERY_ID,
       this.exteriorWorld.observatory.getOrreryControl((message) => this.ui.hud.announce(message, 8)),
     );
+    this.interaction.register(
+      ROOTBOUND_RELIC_ID,
+      this.exteriorWorld.rootboundHollow.getRelicControl((message) => this.ui.hud.announce(message, 8)),
+    );
+    for (const [id, control] of this.exteriorWorld.rooftop.getControls((message) => this.ui.hud.announce(message, 8))) {
+      this.interaction.register(id, control);
+    }
 
     this.sky = new Sky(this.scope);
     this.renderer.scene.add(this.sky.mesh);
@@ -255,10 +264,16 @@ export class App implements LoopCallbacks {
 
   recordInteractionVisit(): void {
     const id = this.interaction.currentFocus?.exhibitId;
-    // Cinema seats, boards, and dormant world anchors are not exhibits: keep out of visit journal.
+    // Cinema seats, boards, dormant world anchors, the Rootbound relic, and rooftop interactables are not exhibits: keep out of visit journal.
     if (
-      !id || isSecretControlId(id) || id === TICKET_KIOSK_ID
-      || id === LIGHTHOUSE_LENS_ID || id === OBSERVATORY_ORRERY_ID || id.startsWith('cinema-')
+      !id
+      || isSecretControlId(id)
+      || id === TICKET_KIOSK_ID
+      || id === LIGHTHOUSE_LENS_ID
+      || id === OBSERVATORY_ORRERY_ID
+      || id === ROOTBOUND_RELIC_ID
+      || id.startsWith('cinema-')
+      || id.startsWith('rooftop-')
     ) return;
     this.journal.markVisited(id);
     this.visitThread.recordVisit(id);
@@ -638,10 +653,21 @@ export class App implements LoopCallbacks {
       && !this.player.isSeated
       && !this.input.uiCaptured
       && this.player.grounded
-      && isOnFlightPad(this.player.position.x, this.player.position.z)
     ) {
-      this.player.enterFlight();
-      this.ui?.hud.announce('Launched. Fly with W/A/S/D and look. Shift for speed. Land to walk again.');
+      if (
+        this.activeWorld === 'interior'
+        && isOnFlightPad(this.player.position.x, this.player.position.z, this.player.position.y)
+      ) {
+        this.player.enterFlight();
+        this.ui?.hud.announce('Launched. Fly with W/A/S/D and look. Shift for speed. Land to walk again.');
+      } else if (
+        this.activeWorld === 'exterior'
+        && !this.preferences.reducedMotion
+        && isOnRooftopFlightPad(this.player.position.x, this.player.position.y, this.player.position.z)
+      ) {
+        this.player.enterFlight(ROOF_FLIGHT_PAD_II_LAUNCH_SPEED);
+        this.ui?.hud.announce('Launched from Flight Pad II. Fly with W/A/S/D and look. Shift for speed. Land to walk again.');
+      }
     }
     // The obsidian chamber slows the visitor as if wading (eased, both ways).
     this.player.setInWater(this.activeWorld === 'exterior'
