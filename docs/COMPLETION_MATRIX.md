@@ -187,5 +187,6 @@ Plan: `docs/plans/WORLD_EXPANSION_GROKBOT_MASTER_20261121.md`. Rows are added as
 | Island safety: lagoon bank edge; fall safety net returns to last supported spot (no rescue loop) | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST | `tests/lagoon-edge-safety.test.ts`, `tests/browser/island-lagoon-safety.e2e.ts` |
 | ISLAND-02D distant floating sky islands (W06 preview) & wild island silhouette (W10 preview); CAMERA_FAR 1100 / SKY_DOME_RADIUS 850 | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST; owner camera decision ACCEPTED 2026-11-22 (human visual acceptance PENDING) | `tests/distant-islands.test.ts`, `tests/browser/distant-islands.e2e.ts`; `docs/evidence/island-02d-distant-islands-20261122/` |
 | ISLAND-03 rooftop café, hot dog stand, glass greenhouse + dormant W05 flower, Flight Pad II with reduced-motion console | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST (human visual acceptance PENDING) | `tests/rooftop-architecture.test.ts`, `tests/browser/rooftop.e2e.ts`; `docs/evidence/island-03-rooftop-20261122/` |
-| ISLAND-04 … ISLAND-05, W01–W10, L01 | IN PROGRESS / PLANNED | master plan |
+| ISLAND-04 rooftop Hot Dog Man and seven additional ambient island residents | IMPLEMENTED; VERIFIED IN LOCAL BROWSER; DEVICE PERFORMANCE GATE FAILING | [NPC browser evidence](evidence/island-04-npcs-20261122/), [asset provenance](ISLAND_VISITOR_ASSET_PROVENANCE.md) |
+| ISLAND-05, W01–W10, L01 and eventual visual upgrades to 17 authored visitors | PLANNED | master plan |
 

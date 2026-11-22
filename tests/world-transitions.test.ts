@@ -17,7 +17,7 @@ function harness(options: { loadFails?: boolean } = {}) {
     renderer: { isContextLost: false },
     interiorLoadTelemetry: { entranceReadyAtMs: null as number | null, transitionCommittedAtMs: 0 },
     interiorWorld: null as typeof interiorWorld | null,
-    exteriorWorld: { root: { visible: true }, collision: {} },
+    exteriorWorld: { root: { visible: true }, collision: {}, islandVisitors: { clear: vi.fn() } },
     ticket: { number: '0001', date: 'today', issuedAtMs: 0 },
     player: {
       position: { x: 0, y: GROUND_Y, z: ENTRANCE_PORTAL_Z + 20 },
@@ -52,7 +52,7 @@ describe('world-switch state machine', () => {
   });
 
   it('walks in through preparation, waits for the entrance, commits, leaves and re-enters', async () => {
-    const { director, telemetry, pos, phases, step, note } = harness();
+    const { app, director, telemetry, pos, phases, step, note } = harness();
     await director.prepareInterior();
     note();
     expect(director.phase).toBe('PREPARING_RENDER_RESOURCES');
@@ -85,6 +85,7 @@ describe('world-switch state machine', () => {
       'COMMITTING_INTERIOR', 'INTERIOR_ACTIVE',
     ]);
     expect(director.illegalTransitions).toEqual([]);
+    expect(app.exteriorWorld.islandVisitors.clear).toHaveBeenCalledTimes(2);
   });
 
   it('reports a failed preparation, keeps the visitor outside, and recovers on retry', async () => {

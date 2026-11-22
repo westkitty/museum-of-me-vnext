@@ -5,6 +5,7 @@ import type { ExhibitControl } from '../../exhibits/contract';
 import { INTERACTION_ONLY_LAYER } from '../../interaction/InteractionManager';
 import { canRenderText, createFallbackTexture, createTextTexture } from '../../assets/TextTexture';
 import type { Vec3 } from '../layout';
+import { HotDogMan } from './HotDogMan';
 import {
   CENTRAL_SPINE_TOP_Y,
   GREENHOUSE_COLLAR_HEIGHT,
@@ -13,6 +14,8 @@ import {
   GREENHOUSE_FLOWER_ID,
   HOT_DOG_STAND_CENTER,
   HOT_DOG_STAND_ID,
+  HOT_DOG_STAND_OPERATOR_SPOT,
+  HOT_DOG_STAND_VISITOR_SPOT,
   HOT_DOG_STAND_SIZE,
   ROOF_ACCESSIBLE_BAYS,
   ROOF_CAFE_DECK,
@@ -108,15 +111,18 @@ export class ExteriorRooftop {
   private elapsed = 0;
   private lastUpdatedElapsed = -1;
 
-  private hotDogInspected = false;
+  /** ISLAND-04: the owner-approved operator of the hot dog stand (lazy-loaded). */
+  readonly hotDogMan: HotDogMan;
   private flowerInspected = false;
   private padControlInspected = false;
 
   constructor(private readonly scope: ResourceScope, private readonly collision: CollisionWorld) {
+    this.hotDogMan = new HotDogMan(scope, HOT_DOG_STAND_OPERATOR_SPOT, HOT_DOG_STAND_VISITOR_SPOT);
     this.group.name = 'exterior-rooftop';
     this.group.userData.visualRole = 'rooftop-architecture-expansion';
     this.mats = this.createMaterials();
     this.build();
+    this.group.add(this.hotDogMan.group);
     this.update(0, [ROOF_CAFE_DECK.minX, ROOF_DECK_Y, ROOF_PROMENADE_DECK.minZ], true);
   }
 
@@ -940,8 +946,8 @@ export class ExteriorRooftop {
 
     const { depthX, widthZ } = HOT_DOG_STAND_SIZE; // 2.8 x 4.2
     // Lower counter body, rear kitchen wall, side walls, brass service sill
-    this.box(stand, 'hot-dog-counter-base', [depthX, 1.05, widthZ], [0, 0.525, 0], this.mats.wood);
-    this.box(stand, 'hot-dog-service-sill', [depthX + 0.25, 0.08, widthZ + 0.16], [-0.08, 1.07, 0], this.mats.brass);
+    this.box(stand, 'hot-dog-counter-base', [0.55, 1.05, widthZ], [-depthX / 2 + 0.275, 0.525, 0], this.mats.wood);
+    this.box(stand, 'hot-dog-service-sill', [0.8, 0.08, widthZ + 0.16], [-depthX / 2 + 0.22, 1.07, 0], this.mats.brass);
     this.box(stand, 'hot-dog-rear-wall', [0.28, 2.35, widthZ], [depthX / 2 - 0.14, 1.175, 0], this.mats.bronze);
     for (const zSide of [-1, 1]) {
       this.box(stand, 'hot-dog-side-post', [0.22, 2.4, 0.24], [-depthX / 2 + 0.11, 1.2, zSide * (widthZ / 2 - 0.12)], this.mats.bronze);
@@ -967,7 +973,7 @@ export class ExteriorRooftop {
     const menuSign = new THREE.Mesh(
       this.scope.track(new THREE.PlaneGeometry(3.6, 0.86)),
       this.scope.track(new THREE.MeshBasicMaterial({
-        map: this.createSignTexture('HOT DOGS', ['Mustard & Kraut · Lemonade · Chef Soon'], 920, 220),
+        map: this.createSignTexture('HOT DOGS', ['Mustard & Kraut · Lemonade'], 920, 220),
         toneMapped: false,
       })),
     );
@@ -1304,13 +1310,17 @@ export class ExteriorRooftop {
         HOT_DOG_STAND_ID,
         {
           object: this.hotDogInteractionTarget,
-          label: () => (this.hotDogInspected
-            ? 'Rooftop Hot Dog Stand (chef arriving soon)'
-            : 'Inspect Hot Dog Stand'),
-          description: 'The Rooftop Café hot dog stand overlooking the dome, awaiting its chef (ISLAND-04).',
+          label: () => (this.hotDogMan.state === 'ready'
+            ? 'Buy a hot dog from Hot Dog Man'
+            : 'Rooftop Hot Dog Stand'),
+          description: 'The Rooftop Café hot dog stand overlooking the dome, run by Hot Dog Man.',
           activate: () => {
-            this.hotDogInspected = true;
-            announce('The rooftop hot dog stand is lit and ready, awaiting its chef (ISLAND-04).');
+            if (this.hotDogMan.state === 'ready') {
+              this.hotDogMan.serve();
+              announce('Hot Dog Man hands a hot dog across the counter.');
+            } else {
+              announce('The rooftop hot dog stand is here. Service is unavailable at the moment.');
+            }
           },
         },
       ],
@@ -1346,6 +1356,7 @@ export class ExteriorRooftop {
   }
 
   update(dt: number, eye: readonly [number, number, number], reducedMotion: boolean): void {
+    this.hotDogMan.update(dt, eye, reducedMotion);
     const dx = eye[0] + 12;
     const dz = eye[2] - 26;
     const nearRoof = dx * dx + dz * dz <= VISIBILITY_SQ;

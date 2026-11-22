@@ -15,6 +15,8 @@ import type { SupplementaryCases } from '../world/SupplementaryCases';
 import type { SourceInstallations } from '../world/SourceInstallations';
 import type { SourceArtwork } from '../world/SourceArtwork';
 import { registerCuratedAssets, shellUrl, entranceUrl } from '../assets/curatedAssets';
+import { registerIslandVisitorAssets } from '../assets/islandVisitorAssets';
+import { registerHotDogManAssets } from '../assets/hotDogManAssets';
 import { registerQuaterniusAssets } from '../assets/quaterniusAssets';
 import { registerFullWeaselArtifact } from '../assets/fullWeaselArtifact';
 import { registerCinemaAssets } from '../assets/cinemaAssets';
@@ -170,6 +172,8 @@ export class App implements LoopCallbacks {
 
     registerCuratedAssets();
     registerQuaterniusAssets();
+    registerHotDogManAssets();
+    registerIslandVisitorAssets();
     registerFullWeaselArtifact();
     registerCinemaAssets();
     if (typeof document !== 'undefined') {
@@ -200,7 +204,7 @@ export class App implements LoopCallbacks {
     document.documentElement.style.setProperty('--ui-scale', String(this.preferences.uiScale));
 
     // Exterior world context: island terrain, shoreline, water, lanterns, and outdoor collider
-    this.exteriorWorld = new ExteriorWorld(this.renderer.quality.tier);
+    this.exteriorWorld = new ExteriorWorld(this.renderer.quality.tier, this.assets);
     this.renderer.scene.add(this.exteriorWorld.root);
     this.exteriorWorld.root.add(this.wayfinding.group);
     this.secrets.attachObjects('exterior', this.exteriorWorld.root, this.exteriorWorld.scope,

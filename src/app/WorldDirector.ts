@@ -190,6 +190,7 @@ export class WorldDirector {
     try {
       // 1. Inactive world is hidden, active world is shown
       this.app.exteriorWorld.root.visible = false;
+      this.app.exteriorWorld.islandVisitors.clear();
       this.app.interiorWorld.root.visible = true;
       this.app.interiorWorld.setActive(true);
 
