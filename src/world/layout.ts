@@ -514,8 +514,10 @@ export const PLINTH_FLOOR_HALF = PLINTH_RADIUS / Math.SQRT2;
 
 export const FLIGHT_PAD_CENTER: Vec3 = [0, PLINTH_TOP_Y, 0];
 export const FLIGHT_PAD_RADIUS = PLINTH_RADIUS;
+export const FLIGHT_PAD_Y_TOLERANCE = 0.6;
 
-export function isOnFlightPad(x: number, z: number): boolean {
+export function isOnFlightPad(x: number, z: number, y?: number): boolean {
+  if (y !== undefined && Math.abs(y - FLIGHT_PAD_CENTER[1]) > FLIGHT_PAD_Y_TOLERANCE) return false;
   const dx = x - FLIGHT_PAD_CENTER[0];
   const dz = z - FLIGHT_PAD_CENTER[2];
   return dx * dx + dz * dz <= FLIGHT_PAD_RADIUS * FLIGHT_PAD_RADIUS;

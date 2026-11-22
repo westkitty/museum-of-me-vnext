@@ -12,6 +12,7 @@ import { ExteriorWaymarkers } from './ExteriorWaymarkers';
 import { TicketKiosk } from './TicketKiosk';
 import { ObsidianSphereEntrance } from './ObsidianSphereEntrance';
 import { ExteriorLighthouse } from './ExteriorLighthouse';
+import { ExteriorRooftop } from './ExteriorRooftop';
 import { addIslandSupport } from './IslandSiteLayout';
 import { START_POSITION, START_YAW } from '../start';
 import {
@@ -54,6 +55,8 @@ export class ExteriorWorld {
   readonly sphereEntrance: ObsidianSphereEntrance;
   /** Climbable southeast coastal peninsula and lighthouse (ISLAND-02A). */
   readonly lighthouse: ExteriorLighthouse;
+  /** Rooftop Cafe, Hot Dog Stand, Glass Greenhouse, Flight Pad II, and West Flank Ascent (ISLAND-03). */
+  readonly rooftop: ExteriorRooftop;
 
   readonly spawnPosition: Vec3 = START_POSITION;
   readonly spawnYaw = START_YAW;
@@ -131,6 +134,9 @@ export class ExteriorWorld {
 
     this.lighthouse = new ExteriorLighthouse(this.scope, this.collision);
     this.root.add(this.lighthouse.group);
+
+    this.rooftop = new ExteriorRooftop(this.scope, this.collision);
+    this.root.add(this.rooftop.group);
   }
 
   /**
@@ -299,6 +305,7 @@ export class ExteriorWorld {
     this.ticketKiosk.update(dt);
     this.sphereEntrance.update(dt, eye, reducedMotion);
     this.lighthouse.update(dt, reducedMotion);
+    this.rooftop.update(dt, eye, reducedMotion);
   }
 
   dispose(): void {

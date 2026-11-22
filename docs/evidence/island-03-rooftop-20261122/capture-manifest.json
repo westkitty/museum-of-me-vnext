@@ -1,0 +1,46 @@
+{
+  "captures": [
+    {
+      "name": "west-flank-ramp-approach.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 213387,
+      "sha256": "611a9583c342fe3d78700355f27f988ee2cceeb5e0456b185f5df4fc52f6ba39"
+    },
+    {
+      "name": "greenhouse-exterior-and-doorway.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 392069,
+      "sha256": "fa0d8daf894ea2c2e42fb3e6e84767b77627d26a9a6b86de740fb646a2c75b10"
+    },
+    {
+      "name": "greenhouse-w05-flower.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 428245,
+      "sha256": "18d38a820d84099bfe91e2aa396bfc0aa3076f2b98ebbe7ec300aa358b956a0c"
+    },
+    {
+      "name": "cafe-terrace-and-hotdog-stand.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 349003,
+      "sha256": "ea6bd016df04262e8ca473bb24889bb1d5caad547a98f799c42c5850ed31c2ad"
+    },
+    {
+      "name": "flight-pad-ii-and-arcs.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 281220,
+      "sha256": "0db93c62f76d6f211cd489666eb374adc863e140fc7fbe16ea389f5534e11545"
+    },
+    {
+      "name": "rooftop-mobile-portrait.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 100327,
+      "sha256": "667a674da5506ce06ce57b953a96ce123564d19ad916366f031eecaf59f9bf72"
+    }
+  ]
+}

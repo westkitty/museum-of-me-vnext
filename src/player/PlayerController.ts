@@ -229,12 +229,12 @@ export class PlayerController {
 
   /** Entered from the flight pad while grounded. Gravity and walls let go,
    * with a brief upward pop so it reads as a launch, not a drift. */
-  enterFlight(): void {
+  enterFlight(launchSpeed = FLIGHT_LAUNCH_SPEED): void {
     if (this.flightMode) return;
     this.flightMode = true;
     this.hasLeftGroundInFlight = false;
     this.velocity.set(0, 0, 0);
-    this.launchVelocityY = FLIGHT_LAUNCH_SPEED;
+    this.launchVelocityY = launchSpeed;
     // A jump queued before liftoff (or during flight, where nothing ever
     // consumes it) must not survive into normal mode and fire as an
     // involuntary jump the instant the visitor lands.
