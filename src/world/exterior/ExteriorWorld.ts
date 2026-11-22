@@ -14,6 +14,7 @@ import { ObsidianSphereEntrance } from './ObsidianSphereEntrance';
 import { ExteriorLighthouse } from './ExteriorLighthouse';
 import { ExteriorObservatory } from './ExteriorObservatory';
 import { ExteriorRootboundHollow } from './ExteriorRootboundHollow';
+import { ExteriorDistantIslands } from './ExteriorDistantIslands';
 import { addIslandSupport, addLagoonEdge } from './IslandSiteLayout';
 import { START_POSITION, START_YAW } from '../start';
 import {
@@ -60,6 +61,8 @@ export class ExteriorWorld {
   readonly observatory: ExteriorObservatory;
   /** Discoverable vaulted root grotto beneath the Ancient Tree roots (ISLAND-02C). */
   readonly rootboundHollow: ExteriorRootboundHollow;
+  /** Visual-only distant Floating Sky Islands (W06) and Wild Island silhouette (W10) (ISLAND-02D). */
+  readonly distantIslands: ExteriorDistantIslands;
 
   readonly spawnPosition: Vec3 = START_POSITION;
   readonly spawnYaw = START_YAW;
@@ -144,6 +147,8 @@ export class ExteriorWorld {
 
     this.rootboundHollow = new ExteriorRootboundHollow(this.scope, this.collision);
     this.root.add(this.rootboundHollow.group);
+    this.distantIslands = new ExteriorDistantIslands(this.scope, qualityTier);
+    this.root.add(this.distantIslands.root);
   }
 
   /**
@@ -290,6 +295,7 @@ export class ExteriorWorld {
   setQuality(tier: QualityTier): void {
     this.islandLandscape.setQuality(tier);
     this.signatureFeatures.setQuality(tier);
+    this.distantIslands.setQuality(tier);
     this.setWaterQuality(tier);
   }
 
@@ -314,6 +320,7 @@ export class ExteriorWorld {
     this.lighthouse.update(dt, reducedMotion);
     this.observatory.update(dt, reducedMotion);
     this.rootboundHollow.update(dt, reducedMotion);
+    this.distantIslands.update(dt, reducedMotion);
   }
 
   dispose(): void {

@@ -1,0 +1,141 @@
+{
+  "captures": [
+    {
+      "name": "01-pier-sky-islands.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 304226,
+      "sha256": "fa44a2032c2490943265e93edb01306dab3a568222f825a10200706632986238",
+      "calls": 631,
+      "triangles": 180273
+    },
+    {
+      "name": "02-pier-wild-island.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 167230,
+      "sha256": "fc62bed7a3f2dfb32d6b70a541c32567373ae61a746e89bd60ea471fb7aab1a6",
+      "calls": 42,
+      "triangles": 110751
+    },
+    {
+      "name": "03-lighthouse-sky-islands.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 320776,
+      "sha256": "2979a7ed35eefaeea6528b8a06a2ec5bbdc04efa1279780330bec66127afbb49",
+      "calls": 118,
+      "triangles": 129883
+    },
+    {
+      "name": "04-lighthouse-wild-island.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 239677,
+      "sha256": "ebb1951401c2a579b1e57c2507f1bcb59b0fef29757f5e3bfc832eb055d4568a",
+      "calls": 559,
+      "triangles": 166519
+    },
+    {
+      "name": "05-coastal-east-sky-islands.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 229950,
+      "sha256": "f615cb4368965694203f7b1fc4eec85b0bd5e1b9d879c896525f048694462716",
+      "calls": 73,
+      "triangles": 116261
+    },
+    {
+      "name": "06-coastal-sw-wild-island.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 167316,
+      "sha256": "5f1b605d751ce6d51f7b0e5c684ba62a5529112faa8c73ce97edde3294278678",
+      "calls": 34,
+      "triangles": 109419
+    },
+    {
+      "name": "07-rooftop-sky-islands.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 301409,
+      "sha256": "7c384f89f4acf711dbe02092f9ed5ebf0f653dfd2c2d03a37d4802b786ec9077",
+      "calls": 174,
+      "triangles": 144250
+    },
+    {
+      "name": "08-rooftop-wild-island.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 248225,
+      "sha256": "855031cba829a161a6caf5626a33f3381af9fb33aa125f6b0a224c22608e101e",
+      "calls": 445,
+      "triangles": 159400
+    },
+    {
+      "name": "09-mobile-portrait-pier-wild.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 72105,
+      "sha256": "e6f8970bb26da831d04e26f29cc91ce9ecb57839505f042413e2c03f5a9beac1",
+      "calls": 80,
+      "triangles": 132307
+    },
+    {
+      "name": "10-mobile-portrait-rooftop-sky.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 97579,
+      "sha256": "6f320ea8e6937dce868b93edfccd5dcac78ee379af8397ed566500b68b425a68",
+      "calls": 104,
+      "triangles": 136759
+    }
+  ],
+  "lifecycle": {
+    "tiers": {
+      "low1": {
+        "skyNodes": 3,
+        "canopies": 9,
+        "rocklets": 0,
+        "pines": 24,
+        "mistLayers": 1,
+        "geometries": 631,
+        "textures": 15,
+        "collisionMatches": true
+      },
+      "medium": {
+        "skyNodes": 5,
+        "canopies": 19,
+        "rocklets": 14,
+        "pines": 56,
+        "mistLayers": 2,
+        "geometries": 632,
+        "textures": 15,
+        "collisionMatches": true
+      },
+      "high": {
+        "skyNodes": 5,
+        "canopies": 32,
+        "rocklets": 28,
+        "pines": 96,
+        "mistLayers": 2,
+        "geometries": 632,
+        "textures": 15,
+        "collisionMatches": true
+      },
+      "low2": {
+        "skyNodes": 3,
+        "canopies": 9,
+        "rocklets": 0,
+        "pines": 24,
+        "mistLayers": 1,
+        "geometries": 631,
+        "textures": 15,
+        "collisionMatches": true
+      }
+    },
+    "driftedY": 0.1562241608768055,
+    "restY": 0,
+    "heldRestY": 0
+  }
+}
