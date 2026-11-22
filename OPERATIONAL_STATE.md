@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 114,
+  "state_revision": 115,
   "last_updated": "2026-11-22",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -1272,5 +1272,11 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - **Base:** `main` `26fc6e5` (PR #75 lagoon safety, after PR #76 ISLAND-02C). Branch `feat/island-02d-distant-islands`, PR #77; updated from `main` by non-force merge commits (additive `ExteriorWorld.ts` conflicts only).
 - **IMPLEMENTED:** `ExteriorDistantIslands.ts` — visual-only Floating Sky Islands (`[295, 74, -110]`, W06 preview) and Wild Island massif (`[-275, -1, 350]`, W10 preview); `fog: false` aerial palettes; LOD tiers; zero lights, zero colliders. Shared change: `CAMERA_FAR` 600 → 1100 (`RendererHost.ts`), `SKY_DOME_RADIUS` 420 → 850 (`Sky.ts`).
 - **Measured:** worst-case viewpoint→geometry corner distance sky islands 561 m, wild island 812 m (far plane must exceed ~850 m). Depth precision near-plane dominated (~6 mm at 100 m with either far). Dome is camera-following, `depthWrite:false`, `renderOrder -1`: radius only needs to sit inside the far plane.
-- **OWNER DECISION PENDING:** accept the global `CAMERA_FAR`/`SKY_DOME_RADIUS` change before merge.
+- **OWNER DECISION (2026-11-22): ACCEPTED as-is** — global `CAMERA_FAR` 1100 / `SKY_DOME_RADIUS` 850. Merged as PR #77 squash `ff6eaac` (CI 7/7 on `2a5ad52`; independent review no blockers; follow-ups: pine cone winding inward, weak zero-collider test).
 - **NOT VERIFIED:** human visual acceptance, real-device performance (`perf:device`), hosted Pages (deferred to S3 island release).
+### 2026-11-22 — ISLAND-03 rooftop café, hot dog stand, glass greenhouse, Flight Pad II (r115)
+
+- **Base:** `main` `ff6eaac` (after PR #77). Branch `feat/island-03-rooftop-architecture` (Antigravity draft preserved as WIP `a7ed0aa`, integrated by non-force merge of `main`).
+- **IMPLEMENTED:** `rooftopLayout.ts` + `ExteriorRooftop.ts` — West Flank Ascent from Path 5, roof deck Y 18.6, café + tables, hot dog stand `[7.5, 18.6, 29]`, glass greenhouse + dormant W05 flower `[-26, 18.6, 10]`, Flight Pad II `[0, 18.6, 54]` (stronger launch, exterior-only; Pad I interior-only), reduced-motion console, guardrails; `rooftop-*` excluded from Journal; zero lights; Cinema envelope test derived from `cinemaLayout.ts`.
+- **VERIFIED BY AUTOMATED TEST (local):** typecheck, Vitest 129 files / 1,313 tests (post-#77), Playwright rooftop + cinema + cinema-youtube + quality-transitions 12/12 (Chrome + SwiftShader). Evidence `docs/evidence/island-03-rooftop-20261122/`.
+- **NOT VERIFIED:** human visual acceptance, `perf:device`, hosted Pages. Hot Dog Man is ISLAND-04.

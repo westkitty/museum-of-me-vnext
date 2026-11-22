@@ -12,6 +12,7 @@ import { ExteriorWaymarkers } from './ExteriorWaymarkers';
 import { TicketKiosk } from './TicketKiosk';
 import { ObsidianSphereEntrance } from './ObsidianSphereEntrance';
 import { ExteriorLighthouse } from './ExteriorLighthouse';
+import { ExteriorRooftop } from './ExteriorRooftop';
 import { ExteriorObservatory } from './ExteriorObservatory';
 import { ExteriorRootboundHollow } from './ExteriorRootboundHollow';
 import { ExteriorDistantIslands } from './ExteriorDistantIslands';
@@ -63,6 +64,8 @@ export class ExteriorWorld {
   readonly rootboundHollow: ExteriorRootboundHollow;
   /** Visual-only distant Floating Sky Islands (W06) and Wild Island silhouette (W10) (ISLAND-02D). */
   readonly distantIslands: ExteriorDistantIslands;
+  /** Rooftop Cafe, Hot Dog Stand, Glass Greenhouse, Flight Pad II, and West Flank Ascent (ISLAND-03). */
+  readonly rooftop: ExteriorRooftop;
 
   readonly spawnPosition: Vec3 = START_POSITION;
   readonly spawnYaw = START_YAW;
@@ -149,6 +152,8 @@ export class ExteriorWorld {
     this.root.add(this.rootboundHollow.group);
     this.distantIslands = new ExteriorDistantIslands(this.scope, qualityTier);
     this.root.add(this.distantIslands.root);
+    this.rooftop = new ExteriorRooftop(this.scope, this.collision);
+    this.root.add(this.rooftop.group);
   }
 
   /**
@@ -321,6 +326,7 @@ export class ExteriorWorld {
     this.observatory.update(dt, reducedMotion);
     this.rootboundHollow.update(dt, reducedMotion);
     this.distantIslands.update(dt, reducedMotion);
+    this.rooftop.update(dt, eye, reducedMotion);
   }
 
   dispose(): void {
