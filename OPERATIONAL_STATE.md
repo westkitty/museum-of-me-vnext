@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 112,
+  "state_revision": 113,
   "last_updated": "2026-11-22",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -1258,3 +1258,11 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - **Counts:** belt trunks `863`, belt crowns `1204/1489/2114`, perimeter trunks `176` (all unchanged from ISLAND-02B); initial bundle verified by `npm run check:budgets`.
 - **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS on rebased branch; Playwright (Chrome + SwiftShader software WebGL) `rootbound-hollow.e2e.ts`, `secrets.e2e.ts`, and `island-landmark-walk.e2e.ts` PASS (5 captures in `docs/evidence/island-02c-rootbound-20261122/` visually inspected).
 - **NOT VERIFIED:** human visual acceptance, real-device performance (`perf:device`), hosted Pages (deferred to S3 visitor-ready island release). Not an 11th passport stamp; Cinema, interior, exhibits, visitors untouched.
+
+### 2026-11-22 — Island safety: east lagoon fall/rescue loop (r113)
+
+- **Base:** `main` `eb3c266` (PR #76, ISLAND-02C; originally authored on `a358b66`). Branch `fix/lagoon-fall-safety`.
+- **REPRODUCED (browser):** walking into the floorless east lagoon fell through the basin; the safety net (`PlayerController`, y < −60 → `support ?? 0` at the same x/z) restarted the fall every ~2.5 s (13 rescues / 30 s).
+- **FIXED:** `addLagoonEdge` — 12 oriented 1.4 m bank-edge wall colliders along `LAGOON_OUTLINE` (water stays unsupported); safety net now returns the visitor to the last supported spot (no loop possible anywhere).
+- **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS (initial visit 11.53 MB / 20 MB); `tests/lagoon-edge-safety.test.ts`; Playwright `island-lagoon-safety` (4 banks, one-rescue-and-walk-back), `passage-traversal` (57/169), `island-landscape`, `island-landmark-walk`, `quality-transitions`, `performance-lifecycle`, `exterior-first`, `stability` PASS. Evidence `docs/evidence/island-lagoon-safety-20261122/`.
+- **NOT VERIFIED:** human feel of the bank edge; real-device performance. W01 dive entry not built.
