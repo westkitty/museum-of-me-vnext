@@ -1,0 +1,104 @@
+{
+ "tier": "low",
+ "colliders": 933,
+ "eyeLevelFoliageInstances": 0,
+ "trunklessBeltBelow2_2m": 0,
+ "landmarks": [
+  {
+   "id": "reflecting-rill",
+   "pathDist": 30.2,
+   "blocks": 0,
+   "by": {}
+  },
+  {
+   "id": "astronomical-terrace",
+   "pathDist": 10,
+   "blocks": 0,
+   "by": {}
+  },
+  {
+   "id": "pollinator-meadow",
+   "pathDist": 23.4,
+   "blocks": 0,
+   "by": {}
+  },
+  {
+   "id": "hare-statue",
+   "pathDist": 16.9,
+   "blocks": 0,
+   "by": {}
+  },
+  {
+   "id": "fern-ravine",
+   "pathDist": 14.4,
+   "blocks": 0,
+   "by": {}
+  },
+  {
+   "id": "owl-statue",
+   "pathDist": 6.7,
+   "blocks": 0,
+   "by": {}
+  },
+  {
+   "id": "golden-spire",
+   "pathDist": 22,
+   "blocks": 0,
+   "by": {}
+  },
+  {
+   "id": "neolithic-circle",
+   "pathDist": 32.4,
+   "blocks": 0,
+   "by": {}
+  },
+  {
+   "id": "wings-of-dawn",
+   "pathDist": 15,
+   "blocks": 0,
+   "by": {}
+  },
+  {
+   "id": "ancient-tree",
+   "pathDist": 12,
+   "blocks": 0,
+   "by": {}
+  },
+  {
+   "id": "lantern-path",
+   "pathDist": 0.3,
+   "blocks": 0,
+   "by": {}
+  },
+  {
+   "id": "observation-hide",
+   "pathDist": 8.9,
+   "blocks": 0,
+   "by": {}
+  },
+  {
+   "id": "otter-statue",
+   "pathDist": 9.6,
+   "blocks": 0,
+   "by": {}
+  },
+  {
+   "id": "tidepools",
+   "pathDist": 89.2,
+   "blocks": 0,
+   "by": {}
+  },
+  {
+   "id": "wind-grove",
+   "pathDist": 5.9,
+   "blocks": 0,
+   "by": {}
+  },
+  {
+   "id": "pier",
+   "pathDist": 16,
+   "blocks": 0,
+   "by": {}
+  }
+ ]
+}

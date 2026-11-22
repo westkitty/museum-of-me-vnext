@@ -86,6 +86,7 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
       interiorConstructed: app.interiorConstructed,
       activeWorld: app.activeWorld,
       floorColliderCount: app.exteriorWorld.collision.size,
+      beltTrunkColliders: (app.scene.getObjectByName('woodland-forest-belt-trunks') as { count: number }).count,
       waterGeometry: (app.scene.getObjectByName('night-island-water') as { geometry: { type: string } } | undefined)?.geometry.type,
       traversal,
       routeSupports,
@@ -96,7 +97,10 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
   expect(result.wildlife.butterflies).toBeGreaterThan(0);
   expect(result.wildlife.birds).toBeGreaterThan(0);
   expect(result.wildlife.fish).toBeGreaterThan(0);
-  expect(result.floorColliderCount).toBeLessThan(1_000);
+  // ISLAND-01 adds exactly one trunk collider per visible forest-belt trunk
+  // (845, quality-independent); every other exterior collider stays under 1,000.
+  expect(result.beltTrunkColliders).toBe(845);
+  expect(result.floorColliderCount - result.beltTrunkColliders).toBeLessThan(1_000);
   expect(result.waterGeometry).toBe('RingGeometry');
   expect(result.supports.find((probe) => probe.id === 'entrance-terrace')?.y).toBe(0);
   expect(result.supports.filter((probe) => ['pier', 'west-path', 'spire-court', 'lagoon-bank', 'east-visible-coast', 'west-visible-coast', 'lagoon-shore-shoulder'].includes(probe.id)).every((probe) => probe.y === -0.5)).toBe(true);

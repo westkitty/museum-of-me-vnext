@@ -167,3 +167,17 @@ the ring is unreachable on foot (owner review suggested).
 | Curator Add video: drafts in this browser only; dev save route; export and import | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TESTS; dev route exercised live | `docs/MUSEUM_CINEMA_YOUTUBE_2026-11-21.md` |
 | Offline: local films unaffected; YouTube refused in `file://` standalone with an explanation | VERIFIED BY BROWSER | standalone probe; `verify:standalone` 0 remote requests |
 | Human acceptance; real-browser YouTube playback | PENDING | — |
+
+
+## World expansion — island first (2026-11-21 onward)
+
+Plan: `docs/plans/WORLD_EXPANSION_GROKBOT_MASTER_20261121.md`. Rows are added as slices land; a row's state never runs ahead of its evidence.
+
+| Item | State | Evidence |
+|---|---|---|
+| S0 baseline reconnaissance (identity, woodland defect, viewpoints, render cost) | MEASURED | `docs/evidence/world-expansion-baseline-20261121/` |
+| ISLAND-01 forest-belt crowns on visible collision-backed trunks; crowns ≥ 3.0 m; understory ≤ 1.38 m | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST | `tests/island-landmark-visibility.test.ts`, `tests/browser/quality-transitions.e2e.ts` |
+| ISLAND-01 15 named landmarks: approach, inspection spot, clear eye-height view | IMPLEMENTED; VERIFIED BY BROWSER (keyboard all 15, low/high, reduced motion; touch 4) | `tests/browser/island-landmark-walk.e2e.ts`; `docs/evidence/island-01-woodland-20261121/` |
+| ISLAND-01 human visual acceptance; real-device performance | PENDING | — |
+| ISLAND-02 … ISLAND-05, W01–W10, L01 | PLANNED (not started) | master plan |
+

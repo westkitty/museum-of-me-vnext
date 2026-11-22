@@ -7,6 +7,7 @@ import {
   SPIRE_GARDEN_RADIUS, LANTERN_WALK_Z, inAncientTreeClearing, isSiteLand,
 } from './IslandSiteLayout';
 import { WAYMARKER_POSTS } from './ExteriorWaymarkers';
+import { CANOPY_UNDERSIDE_MIN, blocksLandmarkSightline, landmarkGroundExcluded } from './IslandLandmarks';
 
 /** Even walking rhythm of path edge lights (metres of path between lights). */
 export const PATH_LIGHT_SPACING = 13;
@@ -459,12 +460,14 @@ export class IslandLandscape {
       dummy.updateMatrix();
       trunks.setMatrixAt(placed, dummy.matrix);
       const palette = placed % crownMaterials.length;
-      dummy.position.y += 3.7 * scale;
+      // ISLAND-01: crowns lifted (3.7 -> 4.2 x scale) so every perimeter tree
+      // shows a readable trunk; underside >= 3.59 m. Trunk/collider unchanged.
+      dummy.position.y += 4.2 * scale;
       dummy.scale.set(0.90 * scale, 1.07 * scale, 0.91 * scale);
       dummy.updateMatrix();
       crowns[palette].setMatrixAt(byPalette[palette]++, dummy.matrix);
       const angle = placed * 2.399963229728653;
-      dummy.position.set(x + Math.cos(angle) * 1.85 * scale, -0.5 + 5.1 * scale,
+      dummy.position.set(x + Math.cos(angle) * 1.85 * scale, -0.5 + 5.6 * scale,
         z + Math.sin(angle) * 1.25 * scale);
       dummy.scale.set(0.62 * scale, 0.69 * scale, 0.67 * scale);
       dummy.updateMatrix();
@@ -556,8 +559,11 @@ export class IslandLandscape {
         if (Math.hypot(x, z - 128) < 54) continue;
         if (x > 44 && x < 142 && z > -62 && z < 63) continue;
         if (Math.hypot(x + 104, z + 82) < 33 || inAncientTreeClearing(x, z)) continue;
+        // ISLAND-01: no eye-level shrub inside a landmark clearing or walk-in corridor.
+        if (landmarkGroundExcluded(x, z, 1.7)) continue;
         const width = 0.9 + ((i + j) % 5) * 0.18;
-        const height = 0.55 + ((i + j * 2) % 3) * 0.14;
+        // ISLAND-01: tops at 0.9–1.38 m (was up to 1.66 m, at eye height).
+        const height = 0.45 + ((i + j * 2) % 3) * 0.12;
         dummy.position.set(x, -0.5 + height, z);
         dummy.rotation.set(0, angle * 0.18, 0);
         dummy.scale.set(width, height, width * 0.89);
@@ -603,7 +609,10 @@ export class IslandLandscape {
         if (Math.hypot(x + 104, z + 82) < 33 || inAncientTreeClearing(x, z)) continue;
         const width = 0.94 + ((i + j) % 5) * 0.11;
         const height = 0.72 + ((i + j * 2) % 4) * 0.12;
-        const elevation = 4.7 + ((i * 3 + j) % 5) * 0.78;
+        // ISLAND-01: keep the infill underside above CANOPY_UNDERSIDE_MIN so
+        // it reads as overhead canopy, never as an eye-level leaf wall.
+        const elevation = Math.max(4.7 + ((i * 3 + j) % 5) * 0.78,
+          CANOPY_UNDERSIDE_MIN + 2.7 * height + 0.2);
         dummy.position.set(x, -0.5 + elevation, z);
         dummy.rotation.set(0, angle * 0.17, 0);
         dummy.scale.set(width, height, width * 0.91);
@@ -619,32 +628,49 @@ export class IslandLandscape {
     infill.computeBoundingSphere();
     this.root.add(this.detailScope.track(infill));
 
-    // S5c: actual renderer screenshots showed the doubled shoreline lanes
-    // as a regular perimeter hedge, with the *interior* forest still empty.
-    // Occupy the real island's protected forest areas instead: a deterministic
-    // jittered grid is site-masked against water, routes and visitor landmarks.
-    // All new crowns remain render-only. No physical trunks or colliders move.
-    // Doubled from the last LIVE S5c release (438/725/1040 accepted crowns).
-    // Exact site-mask calibration: 901/1469/2111 low/medium/high.
-    // Maintain the original land/path/landmark exclusion envelope.
-    const step = this.quality === 'low' ? 7.315 : this.quality === 'medium' ? 5.670 : 4.746;
+    // S5c filled the island's protected forest areas with a deterministic,
+    // site-masked jittered grid of crowns. Those crowns had no trunk and their
+    // undersides sat at or below the ground, so from a path they read as
+    // opaque eye-level leaf walls that hid landmarks (ISLAND-01 baseline:
+    // every belt crown reached below 2.2 m).
+    //
+    // ISLAND-01 (world expansion 2026-11-21): every belt crown now stands on a
+    // visible, leaning, collision-backed trunk, with its underside lifted to
+    // CANOPY_UNDERSIDE_MIN–(MIN + 1.8) m. The trunk grid is quality-independent
+    // (the former low-tier grid), so collision is identical on every tier and
+    // the construction-time collision world stays immutable. Medium/high tiers
+    // add extra overhead crowns clustered on those same trunks: density lives
+    // above head height, as the master plan asks. Landmark clearings and
+    // walk-in corridors (IslandLandmarks) receive no trunk, and no crown that
+    // crosses a landmark's eye-height sightline.
+    const trunkStep = 7.315;
     const minX = Math.min(...ISLAND_OUTLINE.map(([x]) => x));
     const maxX = Math.max(...ISLAND_OUTLINE.map(([x]) => x));
     const minZ = Math.min(...ISLAND_OUTLINE.map(([, z]) => z));
     const maxZ = Math.max(...ISLAND_OUTLINE.map(([, z]) => z));
-    const columns = Math.ceil((maxX - minX) / step);
-    const rows = Math.ceil((maxZ - minZ) / step);
+    const columns = Math.ceil((maxX - minX) / trunkStep);
+    const rows = Math.ceil((maxZ - minZ) / trunkStep);
+    const extraCrowns = this.quality === 'low' ? 0 : this.quality === 'medium' ? 1 : 2;
     // Low tier uses 20 triangles/crown rather than 80, reducing the forest
     // geometry burden without changing canopy counts, clearing or material.
     const beltGeometry = this.detailScope.track(new THREE.IcosahedronGeometry(4.1, this.quality === 'high' ? 1 : 0));
     const beltMaterial = this.detailScope.track(new THREE.MeshStandardMaterial({
       color: 0xffffff, roughness: 0.98, metalness: 0,
     }));
-    const belt = new THREE.InstancedMesh(beltGeometry, beltMaterial, columns * rows);
+    const belt = new THREE.InstancedMesh(beltGeometry, beltMaterial, columns * rows * (1 + extraCrowns));
     belt.name = 'woodland-forest-belt'; // keep inspector/CI scene identity
     belt.userData.visualRole = 'island-masked-woodland-distribution';
     belt.castShadow = false;
     belt.receiveShadow = false;
+    // Unit-height trunk with its base at the origin, so scale.y is the height.
+    // Open-ended: the base is in the ground and the top inside the crown.
+    const beltTrunkGeometry = this.detailScope.track(new THREE.CylinderGeometry(0.2, 0.32, 1, 6, 1, true).translate(0, 0.5, 0));
+    const beltTrunks = new THREE.InstancedMesh(beltTrunkGeometry, trunkMat, columns * rows);
+    beltTrunks.name = 'woodland-forest-belt-trunks';
+    beltTrunks.userData.visualRole = 'forest-belt-visible-trunks';
+    beltTrunks.userData.spatialFeatureId = 'grove-belt-trunks';
+    beltTrunks.castShadow = false;
+    beltTrunks.receiveShadow = false;
     const beltColours = [0x326652, 0x427963, 0x295844, 0x356f5b, 0x396d56];
     const beltTint = new THREE.Color();
     const forestPathClear = (x: number, z: number): boolean => !PATH_CENTERLINES.some((path) =>
@@ -672,24 +698,73 @@ export class IslandLandscape {
       const v = Math.sin(n * 12.9898) * 43758.5453;
       return v - Math.floor(v);
     };
+    const trunkTop = new THREE.Vector3();
+    const trunkMatrix = new THREE.Matrix4();
     let beltCount = 0;
+    let trunkCount = 0;
+    const placeCrown = (x: number, y: number, z: number, sx: number, sy: number, sz: number,
+      yaw: number, colour: number): boolean => {
+      const radiusY = 4.1 * sy;
+      if (blocksLandmarkSightline(x, y, z, Math.max(4.1 * Math.max(sx, sz), radiusY))) return false;
+      dummy.position.set(x, y, z);
+      dummy.rotation.set(0, yaw, 0);
+      dummy.scale.set(sx, sy, sz);
+      dummy.updateMatrix();
+      belt.setMatrixAt(beltCount, dummy.matrix);
+      belt.setColorAt(beltCount, beltTint.setHex(colour));
+      beltCount++;
+      return true;
+    };
     for (let col = 0; col < columns; col++) {
       for (let row = 0; row < rows; row++) {
         const seed = 19_431 + col * 3719 + row * 1097;
-        const x = minX + (col + 0.5) * step + (hash01(seed) - 0.5) * step * 0.66;
-        const z = minZ + (row + 0.5) * step + (hash01(seed + 11) - 0.5) * step * 0.66;
-        if (!clearFootprint(x, z)) continue;
+        const x = minX + (col + 0.5) * trunkStep + (hash01(seed) - 0.5) * trunkStep * 0.66;
+        const z = minZ + (row + 0.5) * trunkStep + (hash01(seed + 11) - 0.5) * trunkStep * 0.66;
+        if (!clearFootprint(x, z) || landmarkGroundExcluded(x, z, 0.6)) continue;
         const sx = 0.72 + hash01(seed + 31) * 0.72;
-        const sy = 0.75 + hash01(seed + 47) * 1.00;
         const sz = 0.72 + hash01(seed + 53) * 0.72;
-        const height = 4.1 * sy;
-        dummy.position.set(x, -0.5 + height * 0.78, z);
-        dummy.rotation.set(0, hash01(seed + 71) * Math.PI * 2, 0);
-        dummy.scale.set(sx, sy, sz);
+        // Slightly flattened crowns (0.48–1.12) read as broad leafy heads.
+        const sy = (0.75 + hash01(seed + 47) * 1.00) * 0.64;
+        const radiusY = 4.1 * sy;
+        const underside = CANOPY_UNDERSIDE_MIN + hash01(seed + 83) * 1.8;
+        const trunkHeight = underside + radiusY * 0.55;
+        const girth = 0.75 + hash01(seed + 97) * 0.55;
+        const leanX = (hash01(seed + 101) - 0.5) * 0.12;
+        const leanZ = (hash01(seed + 103) - 0.5) * 0.12;
+        const colour = beltColours[(col + row) % beltColours.length];
+        const yaw = hash01(seed + 71) * Math.PI * 2;
+        // The primary crown is checked against landmark sightlines before its
+        // trunk is committed, so a trunk never stands without its crown.
+        dummy.position.set(x, -0.5, z);
+        dummy.rotation.set(leanX, yaw, leanZ);
+        dummy.scale.set(girth, trunkHeight, girth);
         dummy.updateMatrix();
-        belt.setMatrixAt(beltCount, dummy.matrix);
-        belt.setColorAt(beltCount, beltTint.setHex(beltColours[(col + row) % beltColours.length]));
-        beltCount++;
+        trunkTop.set(0, 1, 0).applyMatrix4(dummy.matrix);
+        trunkMatrix.copy(dummy.matrix);
+        const crownY = -0.5 + underside + radiusY;
+        const crownX = trunkTop.x, crownZ = trunkTop.z;
+        if (!clearFootprint(crownX, crownZ)) continue;
+        if (!placeCrown(crownX, crownY, crownZ, sx, sy, sz, yaw, colour)) continue;
+        beltTrunks.setMatrixAt(trunkCount++, trunkMatrix);
+        if (registerCollision) {
+          const half = 0.32 * girth + 0.04;
+          this.collision.addBox([x, -0.5 + trunkHeight / 2, z], [half, trunkHeight / 2, half]);
+        }
+        for (let k = 0; k < extraCrowns; k++) {
+          // Medium adds one crown to ~74 % of trees; high adds one to all and a
+          // second to ~56 %, raising canopy density overhead only.
+          const chance = hash01(seed + 211 + k * 17);
+          if (this.quality === 'medium' ? chance > 0.74 : k === 1 && chance > 0.56) continue;
+          const angle = hash01(seed + 223 + k * 19) * Math.PI * 2;
+          const reach = 2.2 + hash01(seed + 227 + k * 23) * 1.8;
+          const ex = crownX + Math.cos(angle) * reach;
+          const ez = crownZ + Math.sin(angle) * reach;
+          if (!clearFootprint(ex, ez)) continue;
+          const shrink = 0.6 + hash01(seed + 229 + k * 29) * 0.25;
+          const eUnder = underside + 0.8 + hash01(seed + 233 + k * 31) * 1.2;
+          placeCrown(ex, -0.5 + eUnder + radiusY * shrink, ez, sx * shrink, sy * shrink, sz * shrink,
+            yaw + angle, beltColours[(col + row + k + 1) % beltColours.length]);
+        }
       }
     }
     belt.count = beltCount;
@@ -697,6 +772,10 @@ export class IslandLandscape {
     if (belt.instanceColor) belt.instanceColor.needsUpdate = true;
     belt.computeBoundingSphere();
     this.root.add(this.detailScope.track(belt));
+    beltTrunks.count = trunkCount;
+    beltTrunks.instanceMatrix.needsUpdate = true;
+    beltTrunks.computeBoundingSphere();
+    this.root.add(this.detailScope.track(beltTrunks));
   }
 
 

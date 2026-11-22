@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 107,
+  "state_revision": 108,
   "last_updated": "2026-11-21",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -1217,3 +1217,12 @@ The owner subsequently authorized staging, committing, pushing the correction ta
   - **Visible YouTube picture playback.** From this build environment, YouTube returned error 150 at play for this video and for its own documentation sample `M7lc1UVf-VE`, which oEmbed reports as embeddable. That is a refusal of this browser and network, and frames never played. The entry is therefore marked `availability: unverified`.
   - **Needs an ordinary browser:** real pointer and touch use of YouTube's own controls; real devices; exact-head CI; human acceptance.
 - **Known limitation:** the iframe always draws above the canvas, so no 3D occlusion or room lighting applies to the picture.
+
+### 2026-11-21 — World expansion S0 baseline and ISLAND-01 woodland canopy / landmark visibility (r108)
+
+- **Base:** `main` `78b5996` (PR #70, world-expansion plan docs). Contract: `docs/plans/WORLD_EXPANSION_GROKBOT_MASTER_20261121.md` §4–5. Feature branch `feat/island-01-woodland-canopy-landmarks`; merge and CI state are recorded in the Bible and the PR, not pre-claimed here.
+- **S0 (MEASURED):** `docs/evidence/world-expansion-baseline-20261121/` — repo identity, protection, Bible SHA, woodland defect measurements, 51 named-viewpoint captures, render cost, Hot Dog Man asset lead (public metadata only; processed GLB bytes not in DEX//SCULPT; original CC0 pack public, not yet acquired).
+- **IMPLEMENTED:** `src/world/exterior/IslandLandmarks.ts` (15 existing landmarks as data; clearings, walk-in corridors, sightlines). Forest-belt crowns on visible, collision-backed, quality-independent trunks (845), undersides 3.0–4.8 m; perimeter crowns lifted; infill underside ≥ 3.0 m; understory ≤ 1.38 m and out of landmark corridors. +1 draw call, +5.8–9.0k triangles per frame.
+- **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS (1,289 Vitest tests); new `tests/island-landmark-visibility.test.ts` (6) and `tests/browser/island-landmark-walk.e2e.ts` (keyboard all 15 landmarks low/high with reduced motion; touch 4 landmarks); browser `island-landscape`, `quality-transitions`, `exterior-first`, `performance-lifecycle`, `stability` PASS on the branch. Evidence: `docs/evidence/island-01-woodland-20261121/`.
+- **NOT VERIFIED:** human visual acceptance, real-device performance (`perf:device` not run), hosted Pages (not a release milestone). Cinema, interior, exhibits, visitors untouched.
+
