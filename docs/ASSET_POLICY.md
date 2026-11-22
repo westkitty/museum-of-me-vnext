@@ -34,6 +34,17 @@ application never requests a Quaternius host at runtime. Original sources are
 kept in ignored `.asset-sources/`, never in `public/` or build output. The
 evidence and conversion record is [QUATERNIUS_ASSET_PROVENANCE.md](QUATERNIUS_ASSET_PROVENANCE.md).
 
+### Approved exception: Polygonal Mind exterior characters (ISLAND-04)
+
+One owner-approved CC0 character, Polygonal Mind 100 Avatars R1 `#87 Hotdog`,
+ships as a local runtime GLB (`hotdog-man`, 1.51 MiB) to operate the rooftop
+hot dog stand. It is governed like the Quaternius population: manifest record
+with source and processed SHA-256, budget and attribution; `AssetManager`
+leasing; no remote request. Evidence: [HOT_DOG_MAN_ASSET_PROVENANCE.md](HOT_DOG_MAN_ASSET_PROVENANCE.md).
+Seven separately approved CC0 characters ship as proximity-loaded exterior
+residents. Their source and derivative hashes and conversion are recorded in
+[ISLAND_VISITOR_ASSET_PROVENANCE.md](ISLAND_VISITOR_ASSET_PROVENANCE.md).
+
 ### Approved exception: deferred first-party Full Weasel artifact
 
 E27 presents the real completed `westkitty/The_Full_Weasel` application through

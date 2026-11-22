@@ -14,9 +14,8 @@ import {
   ROOF_WAYPOINTS,
 } from '../../src/world/exterior/rooftopLayout';
 
-const evidenceFolder = 'docs/evidence/island-03-rooftop-20261122';
-
-test('ISLAND-03: west flank ascent, Glass Greenhouse, Rooftop Cafe, Hot Dog Stand, and Flight Pad II', async ({ page }) => {
+test('ISLAND-03: west flank ascent, Glass Greenhouse, Rooftop Cafe, Hot Dog Stand, and Flight Pad II', async ({ page }, info) => {
+  const evidenceFolder = info.outputPath('rooftop-evidence');
   test.setTimeout(240_000);
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
@@ -164,7 +163,9 @@ test('ISLAND-03: west flank ascent, Glass Greenhouse, Rooftop Cafe, Hot Dog Stan
   await captureView('cafe-terrace-and-hotdog-stand.png', [-19.5, 21.2, 28.2], [4.0, 20.8, 28.6]);
   await captureView('flight-pad-ii-and-arcs.png', [-5.5, 21.4, 47.0], [1.2, 20.3, 55.2]);
 
-  // 4. Verify all 3 dormant interactables via real raycaster + Journal exclusion
+  // 4. Verify all three controls via the real raycaster and check Journal exclusion.
+  await expect.poll(() => page.evaluate(() => window.__museum!.exteriorWorld.rooftop.hotDogMan.state),
+    { timeout: 30_000 }).toBe('ready');
   const interactTest = await page.evaluate(({ flowerPos, hotDogPos, pedestalPos, roofDeckY }) => {
     const app = window.__museum!;
     const ui = document.getElementById('ui-root');
@@ -216,7 +217,7 @@ test('ISLAND-03: west flank ascent, Glass Greenhouse, Rooftop Cafe, Hot Dog Stan
   expect(interactTest.hotDog.focusBefore?.exhibitId).toBe(HOT_DOG_STAND_ID);
   expect(interactTest.hotDog.activated).toBe(true);
   expect(interactTest.hotDog.journalAfter).toBe(interactTest.hotDog.journalBefore);
-  expect(interactTest.hotDog.subtitle).toContain('ISLAND-04');
+  expect(interactTest.hotDog.subtitle).toContain('Hot Dog Man hands a hot dog');
 
   expect(interactTest.pedestal.focusBefore?.exhibitId).toBe(ROOF_FLIGHT_PAD_II_TELEPORT_ID);
   expect(interactTest.pedestal.activated).toBe(true);

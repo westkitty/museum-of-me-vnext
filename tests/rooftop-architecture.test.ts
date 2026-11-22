@@ -236,7 +236,7 @@ describe('ISLAND-03 rooftop architecture & west flank access', () => {
       ctrl.activate();
       expect(announcements.at(-1), id).toBeTruthy();
     }
-    expect(announcements[0]).toContain('ISLAND-04');
+    expect(announcements[0]).toContain('Service is unavailable');
     expect(announcements[1]).toContain('W05');
     expect(announcements[2]).toContain('W06');
     expect(announcements[2]).toContain('W10');

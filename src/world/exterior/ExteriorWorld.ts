@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { AssetManager } from '../../assets/AssetManager';
 import { ResourceScope } from '../../assets/ResourceScope';
 import { CollisionWorld } from '../CollisionWorld';
 import { ArrivalGarden } from '../ArrivalGarden';
@@ -12,6 +13,7 @@ import { ExteriorWaymarkers } from './ExteriorWaymarkers';
 import { TicketKiosk } from './TicketKiosk';
 import { ObsidianSphereEntrance } from './ObsidianSphereEntrance';
 import { ExteriorLighthouse } from './ExteriorLighthouse';
+import { IslandVisitors } from './IslandVisitors';
 import { ExteriorRooftop } from './ExteriorRooftop';
 import { ExteriorObservatory } from './ExteriorObservatory';
 import { ExteriorRootboundHollow } from './ExteriorRootboundHollow';
@@ -66,11 +68,12 @@ export class ExteriorWorld {
   readonly distantIslands: ExteriorDistantIslands;
   /** Rooftop Cafe, Hot Dog Stand, Glass Greenhouse, Flight Pad II, and West Flank Ascent (ISLAND-03). */
   readonly rooftop: ExteriorRooftop;
+  readonly islandVisitors: IslandVisitors;
 
   readonly spawnPosition: Vec3 = START_POSITION;
   readonly spawnYaw = START_YAW;
 
-  constructor(qualityTier: QualityTier) {
+  constructor(qualityTier: QualityTier, assets?: Pick<AssetManager, 'load'>) {
     this.root.name = 'exterior-world';
 
     // Bounded support is derived from the closed site outline and leaves the
@@ -154,6 +157,9 @@ export class ExteriorWorld {
     this.root.add(this.distantIslands.root);
     this.rooftop = new ExteriorRooftop(this.scope, this.collision);
     this.root.add(this.rooftop.group);
+    if (assets) this.rooftop.hotDogMan.setLoader(assets);
+    this.islandVisitors = new IslandVisitors(this.scope, this.collision, qualityTier, assets);
+    this.root.add(this.islandVisitors.group);
   }
 
   /**
@@ -307,6 +313,7 @@ export class ExteriorWorld {
   setWaterQuality(tier: QualityTier): void {
     this.arrivalGarden.setWaterQuality(tier);
     this.wildlife.setQuality(tier);
+    this.islandVisitors.setQuality(tier);
   }
 
   authorableSceneRoots(): readonly { readonly id: string; readonly root: THREE.Object3D }[] {
@@ -327,6 +334,7 @@ export class ExteriorWorld {
     this.rootboundHollow.update(dt, reducedMotion);
     this.distantIslands.update(dt, reducedMotion);
     this.rooftop.update(dt, eye, reducedMotion);
+    this.islandVisitors.update(eye);
   }
 
   dispose(): void {
