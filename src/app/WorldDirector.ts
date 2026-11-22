@@ -94,11 +94,11 @@ export const WORLD_TRANSITIONS: Readonly<Record<WorldPhase, readonly WorldPhase[
   PREPARING_EXTERIOR: [],
   COMMITTING_EXTERIOR: ['EXTERIOR_ACTIVE'],
   PREPARATION_FAILED: ['PREPARING_INTERIOR', 'POCKET_PROMPT', 'PREPARING_POCKET'],
-  POCKET_PROMPT: ['EXTERIOR_ACTIVE', 'INTERIOR_ACTIVE', 'PREPARING_POCKET'],
-  PREPARING_POCKET: ['COMMITTING_POCKET', 'EXTERIOR_ACTIVE', 'INTERIOR_ACTIVE'],
+  POCKET_PROMPT: ['EXTERIOR_ACTIVE', 'AT_THRESHOLD', 'PREPARATION_FAILED', 'INTERIOR_ACTIVE', 'PREPARING_POCKET'],
+  PREPARING_POCKET: ['COMMITTING_POCKET', 'EXTERIOR_ACTIVE', 'AT_THRESHOLD', 'PREPARATION_FAILED', 'INTERIOR_ACTIVE'],
   COMMITTING_POCKET: ['POCKET_ACTIVE'],
   POCKET_ACTIVE: ['COMMITTING_POCKET_EXIT'],
-  COMMITTING_POCKET_EXIT: ['EXTERIOR_ACTIVE', 'INTERIOR_ACTIVE'],
+  COMMITTING_POCKET_EXIT: ['EXTERIOR_ACTIVE', 'AT_THRESHOLD', 'PREPARATION_FAILED', 'INTERIOR_ACTIVE'],
 };
 
 export function isLegalWorldTransition(from: WorldPhase, to: WorldPhase): boolean {
@@ -107,6 +107,11 @@ export function isLegalWorldTransition(from: WorldPhase, to: WorldPhase): boolea
 
 export class WorldDirector {
   activeWorld: WorldId = 'exterior';
+  private pocketOrigin: HostWorldId = 'exterior';
+  private pocketOriginPhase: WorldPhase = 'EXTERIOR_ACTIVE';
+  get museumWorld(): HostWorldId {
+    return this.activeWorld === 'interior' || this.activeWorld === 'exterior' ? this.activeWorld : this.pocketOrigin;
+  }
   private currentPhase: WorldPhase = 'EXTERIOR_ACTIVE';
   /** Transitions outside WORLD_TRANSITIONS, for tests and diagnostics. Expected to stay empty. */
   readonly illegalTransitions: { from: WorldPhase; to: WorldPhase }[] = [];
@@ -191,6 +196,7 @@ export class WorldDirector {
    */
   commitToInterior(viaDoor = false): boolean {
     if (this.activeWorld === 'interior' || this.isCommitting) return true;
+    if (this.activeWorld.startsWith('pocket:') || this.phase === 'POCKET_PROMPT' || this.phase === 'PREPARING_POCKET') return false;
     if (this.app.renderer.isContextLost || !this.interiorConstructed || !this.app.interiorWorld
       || !this.entranceIsReady()) return false;
 
@@ -271,30 +277,39 @@ export class WorldDirector {
   }
 
   beginPocketPrompt(): boolean {
-    if (this.isCommitting || this.activeWorld.startsWith('pocket:')) return false;
-    if (this.currentPhase === 'POCKET_PROMPT' || this.currentPhase === 'PREPARING_POCKET') return false;
+    if (!this.canStartPocket()) return false;
+    this.pocketOriginPhase = this.phase;
     this.transition('POCKET_PROMPT');
     return true;
   }
 
   cancelPocketPrompt(hostWorld: HostWorldId): void {
     if (this.currentPhase !== 'POCKET_PROMPT') return;
-    this.transition(hostWorld === 'interior' ? 'INTERIOR_ACTIVE' : 'EXTERIOR_ACTIVE');
+    this.transition(hostWorld === 'interior' ? 'INTERIOR_ACTIVE' : this.pocketOriginPhase);
+  }
+
+  private canStartPocket(): boolean {
+    return !this.isCommitting && (this.phase === 'EXTERIOR_ACTIVE' || this.phase === 'AT_THRESHOLD'
+      || this.phase === 'PREPARATION_FAILED' || this.phase === 'INTERIOR_ACTIVE');
   }
 
   beginPreparingPocket(): boolean {
-    if (this.isCommitting || this.activeWorld.startsWith('pocket:')) return false;
+    if (this.phase !== 'POCKET_PROMPT') {
+      if (!this.canStartPocket()) return false;
+      this.pocketOriginPhase = this.phase;
+    }
     this.transition('PREPARING_POCKET');
     return true;
   }
 
   abortPreparingPocket(hostWorld: HostWorldId): void {
     if (this.currentPhase !== 'PREPARING_POCKET') return;
-    this.transition(hostWorld === 'interior' ? 'INTERIOR_ACTIVE' : 'EXTERIOR_ACTIVE');
+    this.transition(hostWorld === 'interior' ? 'INTERIOR_ACTIVE' : this.pocketOriginPhase);
   }
 
   commitPocket(id: PocketWorldId): void {
     this.transition('COMMITTING_POCKET');
+    this.pocketOrigin = this.museumWorld;
     this.activeWorld = `pocket:${id}`;
     this.transition('POCKET_ACTIVE');
   }
@@ -307,7 +322,7 @@ export class WorldDirector {
 
   finishExitingPocket(hostWorld: HostWorldId): void {
     this.activeWorld = hostWorld;
-    this.transition(hostWorld === 'interior' ? 'INTERIOR_ACTIVE' : 'EXTERIOR_ACTIVE');
+    this.transition(hostWorld === 'interior' ? 'INTERIOR_ACTIVE' : this.pocketOriginPhase);
   }
 
   update(playerPosition: THREE.Vector3): void {

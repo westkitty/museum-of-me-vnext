@@ -95,7 +95,7 @@ export class Passport {
   }
 
   canEnterW10(): boolean {
-    return this.stamps.size >= 1;
+    return this.stamps.size > Number(this.stamps.has('W10'));
   }
 
   hasStamp(id: PocketWorldId): boolean {

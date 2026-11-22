@@ -280,7 +280,7 @@ export class PocketWorldRegistry {
     return copy;
   }
 
-  canEnter(id: PocketWorldId, passport?: Pick<Passport, 'earnedCount'>): PocketEntryCheck {
+  canEnter(id: PocketWorldId, passport?: Pick<Passport, 'earnedCount' | 'canEnterW10'>): PocketEntryCheck {
     const def = this.definitions.get(id);
     if (!def) {
       return { ok: false, reason: 'unknown', message: 'Unknown pocket world.' };
@@ -292,7 +292,7 @@ export class PocketWorldRegistry {
       return { ok: false, reason: 'missing-loader', message: def.dormantHint };
     }
     const earned = passport?.earnedCount ?? 0;
-    if (earned < def.requiresStampCount) {
+    if (earned < def.requiresStampCount || (id === 'W10' && !passport?.canEnterW10())) {
       return {
         ok: false,
         reason: 'locked-stamps',
@@ -302,7 +302,7 @@ export class PocketWorldRegistry {
     return { ok: true };
   }
 
-  isPlayable(id: PocketWorldId, passport?: Pick<Passport, 'earnedCount'>): boolean {
+  isPlayable(id: PocketWorldId, passport?: Pick<Passport, 'earnedCount' | 'canEnterW10'>): boolean {
     return this.canEnter(id, passport).ok;
   }
 

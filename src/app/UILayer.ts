@@ -22,6 +22,9 @@ import { CINEMA_PROGRAMME_DATA, type Programme } from '../cinema/programme';
 import { CinemaDrafts, type DraftEntry } from '../cinema/curatorDraft';
 import { MuseumGuidePanel } from '../ui/MuseumGuidePanel';
 import { VisitThreadPanel } from '../ui/VisitThreadPanel';
+import { PassportPanel } from '../ui/PassportPanel';
+import { PocketTransition } from '../ui/PocketTransition';
+import { PASSPORT_KEY } from '../state/Passport';
 import { JOURNAL_KEY } from '../state/Journal';
 import { persistenceHealth } from '../state/PersistenceHealth';
 import { DeterministicMuseumGuide } from '../guide/DeterministicMuseumGuide';
@@ -41,6 +44,8 @@ import { mapLevelForY } from '../ui/MapPanel';
  */
 export class UILayer {
   readonly hud: HUD;
+  readonly passport: PassportPanel;
+  readonly pocketTransition: PocketTransition;
   readonly map: MapPanel;
   readonly visitorMenu: VisitorMenuPanel;
   readonly journal: JournalPanel;
@@ -84,7 +89,17 @@ export class UILayer {
     () => { app.issueTicket(); },
     () => window.location.reload(),
     () => app.worldDirector.dismissThresholdPrompt(),
-    () => this.visitorMenu.open());
+    () => this.visitorMenu.open(),
+    () => this.openPassport(),
+    () => app.pocketHost.exit());
+    this.passport = new PassportPanel(app.passport, app.pocketRegistry,
+      () => app.pocketHost.isActive, () => app.pocketHost.activeDefinition?.title ?? null,
+      () => app.pocketHost.exit());
+    this.pocketTransition = new PocketTransition({
+      camera: app.camera, input, player: app.player, reducedMotion: () => app.preferences.reducedMotion,
+    });
+    this.unbind.push(app.passport.subscribe(() => this.syncPocketState()));
+    this.syncPocketState();
     this.hud.setArrivalReadiness(app.arrivalReady);
     this.map = new MapPanel(
       app.journal,
@@ -216,6 +231,7 @@ export class UILayer {
     this.visitorMenu = new VisitorMenuPanel(() => [
       { label: 'Map', open: () => this.map.open() },
       { label: 'Journal', open: () => this.journal.open() },
+      ...(app.passport.unlockedUi ? [{ label: 'Passport', open: () => this.openPassport() }] : []),
       app.isOutside
         ? { label: 'Guide to the entrance', open: () => this.mapGuide(MUSEUM_ENTRANCE_TARGET) }
         : { label: 'Guide', open: () => this.openDexGPTGuide() },
@@ -233,6 +249,8 @@ export class UILayer {
 
     uiRoot.append(
       this.hud.root,
+      this.passport.root,
+      this.pocketTransition.root,
       this.visitorMenu.root,
       this.map.root,
       this.journal.root,
@@ -258,9 +276,10 @@ export class UILayer {
 
     // A panel takes over input while it is open; movement stops and the mouse
     // is released so the visitor can actually use it.
-    for (const panel of [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.cinemaProgramme, this.cinemaCurator, this.dexgptGuide, this.visitThread, this.visitorMenu]) {
+    for (const panel of [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.cinemaProgramme, this.cinemaCurator, this.dexgptGuide, this.visitThread, this.visitorMenu, this.passport]) {
       const originalOpen = panel.open.bind(panel);
       panel.open = () => {
+        if (app.pocketHost.isActive && panel !== this.passport) return;
         input.releasePointerLock();
         input.uiCaptured = true;
         app.player.setFrozen(true);
@@ -272,6 +291,10 @@ export class UILayer {
     this.unbind.push(
       input.on('map', () => this.map.toggle()),
       input.on('journal', () => this.journal.toggle()),
+      input.on('passport', () => {
+        if (this.passport.isOpen) this.passport.close();
+        else this.openPassport();
+      }),
       input.on('curator', () => this.curator.toggle()),
       input.on('study', () => this.study.toggle()),
       input.on('thread', () => this.visitThread.toggle()),
@@ -508,10 +531,28 @@ export class UILayer {
     else if (previous && this.map.currentTarget === previous) this.mapGuide(null);
   }
 
+  private openPassport(): void {
+    if (this.app.passport.unlockedUi && !this.pocketTransition.isPromptOpen) this.passport.open();
+  }
+
+  syncPocketState(): void {
+    const { passport, pocketHost } = this.app;
+    this.hud.setPassportStatus(passport.unlockedUi, passport.earnedCount, passport.totalStamps);
+    this.hud.setPocketWorldState(pocketHost.isActive);
+    if (pocketHost.isActive) {
+      this.hud.setThresholdStatus(false, '');
+      this.hud.showTicket(null);
+    }
+  }
+
   private readonly onVisitThreadStorage = (event: StorageEvent): void => {
     // uplift2(E): another tab wrote the journal — fold it in so neither tab's visits are lost.
     if (event.key === JOURNAL_KEY) {
       this.app.journal.reconcileExternal(event.newValue);
+      return;
+    }
+    if (event.key === PASSPORT_KEY) {
+      this.app.passport.reconcileExternal(event.newValue);
       return;
     }
     if (event.key !== 'museum-of-me:visit-thread:v1' || !event.newValue) return;
@@ -561,7 +602,9 @@ export class UILayer {
     this.hud.setTouchMode(this.app.input.touchActive);
     this.hud.setArrivalReadiness(this.app.arrivalReady);
     this.hud.update(elapsed);
-    this.hud.setLocation(this.app.currentZone, this.app.isOutside ? this.app.zoneLabel : undefined);
+    const pocketTitle = this.app.pocketHost.activeDefinition?.title;
+    this.hud.setLocation(this.app.currentZone, pocketTitle ?? (this.app.isOutside ? this.app.zoneLabel : undefined),
+      pocketTitle ? 'Pocket world' : undefined);
 
     if (!this.diagnostics.root.hidden) {
       const extra: Record<string, string | number> = {
@@ -599,11 +642,11 @@ export class UILayer {
   }
 
   get anyPanelOpen(): boolean {
-    return [...this.modalPanels, ...this.externalPanels].some((p) => p.isOpen);
+    return this.pocketTransition.isPromptOpen || [...this.modalPanels, ...this.externalPanels].some((p) => p.isOpen);
   }
 
   private get modalPanels(): { isOpen: boolean }[] {
-    return [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.cinemaProgramme, this.cinemaCurator, this.dexgptGuide, this.visitThread, this.visitorMenu];
+    return [this.map, this.journal, this.deep, this.settings, this.curator, this.study, this.command, this.fullWeasel, this.cinemaProgramme, this.cinemaCurator, this.dexgptGuide, this.visitThread, this.visitorMenu, this.passport];
   }
 
   dispose(): void {
@@ -616,6 +659,8 @@ export class UILayer {
     window.removeEventListener('message', this.onEmbeddedMessage);
     window.removeEventListener('storage', this.onVisitThreadStorage);
     for (const off of this.unbind) off();
+    this.pocketTransition.dispose();
+    this.passport.dispose();
     this.hud.dispose();
     this.map.dispose();
     this.journal.dispose();

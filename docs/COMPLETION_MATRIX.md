@@ -187,5 +187,7 @@ Plan: `docs/plans/WORLD_EXPANSION_GROKBOT_MASTER_20261121.md`. Rows are added as
 | Island safety: lagoon bank edge; fall safety net returns to last supported spot (no rescue loop) | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST | `tests/lagoon-edge-safety.test.ts`, `tests/browser/island-lagoon-safety.e2e.ts` |
 | ISLAND-02D distant floating sky islands (W06 preview) & wild island silhouette (W10 preview); CAMERA_FAR 1100 / SKY_DOME_RADIUS 850 | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST; owner camera decision ACCEPTED 2026-11-22 (human visual acceptance PENDING) | `tests/distant-islands.test.ts`, `tests/browser/distant-islands.e2e.ts`; `docs/evidence/island-02d-distant-islands-20261122/` |
 | ISLAND-03 rooftop café, hot dog stand, glass greenhouse + dormant W05 flower, Flight Pad II with reduced-motion console | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST (human visual acceptance PENDING) | `tests/rooftop-architecture.test.ts`, `tests/browser/rooftop.e2e.ts`; `docs/evidence/island-03-rooftop-20261122/` |
-| ISLAND-04 … ISLAND-05, W01–W10, L01 | IN PROGRESS / PLANNED | master plan |
+| ISLAND-04 exterior characters | SEPARATE PR; REPRESENTATIVE M1 GATE BLOCKED | [PR #79](https://github.com/westkitty/museum-of-me-vnext/pull/79) |
+| ISLAND-05 shared host, registry and passport | IMPLEMENTED; CHROME, DEVELOPMENT, WORKSHOP AND STANDALONE PASS; M1 GATE 7/12 | `tests/pocket-passport.test.ts`, `tests/browser/pocket-world.e2e.ts`, [operational state](../OPERATIONAL_STATE.md) |
+| W01–W10 and L01 | DORMANT; DEVELOPMENT BATCHES PLANNED | [compatibility batches](plans/POCKET_WORLD_COMPATIBILITY_BATCHES_20261122.md) |
 

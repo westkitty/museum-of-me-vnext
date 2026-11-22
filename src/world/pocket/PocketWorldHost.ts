@@ -52,8 +52,9 @@ export interface PocketHostAdapter {
   readonly camera: THREE.PerspectiveCamera;
   readonly sky: { readonly mesh: THREE.Object3D; follow(camera: THREE.Camera): void };
   readonly lighting: { readonly group: THREE.Object3D };
+  getMuseumPlacementsRoot(): THREE.Object3D | null;
   readonly exteriorWorld: { readonly root: THREE.Object3D; readonly collision: CollisionWorld };
-  readonly interiorWorld: {
+  getInteriorWorld(): {
     readonly root: THREE.Object3D;
     readonly collision: CollisionWorld;
     setActive(active: boolean): void;
@@ -63,8 +64,9 @@ export interface PocketHostAdapter {
   readonly interaction: InteractionManager;
   readonly audio: AudioManager;
   readonly assets: AssetManager;
-  readonly quality: QualitySettings;
+  getQuality(): QualitySettings;
   isContextLost(): boolean;
+  canEnter?(): boolean;
   getCurrentZone(): ZoneId;
   setCurrentZone(zone: ZoneId): void;
   reducedMotion(): boolean;
@@ -84,15 +86,18 @@ export interface DormantAnchorOptions {
 
 interface HostSnapshot {
   readonly returnAnchor: SafeAnchor;
-  readonly fog: THREE.FogBase | null;
+  readonly fog: THREE.Scene['fog'];
   readonly background: THREE.Color | THREE.Texture | null;
   readonly fov: number;
   readonly skyVisible: boolean;
   readonly lightingVisible: boolean;
   readonly currentZone: ZoneId;
   readonly pointerLocked: boolean;
+  readonly focusedElement: HTMLElement | null;
   readonly hostCollisions: CollisionWorld;
   readonly hostRoot: THREE.Object3D;
+  readonly placementsRoot: THREE.Object3D | null;
+  readonly placementsVisible: boolean;
 }
 
 interface ActivePocketSession {
@@ -104,6 +109,8 @@ interface ActivePocketSession {
   readonly collision: CollisionWorld;
   readonly snapshot: HostSnapshot;
   readonly interactionUnbinds: Set<() => void>;
+  readonly abortController: AbortController;
+  checkpoint: SafeAnchor;
   pendingCompletion: boolean;
   exiting: boolean;
 }
@@ -129,7 +136,7 @@ interface PendingPocketLoad {
 export class PocketWorldHost {
   private activeSession: ActivePocketSession | null = null;
   private pendingLoad: PendingPocketLoad | null = null;
-  private promptState: { readonly id: PocketWorldId; readonly hostWorld: HostWorldId } | null = null;
+  private promptState: { readonly cancel: () => void } | null = null;
   private disposed = false;
 
   constructor(private readonly host: PocketHostAdapter) {}
@@ -224,7 +231,7 @@ export class PocketWorldHost {
    * the non-flashing entry blur/FOV-zoom prompt (`Enter` / `Back` / `Esc`).
    */
   async requestEntry(id: PocketWorldId, liveReturnAnchor?: SafeAnchor): Promise<boolean> {
-    if (this.disposed || this.host.isContextLost()) return false;
+    if (this.disposed || this.host.isContextLost() || this.host.canEnter?.() === false) return false;
     if (this.activeSession || this.pendingLoad || this.promptState) return false;
 
     const check = this.host.registry.canEnter(id, this.host.passport);
@@ -235,14 +242,15 @@ export class PocketWorldHost {
 
     const def = this.host.registry.get(id)!;
     const anchor = liveReturnAnchor ?? this.captureHostAnchor();
+    if (anchor.hostWorld !== this.host.worldDirector.activeWorld) return false;
     const transition = this.host.getTransitionController?.() ?? null;
     if (!transition) {
       return this.enter(id, anchor);
     }
 
     if (!this.host.worldDirector.beginPocketPrompt()) return false;
-    this.promptState = { id, hostWorld: anchor.hostWorld };
-    this.host.onPocketStateChange?.();
+    const pointerLocked = this.host.input.pointerLocked;
+    const focusedElement = this.focusedElement();
 
     const alreadyStamped = id === 'L01'
       ? this.host.passport.hasBonusCompleted('L01')
@@ -256,33 +264,28 @@ export class PocketWorldHost {
         resolve(value);
       };
 
-      transition.openEntryPrompt(
-        def,
-        alreadyStamped,
-        async () => {
-          if (!this.promptState) {
-            settle(false);
-            return false;
-          }
-          const entered = await this.enter(id, anchor);
-          if (entered) {
-            this.promptState = null;
-            settle(true);
-          }
-          return entered;
-        },
-        () => {
-          const pending = this.promptState;
+      const cancel = () => {
+        if (this.promptState?.cancel !== cancel) return;
+        this.promptState = null;
+        if (this.pendingLoad) this.pendingLoad.abortController.abort();
+        else this.host.worldDirector.cancelPocketPrompt(anchor.hostWorld);
+        if (pointerLocked && !this.host.isContextLost() && (typeof document === 'undefined' || !document.hidden)) {
+          this.host.input.requestPointerLock();
+        }
+        this.host.onPocketStateChange?.();
+        settle(false);
+      };
+      this.promptState = { cancel };
+      this.host.onPocketStateChange?.();
+      transition.openEntryPrompt(def, alreadyStamped, async () => {
+        if (this.promptState?.cancel !== cancel) return false;
+        const entered = await this.enter(id, anchor, { pointerLocked, focusedElement });
+        if (entered) {
           this.promptState = null;
-          if (this.pendingLoad) {
-            this.pendingLoad.abortController.abort();
-          } else if (pending) {
-            this.host.worldDirector.cancelPocketPrompt(pending.hostWorld);
-          }
-          this.host.onPocketStateChange?.();
-          settle(false);
-        },
-      );
+          settle(true);
+        }
+        return entered;
+      }, cancel);
     });
   }
 
@@ -290,15 +293,18 @@ export class PocketWorldHost {
    * Load and commit a verified pocket world atomically.
    * Refuses dormant/unverified worlds or locked `W10` (< 1 earned stamp).
    */
-  async enter(id: PocketWorldId, liveReturnAnchor?: SafeAnchor): Promise<boolean> {
-    if (this.disposed || this.host.isContextLost()) return false;
+  async enter(
+    id: PocketWorldId,
+    liveReturnAnchor?: SafeAnchor,
+    originUi?: Pick<HostSnapshot, 'pointerLocked' | 'focusedElement'>,
+  ): Promise<boolean> {
+    if (this.disposed || this.host.isContextLost() || this.host.canEnter?.() === false) return false;
     if (this.activeSession || this.pendingLoad) return false;
 
     const check = this.host.registry.canEnter(id, this.host.passport);
     if (!check.ok) {
       if (this.promptState) {
-        this.host.worldDirector.cancelPocketPrompt(this.promptState.hostWorld);
-        this.promptState = null;
+        this.host.worldDirector.cancelPocketPrompt(this.host.worldDirector.activeWorld === 'interior' ? 'interior' : 'exterior');
       }
       this.host.announce(check.message, 8);
       return false;
@@ -306,7 +312,12 @@ export class PocketWorldHost {
 
     const def = this.host.registry.get(id)!;
     const anchor = liveReturnAnchor ?? this.captureHostAnchor();
-    const snapshot = this.captureHostSnapshot(anchor);
+    if (anchor.hostWorld !== this.host.worldDirector.activeWorld) return false;
+    const snapshot = { ...this.captureHostSnapshot(anchor), ...originUi };
+    if (!this.isSupported(snapshot.hostCollisions, anchor.position)) {
+      this.host.announce('Stand on solid ground to open this passage.', 5);
+      return false;
+    }
 
     if (!this.host.worldDirector.beginPreparingPocket()) {
       return false;
@@ -329,6 +340,9 @@ export class PocketWorldHost {
       interactionUnbinds,
     };
     this.pendingLoad = pending;
+    const releaseLoadingFreeze = this.host.player.acquireFreeze();
+    const releaseLoadingCapture = this.host.input.acquireUiCapture();
+    const activateControls = new Set<() => void>();
     this.host.onPocketStateChange?.();
 
     const ctx: PocketWorldContext = {
@@ -340,26 +354,59 @@ export class PocketWorldHost {
       collision,
       player: this.host.player,
       input: this.host.input,
-      interaction: this.createScopedInteraction(interactionUnbinds, abortController.signal, scope),
+      interaction: {
+        register: (id, control) => {
+          if (abortController.signal.aborted) return () => {};
+          let off: (() => void) | undefined;
+          const activate = () => { off = this.host.interaction.register(id, control); };
+          const release = () => {
+            activateControls.delete(activate);
+            interactionUnbinds.delete(release);
+            off?.();
+            off = undefined;
+          };
+          interactionUnbinds.add(release);
+          if (this.activeSession?.abortController === abortController) activate();
+          else activateControls.add(activate);
+          return release;
+        },
+      },
       audio: this.host.audio,
       assets: this.host.assets,
-      quality: this.host.quality,
+      quality: this.host.getQuality(),
       signal: abortController.signal,
       reducedMotion: () => this.host.reducedMotion(),
       announce: (message, seconds) => this.host.announce(message, seconds),
+      saveCheckpoint: () => {
+        const session = this.activeSession;
+        if (session?.abortController !== abortController) return false;
+        const anchor = this.captureHostAnchor();
+        if (!this.isSupported(collision, anchor.position)) return false;
+        session.checkpoint = anchor;
+        return true;
+      },
+      resetToCheckpoint: () => {
+        const session = this.activeSession;
+        if (session?.abortController !== abortController) return false;
+        const { position, yaw, pitch } = session.checkpoint;
+        if (!this.isSupported(collision, position)) return false;
+        this.host.player.restorePose(position, yaw, pitch);
+        this.host.input.resetTransient();
+        return true;
+      },
       markCompletionEligible: () => {
-        if (this.activeSession?.id === id) {
+        if (this.activeSession?.abortController === abortController) {
           this.activeSession.pendingCompletion = true;
         }
       },
       requestComplete: () => {
-        if (this.activeSession?.id === id) {
+        if (this.activeSession?.abortController === abortController) {
           this.activeSession.pendingCompletion = true;
           void this.exit({ completed: true, viaVhsRewind: false, reason: 'completed' });
         }
       },
       requestExit: (opts) => {
-        if (this.activeSession?.id === id) {
+        if (this.activeSession?.abortController === abortController) {
           void this.exit({ viaVhsRewind: true, reason: 'back', ...opts });
         }
       },
@@ -368,6 +415,13 @@ export class PocketWorldHost {
     let instance: PocketWorldInstance;
     try {
       instance = await this.host.registry.load(id, abortController.signal, ctx);
+      let drawable = false;
+      root.traverse((object) => { if ((object as THREE.Mesh).isMesh) drawable = true; });
+      if (!drawable || !this.isSupported(collision, instance.spawnPosition)
+        || !Number.isFinite(instance.spawnYaw) || !Number.isFinite(instance.spawnPitch ?? 0)) {
+        safeDisposeInstance(instance);
+        throw new Error('World requires a drawable scene and a supported spawn.');
+      }
     } catch (error) {
       if (this.pendingLoad === pending) this.pendingLoad = null;
       this.cleanupPendingLoad(pending);
@@ -378,6 +432,9 @@ export class PocketWorldHost {
         this.host.announce(`Could not open ${def.title}. Returning to the museum.`, 8);
       }
       return false;
+    } finally {
+      releaseLoadingCapture();
+      releaseLoadingFreeze();
     }
 
     if (this.pendingLoad === pending) this.pendingLoad = null;
@@ -392,9 +449,12 @@ export class PocketWorldHost {
 
     const releaseFreeze = this.host.player.acquireFreeze();
     try {
-      if (snapshot.hostRoot) snapshot.hostRoot.visible = false;
+      snapshot.hostRoot.visible = false;
+      if (snapshot.placementsRoot) snapshot.placementsRoot.visible = false;
+      this.host.audio.pauseMuseumAmbience();
+      this.host.interaction.resetFocus();
       if (anchor.hostWorld === 'interior') {
-        this.host.interiorWorld?.setActive(false);
+        this.host.getInteriorWorld()?.setActive(false);
       }
       this.host.scene.add(root);
 
@@ -414,6 +474,7 @@ export class PocketWorldHost {
       this.host.player.setCollisionWorld(collision);
       this.host.player.restorePose(instance.spawnPosition, instance.spawnYaw, instance.spawnPitch ?? 0);
       this.host.input.resetTransient();
+      this.host.player.applyToCamera(this.host.camera, 1);
 
       this.activeSession = {
         id,
@@ -424,9 +485,14 @@ export class PocketWorldHost {
         collision,
         snapshot,
         interactionUnbinds,
+        abortController,
+        checkpoint: { hostWorld: anchor.hostWorld, position: instance.spawnPosition,
+          yaw: instance.spawnYaw, pitch: instance.spawnPitch ?? 0 },
         pendingCompletion: false,
         exiting: false,
       };
+      for (const bind of activateControls) bind();
+      activateControls.clear();
       this.host.worldDirector.commitPocket(id);
       this.host.onPocketStateChange?.();
       return true;
@@ -440,11 +506,9 @@ export class PocketWorldHost {
     let aborted = false;
     if (this.promptState) {
       const transition = this.host.getTransitionController?.() ?? null;
-      const hostWorld = this.promptState.hostWorld;
-      this.promptState = null;
+      const { cancel } = this.promptState;
       transition?.closePrompt?.();
-      this.host.worldDirector.cancelPocketPrompt(hostWorld);
-      this.host.onPocketStateChange?.();
+      cancel();
       aborted = true;
     }
     if (this.pendingLoad) {
@@ -475,6 +539,7 @@ export class PocketWorldHost {
     try {
       this.host.worldDirector.beginExitingPocket();
 
+      session.abortController.abort();
       safeDisposeInstance(session.instance);
       this.releaseInteractionUnbinds(session.interactionUnbinds);
       session.root.removeFromParent();
@@ -490,11 +555,12 @@ export class PocketWorldHost {
       this.host.sky.mesh.visible = snap.skyVisible;
       this.host.lighting.group.visible = snap.lightingVisible;
       this.host.setCurrentZone(snap.currentZone);
-      this.host.audio.setZone(snap.currentZone);
+      this.host.audio.resumeMuseumAmbience(snap.currentZone);
 
       snap.hostRoot.visible = true;
+      if (snap.placementsRoot) snap.placementsRoot.visible = snap.placementsVisible;
       if (snap.returnAnchor.hostWorld === 'interior') {
-        this.host.interiorWorld?.setActive(true);
+        this.host.getInteriorWorld()?.setActive(true);
       }
 
       this.host.player.setCollisionWorld(snap.hostCollisions);
@@ -504,6 +570,10 @@ export class PocketWorldHost {
         snap.returnAnchor.pitch,
       );
       this.host.input.resetTransient();
+      this.host.player.applyToCamera(this.host.camera, 1);
+      this.host.camera.updateMatrixWorld();
+      this.host.interaction.resetFocus();
+      this.host.interaction.update(this.host.camera);
       this.host.sky.follow(this.host.camera);
 
       this.activeSession = null;
@@ -529,6 +599,10 @@ export class PocketWorldHost {
       }
 
       this.host.onPocketStateChange?.();
+      if (opts.reason !== 'abort') {
+        if (snap.focusedElement?.isConnected) snap.focusedElement.focus({ preventScroll: true });
+        if (snap.pointerLocked) this.host.input.requestPointerLock();
+      }
       return true;
     } finally {
       releaseFreeze();
@@ -553,9 +627,10 @@ export class PocketWorldHost {
   }
 
   private captureHostSnapshot(anchor: SafeAnchor): HostSnapshot {
-    const interior = anchor.hostWorld === 'interior' ? this.host.interiorWorld : null;
+    const interior = anchor.hostWorld === 'interior' ? this.host.getInteriorWorld() : null;
     const hostRoot = interior ? interior.root : this.host.exteriorWorld.root;
     const hostCollisions = interior ? interior.collision : this.host.exteriorWorld.collision;
+    const placementsRoot = this.host.getMuseumPlacementsRoot();
     return {
       returnAnchor: anchor,
       fog: this.host.scene.fog,
@@ -564,42 +639,25 @@ export class PocketWorldHost {
       skyVisible: this.host.sky.mesh.visible,
       lightingVisible: this.host.lighting.group.visible,
       currentZone: this.host.getCurrentZone(),
-      pointerLocked: this.host.input.pointerLocked
-        || (typeof document !== 'undefined' && document.pointerLockElement !== null),
+      pointerLocked: this.host.input.pointerLocked,
+      focusedElement: this.focusedElement(),
       hostCollisions,
       hostRoot,
+      placementsRoot,
+      placementsVisible: placementsRoot?.visible ?? false,
     };
   }
 
-  private createScopedInteraction(
-    unbinds: Set<() => void>,
-    signal: AbortSignal,
-    scope: ResourceScope,
-  ): InteractionManager {
-    const real = this.host.interaction;
-    return new Proxy(real, {
-      get(target, prop, receiver) {
-        if (prop === 'register') {
-          return (exhibitId: string, control: ExhibitControl): (() => void) => {
-            if (signal.aborted || scope.isDisposed) {
-              return () => undefined;
-            }
-            const rawUnbind = target.register(exhibitId, control);
-            let released = false;
-            const wrapped = () => {
-              if (released) return;
-              released = true;
-              unbinds.delete(wrapped);
-              rawUnbind();
-            };
-            unbinds.add(wrapped);
-            return wrapped;
-          };
-        }
-        const value = Reflect.get(target, prop, receiver);
-        return typeof value === 'function' ? value.bind(target) : value;
-      },
-    });
+  private focusedElement(): HTMLElement | null {
+    return typeof document !== 'undefined' && document.activeElement instanceof HTMLElement
+      ? document.activeElement : null;
+  }
+
+  private isSupported(collision: CollisionWorld, position: SafeAnchor['position']): boolean {
+    if (!position.every(Number.isFinite)) return false;
+    const [x, y, z] = position;
+    const support = collision.supportHeight(x, z, y, 0.1);
+    return support !== null && Math.abs(support - y) <= 0.1;
   }
 
   private releaseInteractionUnbinds(unbinds: Set<() => void>): void {
@@ -614,6 +672,7 @@ export class PocketWorldHost {
   }
 
   private cleanupPendingLoad(pending: PendingPocketLoad): void {
+    pending.abortController.abort();
     this.releaseInteractionUnbinds(pending.interactionUnbinds);
     pending.root.removeFromParent();
     pending.root.clear();

@@ -66,7 +66,7 @@ export interface PocketWorldContext {
   readonly collision: CollisionWorld;
   readonly player: PlayerController;
   readonly input: InputManager;
-  readonly interaction: InteractionManager;
+  readonly interaction: Pick<InteractionManager, 'register'>;
   readonly audio: AudioManager;
   readonly assets: AssetManager;
   readonly quality: QualitySettings;
@@ -75,6 +75,9 @@ export interface PocketWorldContext {
   announce(message: string, seconds?: number): void;
   /** Mark the current run eligible for completion when exiting with `completed: true`. */
   markCompletionEligible(): void;
+  /** Save the current supported pose for this visit. Route state belongs to the world. */
+  saveCheckpoint(): boolean;
+  resetToCheckpoint(): boolean;
   /** Complete this pocket world and return safely to the museum. */
   requestComplete(): void;
   /** Exit without awarding a stamp (defaults to VHS-rewind transition). */

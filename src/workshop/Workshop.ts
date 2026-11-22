@@ -206,7 +206,7 @@ export class Workshop {
     this.openState = true;
     this.savedVisitorPosition = this.app.player.position.clone();
     this.savedVisitorYaw = this.app.player.yaw;
-    this.savedVisitorWorld = this.app.activeWorld;
+    this.savedVisitorWorld = this.app.museumWorld;
     this.root.hidden = false;
     this.app.input.releasePointerLock();
     this.app.input.uiCaptured = true;
@@ -239,8 +239,8 @@ export class Workshop {
     const original = this.savedVisitorPosition?.clone() ?? null;
     const yaw = this.savedVisitorYaw;
     this.savedVisitorPosition = null;
-    if (wasWorld === 'exterior' && this.app.activeWorld !== 'exterior') this.app.worldDirector.switchToExterior();
-    if (wasWorld === 'interior' && this.app.activeWorld !== 'interior') {
+    if (wasWorld === 'exterior' && this.app.museumWorld !== 'exterior') this.app.worldDirector.switchToExterior();
+    if (wasWorld === 'interior' && this.app.museumWorld !== 'interior') {
       void this.app.worldDirector.switchToInterior().then(() => {
         if (original) this.app.player.teleport([original.x, original.y, original.z], yaw);
       }).catch((error) => console.error('[Museum Builder] restore interior failed', error));
@@ -456,7 +456,7 @@ export class Workshop {
   }
 
   private async switchWorld(world: 'interior' | 'exterior'): Promise<void> {
-    if (world === this.app.activeWorld) return;
+    if (world === this.app.museumWorld) return;
     this.cancelWallDrawing();
     if (world === 'interior') {
       this.note('Preparing museum interior…', 'ok');
@@ -545,7 +545,7 @@ export class Workshop {
   private scanIslandPaths(): void {
     this.islandPathsRevision = this.history.revision;
     this.placements.invalidateCollisions();
-    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+    this.placements.syncWorld(this.app.museumWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
       this.app.exteriorWorld.root, this.app.museum?.root);
     const index = buildMuseumSceneIndex(this.placements.captureManifest(), { exterior: this.app.exteriorWorld.collision },
       { placements: this.placements });
@@ -568,7 +568,7 @@ export class Workshop {
 
   private scanClearance(): void {
     this.placements.invalidateCollisions();
-    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+    this.placements.syncWorld(this.app.museumWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
       this.app.exteriorWorld.root, this.app.museum?.root);
     const report = scanAuthoredRouteClearance(buildMuseumSceneIndex(this.placements.captureManifest(), {
       exterior: this.app.exteriorWorld.collision, interior: this.app.museum?.collision,
@@ -583,7 +583,7 @@ export class Workshop {
       button.disabled = !finding.objectId;
       button.title = finding.explanation;
       button.addEventListener('click', () => {
-        if (this.app.activeWorld !== finding.world) {
+        if (this.app.museumWorld !== finding.world) {
           this.note(`Switch to ${finding.world} to inspect ${finding.objectId}.`, 'warn');
           return;
         }
@@ -602,7 +602,7 @@ export class Workshop {
   /** Suggestions only: preview shows a ghost, approval applies as one undoable step, rejection is remembered. */
   private runCurate(): void {
     this.setWalkwayGhost(null);
-    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+    this.placements.syncWorld(this.app.museumWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
       this.app.exteriorWorld.root, this.app.museum?.root);
     const manifest = this.placements.captureManifest();
     const scopeValue = this.el<HTMLSelectElement>('curate-scope').value;
@@ -670,7 +670,7 @@ export class Workshop {
   /** Pilot read of an exhibit's composition; NO CHANGE is a valid outcome and nothing moves without approval. */
   private runGravity(): void {
     this.setWalkwayGhost(null);
-    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+    this.placements.syncWorld(this.app.museumWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
       this.app.exteriorWorld.root, this.app.museum?.root);
     const manifest = this.placements.captureManifest();
     const exhibit = this.el<HTMLSelectElement>('gravity-exhibit').value as NarrativeGravityPilot;
@@ -744,7 +744,7 @@ export class Workshop {
   /** Read-only health report; affected placements link to the object, nothing is changed. */
   private checkHealth(): void {
     this.placements.invalidateCollisions();
-    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+    this.placements.syncWorld(this.app.museumWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
       this.app.exteriorWorld.root, this.app.museum?.root);
     const manifest = this.placements.captureManifest();
     const index = buildMuseumSceneIndex(manifest, { exterior: this.app.exteriorWorld.collision, interior: this.app.museum?.collision },
@@ -772,7 +772,7 @@ export class Workshop {
         button.textContent = `${subject.label}${subject.world ? ` · ${subject.world}` : ''}${where}`;
         button.disabled = subject.kind !== 'placement';
         button.addEventListener('click', () => {
-          if (subject.world && subject.world !== 'shared' && subject.world !== this.app.activeWorld) {
+          if (subject.world && subject.world !== 'shared' && subject.world !== this.app.museumWorld) {
             this.note(`Switch to ${subject.world} to inspect ${subject.label}.`, 'warn');
             return;
           }
@@ -794,7 +794,7 @@ export class Workshop {
   /** Walk simulated visitors through the live interior collision world; read-only, nothing moves or saves. */
   private runJury(): void {
     this.placements.invalidateCollisions();
-    this.placements.syncWorld(this.app.activeWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
+    this.placements.syncWorld(this.app.museumWorld, this.app.exteriorWorld.collision, this.app.museum?.collision,
       this.app.exteriorWorld.root, this.app.museum?.root);
     const manifest = this.placements.captureManifest();
     const interior = this.app.museum?.collision ?? null;
@@ -932,7 +932,7 @@ export class Workshop {
     const before = this.placements.captureManifest();
     try {
       const { manifest, kit } = placeKit(before, template, { position: [x, y, z], rotationY: Math.atan2(-direction.x, -direction.z),
-        worldId: this.app.activeWorld });
+        worldId: this.app.museumWorld });
       const after = this.placements.replaceManifest(manifest);
       this.history.push(`Place ${kit.label}`, before, after);
       this.select(kit.members[0]?.id ?? null);
@@ -1248,7 +1248,7 @@ export class Workshop {
       position: [x, y, z],
       rotation: [0, Math.atan2(-direction.x, -direction.z), 0],
       scale: [1, 1, 1],
-      worldId: this.app.activeWorld,
+      worldId: this.app.museumWorld,
       collision: 'none',
     };
     try {
@@ -1398,7 +1398,7 @@ export class Workshop {
       prefab: 'partition-wall',
       anchor: 'floor',
       position: shape.position, rotation: shape.rotation, scale: shape.scale,
-      worldId: this.app.activeWorld, collision: 'solid',
+      worldId: this.app.museumWorld, collision: 'solid',
     };
     try {
       const after = this.placements.setRecord(record);
@@ -1482,7 +1482,7 @@ export class Workshop {
       return id;
     };
 
-    const worldId = this.app.activeWorld;
+    const worldId = this.app.museumWorld;
     const walls: WorkshopPlacementRecord[] = shape.walls.map((wall, i) => ({
       id: idFor('partition-wall'), label: `Room wall ${i + 1}`,
       prefab: 'partition-wall', anchor: 'floor',
@@ -1555,7 +1555,7 @@ export class Workshop {
       rotation: [0, Math.atan2(-direction.x, -direction.z), 0],
       scale: prefab === 'partition-wall' ? [3, 1, 1] : [1, 1, 1],
       collision: prefab === 'partition-wall' || prefab === 'floor-slab' ? 'solid' : 'none',
-      worldId: this.app.activeWorld,
+      worldId: this.app.museumWorld,
     };
     const after = this.placements.setRecord(record);
     this.history.push(`Add ${record.label}`, before, after);
@@ -1778,7 +1778,7 @@ export class Workshop {
   private mountOnWall(): void {
     const record = this.record();
     if (!record) return;
-    const root = this.app.activeWorld === 'exterior' ? this.app.exteriorWorld.root : this.app.museum?.root;
+    const root = this.app.museumWorld === 'exterior' ? this.app.exteriorWorld.root : this.app.museum?.root;
     if (!root) return this.note('Active world geometry is unavailable.', 'warn');
     this.raycaster.setFromCamera(this.pointer, this.app.camera);
     // New Builder walls are real wall surfaces too. An artwork cannot raycast
@@ -1799,7 +1799,7 @@ export class Workshop {
       const before = this.placements.captureManifest();
       try {
         const after = this.placements.setRecord({
-          ...record, anchor: 'wall', worldId: this.app.activeWorld,
+          ...record, anchor: 'wall', worldId: this.app.museumWorld,
           position: [position.x, position.y, position.z],
           rotation: [rotation.x, rotation.y, rotation.z],
           collision: record.collision ?? 'none',
@@ -1963,7 +1963,7 @@ export class Workshop {
   private authorableHit(centre: boolean, preferSurface = false): { id: string; entry: AuthorableSceneEntry | null; isSurface: boolean } | null {
     if (centre) this.pointer.set(0, 0);
     this.raycaster.setFromCamera(this.pointer, this.app.camera);
-    const world = this.app.activeWorld;
+    const world = this.app.museumWorld;
     const worldRoot = world === 'exterior' ? this.app.exteriorWorld.root : this.app.museum?.root;
     const candidates = [...this.placements.selectableObjects(), ...(worldRoot ? [worldRoot] : [])];
     const hits = this.raycaster.intersectObjects(candidates, true);
@@ -2156,7 +2156,7 @@ export class Workshop {
     this.root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach((button) => {
       button.dataset.active = String(button.dataset.view === this.camera.currentView);
     });
-    this.el<HTMLElement>('world-indicator').textContent = `Editing: ${this.app.activeWorld === 'exterior' ? 'Island' : 'Museum'}`;
+    this.el<HTMLElement>('world-indicator').textContent = `Editing: ${this.app.museumWorld === 'exterior' ? 'Island' : 'Museum'}`;
     this.root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((button) => {
       button.dataset.active = String(button.dataset.mode === this.transform.mode);
     });
@@ -2263,7 +2263,7 @@ export class Workshop {
     const objects = this.placements.captureManifest().objects;
     const sceneEntries = this.placements.sceneEntries();
     const finishedSurfaces = this.placements.captureManifest().surfaceOverrides
-      ?.filter((item) => item.worldId === this.app.activeWorld) ?? [];
+      ?.filter((item) => item.worldId === this.app.museumWorld) ?? [];
     if (!objects.length && !sceneEntries.length && !finishedSurfaces.length) {
       const empty = document.createElement('p'); empty.className = 'workshop-muted'; empty.textContent = 'No authored objects yet.'; this.outliner.append(empty); return;
     }

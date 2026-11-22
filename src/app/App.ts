@@ -36,7 +36,7 @@ import { TICKET_KIOSK_ID } from '../world/exterior/TicketKiosk';
 import { LIGHTHOUSE_LENS_ID } from '../world/exterior/ExteriorLighthouse';
 import { OBSERVATORY_ORRERY_ID } from '../world/exterior/ExteriorObservatory';
 import { ROOTBOUND_RELIC_ID } from '../world/exterior/ExteriorRootboundHollow';
-import { isOnRooftopFlightPad, ROOF_FLIGHT_PAD_II_LAUNCH_SPEED } from '../world/exterior/rooftopLayout';
+import { GREENHOUSE_FLOWER_ID, ROOF_FLIGHT_PAD_II_TELEPORT_ID, isOnRooftopFlightPad, ROOF_FLIGHT_PAD_II_LAUNCH_SPEED } from '../world/exterior/rooftopLayout';
 import { isInsideObsidianChamber } from '../world/exterior/ObsidianSphereEntrance';
 import { START_POSITION } from '../world/start';
 import type { StreamingManager } from '../exhibits/StreamingManager';
@@ -57,6 +57,10 @@ import { LongFrameRecorder } from './LongFrameRecorder';
 import { SECRETS } from '../content/secrets';
 import { SecretsLog } from '../state/Secrets';
 import { SecretSpots, isSecretControlId, type SecretFind } from '../world/SecretSpots';
+import { Passport } from '../state/Passport';
+import { PocketWorldHost } from '../world/pocket/PocketWorldHost';
+import { PocketWorldRegistry } from '../world/pocket/PocketWorldRegistry';
+import { isPocketPortalControlId, type HostWorldId } from '../world/pocket/types';
 import { WorldDirector, type WorldId } from './WorldDirector';
 import type { AuthorableSceneRegistry } from '../workshop/AuthorableSceneRegistry';
 
@@ -87,6 +91,9 @@ export class App implements LoopCallbacks {
   readonly exteriorWorld: ExteriorWorld;
   interiorWorld: InteriorWorld | null = null;
   readonly worldDirector: WorldDirector;
+  readonly passport = new Passport();
+  readonly pocketRegistry = new PocketWorldRegistry();
+  readonly pocketHost: PocketWorldHost;
   /** Frames over 50 ms, with the world and phase they happened in (local only). */
   readonly longFrames = new LongFrameRecorder(() => ({ world: this.activeWorld, phase: this.worldDirector?.phase ?? 'starting' }));
   sceneRegistry: AuthorableSceneRegistry | null = null;
@@ -123,6 +130,7 @@ export class App implements LoopCallbacks {
   private developmentTool: { update(dt: number): void; dispose(): void } | null = null;
   private developerOverlay: { update(): void; dispose(): void } | null = null;
   private workshopUpdate: (() => void) | null = null;
+  private museumPlacementsRoot: THREE.Object3D | null = null;
   private workshopCameraOverride: (() => void) | null = null;
   private environmentVisibility: ((zone: ZoneId, deep: boolean, wings: ReadonlySet<string>) => void) | null = null;
   private readonly roomCullingEnabled: boolean;
@@ -166,7 +174,8 @@ export class App implements LoopCallbacks {
     this.cinematicArrivalEnabled = !query.has('qa') && !query.has('edit');
     if (!this.cinematicArrivalEnabled) this.ticket = App.printTicket();
     // Workshop must see all authorable objects even when editing far-away bays.
-    this.roomCullingEnabled = !(import.meta.env.DEV && query.has('edit'));
+    const workshopMode = import.meta.env.DEV && query.has('edit');
+    this.roomCullingEnabled = !workshopMode;
 
     registerCuratedAssets();
     registerQuaterniusAssets();
@@ -210,20 +219,9 @@ export class App implements LoopCallbacks {
     this.interaction.register(TICKET_KIOSK_ID, kiosk.control);
     if (this.ticket) this.exteriorWorld.ticketKiosk.markIssued();
     this.interaction.register(
-      LIGHTHOUSE_LENS_ID,
-      this.exteriorWorld.lighthouse.getLensControl((message) => this.ui.hud.announce(message, 8)),
-    );
-    this.interaction.register(
-      OBSERVATORY_ORRERY_ID,
-      this.exteriorWorld.observatory.getOrreryControl((message) => this.ui.hud.announce(message, 8)),
-    );
-    this.interaction.register(
       ROOTBOUND_RELIC_ID,
       this.exteriorWorld.rootboundHollow.getRelicControl((message) => this.ui.hud.announce(message, 8)),
     );
-    for (const [id, control] of this.exteriorWorld.rooftop.getControls((message) => this.ui.hud.announce(message, 8))) {
-      this.interaction.register(id, control);
-    }
 
     this.sky = new Sky(this.scope);
     this.renderer.scene.add(this.sky.mesh);
@@ -240,6 +238,23 @@ export class App implements LoopCallbacks {
     this.player.teleport(this.exteriorWorld.spawnPosition, this.exteriorWorld.spawnYaw);
 
     this.worldDirector = new WorldDirector(this);
+    this.pocketHost = new PocketWorldHost({
+      registry: this.pocketRegistry, passport: this.passport, worldDirector: this.worldDirector,
+      scene: this.scene, camera: this.camera, sky: this.sky, lighting: this.lighting,
+      getMuseumPlacementsRoot: () => this.museumPlacementsRoot,
+      exteriorWorld: this.exteriorWorld, getInteriorWorld: () => this.interiorWorld,
+      player: this.player, input: this.input, interaction: this.interaction, audio: this.audio,
+      assets: this.assets, getQuality: () => this.renderer.quality,
+      isContextLost: () => this.renderer.isContextLost,
+      canEnter: () => !workshopMode && (!this.cinematicArrivalEnabled || this.arrivalEntered),
+      getCurrentZone: () => this.currentZone,
+      setCurrentZone: (zone) => { this.currentZone = zone; },
+      reducedMotion: () => this.preferences.reducedMotion,
+      announce: (message, seconds) => this.ui?.hud.announce(message, seconds),
+      getTransitionController: () => this.ui?.pocketTransition ?? null,
+      onPocketStateChange: () => this.ui?.syncPocketState(),
+    });
+    this.registerPocketAnchors();
     this.longFrames.start();
     this.adaptiveResolution.setBasePixelRatio(this.renderer.basePixelRatio);
 
@@ -247,7 +262,7 @@ export class App implements LoopCallbacks {
     this.assets.attachRenderer(this.renderer.renderer);
 
     this.input.on('interact', () => {
-      if (this.interaction.activate()) {
+      if (!this.input.uiCaptured && this.interaction.activate()) {
         this.recordInteractionVisit();
         this.audio.tick();
       }
@@ -259,7 +274,35 @@ export class App implements LoopCallbacks {
     this.ui = new UILayer(this);
     this.lifecycle = new Lifecycle(this.loop, this.input, this.renderer, () => this.preferences, (message) => {
       this.ui.hud.announce(message);
-    }, () => !this.ui.fullWeasel.isOpen);
+    }, () => !this.ui.fullWeasel.isOpen, (reason) => {
+      this.pocketHost.abortPendingEntry();
+      if (reason === 'contextlost') this.pocketHost.exit({ reason: 'abort', viaVhsRewind: false });
+    });
+  }
+
+  private registerPocketAnchors(): void {
+    const announce = (message: string) => this.ui.hud.announce(message, 8);
+    const register = (id: string, world: 'L01' | 'W09' | 'W05', control: import('../exhibits/contract').ExhibitControl) => {
+      this.interaction.register(id, this.pocketHost.createAnchorControl(world, control.object, {
+        dormantLabel: control.label, dormantDescription: control.description,
+        dormantActivate: control.activate,
+      }));
+    };
+    register(LIGHTHOUSE_LENS_ID, 'L01', this.exteriorWorld.lighthouse.getLensControl(announce));
+    register(OBSERVATORY_ORRERY_ID, 'W09', this.exteriorWorld.observatory.getOrreryControl(announce));
+    for (const [id, control] of this.exteriorWorld.rooftop.getControls(announce)) {
+      if (id === GREENHOUSE_FLOWER_ID) register(id, 'W05', control);
+      else if (id === ROOF_FLIGHT_PAD_II_TELEPORT_ID) this.interaction.register(id, {
+        ...control,
+        label: () => this.pocketRegistry.isPlayable('W10', this.passport) ? 'Enter Breath of the Weasel' : 'Inspect Flight Pad II Console',
+        activate: () => {
+          if (this.pocketRegistry.isPlayable('W10', this.passport)) void this.pocketHost.requestEntry('W10');
+          else if (this.pocketRegistry.isPlayable('W06', this.passport)) void this.pocketHost.requestEntry('W06');
+          else control.activate();
+        },
+      });
+      else this.interaction.register(id, control);
+    }
   }
 
   recordInteractionVisit(): void {
@@ -269,8 +312,8 @@ export class App implements LoopCallbacks {
       !id
       || isSecretControlId(id)
       || id === TICKET_KIOSK_ID
-      || id === LIGHTHOUSE_LENS_ID
-      || id === OBSERVATORY_ORRERY_ID
+      || this.pocketHost.isActive
+      || isPocketPortalControlId(id)
       || id === ROOTBOUND_RELIC_ID
       || id.startsWith('cinema-')
       || id.startsWith('rooftop-')
@@ -375,6 +418,11 @@ export class App implements LoopCallbacks {
 
   get activeWorld(): WorldId {
     return this.worldDirector.activeWorld;
+  }
+
+  /** Museum-only editor and navigation consumers retain their two-world contract. */
+  get museumWorld(): HostWorldId {
+    return this.worldDirector.museumWorld;
   }
 
   set activeWorld(val: WorldId) {
@@ -601,6 +649,11 @@ export class App implements LoopCallbacks {
     this.workshopCameraOverride = update;
   }
 
+  attachMuseumPlacements(root: THREE.Object3D): void {
+    this.museumPlacementsRoot = root;
+    this.scene.add(root);
+  }
+
   setWorkshopUpdate(update: (() => void) | null): void {
     this.workshopUpdate = update;
   }
@@ -669,6 +722,11 @@ export class App implements LoopCallbacks {
         this.ui?.hud.announce('Launched from Flight Pad II. Fly with W/A/S/D and look. Shift for speed. Land to walk again.');
       }
     }
+    if (this.pocketHost.isActive) {
+      this.player.fixedUpdate(dt);
+      this.pocketHost.fixedUpdate(dt, this.player.writeEyePosition(this.eyePositionScratch));
+      return;
+    }
     // The obsidian chamber slows the visitor as if wading (eased, both ways).
     this.player.setInWater(this.activeWorld === 'exterior'
       && isInsideObsidianChamber(this.player.position.x, this.player.position.z));
@@ -699,6 +757,16 @@ export class App implements LoopCallbacks {
       this.preferences.mouseSensitivity,
       this.preferences.invertY,
     );
+
+    this.ui?.pocketTransition.update(dt);
+    if (this.pocketHost.isActive) {
+      if (this.pocketHost.usesMuseumSky) this.sky.follow(this.camera);
+      this.interaction.update(this.camera, dt);
+      this.pocketHost.variableUpdate(dt, this.player.writeEyePosition(this.eyePositionScratch));
+      this.ui?.update(dt);
+      this.input.endFrame();
+      return;
+    }
 
     if (this.cinematicArrivalEnabled && !this.cinematicCameraCancelled) {
       const moved = Math.abs(this.player.position.x - START_POSITION[0]) > 0.05
@@ -764,7 +832,7 @@ export class App implements LoopCallbacks {
       this.player.position.y,
       this.player.position.z,
       this.preferences.reducedMotion,
-      this.activeWorld,
+      this.museumWorld,
       this.isOutside ? this.exteriorWorld.collision : this.interiorWorld?.collision,
     );
     if (targetBeforeUpdate && !this.wayfinding.currentTarget) this.ui.clearGuideOnArrival(targetBeforeUpdate);
@@ -844,6 +912,7 @@ export class App implements LoopCallbacks {
     this.environmentVisibility = null;
     if (this.ambientLoadTimer !== null) window.clearTimeout(this.ambientLoadTimer);
     this.ambientLoadTimer = null;
+    this.pocketHost.dispose();
     this.ui?.dispose();
     this.audio.dispose();
     this.assets.dispose();

@@ -167,12 +167,12 @@ export class PocketTransition implements PocketTransitionController {
     this.enterButton.focus();
   }
 
-  closePrompt(): void {
+  closePrompt(restoreFov = true): void {
     if (!this.promptOpen) return;
     this.promptOpen = false;
     this.promptLoading = false;
     this.promptScrim.hidden = true;
-    this.restoreCameraFov();
+    if (restoreFov) this.restoreCameraFov();
     this.promptScrim.style.removeProperty('--pocket-prompt-progress');
     this.releaseTrap?.();
     this.releaseTrap = null;
@@ -187,6 +187,7 @@ export class PocketTransition implements PocketTransitionController {
   }
 
   playExitRewind(worldTitle?: string): void {
+    if (this.isReducedMotion()) return;
     this.rewindActive = true;
     this.rewindElapsed = 0;
     this.rewindBadge.textContent = worldTitle ? `◀◀ REWIND · ${worldTitle.toUpperCase()}` : '◀◀ REWIND · MUSEUM';
@@ -197,7 +198,7 @@ export class PocketTransition implements PocketTransitionController {
   update(dt: number): void {
     const safeDt = Number.isFinite(dt) && dt > 0 ? dt : 0;
 
-    if (this.promptOpen) {
+    if (this.promptOpen && !this.promptLoading) {
       if (this.isReducedMotion()) {
         this.restoreCameraFov();
         this.applyPromptVisuals(1);
@@ -241,10 +242,10 @@ export class PocketTransition implements PocketTransitionController {
     this.restoreCameraFov();
 
     const entered = await onEnter();
-    if (!this.promptOpen) return;
+    if (!this.promptOpen || this.onEnterCallback !== onEnter) return;
 
     if (entered) {
-      this.closePrompt();
+      this.closePrompt(false);
     } else {
       this.promptLoading = false;
       this.enterButton.disabled = false;

@@ -463,7 +463,16 @@
 
 /* ── Reduced motion, contrast, transparency & forced-colors ──────────────── */
 
-html[data-motion='reduced'] .pocket-prompt,
+html[data-motion='reduced'] .pocket-prompt {
+  backdrop-filter: none;
+  background: rgba(6, 9, 15, 0.78);
+}
+
+html[data-motion='reduced'] .pocket-prompt__card {
+  transform: none;
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pocket-prompt {
     backdrop-filter: none;

@@ -81,10 +81,22 @@ export class AudioManager {
   }
 
   /** Crossfade to a zone's bed. Called when the visitor changes zone. */
+  pauseMuseumAmbience(): void {
+    this.museumAmbiencePaused = true;
+    this.stopAllVoices();
+  }
+
+  resumeMuseumAmbience(zone: ZoneId): void {
+    this.museumAmbiencePaused = false;
+    this.setZone(zone);
+  }
+
+  private museumAmbiencePaused = false;
+
   setZone(zone: ZoneId): void {
     this.currentZone = zone;
     if (!this.started || !this.ctx || !this.ambienceGain) return;
-    if (!this.isAmbienceAudible()) {
+    if (this.museumAmbiencePaused || !this.isAmbienceAudible()) {
       this.stopAllVoices();
       return;
     }
@@ -194,7 +206,7 @@ export class AudioManager {
       void this.ctx.suspend().catch(() => {});
     }
 
-    if (!this.isAmbienceAudible()) {
+    if (this.museumAmbiencePaused || !this.isAmbienceAudible()) {
       this.stopAllVoices();
     } else if (this.currentZone) {
       this.setZone(this.currentZone);
