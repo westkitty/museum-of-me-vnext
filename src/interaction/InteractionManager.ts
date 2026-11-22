@@ -84,6 +84,11 @@ export class InteractionManager {
       : null;
   }
 
+  resetFocus(): void {
+    this.setFocus(null);
+    this.controlsDirty = true;
+  }
+
   /** Sample focus at 30 Hz; controls and hits reuse stable scratch buffers. */
   update(camera: THREE.Camera, dt = INTERACTION_SAMPLE_INTERVAL): void {
     this.raycastElapsed += Math.max(0, dt);

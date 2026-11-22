@@ -1,5 +1,6 @@
 import type * as THREE from 'three';
 import type { App } from './App';
+import type { HostWorldId, PocketWorldId } from '../world/pocket/types';
 import {
   ENTRANCE_PORTAL_Z,
   THRESHOLD_PREPARE_Z,
@@ -52,7 +53,7 @@ export function isExitingEntrance(pos: PortalPosition): boolean {
     && pos.z <= ATRIUM_FRONT_Z + (THRESHOLD_PREPARE_Z - ENTRANCE_PORTAL_Z);
 }
 
-export type WorldId = 'exterior' | 'interior';
+export type WorldId = 'exterior' | 'interior' | `pocket:${PocketWorldId}`;
 
 export type WorldPhase =
   | 'EXTERIOR_ACTIVE'
@@ -63,11 +64,16 @@ export type WorldPhase =
   | 'INTERIOR_ACTIVE'
   | 'PREPARING_EXTERIOR'
   | 'COMMITTING_EXTERIOR'
-  | 'PREPARATION_FAILED';
+  | 'PREPARATION_FAILED'
+  | 'POCKET_PROMPT'
+  | 'PREPARING_POCKET'
+  | 'COMMITTING_POCKET'
+  | 'POCKET_ACTIVE'
+  | 'COMMITTING_POCKET_EXIT';
 
 /**
  * WorldDirector manages the non-Euclidean boundary lifecycle between
- * the exterior island world and the interior museum world.
+ * the exterior island world, the interior museum world, and optional pocket worlds.
  *
  * It enforces atomic, single-active-root rendering and collision handoffs,
  * predictive loading on approach, seam hold during preparation, and failure recovery.
@@ -79,15 +85,20 @@ export type WorldPhase =
  * constructed interior whose entrance was not yet ready.)
  */
 export const WORLD_TRANSITIONS: Readonly<Record<WorldPhase, readonly WorldPhase[]>> = {
-  EXTERIOR_ACTIVE: ['PREPARING_INTERIOR', 'COMMITTING_INTERIOR'],
-  PREPARING_INTERIOR: ['PREPARING_RENDER_RESOURCES', 'AT_THRESHOLD', 'INTERIOR_ACTIVE', 'PREPARATION_FAILED'],
-  PREPARING_RENDER_RESOURCES: ['AT_THRESHOLD', 'COMMITTING_INTERIOR'],
-  AT_THRESHOLD: ['COMMITTING_INTERIOR'],
+  EXTERIOR_ACTIVE: ['PREPARING_INTERIOR', 'COMMITTING_INTERIOR', 'POCKET_PROMPT', 'PREPARING_POCKET'],
+  PREPARING_INTERIOR: ['PREPARING_RENDER_RESOURCES', 'AT_THRESHOLD', 'INTERIOR_ACTIVE', 'PREPARATION_FAILED', 'POCKET_PROMPT', 'PREPARING_POCKET'],
+  PREPARING_RENDER_RESOURCES: ['AT_THRESHOLD', 'COMMITTING_INTERIOR', 'POCKET_PROMPT', 'PREPARING_POCKET'],
+  AT_THRESHOLD: ['COMMITTING_INTERIOR', 'POCKET_PROMPT', 'PREPARING_POCKET'],
   COMMITTING_INTERIOR: ['INTERIOR_ACTIVE'],
-  INTERIOR_ACTIVE: ['COMMITTING_EXTERIOR'],
+  INTERIOR_ACTIVE: ['COMMITTING_EXTERIOR', 'POCKET_PROMPT', 'PREPARING_POCKET'],
   PREPARING_EXTERIOR: [],
   COMMITTING_EXTERIOR: ['EXTERIOR_ACTIVE'],
-  PREPARATION_FAILED: ['PREPARING_INTERIOR'],
+  PREPARATION_FAILED: ['PREPARING_INTERIOR', 'POCKET_PROMPT', 'PREPARING_POCKET'],
+  POCKET_PROMPT: ['EXTERIOR_ACTIVE', 'AT_THRESHOLD', 'PREPARATION_FAILED', 'INTERIOR_ACTIVE', 'PREPARING_POCKET'],
+  PREPARING_POCKET: ['COMMITTING_POCKET', 'EXTERIOR_ACTIVE', 'AT_THRESHOLD', 'PREPARATION_FAILED', 'INTERIOR_ACTIVE'],
+  COMMITTING_POCKET: ['POCKET_ACTIVE'],
+  POCKET_ACTIVE: ['COMMITTING_POCKET_EXIT'],
+  COMMITTING_POCKET_EXIT: ['EXTERIOR_ACTIVE', 'AT_THRESHOLD', 'PREPARATION_FAILED', 'INTERIOR_ACTIVE'],
 };
 
 export function isLegalWorldTransition(from: WorldPhase, to: WorldPhase): boolean {
@@ -96,6 +107,11 @@ export function isLegalWorldTransition(from: WorldPhase, to: WorldPhase): boolea
 
 export class WorldDirector {
   activeWorld: WorldId = 'exterior';
+  private pocketOrigin: HostWorldId = 'exterior';
+  private pocketOriginPhase: WorldPhase = 'EXTERIOR_ACTIVE';
+  get museumWorld(): HostWorldId {
+    return this.activeWorld === 'interior' || this.activeWorld === 'exterior' ? this.activeWorld : this.pocketOrigin;
+  }
   private currentPhase: WorldPhase = 'EXTERIOR_ACTIVE';
   /** Transitions outside WORLD_TRANSITIONS, for tests and diagnostics. Expected to stay empty. */
   readonly illegalTransitions: { from: WorldPhase; to: WorldPhase }[] = [];
@@ -141,8 +157,10 @@ export class WorldDirector {
       try {
         await this.app.ensureInteriorLoaded();
         this.interiorConstructed = true;
-        this.transition(this.activeWorld === 'interior' ? 'INTERIOR_ACTIVE'
-          : this.entranceIsReady() ? 'AT_THRESHOLD' : 'PREPARING_RENDER_RESOURCES');
+        if (this.activeWorld === 'exterior' || this.activeWorld === 'interior') {
+          this.transition(this.activeWorld === 'interior' ? 'INTERIOR_ACTIVE'
+            : this.entranceIsReady() ? 'AT_THRESHOLD' : 'PREPARING_RENDER_RESOURCES');
+        }
 
         // Preparation can finish while the visitor walks around the island.
         // Only the physical doorway is allowed to trigger a world switch.
@@ -152,7 +170,7 @@ export class WorldDirector {
         }
       } catch (err) {
         console.error('[WorldDirector] failed to prepare interior', err);
-        this.transition('PREPARATION_FAILED');
+        if (this.activeWorld === 'exterior') this.transition('PREPARATION_FAILED');
         this.preparePromise = null;
         this.app.ui?.hud.setThresholdStatus(true, 'The galleries could not be opened this time. The island remains available: retry, or keep exploring outside.', true);
         throw err;
@@ -178,6 +196,7 @@ export class WorldDirector {
    */
   commitToInterior(viaDoor = false): boolean {
     if (this.activeWorld === 'interior' || this.isCommitting) return true;
+    if (this.activeWorld.startsWith('pocket:') || this.phase === 'POCKET_PROMPT' || this.phase === 'PREPARING_POCKET') return false;
     if (this.app.renderer.isContextLost || !this.interiorConstructed || !this.app.interiorWorld
       || !this.entranceIsReady()) return false;
 
@@ -217,6 +236,7 @@ export class WorldDirector {
   }
 
   async switchToInterior(): Promise<boolean> {
+    if (this.activeWorld.startsWith('pocket:')) return false;
     if (this.activeWorld === 'interior') return true;
     await this.prepareInterior();
     return this.commitToInterior();
@@ -224,6 +244,7 @@ export class WorldDirector {
 
   /** `viaDoor`: leaving through the atrium's front door (see commitToInterior). */
   switchToExterior(viaDoor = false): boolean {
+    if (this.activeWorld.startsWith('pocket:')) return false;
     if (this.activeWorld === 'exterior' || this.isCommitting) return true;
     if (this.app.renderer.isContextLost) return false;
 
@@ -257,8 +278,65 @@ export class WorldDirector {
     }
   }
 
+  beginPocketPrompt(): boolean {
+    if (!this.canStartPocket()) return false;
+    this.pocketOriginPhase = this.phase;
+    this.transition('POCKET_PROMPT');
+    return true;
+  }
+
+  cancelPocketPrompt(hostWorld: HostWorldId): void {
+    if (this.currentPhase !== 'POCKET_PROMPT') return;
+    this.transition(hostWorld === 'interior' ? 'INTERIOR_ACTIVE' : this.pocketOriginPhase);
+  }
+
+  private canStartPocket(): boolean {
+    return !this.isCommitting && (this.phase === 'EXTERIOR_ACTIVE' || this.phase === 'AT_THRESHOLD'
+      || this.phase === 'PREPARATION_FAILED' || this.phase === 'INTERIOR_ACTIVE');
+  }
+
+  beginPreparingPocket(): boolean {
+    if (this.phase !== 'POCKET_PROMPT') {
+      if (!this.canStartPocket()) return false;
+      this.pocketOriginPhase = this.phase;
+    }
+    this.transition('PREPARING_POCKET');
+    return true;
+  }
+
+  abortPreparingPocket(hostWorld: HostWorldId): void {
+    if (this.currentPhase !== 'PREPARING_POCKET') return;
+    this.transition(hostWorld === 'interior' ? 'INTERIOR_ACTIVE' : this.pocketOriginPhase);
+  }
+
+  commitPocket(id: PocketWorldId): void {
+    this.transition('COMMITTING_POCKET');
+    this.pocketOrigin = this.museumWorld;
+    this.activeWorld = `pocket:${id}`;
+    this.transition('POCKET_ACTIVE');
+  }
+
+  beginExitingPocket(): boolean {
+    if (!this.activeWorld.startsWith('pocket:')) return false;
+    this.transition('COMMITTING_POCKET_EXIT');
+    return true;
+  }
+
+  finishExitingPocket(hostWorld: HostWorldId): void {
+    this.activeWorld = hostWorld;
+    this.transition(hostWorld === 'interior' ? 'INTERIOR_ACTIVE' : this.pocketOriginPhase);
+  }
+
   update(playerPosition: THREE.Vector3): void {
     if (this.isCommitting || this.app.renderer.isContextLost) return;
+    if (this.activeWorld.startsWith('pocket:')
+      || this.currentPhase === 'POCKET_PROMPT'
+      || this.currentPhase === 'PREPARING_POCKET'
+      || this.currentPhase === 'COMMITTING_POCKET'
+      || this.currentPhase === 'POCKET_ACTIVE'
+      || this.currentPhase === 'COMMITTING_POCKET_EXIT') {
+      return;
+    }
 
     const inApproach = isApproachingEntrance(playerPosition);
     if (!inApproach) this.thresholdPromptDismissed = false;

@@ -37,7 +37,7 @@ export function startMuseum(): void {
     source = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as unknown;
   }
   const placements = new MuseumPlacements(source, sceneRegistry);
-  app.scene.add(placements.group);
+  app.attachMuseumPlacements(placements.group);
 
   // Expose the constructed app before starting the continuous render loop. Browser
   // proofs can now observe and stop the real runtime at its first stable boundary.
@@ -61,7 +61,7 @@ export function startMuseum(): void {
   // Meaningful Objects reach exhibits only through their existing visitor control path.
   placements.bindMeaningfulActions((installation, code) => app.sourceInstallations?.key(installation, code) ?? false);
   const syncBuilderPlacements = () => placements.syncWorld(
-    app.activeWorld, app.exteriorWorld.collision, app.museum?.collision,
+    app.museumWorld, app.exteriorWorld.collision, app.museum?.collision,
     app.exteriorWorld.root, app.museum?.root, app.camera.position,
   );
   // Establish the initial world before the first frame, including when a test or

@@ -1348,7 +1348,7 @@ export class ExteriorRooftop {
           description: 'Step-free reduced-motion console for Skyborne Gardens (W06, NE) and Breath of the Weasel (W10, South).',
           activate: () => {
             this.padControlInspected = true;
-            announce('Flight Pad II console: Skyborne Gardens (W06, northeast) is dormant, and Breath of the Weasel (W10, south) unlocks after an earned stamp.');
+            announce('Flight Pad II console: Skyborne Gardens (W06, northeast) is dormant, and Breath of the Weasel (W10, south) is dormant. It opens once the world is ready and you have earned a stamp in another world.');
           },
         },
       ],

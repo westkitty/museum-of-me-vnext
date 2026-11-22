@@ -5,7 +5,7 @@
 export type Action =
   | 'forward' | 'back' | 'left' | 'right'
   | 'lookLeft' | 'lookRight' | 'lookUp' | 'lookDown'
-  | 'run' | 'jump' | 'descend' | 'interact' | 'map' | 'journal'
+  | 'run' | 'jump' | 'descend' | 'interact' | 'map' | 'journal' | 'passport'
   | 'settings' | 'diagnostics' | 'accessibility'
   | 'curator' | 'study' | 'thread' | 'command';
 
@@ -30,6 +30,7 @@ const BINDINGS: Record<string, Action> = {
   KeyF: 'interact', Enter: 'interact',
   KeyM: 'map',
   KeyJ: 'journal',
+  KeyP: 'passport',
   KeyO: 'settings',
   KeyC: 'curator',
   KeyY: 'study',
@@ -58,7 +59,7 @@ export function touchLookGain(touchSensitivity: number, mouseSensitivity: number
 
 /** Actions that fire once per physical key press rather than being held. */
 const EDGE_ACTIONS = new Set<Action>([
-  'jump', 'interact', 'map', 'journal', 'settings', 'diagnostics', 'accessibility',
+  'jump', 'interact', 'map', 'journal', 'passport', 'settings', 'diagnostics', 'accessibility',
   'curator', 'study', 'thread', 'command',
 ]);
 

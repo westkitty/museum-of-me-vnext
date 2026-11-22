@@ -17,7 +17,7 @@ export interface SettingsHandlers {
  * goes through its own handler; the version and stored-only fields are left. */
 export const RESTORABLE_SETTINGS = [
   'uiScale', 'highContrast', 'reducedMotion', 'fieldOfView', 'mouseSensitivity', 'touchSensitivity', 'invertY',
-  'masterVolume', 'ambienceVolume', 'subtitles', 'hudOpacity', 'autoPauseOnBlur', 'frameCap',
+  'masterVolume', 'ambienceVolume', 'musicVolume', 'subtitles', 'hudOpacity', 'autoPauseOnBlur', 'frameCap',
   'wakeLock', 'showMapVisitors', 'reducedTransparency', 'showTooltips', 'interfaceDensity',
 ] as const satisfies readonly (keyof VisitorPreferences)[];
 
@@ -38,6 +38,7 @@ export const SETTING_RANGES = {
   touchSensitivity: { min: 0.45, max: 2.25, step: 0.05 },
   masterVolume: { min: 0, max: 1, step: 0.05 },
   ambienceVolume: { min: 0, max: 1, step: 0.05 },
+  musicVolume: { min: 0, max: 1, step: 0.05 },
   hudOpacity: { min: 0.5, max: 1, step: 0.02 },
 } as const satisfies Partial<Record<keyof VisitorPreferences, { min: number; max: number; step: number }>>;
 
@@ -95,6 +96,8 @@ export class SettingsPanel extends Panel {
         (v) => this.handlers.update({ masterVolume: v })),
       this.range('ambienceVolume', 'Ambience', 'Controls the room-tone mix once Overall volume is raised.', p.ambienceVolume,
         (v) => this.handlers.update({ ambienceVolume: v })),
+      this.range('musicVolume', 'Music', 'Controls musical cues and scores once Overall volume is raised. Visual cue descriptions follow the Subtitles setting.', p.musicVolume,
+        (v) => this.handlers.update({ musicVolume: v })),
       this.check('Subtitles', 'Shows a text line for museum dialogue and audio cues.', p.subtitles,
         (v) => this.handlers.update({ subtitles: v })),
 

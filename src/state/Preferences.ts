@@ -16,6 +16,7 @@ export interface VisitorPreferences {
   subtitles: boolean;
   masterVolume: number;
   ambienceVolume: number;
+  musicVolume: number;
   mouseSensitivity: number;
   touchSensitivity: number;
   invertY: boolean;
@@ -42,7 +43,7 @@ export const PREFERENCES_LEGACY_KEY = 'museum-of-me:preferences';
 export const PREFERENCES_KEY = 'museum-of-me:preferences:v2';
 const BACKUP_KEY = 'museum-of-me:preferences:backup';
 const QUARANTINE_KEY = 'museum-of-me:preferences:quarantine';
-export const PREFERENCES_VERSION = 3;
+export const PREFERENCES_VERSION = 4;
 
 export const DEFAULT_PREFERENCES: VisitorPreferences = {
   version: PREFERENCES_VERSION,
@@ -54,6 +55,7 @@ export const DEFAULT_PREFERENCES: VisitorPreferences = {
   subtitles: true,
   masterVolume: 0,
   ambienceVolume: 0,
+  musicVolume: 0,
   mouseSensitivity: 1,
   touchSensitivity: 1,
   invertY: false,
@@ -75,6 +77,9 @@ function systemPrefersReducedMotion(): boolean {
 }
 
 function finite(value: unknown, fallback: number, min: number, max: number): number {
+  if (value === null || typeof value === 'boolean' || (typeof value === 'string' && value.trim() === '')) {
+    return fallback;
+  }
   const n = Number(value);
   return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
 }
@@ -106,6 +111,7 @@ export function sanitizePreferences(value: unknown): VisitorPreferences {
     subtitles: raw.subtitles !== false,
     masterVolume: finite(raw.masterVolume, 0, 0, 1),
     ambienceVolume: finite(raw.ambienceVolume, 0, 0, 1),
+    musicVolume: finite(raw.musicVolume, 0, 0, 1),
     mouseSensitivity: finite(raw.mouseSensitivity, 1, 0.45, 2.25),
     touchSensitivity: finite(raw.touchSensitivity, 1, 0.45, 2.25),
     invertY: raw.invertY === true,
@@ -123,7 +129,7 @@ export function sanitizePreferences(value: unknown): VisitorPreferences {
 }
 
 export function isSafeMode(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined' || !window.location) return false;
   return new URLSearchParams(window.location.search).get('safe') === '1';
 }
 
@@ -177,11 +183,14 @@ export function loadPreferencesResult(storage: Storage | null = safeStorage()): 
       return { preferences: applySafeModeOverlay(base), migrated: false, quarantined: true, notice: 'A newer preference format was rejected. Your previous file is quarantined.' };
     }
     const migrated = version !== PREFERENCES_VERSION || storage.getItem(PREFERENCES_KEY) === null;
-    // v3 intentionally mutes legacy defaults once. Visitors who subsequently
-    // opt in retain their chosen values under the new version.
+    // v3 intentionally mutes legacy (< v3) defaults once. v4 introduces
+    // independent `musicVolume` muted at 0 while preserving saved v3 opt-in
+    // master and ambience settings without silently unmuting anything.
     const audioDefaults = !Number.isFinite(version) || version < 3
-      ? { masterVolume: 0, ambienceVolume: 0 }
-      : {};
+      ? { masterVolume: 0, ambienceVolume: 0, musicVolume: 0 }
+      : version < 4
+        ? { musicVolume: 0 }
+        : {};
     const sanitized = sanitizePreferences({ ...base, ...(parsed as object), ...audioDefaults });
     if (migrated) {
       try { storage.setItem(BACKUP_KEY, current); } catch { /* quota */ }

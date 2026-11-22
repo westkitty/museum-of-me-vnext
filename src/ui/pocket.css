@@ -1,0 +1,557 @@
+/* ── ISLAND-05: Shared Pocket-World HUD, Passport & Transitions ───────────── */
+
+.hud__top-actions {
+  position: absolute;
+  top: max(1rem, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  max-width: calc(100vw - 2rem);
+  pointer-events: none;
+}
+
+.hud--thread-active .hud__top-actions {
+  top: calc(max(1rem, env(safe-area-inset-top)) + 2.65rem);
+}
+
+.hud--cinematic .hud__top-actions {
+  visibility: hidden;
+}
+
+.hud__passport,
+.hud__pocket-back {
+  pointer-events: auto;
+  min-height: 44px;
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--radius);
+  font: 600 0.8rem/1.2 var(--font-ui);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.36);
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.hud__passport {
+  border: 1px solid rgba(232, 198, 90, 0.62);
+  background: rgba(13, 15, 23, 0.9);
+  color: var(--parchment);
+}
+
+.hud__passport:hover {
+  border-color: var(--gold-bright);
+  background: rgba(28, 24, 34, 0.96);
+}
+
+.hud__pocket-back {
+  border: 1px solid var(--gold-bright);
+  background: rgba(24, 18, 22, 0.94);
+  color: var(--gold-bright);
+}
+
+.hud__pocket-back:hover {
+  background: #36251f;
+  color: #fff2cf;
+}
+
+.hud__passport[hidden],
+.hud__pocket-back[hidden],
+.hud__hint-passport[hidden] {
+  display: none;
+}
+
+.hud__build-mode:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── Passport modal ──────────────────────────────────────────────────────── */
+
+.passport-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(232, 198, 90, 0.34);
+  border-radius: 4px;
+  background: rgba(232, 198, 90, 0.06);
+}
+
+.passport-summary__tally {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.passport-summary__tally strong {
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  color: var(--gold-bright);
+}
+
+.passport-summary__tally span {
+  font-size: 0.84rem;
+  color: var(--parchment-dim);
+}
+
+.passport-summary__back {
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--gold-bright);
+  border-radius: var(--radius);
+  background: rgba(24, 18, 22, 0.94);
+  color: var(--gold-bright);
+  font: 600 0.86rem var(--font-ui);
+  cursor: pointer;
+}
+
+.passport-summary__back:hover {
+  background: #36251f;
+  color: #fff2cf;
+}
+
+.passport-notice {
+  margin: 0.8rem 0 0;
+  padding: 0.65rem 0.9rem;
+  border-left: 3px solid var(--focus);
+  background: rgba(127, 214, 255, 0.08);
+  font-size: 0.86rem;
+}
+
+.passport-spread {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.1rem;
+  margin: 1rem 0;
+}
+
+.passport-page {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid rgba(201, 162, 39, 0.28);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.passport-page__title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  color: var(--gold-bright);
+}
+
+.passport-slots {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.passport-slot {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(236, 229, 216, 0.14);
+  border-left: 3px solid rgba(236, 229, 216, 0.24);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.passport-slot--stamped {
+  border-color: rgba(232, 198, 90, 0.55);
+  border-left: 3px solid var(--gold-bright);
+  background: rgba(232, 198, 90, 0.09);
+}
+
+.passport-slot--visited {
+  border-left-color: var(--focus);
+}
+
+.passport-slot--locked {
+  opacity: 0.85;
+}
+
+.passport-slot__seal {
+  width: 2.35rem;
+  height: 2.35rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font: 700 0.74rem/1 var(--font-ui);
+  letter-spacing: 0.04em;
+  color: var(--parchment-dim);
+}
+
+.passport-slot--stamped .passport-slot__seal {
+  color: var(--ink);
+  background: var(--gold-bright);
+  border-color: var(--gold-bright);
+}
+
+.passport-slot__body {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.passport-slot__body strong {
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  color: var(--parchment);
+}
+
+.passport-slot__entry {
+  font-size: 0.82rem;
+  color: var(--parchment-dim);
+  line-height: 1.4;
+}
+
+.passport-slot__status {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gold);
+}
+
+.passport-slot--stamped .passport-slot__status {
+  color: var(--gold-bright);
+}
+
+.passport-bonus {
+  margin-top: 1rem;
+  padding: 0.95rem 1.05rem;
+  border: 1px dashed rgba(127, 214, 255, 0.45);
+  border-radius: 5px;
+  background: rgba(127, 214, 255, 0.05);
+  display: grid;
+  gap: 0.28rem;
+}
+
+.passport-bonus--complete {
+  border-style: solid;
+  border-color: rgba(127, 214, 255, 0.8);
+  background: rgba(127, 214, 255, 0.11);
+}
+
+.passport-bonus__kicker {
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--focus);
+}
+
+.passport-bonus strong {
+  font-family: var(--font-body);
+  font-size: 1.04rem;
+  color: var(--parchment);
+}
+
+.passport-bonus__entry,
+.passport-bonus__status {
+  font-size: 0.84rem;
+  color: var(--parchment-dim);
+}
+
+.passport-bonus__status {
+  font-weight: 600;
+  color: var(--focus);
+}
+
+.passport-footer-actions {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.passport-footer-actions button {
+  min-height: 44px;
+}
+
+/* ── MapPanel pocket notice ──────────────────────────────────────────────── */
+
+.map__pocket-notice {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(127, 214, 255, 0.35);
+  border-left: 3px solid var(--focus);
+  border-radius: 4px;
+  background: rgba(127, 214, 255, 0.08);
+  display: grid;
+  gap: 0.25rem;
+}
+
+.map__pocket-notice strong {
+  font-family: var(--font-body);
+  color: var(--parchment);
+}
+
+.map__pocket-notice p {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--parchment-dim);
+}
+
+/* ── PocketTransition: non-flashing entry prompt & VHS rewind overlay ────── */
+
+.pocket-prompt {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(6, 9, 15, calc(0.32 + var(--pocket-prompt-progress, 0) * 0.42));
+  backdrop-filter: blur(calc(var(--pocket-prompt-progress, 0) * 6px));
+}
+
+.pocket-prompt[hidden] {
+  display: none;
+}
+
+.pocket-prompt__card {
+  width: min(32rem, calc(100vw - 2rem));
+  padding: 1.5rem 1.7rem;
+  border: 1px solid rgba(232, 198, 90, 0.65);
+  border-radius: 5px;
+  background: linear-gradient(160deg, #171c26 0%, #0f1219 100%);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.75);
+  display: grid;
+  gap: 0.7rem;
+  transform: scale(calc(0.97 + var(--pocket-prompt-progress, 1) * 0.03));
+  opacity: calc(0.4 + var(--pocket-prompt-progress, 1) * 0.6);
+}
+
+.pocket-prompt__kicker {
+  font-size: 0.74rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold-bright);
+}
+
+.pocket-prompt__card h2 {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1.55rem;
+  font-weight: 500;
+  color: var(--parchment);
+}
+
+.pocket-prompt__desc,
+.pocket-prompt__note {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--parchment-dim);
+}
+
+.pocket-prompt__status {
+  margin: 0;
+  min-height: 1.2em;
+  font-size: 0.84rem;
+  color: var(--focus);
+}
+
+.pocket-prompt__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
+}
+
+.pocket-prompt__enter,
+.pocket-prompt__back {
+  min-height: 44px;
+  min-width: 7.5rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: var(--radius);
+  font: 600 0.88rem var(--font-ui);
+  cursor: pointer;
+}
+
+.pocket-prompt__enter {
+  border: 1px solid var(--gold-bright);
+  background: var(--gold-bright);
+  color: #141008;
+}
+
+.pocket-prompt__enter:hover:not(:disabled) {
+  background: #f5da81;
+}
+
+.pocket-prompt__enter:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.pocket-prompt__back {
+  border: 1px solid rgba(236, 229, 216, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--parchment);
+}
+
+.pocket-prompt__back:hover {
+  border-color: var(--gold-bright);
+}
+
+.pocket-rewind {
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+  pointer-events: none;
+  overflow: hidden;
+  background: rgba(11, 14, 22, calc(var(--rewind-opacity, 0) * 0.36));
+}
+
+.pocket-rewind[hidden] {
+  display: none;
+}
+
+.pocket-rewind__sweep {
+  position: absolute;
+  inset: -4px;
+  transform: translate3d(var(--rewind-jitter-x, 0px), var(--rewind-jitter-y, 0px), 0);
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(232, 198, 90, 0.03) 0px,
+    rgba(232, 198, 90, 0.03) 2px,
+    rgba(8, 12, 20, 0.08) 2px,
+    rgba(8, 12, 20, 0.08) 5px
+  );
+  opacity: var(--rewind-opacity, 0);
+}
+
+.pocket-rewind__band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--rewind-band-y, 100) * 1%);
+  height: 16%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(127, 214, 255, 0.14) 45%,
+    rgba(232, 198, 90, 0.16) 55%,
+    transparent
+  );
+  opacity: var(--rewind-opacity, 0);
+}
+
+.pocket-rewind__badge {
+  position: absolute;
+  left: max(1.4rem, env(safe-area-inset-left));
+  top: max(1.4rem, env(safe-area-inset-top));
+  padding: 0.35rem 0.7rem;
+  border: 1px solid rgba(232, 198, 90, 0.55);
+  border-radius: 3px;
+  background: rgba(10, 13, 20, 0.88);
+  color: var(--gold-bright);
+  font: 600 0.78rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.08em;
+  opacity: var(--rewind-opacity, 0);
+}
+
+/* ── Reduced motion, contrast, transparency & forced-colors ──────────────── */
+
+html[data-motion='reduced'] .pocket-prompt {
+  backdrop-filter: none;
+  background: rgba(6, 9, 15, 0.78);
+}
+
+html[data-motion='reduced'] .pocket-prompt__card {
+  transform: none;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pocket-prompt {
+    backdrop-filter: none;
+    background: rgba(6, 9, 15, 0.78);
+  }
+  .pocket-prompt__card {
+    transform: none;
+    opacity: 1;
+  }
+  .pocket-rewind__sweep {
+    transform: none;
+  }
+  .pocket-rewind__band {
+    display: none;
+  }
+}
+
+html[data-motion='reduced'] .pocket-rewind__band,
+html[data-motion='reduced'] .pocket-rewind__sweep {
+  transform: none;
+}
+
+html[data-motion='reduced'] .pocket-rewind__band {
+  display: none;
+}
+
+html[data-transparency='reduced'] .pocket-prompt {
+  backdrop-filter: none;
+  background: rgba(6, 8, 14, 0.94);
+}
+
+html[data-transparency='reduced'] .hud__passport,
+html[data-transparency='reduced'] .hud__pocket-back {
+  background: #111018;
+}
+
+html[data-contrast='high'] .hud__passport,
+html[data-contrast='high'] .hud__pocket-back,
+html[data-contrast='high'] .passport-page,
+html[data-contrast='high'] .passport-slot,
+html[data-contrast='high'] .passport-bonus,
+html[data-contrast='high'] .pocket-prompt__card {
+  background: #000;
+  border-color: #ffdf7a;
+}
+
+@media (max-width: 720px) {
+  .passport-spread {
+    grid-template-columns: 1fr;
+  }
+  .hud__top-actions {
+    top: max(0.65rem, env(safe-area-inset-top));
+  }
+  .hud--thread-active .hud__top-actions {
+    top: calc(max(0.65rem, env(safe-area-inset-top)) + 2.55rem);
+  }
+}
+
+@media (forced-colors: active) {
+  .hud__passport,
+  .hud__pocket-back,
+  .passport-summary,
+  .passport-summary__back,
+  .passport-page,
+  .passport-slot,
+  .passport-bonus,
+  .map__pocket-notice,
+  .pocket-prompt__card,
+  .pocket-prompt__enter,
+  .pocket-prompt__back,
+  .pocket-rewind__badge {
+    forced-color-adjust: auto;
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+  .passport-slot--stamped .passport-slot__seal {
+    background: Highlight;
+    color: HighlightText;
+    border-color: Highlight;
+  }
+}
