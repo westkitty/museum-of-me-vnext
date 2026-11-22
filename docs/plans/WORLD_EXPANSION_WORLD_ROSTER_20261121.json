@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "planStatus": "PLANNED_NOT_IMPLEMENTED",
+  "date": "2026-11-21",
+  "sourceOfTruth": "docs/plans/WORLD_EXPANSION_GROKBOT_MASTER_20261121.md",
+  "invariants": {
+    "cinema": "preserve existing current location, geometry and access",
+    "museum": "six wings, 35 slots, 17 authored visitors",
+    "mainIslandFirst": true,
+    "finalWorld": "W10",
+    "passportStampCount": 10,
+    "bonusWorlds": 1,
+    "worldsRequireRuntimeVerification": true
+  },
+  "order": [
+    {
+      "id": "W01",
+      "name": "Lagoon Depths",
+      "entry": "East lagoon water surface",
+      "camera": "first-person",
+      "stamp": true
+    },
+    {
+      "id": "W02",
+      "name": "Prehistoric Fern Island",
+      "entry": "Western Fern Ravine",
+      "camera": "first-person",
+      "stamp": true
+    },
+    {
+      "id": "W03",
+      "name": "Clockwork Sundial",
+      "entry": "Existing southwest astronomical marker terrace",
+      "camera": "first-person",
+      "stamp": true
+    },
+    {
+      "id": "W04",
+      "name": "Digital Beat World",
+      "entry": "E19 DexTilt exhibit if verified",
+      "camera": "first-person",
+      "stamp": true,
+      "noGestureUI": true
+    },
+    {
+      "id": "W05",
+      "name": "Impossible Greenhouse",
+      "entry": "Rooftop glasshouse giant flower",
+      "camera": "first-person",
+      "stamp": true
+    },
+    {
+      "id": "W06",
+      "name": "Skyborne Gardens",
+      "entry": "Rooftop cafe second flight pad",
+      "camera": "first-person",
+      "stamp": true
+    },
+    {
+      "id": "W07",
+      "name": "Portal Slingshot Trials",
+      "entry": "Back of verified least-populated wing, under-construction testing lab",
+      "camera": "first-person",
+      "stamp": true,
+      "rooms": 3
+    },
+    {
+      "id": "W08",
+      "name": "World Inside a Raindrop",
+      "entry": "Suspended droplet near reflecting rill",
+      "camera": "first-person",
+      "stamp": true
+    },
+    {
+      "id": "W09",
+      "name": "Museum Between Seconds",
+      "entry": "Ruined southern wooded observatory, broken orrery",
+      "camera": "first-person",
+      "stamp": true
+    },
+    {
+      "id": "L01",
+      "name": "Lighthouse at World's End",
+      "entry": "Peninsula lighthouse lens",
+      "camera": "first-person",
+      "stamp": false,
+      "bonus": true,
+      "passportPolicy": "provisional ten stamps plus bonus",
+      "phase": "after W09 before W10"
+    },
+    {
+      "id": "W10",
+      "name": "Breath of the Weasel",
+      "entry": "First-earned-stamp unlocked pier NPC or rooftop second flight pad when playable",
+      "camera": "third-person Dexter",
+      "stamp": true,
+      "implementationLast": true
+    }
+  ],
+  "islandSecret": {
+    "name": "Rootbound Hollow",
+    "stamp": false
+  },
+  "notes": [
+    "All exact spatial coordinates must be derived from runtime/source, never invented.",
+    "L01 is a proposed passport reconciliation pending any contradictory accepted contract.",
+    "No world is marked implemented or verified by this manifest."
+  ]
+}
