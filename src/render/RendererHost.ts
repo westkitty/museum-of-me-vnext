@@ -233,7 +233,16 @@ export class RendererHost {
     });
 
     const textureStart = performance.now();
-    for (const texture of textures) this.renderer.initTexture(texture);
+    let sliceStart = textureStart;
+    for (const texture of textures) {
+      if (this.disposed || this.contextLost) return false;
+      if (!texture.image) continue;
+      this.renderer.initTexture(texture);
+      if (performance.now() - sliceStart > this.warmSliceMs) {
+        await this.nextFrame();
+        sliceStart = performance.now();
+      }
+    }
     this.warmTelemetry.lastTextureInitCpuMs = performance.now() - textureStart;
     const compileStart = performance.now();
     await this.renderer.compileAsync(root, this.camera, this.scene);
@@ -282,6 +291,7 @@ export class RendererHost {
 
     let sliceStart = performance.now();
     for (const texture of textures) {
+      if (!texture.image) continue;
       this.renderer.initTexture(texture);
       if (performance.now() - sliceStart > this.warmSliceMs) { await this.nextFrame(); sliceStart = performance.now(); }
     }
@@ -335,7 +345,7 @@ export class RendererHost {
     // data than a hundred small props, and its upload is what takes the time.
     let bytes = 0;
     let take = 0;
-    while (take < this.uploadQueue.length && take < 48 && (take === 0 || bytes < UPLOAD_BYTES_PER_FRAME)) {
+    while (take < this.uploadQueue.length && take < 12 && (take === 0 || bytes < UPLOAD_BYTES_PER_FRAME)) {
       bytes += geometryBytes(this.uploadQueue[take].object);
       take++;
     }
@@ -398,23 +408,49 @@ export class RendererHost {
 
   /** Resolves after the next frame the single app loop draws (the only frame loop). */
   /**
-   * Warm-up work per frame: 6 ms, or half the time the last awaited frame took
-   * when frames are slow (capped), so slow devices still finish warming.
+   * Warm-up work per frame: 5 ms, growing only when frames are severely slow
+   * (> 40 ms, e.g. software WebGL), so 60 Hz hardware never cascades into missed vsyncs.
    */
-  private warmSliceMs = 6;
+  private warmSliceMs = 5;
+
+  waitForNextFrame(shouldContinue?: () => boolean): Promise<void> {
+    if (shouldContinue && !shouldContinue()) return Promise.resolve();
+    if (!shouldContinue) return this.nextFrame();
+    return new Promise<void>((resolve) => {
+      let settled = false;
+      let pollId: ReturnType<typeof setTimeout>;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(pollId);
+        resolve();
+      };
+      const poll = () => {
+        if (settled) return;
+        if (!shouldContinue() || this.disposed) {
+          finish();
+          return;
+        }
+        pollId = setTimeout(poll, 32);
+      };
+      pollId = setTimeout(poll, 32);
+      void this.nextFrame().then(finish, finish);
+    });
+  }
 
   private nextFrame(): Promise<void> {
     const waitStarted = performance.now();
     return new Promise<void>((resolve) => this.frameWaiters.push(resolve)).then(() => {
-      this.warmSliceMs = Math.min(250, Math.max(6, (performance.now() - waitStarted) * 0.5));
+      const waited = performance.now() - waitStarted;
+      this.warmSliceMs = waited > 40 ? Math.min(250, Math.max(5, waited * 0.5)) : 5;
     });
   }
 
   render(): void {
     if (this.frameWaiters.length) {
       const waiters = this.frameWaiters.splice(0);
-      // Resolve after this frame's work, so warm-up continues in the next task.
-      queueMicrotask(() => { for (const resolve of waiters) resolve(); });
+      // Resolve in a macrotask after this frame renders, so warm-up runs in the post-paint window.
+      setTimeout(() => { for (const resolve of waiters) resolve(); }, 0);
     }
     if (this.contextLost) return;
     if (this.uploadQueue.length) this.uploadBatch();
@@ -443,7 +479,7 @@ export class RendererHost {
   }
 }
 
-const UPLOAD_BYTES_PER_FRAME = 1_500_000;
+const UPLOAD_BYTES_PER_FRAME = 400_000;
 
 function geometryBytes(object: THREE.Object3D): number {
   const geometry = (object as THREE.Mesh).geometry as THREE.BufferGeometry | undefined;
