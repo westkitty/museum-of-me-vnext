@@ -14,6 +14,8 @@ test('ISLAND-04 keeps the exterior cast local, deferred, visible and interactive
   const failures: string[] = [];
   page.on('request', (request) => {
     const url = new URL(request.url());
+    // Vite serves URL-export JavaScript modules as *.glb?import in development.
+    if (url.searchParams.has('import') && request.resourceType() === 'script') return;
     if (/(?:hotdog-man|island-[^/]+)(?:-[\w-]+)?\.glb$/.test(url.pathname)) npcRequests.push(url);
   });
   page.on('pageerror', (error) => failures.push(error.message));
