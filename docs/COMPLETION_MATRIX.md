@@ -185,5 +185,6 @@ Plan: `docs/plans/WORLD_EXPANSION_GROKBOT_MASTER_20261121.md`. Rows are added as
 | ISLAND-02B southern wooded ruined observatory, winding trail, zodiac floor, telescope, broken dome & dormant W09 orrery | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST (human visual acceptance PENDING) | `tests/ruined-observatory.test.ts`, `tests/browser/ruined-observatory.e2e.ts`; `docs/evidence/island-02b-observatory-20261122/` |
 | ISLAND-02C Rootbound Hollow vaulted grotto & relic beneath Ancient Tree roots (no extra stamp) | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST (human visual acceptance PENDING) | `tests/rootbound-hollow.test.ts`, `tests/browser/rootbound-hollow.e2e.ts`; `docs/evidence/island-02c-rootbound-20261122/` |
 | Island safety: lagoon bank edge; fall safety net returns to last supported spot (no rescue loop) | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST | `tests/lagoon-edge-safety.test.ts`, `tests/browser/island-lagoon-safety.e2e.ts` |
-| ISLAND-02D … ISLAND-05, W01–W10, L01 | IN PROGRESS / PLANNED | master plan |
+| ISLAND-03 rooftop café, hot dog stand, glass greenhouse + dormant W05 flower, Flight Pad II with reduced-motion console | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST (human visual acceptance PENDING) | `tests/rooftop-architecture.test.ts`, `tests/browser/rooftop.e2e.ts`; `docs/evidence/island-03-rooftop-20261122/` |
+| ISLAND-02D, ISLAND-04 … ISLAND-05, W01–W10, L01 | IN PROGRESS / PLANNED | master plan |
 

@@ -34,8 +34,24 @@ import {
 import { FLIGHT_PAD_CENTER, isOnFlightPad, type Vec3 } from '../src/world/layout';
 import { FLIGHT_LAUNCH_SPEED, PLAYER_HEIGHT, PLAYER_RADIUS, PlayerController } from '../src/player/PlayerController';
 import { walkRoute } from './helpers/walk';
+import { AUDITORIUM, LOBBY, WALL_T, EXIT_PASSAGE } from '../src/world/cinemaLayout';
 
 describe('ISLAND-03 rooftop architecture & west flank access', () => {
+  it('derives the protected Cinema envelope from the real Cinema layout (envelope contains lobby, passage and auditorium)', () => {
+    const cinema = {
+      minX: Math.min(LOBBY.minX, EXIT_PASSAGE.minX),
+      maxX: AUDITORIUM.maxX + WALL_T,
+      minZ: Math.min(LOBBY.minZ, AUDITORIUM.minZ - WALL_T),
+      maxZ: Math.max(LOBBY.maxZ, AUDITORIUM.maxZ + WALL_T),
+      maxY: AUDITORIUM.ceilingY,
+    };
+    expect(PROTECTED_CINEMA_ENVELOPE.minX).toBeLessThanOrEqual(cinema.minX);
+    expect(PROTECTED_CINEMA_ENVELOPE.maxX).toBeGreaterThanOrEqual(cinema.maxX);
+    expect(PROTECTED_CINEMA_ENVELOPE.minZ).toBeLessThanOrEqual(cinema.minZ);
+    expect(PROTECTED_CINEMA_ENVELOPE.maxZ).toBeGreaterThanOrEqual(cinema.maxZ);
+    expect(PROTECTED_CINEMA_ENVELOPE.maxY).toBeGreaterThanOrEqual(cinema.maxY);
+  });
+
   it('keeps rooftopLayout free of Three.js imports and clear of Cinema, Dome, and Barrel roof peaks', () => {
     const layoutSource = readFileSync('src/world/exterior/rooftopLayout.ts', 'utf8');
     expect(layoutSource).not.toMatch(/from\s+['"]three['"]/);

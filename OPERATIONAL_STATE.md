@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 113,
+  "state_revision": 114,
   "last_updated": "2026-11-22",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -1266,3 +1266,10 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - **FIXED:** `addLagoonEdge` — 12 oriented 1.4 m bank-edge wall colliders along `LAGOON_OUTLINE` (water stays unsupported); safety net now returns the visitor to the last supported spot (no loop possible anywhere).
 - **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS (initial visit 11.53 MB / 20 MB); `tests/lagoon-edge-safety.test.ts`; Playwright `island-lagoon-safety` (4 banks, one-rescue-and-walk-back), `passage-traversal` (57/169), `island-landscape`, `island-landmark-walk`, `quality-transitions`, `performance-lifecycle`, `exterior-first`, `stability` PASS. Evidence `docs/evidence/island-lagoon-safety-20261122/`.
 - **NOT VERIFIED:** human feel of the bank edge; real-device performance. W01 dive entry not built.
+
+### 2026-11-22 — ISLAND-03 rooftop café, hot dog stand, glass greenhouse, Flight Pad II (r114)
+
+- **Base:** `main` `26fc6e5`. Branch `feat/island-03-rooftop-architecture` (Antigravity draft preserved as WIP `a7ed0aa`, integrated by non-force merge of `main`).
+- **IMPLEMENTED:** `rooftopLayout.ts` + `ExteriorRooftop.ts` — West Flank Ascent from Path 5, roof deck Y 18.6, café + tables, hot dog stand `[7.5, 18.6, 29]`, glass greenhouse + dormant W05 flower `[-26, 18.6, 10]`, Flight Pad II `[0, 18.6, 54]` (stronger launch, exterior-only; Pad I interior-only), reduced-motion console, guardrails; `rooftop-*` excluded from Journal; zero lights; Cinema envelope test derived from `cinemaLayout.ts`.
+- **VERIFIED BY AUTOMATED TEST (local):** typecheck, Vitest 128 files / 1,309 tests, Playwright rooftop + cinema + cinema-youtube + quality-transitions 12/12 (Chrome + SwiftShader). Evidence `docs/evidence/island-03-rooftop-20261122/`.
+- **NOT VERIFIED:** human visual acceptance, `perf:device`, hosted Pages. Hot Dog Man is ISLAND-04.
