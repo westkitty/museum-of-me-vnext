@@ -206,6 +206,7 @@ export class WorldDirector {
       this.activeWorld = 'interior';
       this.transition('INTERIOR_ACTIVE');
       this.app.interiorLoadTelemetry.transitionCommittedAtMs = performance.now();
+      this.app.onInteriorEntered?.();
 
       return true;
     } finally {

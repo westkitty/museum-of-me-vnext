@@ -93,16 +93,20 @@ export class DexterSanctuary {
       const a = Math.PI + (i - 0.5) * 0.52;
       const frame = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(1.35, 1.05, 0.06)), this.mat(0x322c25, 0.5, 0.3));
       const canLoad = typeof document !== 'undefined';
-      const material = url && canLoad
-        ? this.scope.track(new THREE.MeshStandardMaterial({
-            map: (() => {
-              const texture = loader.load(url);
-              texture.colorSpace = THREE.SRGBColorSpace;
-              return this.scope.track(texture);
-            })(),
-            roughness: 0.86,
-          }))
-        : this.mat(0x8a7a5c, 0.85);
+      let material: THREE.MeshStandardMaterial;
+      if (url && canLoad && typeof fetch === 'function' && typeof createImageBitmap === 'function') {
+        const texture = this.scope.track(new THREE.Texture());
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.flipY = false;
+        material = this.scope.track(new THREE.MeshStandardMaterial({ map: texture, roughness: 0.86 }));
+        void this.loadBitmapTexture(url, texture, material, loader);
+      } else if (url && canLoad) {
+        const texture = this.scope.track(loader.load(url));
+        texture.colorSpace = THREE.SRGBColorSpace;
+        material = this.scope.track(new THREE.MeshStandardMaterial({ map: texture, roughness: 0.86 }));
+      } else {
+        material = this.mat(0x8a7a5c, 0.85);
+      }
       const inner = new THREE.Mesh(this.scope.track(new THREE.PlaneGeometry(1.22, 0.92)), material);
       inner.name = `dexter-reference:${id}`;
       inner.position.z = 0.04;
@@ -117,6 +121,34 @@ export class DexterSanctuary {
     });
 
     this.buildScentRoute();
+  }
+
+  private async loadBitmapTexture(
+    url: string,
+    texture: THREE.Texture,
+    material: THREE.MeshStandardMaterial,
+    fallbackLoader: THREE.TextureLoader,
+  ): Promise<void> {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      if (this.scope.isDisposed) return;
+      const bitmap = await createImageBitmap(blob, { imageOrientation: 'flipY' });
+      if (this.scope.isDisposed) {
+        bitmap.close();
+        return;
+      }
+      this.scope.track({ dispose: () => bitmap.close() });
+      texture.image = bitmap;
+      texture.needsUpdate = true;
+    } catch {
+      if (this.scope.isDisposed) return;
+      const fallback = this.scope.track(fallbackLoader.load(url));
+      fallback.colorSpace = THREE.SRGBColorSpace;
+      material.map = fallback;
+      material.needsUpdate = true;
+    }
   }
 
   private buildScentRoute(): void {

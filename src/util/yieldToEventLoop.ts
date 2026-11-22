@@ -46,6 +46,9 @@ export class EventLoopYieldBudget {
     await this.yieldOnce();
     this.lastYieldAt = performance.now();
     const waited = this.lastYieldAt - waitStarted;
-    this.sliceMs = Math.min(this.maxSliceMs, Math.max(this.minSliceMs, waited * 0.5));
+    // Keep the minimum slice on 60/30 Hz hardware; only expand when frames stall (> 40 ms).
+    this.sliceMs = waited > 40
+      ? Math.min(this.maxSliceMs, Math.max(this.minSliceMs, waited * 0.5))
+      : this.minSliceMs;
   }
 }

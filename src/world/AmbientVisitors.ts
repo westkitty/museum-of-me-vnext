@@ -113,6 +113,7 @@ export class AmbientVisitors {
   private motionFrozen = false;
   private mixerElapsed = 0;
   private prototypes: VisitorPrototypes | null = null;
+  private prototypesPromise: Promise<VisitorPrototypes> | null = null;
   loadError: Error | null = null;
 
   constructor(private readonly scope: ResourceScope, count: number) {
@@ -144,7 +145,7 @@ export class AmbientVisitors {
   }
 
   /** Load governed prototypes, then clone skinned visitors without shared-skeleton corruption. */
-  async setPopulation(loader: AmbientAssetLoader, count: number): Promise<void> {
+  async setPopulation(loader: AmbientAssetLoader, count: number, yieldControl?: () => Promise<void>): Promise<void> {
     this.targetCount = Math.max(0, count);
     const token = ++this.loading;
     this.clearPopulation();
@@ -153,10 +154,11 @@ export class AmbientVisitors {
     if (this.targetCount === 0) return;
 
     try {
-      const prototypes = this.prototypes ?? await this.loadPrototypes(loader);
+      const prototypes = this.prototypes ?? await this.loadPrototypes(loader, yieldControl);
       if (token !== this.loading || this.scope.isDisposed) return;
       this.prototypes = prototypes;
-      this.populate(prototypes.men, prototypes.women, prototypes.posed);
+      await this.populate(prototypes.men, prototypes.women, prototypes.posed, token, yieldControl);
+      if (token !== this.loading || this.scope.isDisposed) return;
       this.setMotionFrozen(this.motionFrozen);
     } catch (error) {
       if (token !== this.loading) return;
@@ -171,8 +173,8 @@ export class AmbientVisitors {
    * Fetches and parses the visitor models ahead of time, without adding anyone
    * to the scene, so populating on entry does not parse 5 MB of GLB mid-walk.
    */
-  async preloadPrototypes(loader: AmbientAssetLoader): Promise<readonly THREE.Object3D[]> {
-    this.prototypes ??= await this.loadPrototypes(loader);
+  async preloadPrototypes(loader: AmbientAssetLoader, yieldControl?: () => Promise<void>): Promise<readonly THREE.Object3D[]> {
+    this.prototypes ??= await this.loadPrototypes(loader, yieldControl);
     return [this.prototypes.men.object, this.prototypes.women.object, this.prototypes.posed.object];
   }
 
@@ -234,14 +236,22 @@ export class AmbientVisitors {
     this.loading += 1;
     this.clearPopulation();
     this.prototypes = null;
+    this.prototypesPromise = null;
     this.group.removeFromParent();
     this.group.clear();
   }
 
-  private populate(men: LoadedAsset, women: LoadedAsset, posed: LoadedAsset): void {
+  private async populate(
+    men: LoadedAsset,
+    women: LoadedAsset,
+    posed: LoadedAsset,
+    token: number,
+    yieldControl?: () => Promise<void>,
+  ): Promise<void> {
     const random = rng(90909);
     const walkerCount = Math.max(1, this.targetCount - Math.min(3, Math.floor(this.targetCount / 2)));
     for (let index = 0; index < walkerCount; index++) {
+      if (token !== this.loading || this.scope.isDisposed) return;
       const source = index % 2 === 0 ? men : women;
       const mesh = cloneSkeleton(source.object) as THREE.Group;
       mesh.name = `ambient-walker:${index}`;
@@ -262,11 +272,13 @@ export class AmbientVisitors {
       // Match stride to ground speed so feet do not slide (clip authored near 1.15 m/s).
       walk.timeScale = speed / 1.15;
       this.walkers.push({ mesh, path, speed, pauses, mixer, walk, clock, farElapsed: 0 });
+      if (yieldControl) await yieldControl();
     }
 
     const exhibitIds = ['E02', 'E04', 'E05', 'E06'];
     const observerCount = this.targetCount - walkerCount;
     for (let index = 0; index < observerCount; index++) {
+      if (token !== this.loading || this.scope.isDisposed) return;
       const placement = PLACEMENT_BY_EXHIBIT.get(exhibitIds[index % exhibitIds.length]);
       if (!placement) continue;
       const mesh = cloneSkeleton(posed.object) as THREE.Group;
@@ -278,16 +290,24 @@ export class AmbientVisitors {
       mesh.rotation.y = spot.yaw;
       this.group.add(mesh);
       this.observers.push({ mesh });
+      if (yieldControl) await yieldControl();
     }
   }
 
-  private async loadPrototypes(loader: AmbientAssetLoader): Promise<VisitorPrototypes> {
-    const [men, women, posed] = await Promise.all([
-      loader.load(QUATERNIUS_ASSET_IDS.menCasual, this.scope),
-      loader.load(QUATERNIUS_ASSET_IDS.womenCasual, this.scope),
-      loader.load(QUATERNIUS_ASSET_IDS.posedSitting, this.scope),
-    ]);
-    return { men, women, posed };
+  private loadPrototypes(loader: AmbientAssetLoader, yieldControl?: () => Promise<void>): Promise<VisitorPrototypes> {
+    if (this.prototypesPromise) return this.prototypesPromise;
+    const loading = (async () => {
+      const men = await loader.load(QUATERNIUS_ASSET_IDS.menCasual, this.scope);
+      if (yieldControl && !this.scope.isDisposed) await yieldControl();
+      const women = await loader.load(QUATERNIUS_ASSET_IDS.womenCasual, this.scope);
+      if (yieldControl && !this.scope.isDisposed) await yieldControl();
+      const posed = await loader.load(QUATERNIUS_ASSET_IDS.posedSitting, this.scope);
+      return { men, women, posed };
+    })();
+    this.prototypesPromise = loading;
+    return loading.finally(() => {
+      if (this.prototypesPromise === loading) this.prototypesPromise = null;
+    });
   }
 
   private setMotionFrozen(frozen: boolean): void {

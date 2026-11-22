@@ -11,7 +11,7 @@ import { SourceVisitors } from './SourceVisitors';
 import { SupplementaryCases } from './SupplementaryCases';
 import { SourceInstallations, INSTALLATION_HELD_CODES } from './SourceInstallations';
 import { PersistentEnvironment } from './PersistentEnvironment';
-import { EventLoopYieldBudget } from '../util/yieldToEventLoop';
+import { EventLoopYieldBudget, yieldToEventLoop } from '../util/yieldToEventLoop';
 import type { App } from '../app/App';
 import { CinemaVenue } from '../cinema/CinemaVenue';
 import { CINEMA_PROGRAMME } from '../cinema/programme';
@@ -53,9 +53,12 @@ export class InteriorWorld {
     this.root.visible = false;
   }
 
-  /** Build the dormant interior in bounded event-loop slices while the exterior stays playable. */
+  /** Build the dormant interior in bounded frame-paced slices while the exterior stays playable. */
   async buildCooperatively(): Promise<void> {
-    const yieldBudget = new EventLoopYieldBudget(8);
+    const yieldOnce = (): Promise<void> => (this.app.loop.isRunning
+      ? this.app.renderer.waitForNextFrame(() => this.app.loop.isRunning && !this.scope.isDisposed)
+      : yieldToEventLoop());
+    const yieldBudget = new EventLoopYieldBudget(3, 250, yieldOnce);
     this.museum = this.measureBuildStage('museum.constructor', () => new Museum(this.scope));
     this.built = await this.measureBuildStageAsync('museum.build', () =>
       this.museum.buildCooperatively(() => yieldBudget.checkpoint()));

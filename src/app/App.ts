@@ -305,12 +305,9 @@ export class App implements LoopCallbacks {
         interior.setActive(this.activeWorld === 'interior');
         this.renderer.scene.add(interior.root);
         this.interiorWorldWarmed = false;
-        const warmed = this.renderer.warmWorld(interior.root)
+        this.interiorWarmPromise = this.renderer.warmWorld(interior.root)
           .catch((error) => console.warn('[App] interior warm-up incomplete', error))
           .finally(() => { this.interiorWorldWarmed = true; });
-        // Visitors join only once the visitor is inside; parse and compile their
-        // models now so that moment is not a stall. The doorway does not wait for it.
-        void warmed.then(() => this.preloadAmbientVisitors(interior!));
         this.worldDirector.interiorConstructed = true;
         this.scheduleAmbientPopulation(true);
         return interior;
@@ -533,12 +530,34 @@ export class App implements LoopCallbacks {
     if (!quiet) this.audio.secretChime();
   }
 
+  private interiorWarmPromise: Promise<void> | null = null;
+  private ambientPreloadPromise: Promise<void> | null = null;
+
+  private yieldForAmbient(): Promise<void> {
+    return this.renderer.waitForNextFrame(() => this.loop.isRunning && !this.disposed);
+  }
+
+  /** Begin off-screen ambient visitor preloading only after entering the interior. */
+  onInteriorEntered(): void {
+    const target = this.interiorWorld;
+    if (!target || this.ambientPreloadPromise) return;
+    this.ambientPreloadPromise = (async () => {
+      await this.interiorWarmPromise;
+      if (this.disposed || this.interiorWorld !== target) return;
+      await this.preloadAmbientVisitors(target);
+    })();
+  }
+
   private async preloadAmbientVisitors(interior: InteriorWorld): Promise<void> {
     if (this.renderer.quality.ambientVisitors <= 0) return;
     try {
-      for (const prototype of await interior.visitors.preloadPrototypes(this.assets)) {
+      const yieldFrame = () => this.yieldForAmbient();
+      for (const prototype of await interior.visitors.preloadPrototypes(this.assets, yieldFrame)) {
+        if (this.disposed || this.interiorWorld !== interior) return;
         await this.renderer.prewarmObject(prototype);
+        if (this.disposed || this.interiorWorld !== interior) return;
         await this.renderer.uploadObject(prototype);
+        await yieldFrame();
       }
     } catch (error) {
       // setPopulation reports a real failure when it runs; this is only a head start.
@@ -560,19 +579,27 @@ export class App implements LoopCallbacks {
         && prewarm.prewarmTotal > 0 && prewarm.prewarmWarmed === prewarm.prewarmTotal;
       const titleWindowSpent = now >= titleWindowEnds;
       const interiorVisible = this.activeWorld === 'interior';
-      const safeToPopulate = Boolean(allEntranceTargetsWarm)
-        || (interiorVisible && titleWindowSpent);
+      const safeToPopulate = this.interiorWorldWarmed && (Boolean(allEntranceTargetsWarm)
+        || (interiorVisible && titleWindowSpent));
 
-      if (!safeToPopulate && (now < fallbackDeadline || !interiorVisible)) {
+      if (!interiorVisible || !this.interiorWorldWarmed || (!safeToPopulate && now < fallbackDeadline)) {
         this.ambientLoadTimer = window.setTimeout(tryPopulate, interiorVisible ? 200 : 500);
         return;
       }
       this.ambientLoadTimer = null;
-      if (this.interiorWorld && interiorVisible) {
-        void this.interiorWorld.visitors.setPopulation(this.assets, this.renderer.quality.ambientVisitors).catch((error) => {
-          console.error('Ambient visitors unavailable; no placeholder crowd was created.', error);
-          if (announceFailure) this.ui.hud.announce('Ambient visitors are unavailable on this device.');
-        });
+      const target = this.interiorWorld;
+      if (target && interiorVisible) {
+        const yieldFrame = () => this.yieldForAmbient();
+        this.onInteriorEntered();
+        void (this.ambientPreloadPromise ?? Promise.resolve())
+          .then(() => {
+            if (this.disposed || this.interiorWorld !== target || this.activeWorld !== 'interior') return;
+            return target.visitors.setPopulation(this.assets, this.renderer.quality.ambientVisitors, yieldFrame);
+          })
+          .catch((error) => {
+            console.error('Ambient visitors unavailable; no placeholder crowd was created.', error);
+            if (announceFailure) this.ui.hud.announce('Ambient visitors are unavailable on this device.');
+          });
       }
     };
 
