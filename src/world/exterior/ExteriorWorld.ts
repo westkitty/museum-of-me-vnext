@@ -12,6 +12,7 @@ import { ExteriorWaymarkers } from './ExteriorWaymarkers';
 import { TicketKiosk } from './TicketKiosk';
 import { ObsidianSphereEntrance } from './ObsidianSphereEntrance';
 import { ExteriorLighthouse } from './ExteriorLighthouse';
+import { ExteriorObservatory } from './ExteriorObservatory';
 import { addIslandSupport } from './IslandSiteLayout';
 import { START_POSITION, START_YAW } from '../start';
 import {
@@ -54,6 +55,8 @@ export class ExteriorWorld {
   readonly sphereEntrance: ObsidianSphereEntrance;
   /** Climbable southeast coastal peninsula and lighthouse (ISLAND-02A). */
   readonly lighthouse: ExteriorLighthouse;
+  /** Southern wooded hill ruined observatory (ISLAND-02B). */
+  readonly observatory: ExteriorObservatory;
 
   readonly spawnPosition: Vec3 = START_POSITION;
   readonly spawnYaw = START_YAW;
@@ -131,6 +134,9 @@ export class ExteriorWorld {
 
     this.lighthouse = new ExteriorLighthouse(this.scope, this.collision);
     this.root.add(this.lighthouse.group);
+
+    this.observatory = new ExteriorObservatory(this.scope, this.collision);
+    this.root.add(this.observatory.group);
   }
 
   /**
@@ -299,6 +305,7 @@ export class ExteriorWorld {
     this.ticketKiosk.update(dt);
     this.sphereEntrance.update(dt, eye, reducedMotion);
     this.lighthouse.update(dt, reducedMotion);
+    this.observatory.update(dt, reducedMotion);
   }
 
   dispose(): void {

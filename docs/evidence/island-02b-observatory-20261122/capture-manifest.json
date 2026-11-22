@@ -1,0 +1,39 @@
+{
+  "captures": [
+    {
+      "name": "woodland-glimpse.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 148742,
+      "sha256": "71cdd68dc2a921abae1bc954639dfc91c803dc7f315599a8c93f0f2284f4c47e"
+    },
+    {
+      "name": "hill-approach-ramp.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 147769,
+      "sha256": "9947aab6d35875a38482ea09865541394d9b3a3e01db3a1932deb83cb754ed85"
+    },
+    {
+      "name": "rotunda-orrery-telescope.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 309552,
+      "sha256": "db94d82aedaa53da673f52ba9c8e259abd16d8764e84488b2f12c0b5238a1373"
+    },
+    {
+      "name": "orrery-interaction.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 420329,
+      "sha256": "0f8f8de7c458809d54a3c481aaa7aea96e9552934715f090a28de568b43ad2d6"
+    },
+    {
+      "name": "observatory-mobile-portrait.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 62508,
+      "sha256": "eab19234ee8d64d82bbac9e49a84baa067d2d7d39c378d77c36a3f2130171635"
+    }
+  ]
+}

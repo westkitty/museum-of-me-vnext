@@ -1,7 +1,7 @@
 import type { Vec3 } from '../layout';
 import {
   ANCIENT_TREE_CENTER, ANCIENT_TREE_CLEARING_RADIUS, LIGHTHOUSE_PENINSULA_CENTER,
-  SPIRE_GARDEN_CENTER, SPIRE_GARDEN_RADIUS,
+  OBSERVATORY_CENTER, SPIRE_GARDEN_CENTER, SPIRE_GARDEN_RADIUS,
 } from './IslandSiteLayout';
 
 /**
@@ -74,6 +74,9 @@ export const ISLAND_LANDMARKS: readonly IslandLandmark[] = [
   { id: 'lighthouse-peninsula', label: 'Coastal lighthouse peninsula', featureName: 'lighthouse-peninsula-tower',
     focus: [LIGHTHOUSE_PENINSULA_CENTER[0], 9.0, LIGHTHOUSE_PENINSULA_CENTER[2]],
     approach: [134, 144], inspection: [146, 151], clearing: 18, corridor: 2.6 },
+  { id: 'ruined-observatory', label: 'Southern wooded ruined observatory', featureName: 'southern-ruined-observatory',
+    focus: [OBSERVATORY_CENTER[0], 6.5, OBSERVATORY_CENTER[2]],
+    approach: [44.5, 94], inspection: [68, 95.8], clearing: 14, corridor: 2.6 },
 ];
 
 function segmentDistance(x: number, z: number, a: readonly [number, number], b: readonly [number, number]): number {
