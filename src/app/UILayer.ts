@@ -320,6 +320,14 @@ export class UILayer {
         this.mirror.setCurrentExhibit(exhibitId);
         this.mirror.refreshState();
       }),
+      app.audio.onMusicDescription((event) => {
+        if (app.preferences.subtitles) this.hud.announce(event.text, 4.5);
+        this.mirror.announce(event.text);
+        this.mirror.setMusicStatus(app.audio.activeMusicStatusText());
+      }),
+      app.audio.onMusicStateChange(() => {
+        this.mirror.setMusicStatus(app.audio.activeMusicStatusText());
+      }),
     );
 
     this.unbind.push(
@@ -589,7 +597,11 @@ export class UILayer {
     document.documentElement.dataset.motion = p.reducedMotion ? 'reduced' : 'full';
     this.app.camera.fov = p.fieldOfView;
     this.app.camera.updateProjectionMatrix();
-    this.app.audio.setVolumes(p.masterVolume, p.ambienceVolume);
+    this.app.audio.setVolumes(p.masterVolume, p.ambienceVolume, p.musicVolume);
+    if (('masterVolume' in patch || 'ambienceVolume' in patch || 'musicVolume' in patch) && p.masterVolume > 0) {
+      this.app.audio.start();
+      this.app.audio.setZone(this.app.currentZone);
+    }
     savePreferences(p);
   }
 

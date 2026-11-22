@@ -188,7 +188,7 @@ export class App implements LoopCallbacks {
     }
     const loaded = loadPreferencesResult();
     this.preferences = loaded.preferences;
-    this.audio.setVolumes(this.preferences.masterVolume, this.preferences.ambienceVolume);
+    this.audio.setVolumes(this.preferences.masterVolume, this.preferences.ambienceVolume, this.preferences.musicVolume);
     this.journal = new Journal();
     this.visitThread = new VisitThread();
     this.study = new Study(() => new Set([
@@ -264,6 +264,7 @@ export class App implements LoopCallbacks {
     this.input.on('interact', () => {
       if (!this.input.uiCaptured && this.interaction.activate()) {
         this.recordInteractionVisit();
+        if (this.preferences.masterVolume > 0) this.audio.start();
         this.audio.tick();
       }
     });
@@ -277,6 +278,11 @@ export class App implements LoopCallbacks {
     }, () => !this.ui.fullWeasel.isOpen, (reason) => {
       this.pocketHost.abortPendingEntry();
       if (reason === 'contextlost') this.pocketHost.exit({ reason: 'abort', viaVhsRewind: false });
+      if (reason !== 'hidden' || this.preferences.autoPauseOnBlur) {
+        this.audio.suspendForLifecycle(reason);
+      }
+    }, (reason) => {
+      this.audio.resumeFromLifecycle(reason);
     });
   }
 
@@ -759,6 +765,7 @@ export class App implements LoopCallbacks {
     );
 
     this.ui?.pocketTransition.update(dt);
+    this.audio.update(dt);
     if (this.pocketHost.isActive) {
       if (this.pocketHost.usesMuseumSky) this.sky.follow(this.camera);
       this.interaction.update(this.camera, dt);

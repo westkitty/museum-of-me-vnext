@@ -2,6 +2,8 @@ import type * as THREE from 'three';
 import type { ResourceScope } from '../../assets/ResourceScope';
 import type { AssetManager } from '../../assets/AssetManager';
 import type { AudioManager } from '../../audio/AudioManager';
+import type { MusicCueSheet } from '../../audio/cueSheet';
+import type { CreateMusicSessionOptions, MusicSession } from '../../audio/MusicSession';
 import type { InteractionManager } from '../../interaction/InteractionManager';
 import type { InputManager } from '../../player/Input';
 import type { PlayerController } from '../../player/PlayerController';
@@ -71,6 +73,15 @@ export interface PocketWorldContext {
   readonly assets: AssetManager;
   readonly quality: QualitySettings;
   readonly signal: AbortSignal;
+  /**
+   * Create a music session bound to this pocket world's `ResourceScope` and
+   * `AbortSignal`. Automatically stops playback, disconnects nodes, and
+   * releases decoded audio buffers on pocket exit, abort, or context loss.
+   */
+  createMusicSession(
+    cueSheet: MusicCueSheet,
+    options?: CreateMusicSessionOptions,
+  ): MusicSession;
   reducedMotion(): boolean;
   announce(message: string, seconds?: number): void;
   /** Mark the current run eligible for completion when exiting with `completed: true`. */

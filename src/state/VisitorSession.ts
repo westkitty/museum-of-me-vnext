@@ -87,9 +87,12 @@ export function previewVisitorSession(raw: string, parts: Pick<SessionParts, 'st
     description.push(`${result.preview.collections.length} Study collections`);
   }
   if (wrapped || preferences !== undefined) {
+    const prefVersion = record(preferences) && typeof preferences.version === 'number' ? preferences.version : 0;
     if (!record(preferences) || !supportedVersion(preferences, PREFERENCES_VERSION)
-      || Object.entries(DEFAULT_PREFERENCES).some(([key, value]) =>
-        (wrapped || preferences[key] !== undefined) && typeof preferences[key] !== typeof value)) {
+      || Object.entries(DEFAULT_PREFERENCES).some(([key, value]) => {
+        if (key === 'musicVolume' && prefVersion < 4 && preferences[key] === undefined) return false;
+        return (wrapped || preferences[key] !== undefined) && typeof preferences[key] !== typeof value;
+      })) {
       throw new Error('The preferences record is invalid.');
     }
     const state = JSON.stringify(sanitizePreferences(preferences));

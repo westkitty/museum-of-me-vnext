@@ -31,6 +31,7 @@ export class Lifecycle {
     private readonly onNotice: (message: string) => void,
     private readonly canResume: () => boolean = () => true,
     private readonly onInterrupted: (reason: string) => void = () => {},
+    private readonly onResumed: (reason: string) => void = () => {},
   ) {
     this.listen(document, 'visibilitychange', () => this.onVisibility());
     this.listen(window, 'pagehide', () => this.suspend('pagehide'));
@@ -181,7 +182,10 @@ export class Lifecycle {
     // rendering while the document was still hidden, defeating autoPauseOnBlur
     // until the next real visibility event happened to correct it.
     if (reason !== 'contextrestored') this.hidden = false;
-    if (!this.contextLost && !this.hidden && this.canResume() && !this.loop.isRunning) this.loop.start();
+    if (!this.contextLost && !this.hidden && this.canResume()) {
+      if (!this.loop.isRunning) this.loop.start();
+      this.onResumed(reason);
+    }
   }
 
   private async releaseWakeLock(): Promise<void> {

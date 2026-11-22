@@ -375,6 +375,59 @@ export class PocketWorldHost {
       assets: this.host.assets,
       quality: this.host.getQuality(),
       signal: abortController.signal,
+      createMusicSession: (cueSheet, options = {}) => {
+        const boundScope = options.scope ?? scope;
+        let boundSignal = abortController.signal;
+        let combinedController: AbortController | null = null;
+        let cleanupCombinedListeners: (() => void) | null = null;
+
+        if (options.signal && options.signal !== abortController.signal) {
+          combinedController = new AbortController();
+          const forwardAbort = () => combinedController?.abort();
+          if (abortController.signal.aborted || options.signal.aborted) {
+            combinedController.abort();
+          } else {
+            abortController.signal.addEventListener('abort', forwardAbort, { once: true });
+            options.signal.addEventListener('abort', forwardAbort, { once: true });
+            cleanupCombinedListeners = () => {
+              abortController.signal.removeEventListener('abort', forwardAbort);
+              options.signal?.removeEventListener('abort', forwardAbort);
+            };
+          }
+          boundSignal = combinedController.signal;
+        }
+
+        const musicSession = this.host.audio.createMusicSession(cueSheet, {
+          ...options,
+          scope: boundScope,
+          signal: boundSignal,
+        });
+
+        // If caller passed a custom child scope, still tie lifecycle cleanup to the pocket root scope.
+        let parentWrapper: { dispose(): void } | null = null;
+        if (boundScope !== scope) {
+          parentWrapper = { dispose: () => musicSession.dispose() };
+          if (!scope.isDisposed) scope.track(parentWrapper);
+        }
+
+        if (cleanupCombinedListeners || parentWrapper) {
+          const offState = musicSession.onStateChange((snap) => {
+            if (snap.state === 'disposed') {
+              cleanupCombinedListeners?.();
+              cleanupCombinedListeners = null;
+              if (parentWrapper) scope.untrack(parentWrapper);
+              offState();
+            }
+          });
+          if (musicSession.isDisposed) {
+            cleanupCombinedListeners?.();
+            cleanupCombinedListeners = null;
+            if (parentWrapper) scope.untrack(parentWrapper);
+            offState();
+          }
+        }
+        return musicSession;
+      },
       reducedMotion: () => this.host.reducedMotion(),
       announce: (message, seconds) => this.host.announce(message, seconds),
       saveCheckpoint: () => {

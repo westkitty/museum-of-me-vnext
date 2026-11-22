@@ -14,6 +14,7 @@ import type { StreamingManager } from '../exhibits/StreamingManager';
  */
 export class DomMirror {
   private readonly liveRegion: HTMLElement;
+  private readonly musicStatusBlock: HTMLElement;
   private readonly stateBlock: HTMLElement;
   private currentExhibit: string | null = null;
 
@@ -24,6 +25,7 @@ export class DomMirror {
     private readonly onOpenThread?: () => void,
   ) {
     this.liveRegion = el('p', { role: 'status', 'aria-live': 'polite', class: 'a11y-live' });
+    this.musicStatusBlock = el('p', { class: 'a11y-music-status', hidden: true });
     this.stateBlock = el('div', {});
     this.build();
     this.root.addEventListener('keydown', this.onKeyDown);
@@ -78,6 +80,7 @@ export class DomMirror {
       this.onOpenThread ? el('button', { type: 'button', class: 'panel__card', text: 'Open Visit Thread — build a local self-guided route without teleporting', onclick: () => this.onOpenThread?.() }) : document.createTextNode(''),
       el('h2', { text: 'Where you are' }),
       this.stateBlock,
+      this.musicStatusBlock,
       this.liveRegion,
       el('h2', { id: 'a11y-collection', text: 'The collection' }),
       ...this.collectionNodes(),
@@ -161,6 +164,17 @@ export class DomMirror {
 
   announce(message: string): void {
     this.liveRegion.textContent = message;
+  }
+
+  /** Steady, non-flashing description of active musical playback and cues. */
+  setMusicStatus(status: string | null): void {
+    if (!status) {
+      this.musicStatusBlock.textContent = '';
+      this.musicStatusBlock.hidden = true;
+      return;
+    }
+    this.musicStatusBlock.textContent = status;
+    this.musicStatusBlock.hidden = false;
   }
 
   focus(): void {

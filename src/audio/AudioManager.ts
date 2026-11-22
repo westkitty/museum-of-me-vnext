@@ -1,4 +1,13 @@
+import type { AssetRecord } from '../assets/manifest';
 import type { ZoneId } from '../world/layout';
+import { AudioAssetLoader } from './AudioAssetLoader';
+import type { MusicCueSheet } from './cueSheet';
+import {
+  MusicSession,
+  type CreateMusicSessionOptions,
+  type MusicCueDescriptionEvent,
+  type MusicSessionHost,
+} from './MusicSession';
 
 interface ZoneBed {
   readonly base: number;
@@ -37,20 +46,81 @@ interface Voice {
   cleanupTimer: ReturnType<typeof setTimeout> | null;
 }
 
+export interface AudioManagerOptions {
+  readonly fetchFn?: typeof fetch;
+  readonly resolveAsset?: (assetId: string) => AssetRecord | undefined;
+}
+
+export interface AudioVolumes {
+  readonly master: number;
+  readonly ambience: number;
+  readonly music: number;
+  readonly sfx: number;
+}
+
+export interface AudioBuses {
+  readonly master: GainNode | null;
+  readonly ambience: GainNode | null;
+  readonly sfx: GainNode | null;
+  readonly music: GainNode | null;
+}
+
+function clampVolume(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(1, value));
+}
+
 export class AudioManager {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private ambienceGain: GainNode | null = null;
+  private sfxGain: GainNode | null = null;
+  private musicGain: GainNode | null = null;
   private readonly voices = new Map<ZoneId, Voice>();
 
   private currentZone: ZoneId | null = null;
   private masterVolume = 0;
   private ambienceVolume = 0;
+  private musicVolume = 0;
+  private sfxVolume = 1;
   private started = false;
+  private museumAmbiencePaused = false;
+  private lifecycleSuspended = false;
+
+  private readonly loader: AudioAssetLoader;
+  private readonly musicSessions = new Set<MusicSession>();
+  private readonly musicDescriptionListeners = new Set<(event: MusicCueDescriptionEvent) => void>();
+  private readonly musicStateListeners = new Set<() => void>();
+  private ctxStateListener: (() => void) | null = null;
+
+  private readonly sessionHost: MusicSessionHost = {
+    getContext: () => this.ctx,
+    getMusicBus: () => this.musicGain,
+    isMusicAudible: () => this.isMusicAudible(),
+    isLifecycleSuspended: () => this.lifecycleSuspended,
+    getAssetLoader: () => this.loader,
+    onSessionDisposed: (session) => {
+      this.musicSessions.delete(session);
+    },
+    emitDescription: (event) => {
+      for (const fn of [...this.musicDescriptionListeners]) fn(event);
+    },
+    emitStateChange: () => {
+      for (const fn of [...this.musicStateListeners]) fn();
+    },
+  };
+
+  constructor(options: AudioManagerOptions = {}) {
+    this.loader = new AudioAssetLoader({
+      getContext: () => this.ctx,
+      fetchFn: options.fetchFn,
+      resolveAsset: options.resolveAsset,
+    });
+  }
 
   /** Deferred until a real gesture; browsers refuse audio before one. */
   start(): void {
-    if (this.started) return;
+    if (this.started || typeof window === 'undefined') return;
     try {
       const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!Ctor) return;
@@ -58,9 +128,26 @@ export class AudioManager {
       this.master = this.ctx.createGain();
       this.master.gain.value = this.masterVolume;
       this.master.connect(this.ctx.destination);
+
       this.ambienceGain = this.ctx.createGain();
       this.ambienceGain.gain.value = this.ambienceVolume;
       this.ambienceGain.connect(this.master);
+
+      this.sfxGain = this.ctx.createGain();
+      this.sfxGain.gain.value = this.sfxVolume;
+      this.sfxGain.connect(this.master);
+
+      this.musicGain = this.ctx.createGain();
+      this.musicGain.gain.value = this.musicVolume;
+      this.musicGain.connect(this.master);
+
+      if (typeof this.ctx.addEventListener === 'function') {
+        this.ctxStateListener = () => {
+          this.syncAllMusicSessions(this.lifecycleSuspended);
+        };
+        this.ctx.addEventListener('statechange', this.ctxStateListener);
+      }
+
       this.started = true;
       this.syncPlaybackState();
     } catch (err) {
@@ -72,12 +159,162 @@ export class AudioManager {
     return this.started && this.ctx?.state === 'running';
   }
 
-  setVolumes(master: number, ambience: number): void {
-    this.masterVolume = master;
-    this.ambienceVolume = ambience;
-    if (this.master) this.master.gain.value = master;
-    if (this.ambienceGain) this.ambienceGain.gain.value = ambience;
+  get isAudioAvailable(): boolean {
+    return this.started && this.ctx !== null && this.ctx.state !== 'closed';
+  }
+
+  get context(): AudioContext | null {
+    return this.ctx;
+  }
+
+  get buses(): AudioBuses {
+    return {
+      master: this.master,
+      ambience: this.ambienceGain,
+      sfx: this.sfxGain,
+      music: this.musicGain,
+    };
+  }
+
+  get assetLoader(): AudioAssetLoader {
+    return this.loader;
+  }
+
+  get activeMusicSessionCount(): number {
+    return this.musicSessions.size;
+  }
+
+  getVolumes(): AudioVolumes {
+    return {
+      master: this.masterVolume,
+      ambience: this.ambienceVolume,
+      music: this.musicVolume,
+      sfx: this.sfxVolume,
+    };
+  }
+
+  isMusicAudible(): boolean {
+    return this.masterVolume > 0 && this.musicVolume > 0;
+  }
+
+  setVolumes(master: number, ambience: number, music = this.musicVolume, sfx = this.sfxVolume): void {
+    this.masterVolume = clampVolume(master);
+    this.ambienceVolume = clampVolume(ambience);
+    this.musicVolume = clampVolume(music);
+    this.sfxVolume = clampVolume(sfx);
+    if (this.master) this.master.gain.value = this.masterVolume;
+    if (this.ambienceGain) this.ambienceGain.gain.value = this.ambienceVolume;
+    if (this.musicGain) this.musicGain.gain.value = this.musicVolume;
+    if (this.sfxGain) this.sfxGain.gain.value = this.sfxVolume;
     if (this.started) this.syncPlaybackState();
+    else this.syncAllMusicSessions(this.lifecycleSuspended);
+  }
+
+  setMusicVolume(music: number): void {
+    this.setVolumes(this.masterVolume, this.ambienceVolume, music, this.sfxVolume);
+  }
+
+  setSfxVolume(sfx: number): void {
+    this.setVolumes(this.masterVolume, this.ambienceVolume, this.musicVolume, sfx);
+  }
+
+  /** Create a synchronized multitrack music session routed through `musicGain`. */
+  createMusicSession(
+    cueSheet: MusicCueSheet,
+    options: CreateMusicSessionOptions = {},
+  ): MusicSession {
+    const session = new MusicSession(this.sessionHost, cueSheet, options);
+    if (!session.isDisposed) {
+      this.musicSessions.add(session);
+      this.sessionHost.emitStateChange();
+    }
+    return session;
+  }
+
+  /** Crossfade from one active music session to another over `durationSeconds`. */
+  async crossfadeMusic(
+    from: MusicSession | null,
+    to: MusicSession,
+    durationSeconds = 0.8,
+    playTo = true,
+  ): Promise<boolean> {
+    const safeFade = Number.isFinite(durationSeconds) && durationSeconds > 0 ? durationSeconds : 0;
+    if (from && from !== to && !from.isDisposed) {
+      from.fadeOutAndStop(safeFade);
+    }
+    if (to.isDisposed) return false;
+    if (safeFade > 0) {
+      to.setSessionGain(0, 0);
+    }
+    const started = playTo ? await to.play() : true;
+    if (started && !to.isDisposed) {
+      to.setSessionGain(1, safeFade);
+    }
+    return started;
+  }
+
+  stopAllMusic(): void {
+    for (const session of [...this.musicSessions]) {
+      session.stop();
+    }
+  }
+
+  /** Advance active music sessions and scheduled fade envelopes from the single Loop. */
+  update(dt: number): void {
+    for (const session of [...this.musicSessions]) {
+      session.update(dt);
+    }
+  }
+
+  /** Freeze music transport timelines and suspend Web Audio during lifecycle pause/tab hide. */
+  suspendForLifecycle(_reason = 'hidden'): void {
+    const wasSuspended = this.lifecycleSuspended;
+    this.lifecycleSuspended = true;
+    this.syncAllMusicSessions(wasSuspended);
+    if (this.ctx && this.ctx.state === 'running') {
+      void this.ctx.suspend().catch(() => {});
+    }
+  }
+
+  /** Resume music transport timelines and Web Audio when visibility/context returns. */
+  resumeFromLifecycle(_reason = 'visible'): void {
+    const wasSuspended = this.lifecycleSuspended;
+    this.lifecycleSuspended = false;
+    if (this.started && this.ctx && this.masterVolume > 0 && this.ctx.state !== 'running') {
+      void this.ctx.resume()
+        .then(() => {
+          this.syncPlaybackState();
+          this.syncAllMusicSessions(wasSuspended);
+        })
+        .catch(() => {});
+    }
+    this.syncAllMusicSessions(wasSuspended);
+    if (this.started) this.syncPlaybackState();
+  }
+
+  onMusicDescription(fn: (event: MusicCueDescriptionEvent) => void): () => void {
+    this.musicDescriptionListeners.add(fn);
+    return () => this.musicDescriptionListeners.delete(fn);
+  }
+
+  onMusicStateChange(fn: () => void): () => void {
+    this.musicStateListeners.add(fn);
+    return () => this.musicStateListeners.delete(fn);
+  }
+
+  /** Accessible plain-text summary of active music playback and latest descriptive cue. */
+  activeMusicStatusText(): string | null {
+    for (const session of this.musicSessions) {
+      if (session.state === 'playing' || session.state === 'loading' || session.state === 'paused') {
+        const snap = session.snapshot();
+        const stateLabel = snap.state === 'paused' ? 'Paused' : snap.state === 'loading' ? 'Loading' : 'Playing';
+        const modeNote = snap.isMuted ? ' (muted · visual cues active)' : '';
+        return snap.currentDescription
+          ? `${stateLabel}: ${snap.title}${modeNote} — ${snap.currentDescription}`
+          : `${stateLabel}: ${snap.title}${modeNote}`;
+      }
+    }
+    return null;
   }
 
   /** Crossfade to a zone's bed. Called when the visitor changes zone. */
@@ -90,8 +327,6 @@ export class AudioManager {
     this.museumAmbiencePaused = false;
     this.setZone(zone);
   }
-
-  private museumAmbiencePaused = false;
 
   setZone(zone: ZoneId): void {
     this.currentZone = zone;
@@ -138,8 +373,8 @@ export class AudioManager {
 
   /** A short, quiet confirmation for an exhibit interaction. */
   tick(pitch = 660): void {
-    if (!this.started || !this.ctx || !this.master) return;
-    if (this.masterVolume <= 0) return;
+    if (!this.started || !this.ctx || !this.sfxGain) return;
+    if (this.masterVolume <= 0 || this.sfxVolume <= 0) return;
     if (this.ctx.state !== 'running') {
       void this.ctx.resume().then(() => this.playTick(pitch)).catch(() => {});
       return;
@@ -149,8 +384,8 @@ export class AudioManager {
 
   /** A short rising chime for a found secret. Silent when sound is off. */
   secretChime(): void {
-    if (!this.started || !this.ctx || !this.master) return;
-    if (this.masterVolume <= 0) return;
+    if (!this.started || !this.ctx || !this.sfxGain) return;
+    if (this.masterVolume <= 0 || this.sfxVolume <= 0) return;
     if (this.ctx.state !== 'running') {
       void this.ctx.resume().then(() => this.playSecretChime()).catch(() => {});
       return;
@@ -159,7 +394,7 @@ export class AudioManager {
   }
 
   private playSecretChime(): void {
-    if (!this.ctx || !this.master || this.ctx.state !== 'running') return;
+    if (!this.ctx || !this.sfxGain || this.ctx.state !== 'running') return;
     const start = this.ctx.currentTime;
     // An original rising arpeggio: D, G, B, then the high D held a little longer.
     const notes: readonly [number, number][] = [[587.33, 0], [783.99, 0.09], [987.77, 0.18], [1174.66, 0.3]];
@@ -173,14 +408,17 @@ export class AudioManager {
       gain.gain.setValueAtTime(0, at);
       gain.gain.linearRampToValueAtTime(last ? 0.075 : 0.055, at + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.0001, at + (last ? 0.9 : 0.26));
-      osc.connect(gain).connect(this.master);
+      osc.connect(gain).connect(this.sfxGain);
+      osc.onended = () => {
+        try { gain.disconnect(); } catch { /* already disconnected */ }
+      };
       osc.start(at);
       osc.stop(at + (last ? 0.95 : 0.3));
     }
   }
 
   private playTick(pitch: number): void {
-    if (!this.ctx || !this.master || this.ctx.state !== 'running') return;
+    if (!this.ctx || !this.sfxGain || this.ctx.state !== 'running') return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -189,7 +427,10 @@ export class AudioManager {
     gain.gain.setValueAtTime(0, now);
     gain.gain.linearRampToValueAtTime(0.06, now + 0.008);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
-    osc.connect(gain).connect(this.master);
+    osc.connect(gain).connect(this.sfxGain);
+    osc.onended = () => {
+      try { gain.disconnect(); } catch { /* already disconnected */ }
+    };
     osc.start(now);
     osc.stop(now + 0.24);
   }
@@ -200,9 +441,19 @@ export class AudioManager {
 
   private syncPlaybackState(): void {
     if (!this.ctx) return;
-    if (this.masterVolume > 0) {
-      if (this.ctx.state !== 'running') void this.ctx.resume().catch(() => {});
+    if (this.masterVolume > 0 && !this.lifecycleSuspended) {
+      if (this.ctx.state !== 'running') {
+        void this.ctx.resume()
+          .then(() => {
+            this.syncAllMusicSessions(this.lifecycleSuspended);
+            if (!this.museumAmbiencePaused && this.isAmbienceAudible() && this.currentZone) {
+              this.setZone(this.currentZone);
+            }
+          })
+          .catch(() => {});
+      }
     } else if (this.ctx.state === 'running') {
+      this.syncAllMusicSessions(this.lifecycleSuspended);
       void this.ctx.suspend().catch(() => {});
     }
 
@@ -210,6 +461,14 @@ export class AudioManager {
       this.stopAllVoices();
     } else if (this.currentZone) {
       this.setZone(this.currentZone);
+    }
+
+    this.syncAllMusicSessions(this.lifecycleSuspended);
+  }
+
+  private syncAllMusicSessions(wasSuspended: boolean): void {
+    for (const session of [...this.musicSessions]) {
+      session.syncEnvironmentState(wasSuspended);
     }
   }
 
@@ -289,18 +548,37 @@ export class AudioManager {
       stop: () => {
         for (const osc of oscillators) {
           try { osc.stop(); } catch { /* already stopped */ }
+          try { if (typeof osc.disconnect === 'function') osc.disconnect(); } catch { /* already disconnected */ }
         }
         try { noise.stop(); } catch { /* already stopped */ }
+        try { if (typeof noise.disconnect === 'function') noise.disconnect(); } catch { /* already disconnected */ }
       },
     };
   }
 
   dispose(): void {
+    for (const session of [...this.musicSessions]) {
+      session.dispose();
+    }
+    this.musicSessions.clear();
+    this.loader.dispose();
+    this.musicDescriptionListeners.clear();
+    this.musicStateListeners.clear();
     this.stopAllVoices();
+    if (this.ctx && this.ctxStateListener && typeof this.ctx.removeEventListener === 'function') {
+      this.ctx.removeEventListener('statechange', this.ctxStateListener);
+    }
+    this.ctxStateListener = null;
+    try { this.ambienceGain?.disconnect(); } catch { /* already disconnected */ }
+    try { this.sfxGain?.disconnect(); } catch { /* already disconnected */ }
+    try { this.musicGain?.disconnect(); } catch { /* already disconnected */ }
+    try { this.master?.disconnect(); } catch { /* already disconnected */ }
     void this.ctx?.close();
     this.ctx = null;
     this.master = null;
     this.ambienceGain = null;
+    this.sfxGain = null;
+    this.musicGain = null;
     this.started = false;
   }
 }
