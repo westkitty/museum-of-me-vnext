@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 112,
+  "state_revision": 114,
   "last_updated": "2026-11-22",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -1258,3 +1258,19 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - **Counts:** belt trunks `863`, belt crowns `1204/1489/2114`, perimeter trunks `176` (all unchanged from ISLAND-02B); initial bundle verified by `npm run check:budgets`.
 - **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS on rebased branch; Playwright (Chrome + SwiftShader software WebGL) `rootbound-hollow.e2e.ts`, `secrets.e2e.ts`, and `island-landmark-walk.e2e.ts` PASS (5 captures in `docs/evidence/island-02c-rootbound-20261122/` visually inspected).
 - **NOT VERIFIED:** human visual acceptance, real-device performance (`perf:device`), hosted Pages (deferred to S3 visitor-ready island release). Not an 11th passport stamp; Cinema, interior, exhibits, visitors untouched.
+
+### 2026-11-22 — Island safety: east lagoon fall/rescue loop (r113)
+
+- **Base:** `main` `eb3c266` (PR #76, ISLAND-02C; originally authored on `a358b66`). Branch `fix/lagoon-fall-safety`.
+- **REPRODUCED (browser):** walking into the floorless east lagoon fell through the basin; the safety net (`PlayerController`, y < −60 → `support ?? 0` at the same x/z) restarted the fall every ~2.5 s (13 rescues / 30 s).
+- **FIXED:** `addLagoonEdge` — 12 oriented 1.4 m bank-edge wall colliders along `LAGOON_OUTLINE` (water stays unsupported); safety net now returns the visitor to the last supported spot (no loop possible anywhere).
+- **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS (initial visit 11.53 MB / 20 MB); `tests/lagoon-edge-safety.test.ts`; Playwright `island-lagoon-safety` (4 banks, one-rescue-and-walk-back), `passage-traversal` (57/169), `island-landscape`, `island-landmark-walk`, `quality-transitions`, `performance-lifecycle`, `exterior-first`, `stability` PASS. Evidence `docs/evidence/island-lagoon-safety-20261122/`.
+- **NOT VERIFIED:** human feel of the bank edge; real-device performance. W01 dive entry not built.
+
+### 2026-11-22 — ISLAND-02D distant sky islands & wild island silhouette (r114)
+
+- **Base:** `main` `26fc6e5` (PR #75 lagoon safety, after PR #76 ISLAND-02C). Branch `feat/island-02d-distant-islands`, PR #77; updated from `main` by non-force merge commits (additive `ExteriorWorld.ts` conflicts only).
+- **IMPLEMENTED:** `ExteriorDistantIslands.ts` — visual-only Floating Sky Islands (`[295, 74, -110]`, W06 preview) and Wild Island massif (`[-275, -1, 350]`, W10 preview); `fog: false` aerial palettes; LOD tiers; zero lights, zero colliders. Shared change: `CAMERA_FAR` 600 → 1100 (`RendererHost.ts`), `SKY_DOME_RADIUS` 420 → 850 (`Sky.ts`).
+- **Measured:** worst-case viewpoint→geometry corner distance sky islands 561 m, wild island 812 m (far plane must exceed ~850 m). Depth precision near-plane dominated (~6 mm at 100 m with either far). Dome is camera-following, `depthWrite:false`, `renderOrder -1`: radius only needs to sit inside the far plane.
+- **OWNER DECISION PENDING:** accept the global `CAMERA_FAR`/`SKY_DOME_RADIUS` change before merge.
+- **NOT VERIFIED:** human visual acceptance, real-device performance (`perf:device`), hosted Pages (deferred to S3 island release).

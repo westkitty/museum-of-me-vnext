@@ -15,7 +15,7 @@ import { ExteriorLighthouse } from './ExteriorLighthouse';
 import { ExteriorObservatory } from './ExteriorObservatory';
 import { ExteriorRootboundHollow } from './ExteriorRootboundHollow';
 import { ExteriorDistantIslands } from './ExteriorDistantIslands';
-import { addIslandSupport } from './IslandSiteLayout';
+import { addIslandSupport, addLagoonEdge } from './IslandSiteLayout';
 import { START_POSITION, START_YAW } from '../start';
 import {
   GROUND_Y,
@@ -73,6 +73,7 @@ export class ExteriorWorld {
     // Bounded support is derived from the closed site outline and leaves the
     // lagoon, ocean and offshore space unsupported.
     addIslandSupport(this.collision);
+    addLagoonEdge(this.collision);
 
     // Raised arrival plaza terrace: floor at GROUND_Y (0) from z = 128 to 158
     this.collision.addFloor(

@@ -72,6 +72,8 @@ export class PlayerController {
 
   /** Previous fixed-step position, for render interpolation. */
   private readonly prevPosition = new THREE.Vector3();
+  /** Last spot the visitor stood on real support; the fall safety net returns here. */
+  private readonly lastSafe = new THREE.Vector3();
   private readonly prevYaw = { v: 0 };
   private readonly prevPitch = { v: 0 };
   /** A jump press is consumed by the next fixed step. */
@@ -150,6 +152,7 @@ export class PlayerController {
     this.seat = null;
     this.position.set(p[0], p[1], p[2]);
     this.prevPosition.copy(this.position);
+    this.lastSafe.copy(this.position);
     this.velocity.set(0, 0, 0);
     this.yaw = yaw;
     this.prevYaw.v = yaw;
@@ -401,11 +404,17 @@ export class PlayerController {
       this.grounded = false;
     }
 
+    if (this.grounded && support !== null) this.lastSafe.copy(this.position);
+
     // Safety net: the museum has no pits, so falling means something is wrong.
-    // Return the visitor to the nearest support rather than dropping forever.
+    // Return the visitor to the last spot they stood on real support. (Before
+    // the island safety fix this lifted them to y = support ?? 0 at the same
+    // x/z, which over unsupported water restarted the fall every ~2.5 s.)
     if (this.position.y < -60) {
-      this.position.y = support ?? 0;
+      this.position.copy(this.lastSafe);
+      this.prevPosition.copy(this.lastSafe);
       this.velocity.set(0, 0, 0);
+      this.grounded = true;
     }
 
     // Head clearance.
