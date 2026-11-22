@@ -26,8 +26,10 @@ describe('S5 shoreline-belt forest visual coverage', () => {
   // trunks); low adds an overhead crown to ~40 % of them (1239/1532/2181).
   // ISLAND-02A: clearing the southeast lighthouse trail and rocky headland
   // removes 9 trunks (890 -> 881; crowns 1228/1518/2156).
+  // ISLAND-02B: clearing the southern wooded ruined observatory knoll and trail
+  // removes 18 trunks (881 -> 863; crowns 1204/1489/2114).
   for (const [tier, min, max] of [
-    ['low', 1215, 1245], ['medium', 1505, 1535], ['high', 2140, 2175],
+    ['low', 1190, 1220], ['medium', 1475, 1505], ['high', 2100, 2130],
   ] as const) {
     it(`fills distinct forest areas on ${tier} without new floor support or forbidden placements`, () => {
       const scope = new ResourceScope(`forest-belt-${tier}`);

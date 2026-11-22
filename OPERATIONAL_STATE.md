@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 110,
+  "state_revision": 111,
   "last_updated": "2026-11-22",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -1241,4 +1241,12 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - **IMPLEMENTED:** Extended `ISLAND_OUTLINE` on the southeast coast with outward mitered coastal skirt/fringe extrusion (`ArrivalGarden.ts`), anchored `FOREST_BELT_BOUNDS` and cleared the southeast approach trail + rocky peninsula (`IslandSiteLayout.ts`, `IslandLandscape.ts`), added `ExteriorLighthouse.ts` (coastal trail, headland ramp `-0.5 -> +1.5`, cliff-guarded terrace `+1.5`, climbable banded stone tower with 8 switchback ramps/landings `+1.5 -> +11.5`, open-sky upper stairhead, 360° gallery deck `+11.5` with safety rails, glazed lantern room, rotating Fresnel lens + soft gradient beam cone, zero `THREE.Light`s), registered `lighthouse-lens-l01` as a dormant interactable excluded from `Journal` (`App.ts`), and added `lighthouse-peninsula` to `ISLAND_LANDMARKS` (16 landmarks).
 - **Counts:** belt trunks `881` (was `890`, quality-independent), belt crowns `1228/1518/2156`, perimeter trunks `176` (unchanged); initial bundle `11.53 MB` of `20 MB` budget.
 - **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS; `tests/lighthouse-peninsula.test.ts` (4/4 PASS); Playwright `lighthouse-peninsula`, `exterior-first`, `island-landscape`, `island-landmark-walk` (all 16 landmarks), `quality-transitions`, `performance-lifecycle` PASS on branch. Evidence: `docs/evidence/island-02a-lighthouse-20261122/`.
+- **NOT VERIFIED:** human visual acceptance, real-device performance (`perf:device`), hosted Pages (deferred to S3 visitor-ready island release). Cinema, interior, exhibits, visitors untouched.
+
+### 2026-11-22 — ISLAND-02B southern wooded ruined observatory (r111)
+
+- **Base:** `main` `a358b66` (PR #73, ISLAND-02A). Branch `feat/island-02b-ruined-observatory`.
+- **IMPLEMENTED:** Placed `OBSERVATORY_CENTER` (`[88, 2.5, 96]`, 128 m from SW sundial `[-34, -0.48, 134]`) with winding `OBSERVATORY_APPROACH_PATH` (`[44.5, 94]`..`[70, 96]`) in `IslandSiteLayout.ts` and `IslandLandscape.ts`; built `ExteriorObservatory.ts` (winding trail + bollards, continuous ramp/stairs `-0.5 -> +2.5` with under-slope prism and detached entrance bollards, mossy knoll setback clear of stairs/floor, cliff-guarded rotunda walls `80..96 × 88..104`, NE octagonal columns + copper dome fragment open to zenith & SW starry sky + bronze ribs/oculus collar, procedural zodiac mosaic floor, constellation lecterns, weathered brass telescope `[92.4, 2.5, 91.6]`, fractured central orrery `observatory-orrery-w09-anchor`, `reducedMotion`-safe, zero `THREE.Light`s); registered dormant `observatory-orrery-w09` excluded from `Journal` (`App.ts`) and added `ruined-observatory` to `ISLAND_LANDMARKS` (17 landmarks).
+- **Counts:** belt trunks `863` (was `881`, quality-independent), belt crowns `1204/1489/2114`, perimeter trunks `176` (unchanged); initial bundle `11.54 MB` of `20 MB` budget.
+- **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS (`125` files, `1,298` tests); `tests/ruined-observatory.test.ts` (4/4 PASS); Playwright (Chrome + SwiftShader software WebGL) `ruined-observatory.e2e.ts`, `island-landscape.e2e.ts`, `island-landmark-walk.e2e.ts` (all 17 landmarks on `low`/`high` + touch), and `quality-transitions.e2e.ts` PASS, with all 5 captures in `docs/evidence/island-02b-observatory-20261122/` visually audited after Subagent D defect fixes.
 - **NOT VERIFIED:** human visual acceptance, real-device performance (`perf:device`), hosted Pages (deferred to S3 visitor-ready island release). Cinema, interior, exhibits, visitors untouched.

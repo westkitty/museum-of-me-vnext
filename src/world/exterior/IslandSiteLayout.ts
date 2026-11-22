@@ -47,6 +47,30 @@ export function distanceToLighthousePath(x: number, z: number): number {
   return best;
 }
 
+/** Southern wooded hill ruined observatory (ISLAND-02B), distinct from SW sundial. */
+export const OBSERVATORY_CENTER: Vec3 = [88, 2.5, 96];
+
+/** Winding wooded trail from Path 1 (east side) to the observatory hill ramp. */
+export const OBSERVATORY_APPROACH_PATH: readonly (readonly [number, number])[] = [
+  [44.5, 94], [54, 91], [62, 95], [70, 96],
+];
+
+export function isRuinedObservatory(x: number, z: number): boolean {
+  return Math.hypot(x - OBSERVATORY_CENTER[0], z - OBSERVATORY_CENTER[2]) < 16;
+}
+
+export function distanceToObservatoryPath(x: number, z: number): number {
+  let best = Infinity;
+  for (let i = 0; i < OBSERVATORY_APPROACH_PATH.length - 1; i++) {
+    const [ax, az] = OBSERVATORY_APPROACH_PATH[i];
+    const [bx, bz] = OBSERVATORY_APPROACH_PATH[i + 1];
+    const dx = bx - ax, dz = bz - az;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
+    best = Math.min(best, Math.hypot(x - (ax + dx * t), z - (az + dz * t)));
+  }
+  return best;
+}
+
 /** East-side sheltered water, entirely enclosed by the land boundary. */
 export const LAGOON_OUTLINE: readonly (readonly [number, number])[] = [
   [57, -30], [72, -46], [98, -48], [119, -34], [128, -13], [119, 4],
