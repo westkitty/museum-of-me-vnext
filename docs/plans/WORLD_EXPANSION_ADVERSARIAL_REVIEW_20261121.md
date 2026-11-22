@@ -27,6 +27,8 @@ Source-of-truth precedence: latest owner instructions > actually inspected activ
 | A19 MEDIUM SUSPECTED | Blind autonomous 'continue until all done' can mask quota exhaustion and stale branches/CI. | Commit-sized resumable slice with state/evidence receipt, retry budget, stop-on-failure and stage gate; another agent can pick up from exact HEAD. |
 | A20 MEDIUM SUSPECTED | "WOW" visual effects alone could replace navigable geometry or accessibility with spectacle. | Every signature moment has playable route and safe accessible equivalent; observable browser gameplay and controls are mandatory for promotion. |
 
+| A21 HIGH SUPPORTED | GrokBot task handoff originally required reading the **entire** canonical Bible into its context. Live Bible blob after continuity append measured 1,133,729 bytes; this can exceed practical agent context budgets and force repeated work. | Verify exact Bible SHA and source availability, but use source-linked targeted search and bounded relevant sections, a compact working ledger and resumable receipts. Do not dump the full historical file into a single model prompt. |
+
 ## Disconfirmation and limits
 - No actual 3D browser playtest, performance benchmark or user visual acceptance was executed as part of this documentary review. Code/source inspection supports design hazards, not confirmation that present software has a bug.
 - The cinema does NOT need fixing or moving: owner explicitly confirms its spot. The reviewed plan's premise was the mistake.
