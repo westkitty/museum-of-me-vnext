@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 111,
+  "state_revision": 112,
   "last_updated": "2026-11-22",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -1250,3 +1250,11 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - **Counts:** belt trunks `863` (was `881`, quality-independent), belt crowns `1204/1489/2114`, perimeter trunks `176` (unchanged); initial bundle `11.54 MB` of `20 MB` budget.
 - **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS (`125` files, `1,298` tests); `tests/ruined-observatory.test.ts` (4/4 PASS); Playwright (Chrome + SwiftShader software WebGL) `ruined-observatory.e2e.ts`, `island-landscape.e2e.ts`, `island-landmark-walk.e2e.ts` (all 17 landmarks on `low`/`high` + touch), and `quality-transitions.e2e.ts` PASS, with all 5 captures in `docs/evidence/island-02b-observatory-20261122/` visually audited after Subagent D defect fixes.
 - **NOT VERIFIED:** human visual acceptance, real-device performance (`perf:device`), hosted Pages (deferred to S3 visitor-ready island release). Cinema, interior, exhibits, visitors untouched.
+
+### 2026-11-22 — ISLAND-02C Rootbound Hollow beneath Ancient Tree roots (r112)
+
+- **Base:** `main` `f079f17` (PR #74, ISLAND-02B). Branch `feat/island-02c-rootbound-hollow`.
+- **IMPLEMENTED:** Built `ExteriorRootboundHollow.ts` (vaulted mossy root mound, entry saddle ramp `-0.46 -> -0.24 -> -0.38`, arched root portal `[55.2, -88.8]`, opaque peat-slate root chamber `Y = -0.38` clearing the `Y = -0.5` terrain plane without clipping, corner root columns, glowing cyan-jade bioluminescent fungi/mycelium, Heartwood Seed-Stone relic `[64.0, -0.38, -88.6]`, `reducedMotion`-safe, zero `THREE.Light`s); preserved `ANCIENT_TREE_CENTER` (`[57, -0.48, -84]`), Ancient Tree trunk & 5 buttress root colliders, `secret:tree-roots`, and `SECRETS` count (`10`); registered `rootbound-hollow-relic` on `InteractionManager` excluded from `Journal` (`App.ts`); added `rootbound-hollow` inside the existing clearing to `ISLAND_LANDMARKS` (`18` landmarks, zero woodland count change).
+- **Counts:** belt trunks `863`, belt crowns `1204/1489/2114`, perimeter trunks `176` (all unchanged from ISLAND-02B); initial bundle verified by `npm run check:budgets`.
+- **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS on rebased branch; Playwright (Chrome + SwiftShader software WebGL) `rootbound-hollow.e2e.ts`, `secrets.e2e.ts`, and `island-landmark-walk.e2e.ts` PASS (5 captures in `docs/evidence/island-02c-rootbound-20261122/` visually inspected).
+- **NOT VERIFIED:** human visual acceptance, real-device performance (`perf:device`), hosted Pages (deferred to S3 visitor-ready island release). Not an 11th passport stamp; Cinema, interior, exhibits, visitors untouched.
