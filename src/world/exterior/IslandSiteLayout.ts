@@ -128,6 +128,9 @@ export const SCENIC_GROVE_POINTS: readonly (readonly [number, number])[] = [
 export const ANCIENT_TREE_CENTER: Vec3 = [57, -0.48, -84];
 /** Woodland, flowers and butterflies leave this clearing to the landmark. */
 export const ANCIENT_TREE_CLEARING_RADIUS = 11;
+/** ISLAND-02C: Rootbound Hollow arched portal mouth and inner chamber center inside the clearing. */
+export const ROOTBOUND_HOLLOW_PORTAL: readonly [number, number] = [55.2, -88.8];
+export const ROOTBOUND_HOLLOW_CENTER: Vec3 = [61.8, -0.38, -88.6];
 export function inAncientTreeClearing(x: number, z: number): boolean {
   return Math.hypot(x - ANCIENT_TREE_CENTER[0], z - ANCIENT_TREE_CENTER[2]) < ANCIENT_TREE_CLEARING_RADIUS;
 }
