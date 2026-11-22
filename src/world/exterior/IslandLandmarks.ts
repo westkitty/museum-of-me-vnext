@@ -1,5 +1,8 @@
 import type { Vec3 } from '../layout';
-import { ANCIENT_TREE_CENTER, ANCIENT_TREE_CLEARING_RADIUS, SPIRE_GARDEN_CENTER, SPIRE_GARDEN_RADIUS } from './IslandSiteLayout';
+import {
+  ANCIENT_TREE_CENTER, ANCIENT_TREE_CLEARING_RADIUS, LIGHTHOUSE_PENINSULA_CENTER,
+  SPIRE_GARDEN_CENTER, SPIRE_GARDEN_RADIUS,
+} from './IslandSiteLayout';
 
 /**
  * ISLAND-01 (world expansion 2026-11-21): the island's existing named
@@ -68,6 +71,9 @@ export const ISLAND_LANDMARKS: readonly IslandLandmark[] = [
     focus: [-7.5, GROUND + 0.3, 143.8], approach: [0, 150], inspection: [-2, 146], clearing: 6, corridor: 1.6 },
   { id: 'south-pier', label: 'South arrival pier', featureName: 'south-arrival-pier-deck',
     focus: [0, GROUND + 0.5, 200], approach: [0, 184], inspection: [0, 192], clearing: 6, corridor: 2.0 },
+  { id: 'lighthouse-peninsula', label: 'Coastal lighthouse peninsula', featureName: 'lighthouse-peninsula-tower',
+    focus: [LIGHTHOUSE_PENINSULA_CENTER[0], 9.0, LIGHTHOUSE_PENINSULA_CENTER[2]],
+    approach: [134, 144], inspection: [146, 151], clearing: 18, corridor: 2.6 },
 ];
 
 function segmentDistance(x: number, z: number, a: readonly [number, number], b: readonly [number, number]): number {

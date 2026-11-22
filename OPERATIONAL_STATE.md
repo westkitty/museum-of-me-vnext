@@ -6,8 +6,8 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 109,
-  "last_updated": "2026-11-21",
+  "state_revision": 110,
+  "last_updated": "2026-11-22",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
 -->
@@ -1234,3 +1234,11 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - **Counts:** belt trunks 890 (quality-independent), belt crowns 1239/1532/2181; landscape triangles 70k/112k/285k (were 60k/97k/274k); landscape colliders 1086 on every tier (were 933/977/1041).
 - **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS; browser `island-landmark-walk` (keyboard all 15 low/high with reduced motion; touch), `island-landscape`, `quality-transitions`, `art-direction`, `asset-ownership`, `continuity-uplift`, `exterior-signature-evidence`, `performance-lifecycle`, `predictive-interior` PASS on the branch. Evidence: `docs/evidence/island-01b-woodland-20261121/`.
 - **NOT VERIFIED:** human visual acceptance, real-device performance, hosted Pages (not a release milestone). Open fix-list items 4–8, 10–12, 14 remain open.
+
+### 2026-11-22 — ISLAND-02A coastal lighthouse peninsula (r110)
+
+- **Base:** `main` `387912c` (PR #72, ISLAND-01b). Branch `feat/island-02a-lighthouse-peninsula`.
+- **IMPLEMENTED:** Extended `ISLAND_OUTLINE` on the southeast coast with outward mitered coastal skirt/fringe extrusion (`ArrivalGarden.ts`), anchored `FOREST_BELT_BOUNDS` and cleared the southeast approach trail + rocky peninsula (`IslandSiteLayout.ts`, `IslandLandscape.ts`), added `ExteriorLighthouse.ts` (coastal trail, headland ramp `-0.5 -> +1.5`, cliff-guarded terrace `+1.5`, climbable banded stone tower with 8 switchback ramps/landings `+1.5 -> +11.5`, open-sky upper stairhead, 360° gallery deck `+11.5` with safety rails, glazed lantern room, rotating Fresnel lens + soft gradient beam cone, zero `THREE.Light`s), registered `lighthouse-lens-l01` as a dormant interactable excluded from `Journal` (`App.ts`), and added `lighthouse-peninsula` to `ISLAND_LANDMARKS` (16 landmarks).
+- **Counts:** belt trunks `881` (was `890`, quality-independent), belt crowns `1228/1518/2156`, perimeter trunks `176` (unchanged); initial bundle `11.53 MB` of `20 MB` budget.
+- **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS; `tests/lighthouse-peninsula.test.ts` (4/4 PASS); Playwright `lighthouse-peninsula`, `exterior-first`, `island-landscape`, `island-landmark-walk` (all 16 landmarks), `quality-transitions`, `performance-lifecycle` PASS on branch. Evidence: `docs/evidence/island-02a-lighthouse-20261122/`.
+- **NOT VERIFIED:** human visual acceptance, real-device performance (`perf:device`), hosted Pages (deferred to S3 visitor-ready island release). Cinema, interior, exhibits, visitors untouched.

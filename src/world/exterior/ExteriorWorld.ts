@@ -11,6 +11,7 @@ import { ExteriorSignatureFeatures } from './ExteriorSignatureFeatures';
 import { ExteriorWaymarkers } from './ExteriorWaymarkers';
 import { TicketKiosk } from './TicketKiosk';
 import { ObsidianSphereEntrance } from './ObsidianSphereEntrance';
+import { ExteriorLighthouse } from './ExteriorLighthouse';
 import { addIslandSupport } from './IslandSiteLayout';
 import { START_POSITION, START_YAW } from '../start';
 import {
@@ -51,6 +52,8 @@ export class ExteriorWorld {
   readonly ticketKiosk: TicketKiosk;
   /** Physical obsidian walk-around entrance before the existing world seam. */
   readonly sphereEntrance: ObsidianSphereEntrance;
+  /** Climbable southeast coastal peninsula and lighthouse (ISLAND-02A). */
+  readonly lighthouse: ExteriorLighthouse;
 
   readonly spawnPosition: Vec3 = START_POSITION;
   readonly spawnYaw = START_YAW;
@@ -125,6 +128,9 @@ export class ExteriorWorld {
 
     this.sphereEntrance = new ObsidianSphereEntrance(this.scope, this.collision);
     this.root.add(this.sphereEntrance.build());
+
+    this.lighthouse = new ExteriorLighthouse(this.scope, this.collision);
+    this.root.add(this.lighthouse.group);
   }
 
   /**
@@ -292,6 +298,7 @@ export class ExteriorWorld {
     this.signatureFeatures.update(dt, reducedMotion);
     this.ticketKiosk.update(dt);
     this.sphereEntrance.update(dt, eye, reducedMotion);
+    this.lighthouse.update(dt, reducedMotion);
   }
 
   dispose(): void {

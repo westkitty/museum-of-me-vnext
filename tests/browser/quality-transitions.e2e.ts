@@ -63,10 +63,11 @@ test('App quality transitions replace landscape detail without collision or reso
       // 893/1463/2103 before uplift2(A) cleared ground for the relocated ancient tree;
       // 888/1457/2093 before ISLAND-01 put every crown on a trunk and cleared landmarks.
       // 845/1447/2067 before ISLAND-01b clumped trunks, let them stand 7 m from
-      // paths, and gave low tier an extra crown on ~40 % of trunks.
-      expect(tier.batches['woodland-forest-belt'].count).toBe([1239, 1532, 2181][index]);
+      // paths, and gave low tier an extra crown on ~40 % of trunks (1239/1532/2181).
+      // ISLAND-02A cleared 9 trunks along the southeast lighthouse trail/headland.
+      expect(tier.batches['woodland-forest-belt'].count).toBe([1228, 1518, 2156][index]);
       // ISLAND-01 trunks are one quality-independent, collision-backed set.
-      expect(tier.batches['woodland-forest-belt-trunks'].count).toBe(890);
+      expect(tier.batches['woodland-forest-belt-trunks'].count).toBe(881);
       expect(tier.batches['island-wildflower-glades'].count).toBe([64, 144, 240][index]);
       expect(tier.wildlife).toEqual([[12, 6, 8], [30, 12, 18], [48, 18, 32]][index]);
       expect(tier.physicalUnchanged && tier.pierUnchanged && tier.shellUnchanged).toBe(true);

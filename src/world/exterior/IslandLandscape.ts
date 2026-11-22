@@ -3,8 +3,9 @@ import { ResourceScope } from '../../assets/ResourceScope';
 import { CollisionWorld } from '../CollisionWorld';
 import type { QualityTier } from '../../render/QualityTiers';
 import {
-  ISLAND_OUTLINE, PATH_CENTERLINES, PIER_CENTERLINE, SCENIC_GROVE_POINTS, SPIRE_GARDEN_CENTER,
-  SPIRE_GARDEN_RADIUS, LANTERN_WALK_Z, inAncientTreeClearing, isSiteLand,
+  FOREST_BELT_BOUNDS, ISLAND_OUTLINE, PATH_CENTERLINES, PIER_CENTERLINE, SCENIC_GROVE_POINTS,
+  SPIRE_GARDEN_CENTER, SPIRE_GARDEN_RADIUS, LANTERN_WALK_Z, distanceToLighthousePath,
+  inAncientTreeClearing, isLighthousePeninsula, isSiteLand,
 } from './IslandSiteLayout';
 import { WAYMARKER_POSTS } from './ExteriorWaymarkers';
 import { CANOPY_UNDERSIDE_MIN, blocksLandmarkSightline, landmarkGroundExcluded } from './IslandLandmarks';
@@ -509,6 +510,7 @@ export class IslandLandscape {
       if (Math.hypot(x, z - 128) < 54) continue;
       if (x > 44 && x < 142 && z > -62 && z < 63) continue;
       if (Math.hypot(x + 104, z + 82) < 33 || inAncientTreeClearing(x, z)) continue;
+      if (isLighthousePeninsula(x, z) || distanceToLighthousePath(x, z) < 5.5) continue;
       if (Math.abs(x) < 50 && Math.abs(z) < 112) continue;
       if (occupied.some(([px, pz]) => Math.hypot(x - px, z - pz) < 8)) continue;
       if (PATH_CENTERLINES.some((path) => path.slice(0, -1).some((point, index) => {
@@ -571,6 +573,7 @@ export class IslandLandscape {
         if (Math.hypot(x, z - 128) < 54) continue;
         if (x > 44 && x < 142 && z > -62 && z < 63) continue;
         if (Math.hypot(x + 104, z + 82) < 33 || inAncientTreeClearing(x, z)) continue;
+        if (isLighthousePeninsula(x, z) || distanceToLighthousePath(x, z) < 5.0) continue;
         // ISLAND-01: no eye-level shrub inside a landmark clearing or walk-in corridor.
         if (landmarkGroundExcluded(x, z, 1.7)) continue;
         const width = 0.9 + ((i + j) % 5) * 0.18;
@@ -619,6 +622,7 @@ export class IslandLandscape {
         if (Math.hypot(x, z - 128) < 54) continue;
         if (x > 44 && x < 142 && z > -62 && z < 63) continue;
         if (Math.hypot(x + 104, z + 82) < 33 || inAncientTreeClearing(x, z)) continue;
+        if (isLighthousePeninsula(x, z)) continue;
         const width = 0.94 + ((i + j) % 5) * 0.11;
         const height = 0.72 + ((i + j * 2) % 4) * 0.12;
         // ISLAND-01: keep the infill underside above CANOPY_UNDERSIDE_MIN so
@@ -656,10 +660,7 @@ export class IslandLandscape {
     // walk-in corridors (IslandLandmarks) receive no trunk, and no crown that
     // crosses a landmark's eye-height sightline.
     const trunkStep = 7.315;
-    const minX = Math.min(...ISLAND_OUTLINE.map(([x]) => x));
-    const maxX = Math.max(...ISLAND_OUTLINE.map(([x]) => x));
-    const minZ = Math.min(...ISLAND_OUTLINE.map(([, z]) => z));
-    const maxZ = Math.max(...ISLAND_OUTLINE.map(([, z]) => z));
+    const { minX, maxX, minZ, maxZ } = FOREST_BELT_BOUNDS;
     const columns = Math.ceil((maxX - minX) / trunkStep);
     const rows = Math.ceil((maxZ - minZ) / trunkStep);
     // ISLAND-01b: low tier also adds a crown to ~40 % of trunks, so it no longer
@@ -709,6 +710,8 @@ export class IslandLandscape {
         && !(x > 39 && x < 147 && z > -67 && z < 68)
         && Math.hypot(x + 104, z + 82) >= 38
         && !inAncientTreeClearing(x, z)
+        && !isLighthousePeninsula(x, z)
+        && distanceToLighthousePath(x, z) >= 5.5
         && !(z > 155 && Math.abs(x) < 26);
     };
     const hash01 = (n: number): number => {
@@ -841,6 +844,7 @@ export class IslandLandscape {
       if (Math.hypot(x, z - 128) < 58) continue;
       if (x > 42 && x < 147 && z > -68 && z < 70) continue;
       if (Math.hypot(x + 104, z + 82) < 40 || inAncientTreeClearing(x, z)) continue;
+      if (isLighthousePeninsula(x, z) || distanceToLighthousePath(x, z) < 4.0) continue;
       if (PATH_CENTERLINES.some((path) => path.slice(0, -1).some(([ax, az], n) => {
         const [bx, bz] = path[n + 1];
         const dx = bx - ax, dz = bz - az;

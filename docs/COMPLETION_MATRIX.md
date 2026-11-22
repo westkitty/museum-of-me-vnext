@@ -181,5 +181,6 @@ Plan: `docs/plans/WORLD_EXPANSION_GROKBOT_MASTER_20261121.md`. Rows are added as
 | ISLAND-01 human visual acceptance; real-device performance | PENDING | — |
 | ISLAND-01b perimeter trees: one collision-backed 176-tree set on every tier (quality-switch collision fix) | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST | `tests/island-landmark-visibility.test.ts`, `tests/browser/quality-transitions.e2e.ts` |
 | ISLAND-01b clumped stands, warm varied bark, tighter clearings, Wings of Dawn sign off-axis and warm wing edges | IMPLEMENTED; human visual acceptance PENDING | `docs/evidence/island-01b-woodland-20261121/` |
-| ISLAND-02 … ISLAND-05, W01–W10, L01 | PLANNED (not started) | master plan |
+| ISLAND-02A southeast peninsula, headland ramp, climbable lighthouse tower, 360° gallery, dormant L01 Fresnel lens | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST (human visual acceptance PENDING) | `tests/lighthouse-peninsula.test.ts`, `tests/browser/lighthouse-peninsula.e2e.ts`; `docs/evidence/island-02a-lighthouse-20261122/` |
+| ISLAND-02B … ISLAND-05, W01–W10, L01 | PLANNED (not started) | master plan |
 

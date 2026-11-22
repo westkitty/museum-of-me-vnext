@@ -4,10 +4,48 @@ import type { Vec3 } from '../layout';
 /** Authored site coordinates (X,Z), clockwise in the top-down Y-up view. */
 export const ISLAND_OUTLINE: readonly (readonly [number, number])[] = [
   [-48, -174], [0, -182], [52, -171], [112, -151], [161, -112], [181, -58],
-  [188, 0], [178, 58], [158, 111], [112, 151], [58, 174], [20, 180],
+  [188, 0], [178, 58], [158, 111],
+  // ISLAND-02A: sculpted southeast coastal peninsula supporting the climbable lighthouse headland.
+  [190, 124], [210, 148], [198, 176], [166, 180], [140, 156],
+  [112, 151], [58, 174], [20, 180],
   [0, 216], [-20, 180], [-61, 169], [-114, 147], [-158, 108], [-179, 56],
   [-187, 0], [-176, -62], [-157, -115], [-108, -153],
 ];
+
+/**
+ * Fixed origin/bounds for the deterministic forest-belt grid so coastal additions
+ * like the southeast lighthouse peninsula do not shift existing tree seeds.
+ */
+export const FOREST_BELT_BOUNDS = {
+  minX: -187,
+  maxX: 188,
+  minZ: -182,
+  maxZ: 216,
+} as const;
+
+/** Southeast lighthouse tower centre at terrace elevation (Y = 1.5 m). */
+export const LIGHTHOUSE_PENINSULA_CENTER: Vec3 = [176, 1.5, 152];
+
+/** Connected coastal approach trail branching east from Path 1 onto the headland ramp. */
+export const LIGHTHOUSE_APPROACH_PATH: readonly (readonly [number, number])[] = [
+  [44, 142], [70, 144], [100, 139], [128, 141], [148, 152],
+];
+
+export function isLighthousePeninsula(x: number, z: number): boolean {
+  return x > 144 && z > 118;
+}
+
+export function distanceToLighthousePath(x: number, z: number): number {
+  let best = Infinity;
+  for (let i = 0; i < LIGHTHOUSE_APPROACH_PATH.length - 1; i++) {
+    const [ax, az] = LIGHTHOUSE_APPROACH_PATH[i];
+    const [bx, bz] = LIGHTHOUSE_APPROACH_PATH[i + 1];
+    const dx = bx - ax, dz = bz - az;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
+    best = Math.min(best, Math.hypot(x - (ax + dx * t), z - (az + dz * t)));
+  }
+  return best;
+}
 
 /** East-side sheltered water, entirely enclosed by the land boundary. */
 export const LAGOON_OUTLINE: readonly (readonly [number, number])[] = [
