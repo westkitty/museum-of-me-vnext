@@ -182,6 +182,8 @@ Plan: `docs/plans/WORLD_EXPANSION_GROKBOT_MASTER_20261121.md`. Rows are added as
 | ISLAND-01b perimeter trees: one collision-backed 176-tree set on every tier (quality-switch collision fix) | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST | `tests/island-landmark-visibility.test.ts`, `tests/browser/quality-transitions.e2e.ts` |
 | ISLAND-01b clumped stands, warm varied bark, tighter clearings, Wings of Dawn sign off-axis and warm wing edges | IMPLEMENTED; human visual acceptance PENDING | `docs/evidence/island-01b-woodland-20261121/` |
 | ISLAND-02A southeast peninsula, headland ramp, climbable lighthouse tower, 360° gallery, dormant L01 Fresnel lens | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST (human visual acceptance PENDING) | `tests/lighthouse-peninsula.test.ts`, `tests/browser/lighthouse-peninsula.e2e.ts`; `docs/evidence/island-02a-lighthouse-20261122/` |
+| ISLAND-02B southern wooded ruined observatory, winding trail, zodiac floor, telescope, broken dome & dormant W09 orrery | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST (human visual acceptance PENDING) | `tests/ruined-observatory.test.ts`, `tests/browser/ruined-observatory.e2e.ts`; `docs/evidence/island-02b-observatory-20261122/` |
+| ISLAND-02C Rootbound Hollow vaulted grotto & relic beneath Ancient Tree roots (no extra stamp) | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST (human visual acceptance PENDING) | `tests/rootbound-hollow.test.ts`, `tests/browser/rootbound-hollow.e2e.ts`; `docs/evidence/island-02c-rootbound-20261122/` |
 | Island safety: lagoon bank edge; fall safety net returns to last supported spot (no rescue loop) | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST | `tests/lagoon-edge-safety.test.ts`, `tests/browser/island-lagoon-safety.e2e.ts` |
-| ISLAND-02B … ISLAND-05, W01–W10, L01 | PLANNED (not started) | master plan |
+| ISLAND-02D … ISLAND-05, W01–W10, L01 | IN PROGRESS / PLANNED | master plan |
 

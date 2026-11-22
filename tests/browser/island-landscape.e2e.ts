@@ -99,10 +99,11 @@ test('P4 island topology supports the route, excludes water/offshore, and keeps 
   expect(result.wildlife.birds).toBeGreaterThan(0);
   expect(result.wildlife.fish).toBeGreaterThan(0);
   // ISLAND-01 adds exactly one trunk collider per visible forest-belt trunk
-  // (890 after ISLAND-01b, 881 after ISLAND-02A cleared the southeast
-  // lighthouse trail and headland); ISLAND-01b registers all 176 perimeter
-  // trunks on every tier. Every other exterior collider stays under 1,000.
-  expect(result.beltTrunkColliders).toBe(881);
+  // (890 after ISLAND-01b, 881 after ISLAND-02A, 863 after ISLAND-02B cleared
+  // the southern wooded ruined observatory knoll and trail); ISLAND-01b
+  // registers all 176 perimeter trunks on every tier. Every other exterior
+  // collider stays under 1,000.
+  expect(result.beltTrunkColliders).toBe(863);
   expect(result.perimeterTrunkColliders).toBe(176);
   expect(result.floorColliderCount - result.beltTrunkColliders - result.perimeterTrunkColliders).toBeLessThan(1_000);
   expect(result.waterGeometry).toBe('RingGeometry');
