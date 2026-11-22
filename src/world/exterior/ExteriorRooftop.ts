@@ -543,8 +543,11 @@ export class ExteriorRooftop {
       this.pushGuardPost(x, yAt(z), z, i % 2 === 0);
     }
 
-    // Segment collider in <= 8 m slices so minY always stays below the ramp floor
-    const segments = Math.max(1, Math.ceil(len / 8.0));
+    // Segment collider in <= 16 m slices: minY stays below the ramp floor, and each
+    // slice above the bottom one hangs >= 2.5 m over the ground, so walkers under
+    // the ramp are never blocked. 16 m (not 8 m) keeps the island inside the
+    // non-tree collider budget asserted by island-landscape.e2e.ts.
+    const segments = Math.max(1, Math.ceil(len / 16.0));
     for (let s = 0; s < segments; s++) {
       const sz0 = zMin + (len * s) / segments;
       const sz1 = zMin + (len * (s + 1)) / segments;
