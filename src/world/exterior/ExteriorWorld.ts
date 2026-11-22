@@ -13,6 +13,7 @@ import { TicketKiosk } from './TicketKiosk';
 import { ObsidianSphereEntrance } from './ObsidianSphereEntrance';
 import { ExteriorLighthouse } from './ExteriorLighthouse';
 import { ExteriorObservatory } from './ExteriorObservatory';
+import { ExteriorRootboundHollow } from './ExteriorRootboundHollow';
 import { ExteriorDistantIslands } from './ExteriorDistantIslands';
 import { addIslandSupport } from './IslandSiteLayout';
 import { START_POSITION, START_YAW } from '../start';
@@ -58,6 +59,8 @@ export class ExteriorWorld {
   readonly lighthouse: ExteriorLighthouse;
   /** Southern wooded hill ruined observatory (ISLAND-02B). */
   readonly observatory: ExteriorObservatory;
+  /** Discoverable vaulted root grotto beneath the Ancient Tree roots (ISLAND-02C). */
+  readonly rootboundHollow: ExteriorRootboundHollow;
   /** Visual-only distant Floating Sky Islands (W06) and Wild Island silhouette (W10) (ISLAND-02D). */
   readonly distantIslands: ExteriorDistantIslands;
 
@@ -141,6 +144,8 @@ export class ExteriorWorld {
     this.observatory = new ExteriorObservatory(this.scope, this.collision);
     this.root.add(this.observatory.group);
 
+    this.rootboundHollow = new ExteriorRootboundHollow(this.scope, this.collision);
+    this.root.add(this.rootboundHollow.group);
     this.distantIslands = new ExteriorDistantIslands(this.scope, qualityTier);
     this.root.add(this.distantIslands.root);
   }
@@ -313,6 +318,7 @@ export class ExteriorWorld {
     this.sphereEntrance.update(dt, eye, reducedMotion);
     this.lighthouse.update(dt, reducedMotion);
     this.observatory.update(dt, reducedMotion);
+    this.rootboundHollow.update(dt, reducedMotion);
     this.distantIslands.update(dt, reducedMotion);
   }
 

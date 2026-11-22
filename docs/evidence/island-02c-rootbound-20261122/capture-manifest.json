@@ -1,0 +1,50 @@
+{
+  "task": "ISLAND-02C",
+  "capturedAt": "2026-11-22T06:30:20.714Z",
+  "portal": [
+    55.2,
+    -88.8
+  ],
+  "relicPosition": [
+    64,
+    -0.38,
+    -88.6
+  ],
+  "captures": [
+    {
+      "name": "01-approach-western-view.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 147067,
+      "sha256": "81fef01b15fad90471108d4fed556408f782ce030350c82c5c799d6ec622b74c"
+    },
+    {
+      "name": "02-arched-root-threshold.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 68481,
+      "sha256": "b95d86cd188e38b69573d1d6e0dbde8f93b5f1623de08e428e1f35ce95c9b217"
+    },
+    {
+      "name": "03-chamber-interior-relic.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 156541,
+      "sha256": "fd132961ecbe710e3f24cca767cc6035a4cd80ec05830a3207face590df956fd"
+    },
+    {
+      "name": "04-relic-closeup-interact.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 238601,
+      "sha256": "a2c22d80608907e1f9432b2335af67f86238cf4b92ede8d5f691174f0a3316a2"
+    },
+    {
+      "name": "05-exterior-mound-overlook.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 226826,
+      "sha256": "8f4e7639b5db9e5e9541e864303a00f8fd57d452c11e710e5733d4cbd5289348"
+    }
+  ]
+}
