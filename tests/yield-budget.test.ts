@@ -46,4 +46,21 @@ describe('EventLoopYieldBudget', () => {
     await budget.checkpoint();
     expect(budget.currentSliceMs).toBe(8);
   });
+
+  it('does not inflate the slice on 60 Hz or 30 Hz frame waits (<= 40 ms)', async () => {
+    const time = clock();
+    let frame = 17;
+    const budget = new EventLoopYieldBudget(6, 250, async () => time.advance(frame));
+    time.advance(7);
+    await budget.checkpoint();
+    expect(budget.currentSliceMs).toBe(6);
+    frame = 34;
+    time.advance(10);
+    await budget.checkpoint();
+    expect(budget.currentSliceMs).toBe(6);
+    frame = 100;
+    time.advance(10);
+    await budget.checkpoint();
+    expect(budget.currentSliceMs).toBe(50);
+  });
 });
