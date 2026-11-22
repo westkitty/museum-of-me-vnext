@@ -14,7 +14,7 @@ Contract: `docs/plans/WORLD_EXPANSION_GROKBOT_MASTER_20261121.md` §6 (rooftop),
 
 ## Verification (Chrome + SwiftShader software WebGL, not Apple Metal FPS)
 
-- `tsc --noEmit` PASS; full Vitest suite 128 files / 1,309 tests PASS on the integrated branch.
+- `tsc --noEmit` PASS; full Vitest suite 128 files / 1,309 tests PASS on the integrated branch; after merging PR #77 (`ff6eaac`) 129 files / 1,313 tests PASS and `rooftop.e2e.ts` + `distant-islands.e2e.ts` re-run PASS (captures refreshed).
 - Playwright: `rooftop.e2e.ts` (walk up, greenhouse, café, stand, pad, back down), `cinema.e2e.ts` (5), `cinema-youtube.e2e.ts` (5), `quality-transitions.e2e.ts` — 12/12 PASS.
 - Captures in this folder were regenerated on the integrated branch and inspected. The vertical brass line above the flower in `greenhouse-w05-flower.png` is the greenhouse ridge bar seen end-on, not a stray object.
 

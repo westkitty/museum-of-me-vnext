@@ -24,6 +24,9 @@ export function skyPreviewForHour(hour: number): SkyTimePreview {
   return { daylight, twilight, sunDirection };
 }
 
+/** Radius (m) of the camera-following sky dome. Exceeds distant horizon silhouettes from any island viewpoint. */
+export const SKY_DOME_RADIUS = 850;
+
 /**
  * Procedural night sky for the museum grounds. The camera-following dome keeps
  * the exterior deep and legible without adding celestial geometry or draw calls.
@@ -37,7 +40,7 @@ export class Sky {
   private lastParallaxZ = Number.NaN;
 
   constructor(scope: ResourceScope) {
-    const geometry = scope.track(new THREE.SphereGeometry(420, 32, 20));
+    const geometry = scope.track(new THREE.SphereGeometry(SKY_DOME_RADIUS, 32, 20));
     const material = scope.track(
       new THREE.ShaderMaterial({
         side: THREE.BackSide,
