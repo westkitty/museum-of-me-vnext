@@ -419,10 +419,20 @@ export class IslandLandscape {
   }
 
   private buildWoodland(registerCollision: boolean): void {
-    const count = this.quality === 'low' ? 68 : this.quality === 'medium' ? 112 : 176;
-    const trunkGeo = this.detailScope.track(new THREE.CylinderGeometry(0.34, 0.44, 5.4, 7));
-    const crownGeo = this.detailScope.track(new THREE.IcosahedronGeometry(3.2, 1));
-    const trunkMat = this.detailScope.track(new THREE.MeshStandardMaterial({ color: 0x252d28, roughness: 1 }));
+    // ISLAND-01b: every tier plants the same 176 perimeter trees. Placement is
+    // a deterministic prefix sequence, so the old 68/112-tree tiers were the
+    // first trees of this list, but collision was registered only for the tier
+    // the exterior was built with: switching tier afterwards left visible trees
+    // without colliders (or colliders without trees). One quality-independent
+    // set keeps visual and collision geometry identical on every tier; low
+    // tier pays for it with 20-triangle crowns instead of 80.
+    const count = 176;
+    const trunkGeo = this.detailScope.track(new THREE.CylinderGeometry(0.22, 0.46, 5.4, 7));
+    const crownGeo = this.detailScope.track(new THREE.IcosahedronGeometry(3.2, this.quality === 'low' ? 0 : 1));
+    // Warm dark bark; per-instance colour varies each trunk (ISLAND-01b).
+    const trunkMat = this.detailScope.track(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 }));
+    const barkTones = [0x4a3426, 0x553b2a, 0x3f2c20, 0x5c4330, 0x4d3a2c, 0x46301f];
+    const barkTint = new THREE.Color();
     const crownMaterials = [
       this.detailScope.track(new THREE.MeshStandardMaterial({ color: 0x15302d, roughness: 0.98 })),
       this.detailScope.track(new THREE.MeshStandardMaterial({ color: 0x1d3934, roughness: 0.98 })),
@@ -459,6 +469,7 @@ export class IslandLandscape {
       dummy.scale.set(0.9 * scale, 0.82 * scale, 0.9 * scale);
       dummy.updateMatrix();
       trunks.setMatrixAt(placed, dummy.matrix);
+      trunks.setColorAt(placed, barkTint.setHex(barkTones[(placed * 7) % barkTones.length]));
       const palette = placed % crownMaterials.length;
       // ISLAND-01: crowns lifted (3.7 -> 4.2 x scale) so every perimeter tree
       // shows a readable trunk; underside >= 3.59 m. Trunk/collider unchanged.
@@ -512,6 +523,7 @@ export class IslandLandscape {
     }
     trunks.count = placed;
     trunks.instanceMatrix.needsUpdate = true;
+    if (trunks.instanceColor) trunks.instanceColor.needsUpdate = true;
     this.root.add(this.detailScope.track(trunks));
     crowns.forEach((mesh, index) => {
       mesh.count = byPalette[index];
@@ -527,7 +539,7 @@ export class IslandLandscape {
     // the ground or interfering with the museum's authored walking paths.
     // Its density scales with device quality; there is no extra frame loop.
     // Double per-tree groundcover without adding tree colliders or passes.
-    const shrubsPerTree = this.quality === 'low' ? 4 : this.quality === 'medium' ? 8 : 12;
+    const shrubsPerTree = this.quality === 'low' ? 2 : this.quality === 'medium' ? 5 : 12;
     const shrubGeo = this.detailScope.track(new THREE.IcosahedronGeometry(1, 0));
     const shrubMat = this.detailScope.track(new THREE.MeshStandardMaterial({
       color: 0x2b5447, roughness: 1,
@@ -580,7 +592,7 @@ export class IslandLandscape {
     // canonical overhead and west cameras. Add canopy-only infill around the
     // existing trees, without placing another trunk, collider or floor tile.
     // One instanced low-poly mesh keeps the draw count constant across tiers.
-    const infillPerTree = this.quality === 'low' ? 2 : this.quality === 'medium' ? 3 : 4;
+    const infillPerTree = this.quality === 'low' ? 1 : this.quality === 'medium' ? 2 : 4;
     const infillGeometry = this.detailScope.track(new THREE.IcosahedronGeometry(2.7, 0));
     const infillMaterial = this.detailScope.track(new THREE.MeshStandardMaterial({
       color: 0xffffff, roughness: 1, metalness: 0,
@@ -650,7 +662,9 @@ export class IslandLandscape {
     const maxZ = Math.max(...ISLAND_OUTLINE.map(([, z]) => z));
     const columns = Math.ceil((maxX - minX) / trunkStep);
     const rows = Math.ceil((maxZ - minZ) / trunkStep);
-    const extraCrowns = this.quality === 'low' ? 0 : this.quality === 'medium' ? 1 : 2;
+    // ISLAND-01b: low tier also adds a crown to ~40 % of trunks, so it no longer
+    // thins into an orchard (20-triangle crowns keep it cheap).
+    const extraCrowns = this.quality === 'high' ? 2 : 1;
     // Low tier uses 20 triangles/crown rather than 80, reducing the forest
     // geometry burden without changing canopy counts, clearing or material.
     const beltGeometry = this.detailScope.track(new THREE.IcosahedronGeometry(4.1, this.quality === 'high' ? 1 : 0));
@@ -664,7 +678,7 @@ export class IslandLandscape {
     belt.receiveShadow = false;
     // Unit-height trunk with its base at the origin, so scale.y is the height.
     // Open-ended: the base is in the ground and the top inside the crown.
-    const beltTrunkGeometry = this.detailScope.track(new THREE.CylinderGeometry(0.2, 0.32, 1, 6, 1, true).translate(0, 0.5, 0));
+    const beltTrunkGeometry = this.detailScope.track(new THREE.CylinderGeometry(0.13, 0.34, 1, 6, 1, true).translate(0, 0.5, 0));
     const beltTrunks = new THREE.InstancedMesh(beltTrunkGeometry, trunkMat, columns * rows);
     beltTrunks.name = 'woodland-forest-belt-trunks';
     beltTrunks.userData.visualRole = 'forest-belt-visible-trunks';
@@ -679,7 +693,10 @@ export class IslandLandscape {
         const dx = bx - ax, dz = bz - az;
         const t = Math.max(0, Math.min(1,
           ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
-        return Math.hypot(x - (ax + t * dx), z - (az + t * dz)) < 10.5;
+        // ISLAND-01b: trunks may stand 7 m from a path centreline (was 10.5 m
+        // when belt crowns were ground-level blobs); raised crowns overhang
+        // the path edge above head height instead of leaving vacant verges.
+        return Math.hypot(x - (ax + t * dx), z - (az + t * dz)) < 7;
       }));
     const clearFootprint = (x: number, z: number): boolean => {
       const margin = 6.4;
@@ -718,9 +735,19 @@ export class IslandLandscape {
     for (let col = 0; col < columns; col++) {
       for (let row = 0; row < rows; row++) {
         const seed = 19_431 + col * 3719 + row * 1097;
-        const x = minX + (col + 0.5) * trunkStep + (hash01(seed) - 0.5) * trunkStep * 0.66;
-        const z = minZ + (row + 0.5) * trunkStep + (hash01(seed + 11) - 0.5) * trunkStep * 0.66;
+        const gx = minX + (col + 0.5) * trunkStep + (hash01(seed) - 0.5) * trunkStep * 0.66;
+        const gz = minZ + (row + 0.5) * trunkStep + (hash01(seed + 11) - 0.5) * trunkStep * 0.66;
+        // ISLAND-01b clumping: pull each trunk 40 % toward a jittered clump
+        // centre on a 22 m grid, so trees gather in stands with glades between
+        // instead of an even scatter. Still quality-independent.
+        const ccol = Math.floor((gx - minX) / 22), crow = Math.floor((gz - minZ) / 22);
+        const cseed = 7_919 + ccol * 613 + crow * 211;
+        const cx = minX + (ccol + 0.5) * 22 + (hash01(cseed) - 0.5) * 12;
+        const cz = minZ + (crow + 0.5) * 22 + (hash01(cseed + 5) - 0.5) * 12;
+        const x = gx + (cx - gx) * 0.4;
+        const z = gz + (cz - gz) * 0.4;
         if (!clearFootprint(x, z) || landmarkGroundExcluded(x, z, 0.6)) continue;
+        const clumpValue = 0.8 + hash01(cseed + 9) * 0.38;
         const sx = 0.72 + hash01(seed + 31) * 0.72;
         const sz = 0.72 + hash01(seed + 53) * 0.72;
         // Slightly flattened crowns (0.48–1.12) read as broad leafy heads.
@@ -731,7 +758,9 @@ export class IslandLandscape {
         const girth = 0.75 + hash01(seed + 97) * 0.55;
         const leanX = (hash01(seed + 101) - 0.5) * 0.12;
         const leanZ = (hash01(seed + 103) - 0.5) * 0.12;
-        const colour = beltColours[(col + row) % beltColours.length];
+        // Clump value plus per-tree jitter: near and far stands separate in value.
+        const colour = new THREE.Color(beltColours[(col + row) % beltColours.length])
+          .multiplyScalar(clumpValue * (0.94 + hash01(seed + 151) * 0.12)).getHex();
         const yaw = hash01(seed + 71) * Math.PI * 2;
         // The primary crown is checked against landmark sightlines before its
         // trunk is committed, so a trunk never stands without its crown.
@@ -745,16 +774,17 @@ export class IslandLandscape {
         const crownX = trunkTop.x, crownZ = trunkTop.z;
         if (!clearFootprint(crownX, crownZ)) continue;
         if (!placeCrown(crownX, crownY, crownZ, sx, sy, sz, yaw, colour)) continue;
+        beltTrunks.setColorAt(trunkCount, barkTint.setHex(barkTones[Math.floor(hash01(seed + 167) * barkTones.length)]));
         beltTrunks.setMatrixAt(trunkCount++, trunkMatrix);
         if (registerCollision) {
           const half = 0.32 * girth + 0.04;
           this.collision.addBox([x, -0.5 + trunkHeight / 2, z], [half, trunkHeight / 2, half]);
         }
         for (let k = 0; k < extraCrowns; k++) {
-          // Medium adds one crown to ~74 % of trees; high adds one to all and a
+          // Low adds one crown to ~40 % of trees, medium to ~74 %; high adds one to all and a
           // second to ~56 %, raising canopy density overhead only.
           const chance = hash01(seed + 211 + k * 17);
-          if (this.quality === 'medium' ? chance > 0.74 : k === 1 && chance > 0.56) continue;
+          if (this.quality === 'low' ? chance > 0.4 : this.quality === 'medium' ? chance > 0.74 : k === 1 && chance > 0.56) continue;
           const angle = hash01(seed + 223 + k * 19) * Math.PI * 2;
           const reach = 2.2 + hash01(seed + 227 + k * 23) * 1.8;
           const ex = crownX + Math.cos(angle) * reach;
@@ -763,7 +793,7 @@ export class IslandLandscape {
           const shrink = 0.6 + hash01(seed + 229 + k * 29) * 0.25;
           const eUnder = underside + 0.8 + hash01(seed + 233 + k * 31) * 1.2;
           placeCrown(ex, -0.5 + eUnder + radiusY * shrink, ez, sx * shrink, sy * shrink, sz * shrink,
-            yaw + angle, beltColours[(col + row + k + 1) % beltColours.length]);
+            yaw + angle, new THREE.Color(beltColours[(col + row + k + 1) % beltColours.length]).multiplyScalar(clumpValue).getHex());
         }
       }
     }
@@ -774,6 +804,7 @@ export class IslandLandscape {
     this.root.add(this.detailScope.track(belt));
     beltTrunks.count = trunkCount;
     beltTrunks.instanceMatrix.needsUpdate = true;
+    if (beltTrunks.instanceColor) beltTrunks.instanceColor.needsUpdate = true;
     beltTrunks.computeBoundingSphere();
     this.root.add(this.detailScope.track(beltTrunks));
   }

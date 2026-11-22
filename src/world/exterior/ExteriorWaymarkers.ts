@@ -25,8 +25,9 @@ export const WAYMARKER_POSTS: readonly WaymarkerPost[] = [
   // At the pier junction, both read from the spawn looking north.
   { id: 'pier-east', x: 7.4, z: 188.6, yaw: 0, doubleSided: false },
   { id: 'pier-west', x: -7.4, z: 188.6, yaw: 0, doubleSided: false },
-  // Rear garden: read from the path just south of the post.
-  { id: 'rear-garden', x: -3.6, z: -113.4, yaw: 0, doubleSided: false },
+  // Rear garden: read from the path just south of the post. ISLAND-01b moved it
+  // off the Wings of Dawn axis (was x -3.6) so the sign no longer fronts the sculpture.
+  { id: 'rear-garden', x: -9.5, z: -113.4, yaw: 0, doubleSided: false },
   // Spire-garden junction: approached from the east (path 3) and the south-west (path 4).
   { id: 'spire-junction', x: -110, z: -44, yaw: Math.PI / 2, doubleSided: true },
 ];

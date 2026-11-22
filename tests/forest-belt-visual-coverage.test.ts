@@ -22,8 +22,10 @@ describe('S5 shoreline-belt forest visual coverage', () => {
   // one quality-independent grid; landmark clearings/walk-in corridors remove
   // 43 trunk sites (888 -> 845 on low). Medium/high add overhead crowns on the
   // same trunks (845/1447/2067, previously 888/1457/2093).
+  // ISLAND-01b: trunks clump into stands and may stand 7 m from paths (890
+  // trunks); low adds an overhead crown to ~40 % of them (1239/1532/2181).
   for (const [tier, min, max] of [
-    ['low', 835, 860], ['medium', 1435, 1465], ['high', 2055, 2085],
+    ['low', 1225, 1255], ['medium', 1515, 1550], ['high', 2165, 2200],
   ] as const) {
     it(`fills distinct forest areas on ${tier} without new floor support or forbidden placements`, () => {
       const scope = new ResourceScope(`forest-belt-${tier}`);
@@ -48,7 +50,8 @@ describe('S5 shoreline-belt forest visual coverage', () => {
       expect(belt.instanceColor).toBeTruthy();
       expect(belt.castShadow).toBe(false);
       expect(belt.receiveShadow).toBe(false);
-      expect(existingTrunks.count).toBe(tier === 'low' ? 68 : tier === 'medium' ? 112 : 176);
+      // ISLAND-01b: one quality-independent, collision-backed perimeter tree set.
+      expect(existingTrunks.count).toBe(176);
       expect(shrubs.count).toBeGreaterThan(tier === 'low' ? 60 : tier === 'medium' ? 135 : 235);
       expect(shrubs.count).toBeLessThanOrEqual(existingTrunks.count * (tier === 'low' ? 4 : tier === 'medium' ? 8 : 12));
       expect(rocks.count).toBeGreaterThan(tier === 'low' ? 32 : tier === 'medium' ? 65 : 100);
@@ -67,7 +70,7 @@ describe('S5 shoreline-belt forest visual coverage', () => {
         for (const [dx, dz] of [[6.4, 0], [-6.4, 0], [0, 6.4], [0, -6.4]]) {
           expect(isSiteLand(x + dx, z + dz)).toBe(true);
         }
-        expect(distanceToPath(x, z)).toBeGreaterThanOrEqual(10.49);
+        expect(distanceToPath(x, z)).toBeGreaterThanOrEqual(6.99);
         expect(Math.abs(x) < 55 && Math.abs(z) < 118).toBe(false);
         expect(Math.hypot(x, z - 128)).toBeGreaterThanOrEqual(59.99);
         expect(x > 39 && x < 147 && z > -67 && z < 68).toBe(false);

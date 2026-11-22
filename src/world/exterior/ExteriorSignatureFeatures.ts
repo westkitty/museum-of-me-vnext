@@ -960,6 +960,16 @@ export class ExteriorSignatureFeatures {
       wing.rotation.set(0.2, wingSide * 0.45, wingSide * 0.55);
       wing.castShadow = true;
       sculptureGroup.add(wing);
+      // ISLAND-01b: a warm bronze leading edge with a thin amber line separates
+      // the verdigris wings from the green garden behind them.
+      const edgeGeo = this.scope.track(new THREE.BoxGeometry(2.46, 0.16, 0.14));
+      const edge = new THREE.Mesh(edgeGeo, this.bronzeMat);
+      edge.position.set(0, 0.02, 0.58);
+      wing.add(edge);
+      const glintGeo = this.scope.track(new THREE.BoxGeometry(2.3, 0.035, 0.035));
+      const glint = new THREE.Mesh(glintGeo, this.amberGlowMat);
+      glint.position.set(0, 0.1, 0.66);
+      wing.add(glint);
     }
     group.add(sculptureGroup);
 
