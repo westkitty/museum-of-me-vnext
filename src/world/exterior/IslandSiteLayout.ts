@@ -249,3 +249,36 @@ export function addIslandSupport(collision: CollisionWorld): number {
   );
   return count;
 }
+
+/**
+ * Island safety: the lagoon is open water with no floor. Its shoreline gets a
+ * solid bank edge (oriented wall colliders along LAGOON_OUTLINE, waist high),
+ * so a visitor walking or running at the water stops on the bank instead of
+ * falling through the basin. Pocket-world entry (W01) will add a deliberate
+ * dive interaction; nothing here strands or traps a visitor.
+ */
+export const LAGOON_EDGE_HEIGHT = 1.4; // above the 1.18 m jump apex
+export const LAGOON_EDGE_THICKNESS = 0.3;
+export function addLagoonEdge(collision: CollisionWorld): number {
+  for (let i = 0; i < LAGOON_OUTLINE.length; i++) {
+    const [ax, az] = LAGOON_OUTLINE[i];
+    const [bx, bz] = LAGOON_OUTLINE[(i + 1) % LAGOON_OUTLINE.length];
+    const dx = bx - ax, dz = bz - az;
+    const length = Math.hypot(dx, dz);
+    const ux = dx / length, uz = dz / length;
+    // Overlap neighbouring segments slightly so corners have no gap.
+    const halfX = length / 2 + LAGOON_EDGE_THICKNESS / 2;
+    const halfT = LAGOON_EDGE_THICKNESS / 2;
+    const cx = (ax + bx) / 2, cz = (az + bz) / 2;
+    const broadX = Math.abs(ux) * halfX + Math.abs(uz) * halfT;
+    const broadZ = Math.abs(uz) * halfX + Math.abs(ux) * halfT;
+    collision.add({
+      kind: 'wall',
+      minX: cx - broadX, maxX: cx + broadX,
+      minY: LAND_SUPPORT_Y, maxY: LAND_SUPPORT_Y + LAGOON_EDGE_HEIGHT,
+      minZ: cz - broadZ, maxZ: cz + broadZ,
+      oriented: { centerX: cx, centerZ: cz, halfX, halfZ: halfT, yaw: Math.atan2(-uz, ux) },
+    });
+  }
+  return LAGOON_OUTLINE.length;
+}
