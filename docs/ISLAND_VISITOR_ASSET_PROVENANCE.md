@@ -1,0 +1,15 @@
+# Island visitors (ISLAND-04)
+
+Polygonal Mind published the CC0-1.0 [100 Avatars Round 1](https://github.com/PolygonalMind/initiative-opensource-release/releases/tag/230412.1) and [100 Avatars Round 2](https://github.com/PolygonalMind/initiative-opensource-release/releases/tag/230412.2) packs. Each DEX//SCULPT catalog record (catalog checkout `15a576ecc5b4865f006f3a2f4c1f7f894909f8f0`) matches the original byte count, SHA-256 and CC0 license. The hashes also match the owner's [integration authorization](https://github.com/westkitty/ChatGPT_Bible_Repo/blob/81a4c4d09546457a8eee2a9ee486904a58995e57/bibles/addenda/Museum_of_Me_ISLAND04_NPC_Integration_Authorization_20261122.md).
+
+The originals live under DEX//SCULPT's local `VerifiedModels`. The seven governed runtime derivatives in `src/assets/npc/island-*.glb` carry the original textures, neutral mesh attributes, indices, transforms, and joint bindings byte for byte. The conversion removes unplayed facial morph targets with zero default weights, their unused accessors and buffer views, then repacks the retained GLB buffers with four-byte alignment. All source models have zero animation clips. The exterior placements use still idle poses authored for the retained Mixamo rigs and are present in all quality tiers. The runtime acquires a lease near each placement and releases it outside the retention radius or at the interior transition.
+
+| Character | Original | Original bytes | Original SHA-256 | Runtime bytes | Runtime SHA-256 |
+|---|---|---:|---|---:|---|
+| Coffee | `polygonalmind-100-avatars-r1/80_coffee.glb` | 1,165,308 | `ade705150ce7f189c986d96b9589849e3c9499d029fbba8c8832c121ca83929d` | 258,604 | `0c306972ce8eec5f46b19307d4f415edb0a3bafa25bdc74cfe0e39fd3d9f30c6` |
+| Robothead | `polygonalmind-100-avatars-r1/17_robothead.glb` | 1,340,164 | `15786458aaa1175bb700204daf9d8616ee132d01a866688bd311e38eb91bdf26` | 302,700 | `d73aba74cc49c862b4e760dc45505acfe6bc130854dd405f595de6b16840214f` |
+| Carrot Kid | `polygonalmind-100-avatars-r1/23_carrot_kid.glb` | 1,340,676 | `10927784ea46d900b48e6217bfffaaa713076f20dc853d8c1b1f5c39f86c248e` | 385,212 | `1a16aed6c9461bf39a7d35dc7902e66d7d3d25383211340d5ecc70e5973eab90` |
+| Cactusboy | `polygonalmind-100-avatars-r1/09_cactusboy_avatar.glb` | 1,744,304 | `b1d82952025aa4fe3a34f4054280cd52e498f1f43ee82b44822106f0b11f1011` | 412,544 | `4a7d43a713064aea53eafd1afb864dabe70459602d4ee37b48d297a1d19e6e62` |
+| Froggy | `polygonalmind-100-avatars-r1/10_froggy_avatar.glb` | 1,820,508 | `73159840f0940ddb7a69ce979c3b136eb5e16f47a42ad7005678e95690758281` | 947,232 | `08580e8e6a19d74b61cde46b0d9508a40efd33c6f7c9be65c1b21c20b201ce42` |
+| Eyewizard | `polygonalmind-100-avatars-r2/100avatars_113_eyewizard.glb` | 1,879,376 | `dd33100848a47837cd621c8a45de751f44b3e5692d27d69b2733554567b87cb7` | 374,976 | `77589f22ff93e2b0e9d6e117c5e29685dba72a559e7489543b9247c0ee8ccef2` |
+| Goldfish Bag Person | `polygonalmind-100-avatars-r2/100avatars_105_goldfishbagperson.glb` | 2,346,116 | `77ea9e37504e8b8fd2ac0615bbe182b4f05f7ad3599e0f9b7747e049e0edd704` | 629,600 | `fd1aaf5e0aa51482ed706b944fee7aecb00cd30bdc54848da463a950fb3eb51e` |

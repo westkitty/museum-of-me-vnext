@@ -1,7 +1,7 @@
 import type { Tier } from '../content/types';
 
 export type AssetKind = 'procedural' | 'glb' | 'texture' | 'audio' | 'bundle';
-export type StreamingGroup = 'shell' | `wing:${string}` | `exhibit:${string}` | 'sanctuary' | 'cinema';
+export type StreamingGroup = 'shell' | `wing:${string}` | `exhibit:${string}` | 'sanctuary' | 'cinema' | 'exterior-npc';
 
 /**
  * Governed asset record. Plan §27: no undocumented asset, ever.

@@ -195,7 +195,7 @@ export const ALL_ROOF_DECKS: readonly DeckRect[] = [
 export const HOT_DOG_STAND_ID = 'rooftop-hot-dog-stand';
 export const HOT_DOG_STAND_CENTER: Vec3 = [7.5, ROOF_DECK_Y, 29.0];
 export const HOT_DOG_STAND_SIZE = { depthX: 2.8, widthZ: 4.2 } as const;
-export const HOT_DOG_STAND_OPERATOR_SPOT: Vec3 = [7.8, ROOF_DECK_Y, 29.0];
+export const HOT_DOG_STAND_OPERATOR_SPOT: Vec3 = [6.96, ROOF_DECK_Y, 29.0];
 export const HOT_DOG_STAND_VISITOR_SPOT: Vec3 = [5.0, ROOF_DECK_Y, 29.0];
 
 export const ROOF_CAFE_TABLES: readonly Vec3[] = [

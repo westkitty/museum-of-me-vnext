@@ -1281,6 +1281,12 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - **VERIFIED BY AUTOMATED TEST (local):** typecheck, Vitest 129 files / 1,313 tests (post-#77), Playwright rooftop + cinema + cinema-youtube + quality-transitions 12/12 (Chrome + SwiftShader). Evidence `docs/evidence/island-03-rooftop-20261122/`.
 - **NOT VERIFIED:** human visual acceptance, `perf:device`, hosted Pages. Hot Dog Man is ISLAND-04.
 
+### 2026-11-22 — ISLAND-04 exterior characters (r116)
+
+- **IMPLEMENTED:** Recovered the rooftop draft. Hot Dog Man operates the existing stand with a procedural idle and interaction-triggered serving pose, including a still reduced-motion pose. Seven owner-approved ambient residents occupy supported positions around the island and café. The authored visitor and Quaternius systems retain their existing roles.
+- **VERIFIED LOCALLY:** Full development gate passed (1,317 Vitest tests, release tools, source parity, asset and lifecycle checks, build, 16.28 of 20 MiB package check, release-dist verification). Production Chrome NPC and rooftop browser checks passed. Cold exterior transfer measured 645,552 bytes with zero NPC downloads before approach. See [browser evidence](docs/evidence/island-04-npcs-20261122/) and [asset provenance](docs/ISLAND_VISITOR_ASSET_PROVENANCE.md).
+- **MERGED:** Shared baseline prewarm fix ([PR #81](https://github.com/westkitty/museum-of-me-vnext/pull/81)) squash-merged to `main` (`89b7fd4`); ISLAND-04 ([PR #79](https://github.com/westkitty/museum-of-me-vnext/pull/79)) updated cleanly and squash-merged to `main` (`2bc3441`, CI 7/7 `SUCCESS`). Visual upgrades to the 17 authored visitors remain future work.
+
 ### 2026-11-22 — ISLAND-05 shared pocket-world foundation (r121)
 
 - **RECOVERED:** Preserved Antigravity WIP `1190a81f2343c1c1124fff006a9ba60527a8a1f3` on `feat/island-05-pocket-world-host`. Merged the verified `origin/main` at `96145564f1fda5e8e37c775f53e5b2268790e863` into the feature branch without conflicts. The draft had 19 TypeScript errors. The integrated foundation has zero.

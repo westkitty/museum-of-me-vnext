@@ -63,7 +63,7 @@ describe('doorway hold while a constructed interior is still prewarming', () => 
         collision: {},
         setActive: () => undefined,
       },
-      exteriorWorld: { root: { visible: true }, collision: {} },
+      exteriorWorld: { root: { visible: true }, collision: {}, islandVisitors: { clear: () => undefined } },
       ticket: { number: '0001', date: 'today', issuedAtMs: 0 } as { number: string; date: string; issuedAtMs: number } | null,
       player: {
         position: { x: 0, y: GROUND_Y, z: ENTRANCE_PORTAL_Z },
