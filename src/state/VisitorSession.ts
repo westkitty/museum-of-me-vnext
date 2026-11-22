@@ -1,4 +1,5 @@
 import { JOURNAL_KEY, JOURNAL_VERSION, type Journal } from './Journal';
+import { PASSPORT_KEY, parsePassportPayloadValue, type Passport } from './Passport';
 import { PREFERENCES_KEY, PREFERENCES_LEGACY_KEY, DEFAULT_PREFERENCES, PREFERENCES_VERSION, preferencesForExport, sanitizePreferences, type VisitorPreferences } from './Preferences';
 import { SECRETS_KEY, SECRETS_VERSION, type SecretsLog } from './Secrets';
 import { STUDY_KEY, STUDY_SCHEMA_VERSION, type Study } from './Study';
@@ -10,10 +11,10 @@ const FORMAT = 'reliquary-session';
 const VERSION = 2;
 export const SESSION_MAX_BYTES = 512 * 1024;
 
-const KEYS = [JOURNAL_KEY, STUDY_KEY, PREFERENCES_KEY, PREFERENCES_LEGACY_KEY, VISIT_THREAD_KEY, SECRETS_KEY] as const;
+const KEYS = [JOURNAL_KEY, STUDY_KEY, PREFERENCES_KEY, PREFERENCES_LEGACY_KEY, VISIT_THREAD_KEY, SECRETS_KEY, PASSPORT_KEY] as const;
 type StorageKey = typeof KEYS[number];
 type Snapshot = Partial<Record<StorageKey, string | null>>;
-type SessionParts = { journal: Journal; study: Study; preferences: VisitorPreferences; visitThread: VisitThread; secretsLog: SecretsLog };
+type SessionParts = { journal: Journal; study: Study; preferences: VisitorPreferences; visitThread: VisitThread; secretsLog: SecretsLog; passport?: Passport };
 
 export function exportVisitorSession(parts: SessionParts): string {
   return JSON.stringify(attachIntegrity({
@@ -24,6 +25,7 @@ export function exportVisitorSession(parts: SessionParts): string {
     preferences: preferencesForExport(parts.preferences),
     visitThread: parts.visitThread.exportPayload(),
     secrets: parts.secretsLog.exportPayload(),
+    ...(parts.passport ? { passport: parts.passport.exportPayload() } : {}),
   }), null, 2);
 }
 
@@ -69,7 +71,7 @@ export function previewVisitorSession(raw: string, parts: Pick<SessionParts, 'st
     throw new Error('This museum session format is unsupported.');
   }
 
-  const { journal, study, preferences, visitThread, secrets } = body;
+  const { journal, study, preferences, visitThread, secrets, passport } = body;
   if (!validJournal(journal)) throw new Error('The Journal record is invalid.');
   const values: Snapshot = { [JOURNAL_KEY]: JSON.stringify(journal) };
   const entries = Object.keys(journal.entries).length;
@@ -116,6 +118,28 @@ export function previewVisitorSession(raw: string, parts: Pick<SessionParts, 'st
     const found = Object.keys(secrets.found).length;
     description.push(`${found} secret ${found === 1 ? 'find' : 'finds'}`);
   }
+  if (passport !== undefined) {
+    const parsedPassport = parsePassportPayloadValue(passport);
+    if (!parsedPassport.ok || parsedPassport.dropped > 0) {
+      throw new Error('The Passport record is invalid.');
+    }
+    const stamps: Record<string, { worldId: string; earnedAt: number }> = {};
+    for (const [id, rec] of parsedPassport.state.stamps) stamps[id] = { worldId: rec.worldId, earnedAt: rec.earnedAt };
+    const bonusCompleted: Record<string, { worldId: string; completedAt: number }> = {};
+    const l01 = parsedPassport.state.bonusCompleted.get('L01');
+    if (l01) bonusCompleted.L01 = { worldId: 'L01', completedAt: l01.completedAt };
+    const visitedWorlds: Record<string, number> = {};
+    for (const [id, at] of parsedPassport.state.visited) visitedWorlds[id] = at;
+    values[PASSPORT_KEY] = JSON.stringify({
+      version: Number((passport as Record<string, unknown>).version),
+      unlockedUi: parsedPassport.state.unlockedUi,
+      stamps,
+      bonusCompleted,
+      visitedWorlds,
+    });
+    const stampCount = parsedPassport.state.stamps.size;
+    description.push(`${stampCount} passport ${stampCount === 1 ? 'stamp' : 'stamps'}`);
+  }
   return { values, description: description.join(', ') };
 }
 
@@ -156,7 +180,7 @@ export function restoreVisitorSession(storage: Storage): boolean {
   const raw = storage.getItem(BACKUP_KEY);
   if (raw === null) return false;
   const parsed: unknown = JSON.parse(raw);
-  if (!record(parsed) || !KEYS.every(key => parsed[key] === null || typeof parsed[key] === 'string')) {
+  if (!record(parsed) || !KEYS.every(key => parsed[key] === undefined || parsed[key] === null || typeof parsed[key] === 'string')) {
     throw new Error('The previous session backup is unreadable.');
   }
   replace(storage, parsed as Snapshot, false);

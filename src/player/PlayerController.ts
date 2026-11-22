@@ -160,6 +160,16 @@ export class PlayerController {
     this.prevEyeLag = 0;
   }
 
+  /** Restore an exact captured pose (position, yaw, pitch) after a world transition. */
+  restorePose(p: Vec3, yaw: number, pitch = 0): void {
+    this.teleport(p, yaw);
+    const clampedPitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, Number.isFinite(pitch) ? pitch : 0));
+    this.pitch = clampedPitch;
+    this.prevPitch.v = clampedPitch;
+    const support = this.world.supportHeight(p[0], p[2], p[1], 0.05);
+    this.grounded = support !== null && Math.abs(support - p[1]) <= 0.05;
+  }
+
   setFrozen(frozen: boolean): void {
     this.frozen = frozen;
     if (frozen) {

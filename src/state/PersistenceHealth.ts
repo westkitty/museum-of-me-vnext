@@ -9,7 +9,7 @@
  *
  * Nothing is stored or sent: this is in-memory state for the current page.
  */
-export type PersistedStore = 'journal' | 'preferences' | 'study' | 'visit-thread' | 'secrets' | 'installations';
+export type PersistedStore = 'journal' | 'preferences' | 'study' | 'visit-thread' | 'secrets' | 'installations' | 'passport';
 
 export type PersistenceFailure = 'quota' | 'blocked';
 
@@ -20,9 +20,10 @@ const STORE_LABEL: Readonly<Record<PersistedStore, string>> = {
   'visit-thread': 'Visit Thread',
   secrets: 'secret finds',
   installations: 'installation states',
+  passport: 'passport',
 };
 
-const ORDER: readonly PersistedStore[] = ['journal', 'preferences', 'study', 'visit-thread', 'secrets', 'installations'];
+const ORDER: readonly PersistedStore[] = ['journal', 'preferences', 'study', 'visit-thread', 'secrets', 'installations', 'passport'];
 
 /** A quota error, by name or by the legacy numeric codes browsers still use. */
 export function isQuotaError(error: unknown): boolean {

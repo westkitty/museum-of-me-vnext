@@ -2,6 +2,7 @@ import { el, isActivationKey } from './dom';
 import type { InteractionFocus } from '../interaction/InteractionManager';
 import { ZONE_BY_ID, type ZoneId } from '../world/layout';
 import { WINGS_BY_ID } from '../content/collection.generated';
+import './pocket.css';
 
 /**
  * The persistent interface. Plan §30 asks for minimal: an interaction cue, a
@@ -33,9 +34,14 @@ export class HUD {
   private arrivalEntered = false;
   private cinematicArrivalActive = false;
   private readonly threadStatus: HTMLButtonElement;
+  private readonly topActions: HTMLElement;
+  private readonly passportButton: HTMLButtonElement;
+  private readonly pocketBackButton: HTMLButtonElement;
   private buildModeButton: HTMLButtonElement | null = null;
   private pointerLocked = false;
   private buildModeActive = false;
+  private passportVisible = false;
+  private pocketWorldActive = false;
   private interactionFocus: InteractionFocus | null = null;
   private workshopCueLabel: string | null = null;
 
@@ -44,6 +50,7 @@ export class HUD {
   private secretTimer = 0;
   private lastZone: ZoneId | null = null;
   private lastOutsideLabel: string | undefined;
+  private lastOutsideKicker: string | undefined;
 
   constructor(
     onRequestLock: (touch: boolean) => void | boolean,
@@ -52,6 +59,8 @@ export class HUD {
     onRetryMuseum?: () => void,
     onContinueOutside?: () => void,
     onVisitorMenu?: () => void,
+    onOpenPassport?: () => void,
+    onExitPocket?: () => void,
   ) {
     this.reticle = el('div', { class: 'hud__reticle' });
     this.cueLabel = el('span', {});
@@ -83,12 +92,22 @@ export class HUD {
       class: 'hud__thread', type: 'button', hidden: true,
       'aria-label': 'Open current Visit Thread', onclick: () => onOpenThread?.(),
     }) as HTMLButtonElement;
-    this.hints = el(
-      'div',
-      { class: 'hud__hints' },
-      el('div', { html: '<b>M</b> map · <b>J</b> journal · <b>C</b> curator' }),
-      el('div', { html: '<b>Y</b> study · <b>T</b> thread · <b>Ctrl+K</b> command · <b>H</b> contents · <b>O</b> settings' }),
-    );
+    this.passportButton = el('button', {
+      class: 'hud__passport', type: 'button', hidden: true,
+      'aria-haspopup': 'dialog', 'aria-controls': 'panel-passport',
+      'aria-label': 'Open Passport (0 of 10 stamps)',
+      text: 'Passport (0/10)',
+      onclick: () => onOpenPassport?.(),
+    }) as HTMLButtonElement;
+    this.pocketBackButton = el('button', {
+      class: 'hud__pocket-back', type: 'button', hidden: true,
+      'aria-label': 'Back to Museum',
+      text: 'Back to Museum',
+      onclick: () => onExitPocket?.(),
+    }) as HTMLButtonElement;
+    this.topActions = el('div', { class: 'hud__top-actions' }, this.passportButton, this.pocketBackButton);
+    this.hints = el('div', { class: 'hud__hints' });
+    this.renderHints();
 
     this.arrivalAction = el('span', {
       class: 'hud__arrival-action',
@@ -155,6 +174,7 @@ export class HUD {
       this.cue,
       this.location,
       this.threadStatus,
+      this.topActions,
       this.hints,
       this.subtitle,
       this.secretCard,
@@ -222,6 +242,7 @@ export class HUD {
       text: 'BUILD MODE',
     });
     button.addEventListener('click', onToggle);
+    button.disabled = this.pocketWorldActive;
     this.root.append(button);
     this.buildModeButton = button;
   }
@@ -237,6 +258,24 @@ export class HUD {
     this.setPointerLocked(this.pointerLocked);
   }
 
+  setPassportStatus(visible: boolean, earned: number, total: number): void {
+    const hintChanged = this.passportVisible !== visible;
+    this.passportVisible = visible;
+    this.passportButton.hidden = !visible;
+    const label = `Passport (${earned}/${total})`;
+    if (this.passportButton.textContent !== label) {
+      this.passportButton.textContent = label;
+    }
+    this.passportButton.setAttribute('aria-label', `Open Passport (${earned} of ${total} stamps)`);
+    if (hintChanged) this.renderHints();
+  }
+
+  setPocketWorldState(active: boolean): void {
+    this.pocketWorldActive = active;
+    this.pocketBackButton.hidden = !active;
+    if (this.buildModeButton) this.buildModeButton.disabled = active;
+  }
+
   private touchMode = false;
 
   /** Switch to touch affordances the first time a touch is seen. */
@@ -244,10 +283,18 @@ export class HUD {
     if (this.touchMode === on) return;
     this.touchMode = on;
     this.setPointerLocked(this.pointerLocked);
-    this.hints.innerHTML = on
-      ? '<div>Left half to walk · right half to look</div><div>Tap the centre dot to interact</div>'
-      : '<div><b>M</b> map · <b>J</b> journal · <b>C</b> curator</div>'
-        + '<div><b>Y</b> study · <b>T</b> thread · <b>Ctrl+K</b> command · <b>H</b> contents · <b>O</b> settings</div>';
+    this.renderHints();
+  }
+
+  private renderHints(): void {
+    if (this.touchMode) {
+      this.hints.innerHTML = '<div>Left half to walk · right half to look</div><div>Tap the centre dot to interact</div>';
+      return;
+    }
+    const passportHint = this.passportVisible ? ' · <b>P</b> passport' : '';
+    this.hints.innerHTML =
+      `<div><b>M</b> map · <b>J</b> journal · <b>C</b> curator${passportHint}</div>`
+      + '<div><b>Y</b> study · <b>T</b> thread · <b>Ctrl+K</b> command · <b>H</b> contents · <b>O</b> settings</div>';
   }
 
   setFocus(focus: InteractionFocus | null): void {
@@ -272,20 +319,22 @@ export class HUD {
   setVisitThreadStatus(label: string | null): void {
     this.threadStatus.hidden = !label;
     this.threadStatus.textContent = label ?? '';
+    this.root.classList.toggle('hud--thread-active', Boolean(label));
   }
 
-  /** `outsideLabel` is set while the visitor is in the exterior world. */
-  setLocation(zone: ZoneId, outsideLabel?: string): void {
-    if (zone === this.lastZone && outsideLabel === this.lastOutsideLabel) return;
+  /** `outsideLabel` is set while the visitor is in the exterior or a pocket world. */
+  setLocation(zone: ZoneId, outsideLabel?: string, outsideKicker?: string): void {
+    if (zone === this.lastZone && outsideLabel === this.lastOutsideLabel && outsideKicker === this.lastOutsideKicker) return;
     this.lastZone = zone;
     this.lastOutsideLabel = outsideLabel;
-    this.location.dataset.zone = outsideLabel ? 'exterior' : zone;
+    this.lastOutsideKicker = outsideKicker;
+    this.location.dataset.zone = outsideKicker ? 'pocket' : outsideLabel ? 'exterior' : zone;
     const record = ZONE_BY_ID.get(zone);
     const wing = outsideLabel ? undefined : WINGS_BY_ID.get(zone as never);
     const floor = outsideLabel ? null : floorLabelForZone(zone);
     this.location.dataset.floor = floor ?? '';
     this.location.replaceChildren(
-      el('span', { text: [floor, wing ? wing.subtitle : 'Museum of Me'].filter(Boolean).join(' · ') }),
+      el('span', { text: [floor, wing ? wing.subtitle : (outsideKicker ?? 'Museum of Me')].filter(Boolean).join(' · ') }),
       el('strong', { text: outsideLabel ?? (wing ? wing.name : (record?.label ?? 'Museum')) }),
     );
   }
