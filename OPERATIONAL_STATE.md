@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 108,
+  "state_revision": 109,
   "last_updated": "2026-11-21",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -1226,3 +1226,11 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS (1,289 Vitest tests); new `tests/island-landmark-visibility.test.ts` (6) and `tests/browser/island-landmark-walk.e2e.ts` (keyboard all 15 landmarks low/high with reduced motion; touch 4 landmarks); browser `island-landscape`, `quality-transitions`, `exterior-first`, `performance-lifecycle`, `stability` PASS on the branch. Evidence: `docs/evidence/island-01-woodland-20261121/`.
 - **NOT VERIFIED:** human visual acceptance, real-device performance (`perf:device` not run), hosted Pages (not a release milestone). Cinema, interior, exhibits, visitors untouched.
 
+### 2026-11-21 — ISLAND-01b woodland character and perimeter-tree collision fix (r109)
+
+- **Base:** `main` `7bd839a` (PR #71, ISLAND-01). Branch `feat/island-01b-forest-character`. Responds to the Critiquito ISLAND-01 fix list items 1, 2, 3, 9 and 13 and to a collision defect found during ISLAND-01.
+- **FIXED (collision):** perimeter-tree colliders were registered only for the tier the exterior was built with (68/112/176 trees), while a later quality switch re-rendered a different number of trees. All tiers now plant the same 176 collision-backed perimeter trees; low tier uses 20-triangle crowns, and per-tree understory/infill densities were rebalanced on low/medium. New unit test asserts identical trunk positions and collider counts on every tier and a solid collider under every visible trunk.
+- **IMPLEMENTED (visual):** forest-belt trunks pulled 40 % toward jittered 22 m clump centres (stands with glades); trunks may stand 7 m from path centrelines (was 10.5 m); warm, varied dark-brown bark via per-instance colour on tapered trunks; per-clump crown value variation; low tier adds an overhead crown to ~40 % of trunks. Landmark clearings tightened (meadow 15→14, fern ravine 13.5→12.5, stone circle 13→11, Wings of Dawn 12→10); landmark positions unchanged. Rear-garden "Museum doors" fingerpost moved off the Wings of Dawn axis (x −3.6→−9.5); bronze leading edges with a thin amber line on the sculpture's wings.
+- **Counts:** belt trunks 890 (quality-independent), belt crowns 1239/1532/2181; landscape triangles 70k/112k/285k (were 60k/97k/274k); landscape colliders 1086 on every tier (were 933/977/1041).
+- **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS; browser `island-landmark-walk` (keyboard all 15 low/high with reduced motion; touch), `island-landscape`, `quality-transitions`, `art-direction`, `asset-ownership`, `continuity-uplift`, `exterior-signature-evidence`, `performance-lifecycle`, `predictive-interior` PASS on the branch. Evidence: `docs/evidence/island-01b-woodland-20261121/`.
+- **NOT VERIFIED:** human visual acceptance, real-device performance, hosted Pages (not a release milestone). Open fix-list items 4–8, 10–12, 14 remain open.

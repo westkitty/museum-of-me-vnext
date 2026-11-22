@@ -179,5 +179,7 @@ Plan: `docs/plans/WORLD_EXPANSION_GROKBOT_MASTER_20261121.md`. Rows are added as
 | ISLAND-01 forest-belt crowns on visible collision-backed trunks; crowns ≥ 3.0 m; understory ≤ 1.38 m | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST | `tests/island-landmark-visibility.test.ts`, `tests/browser/quality-transitions.e2e.ts` |
 | ISLAND-01 15 named landmarks: approach, inspection spot, clear eye-height view | IMPLEMENTED; VERIFIED BY BROWSER (keyboard all 15, low/high, reduced motion; touch 4) | `tests/browser/island-landmark-walk.e2e.ts`; `docs/evidence/island-01-woodland-20261121/` |
 | ISLAND-01 human visual acceptance; real-device performance | PENDING | — |
+| ISLAND-01b perimeter trees: one collision-backed 176-tree set on every tier (quality-switch collision fix) | IMPLEMENTED; VERIFIED BY UNIT AND BROWSER TEST | `tests/island-landmark-visibility.test.ts`, `tests/browser/quality-transitions.e2e.ts` |
+| ISLAND-01b clumped stands, warm varied bark, tighter clearings, Wings of Dawn sign off-axis and warm wing edges | IMPLEMENTED; human visual acceptance PENDING | `docs/evidence/island-01b-woodland-20261121/` |
 | ISLAND-02 … ISLAND-05, W01–W10, L01 | PLANNED (not started) | master plan |
 

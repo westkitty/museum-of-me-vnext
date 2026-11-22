@@ -137,7 +137,38 @@ describe('ISLAND-01 woodland canopy and landmark visibility', () => {
       expect(r.crowns).toBeGreaterThanOrEqual(r.count);
       expect(r.castShadow).toBe(false);
     }
-    expect(results[1].crowns).toBeGreaterThan(results[0].crowns * 1.6);
-    expect(results[2].crowns).toBeGreaterThan(results[0].crowns * 2.3);
+    // ISLAND-01b gives low an overhead crown on ~40 % of trunks, so the tier
+    // ratios shrink (1239/1532/2181) while density still rises with quality.
+    expect(results[1].crowns).toBeGreaterThan(results[0].crowns * 1.15);
+    expect(results[2].crowns).toBeGreaterThan(results[0].crowns * 1.6);
+  });
+
+  it('plants one collision-backed perimeter tree set on every tier (ISLAND-01b quality-switch fix)', () => {
+    const trunkPositions = (tier: 'low' | 'medium' | 'high') => {
+      const scope = new ResourceScope(`perimeter-${tier}`);
+      const collision = new CollisionWorld();
+      const root = new IslandLandscape(scope, collision, tier).build();
+      const trunks = root.getObjectByName('perimeter-woodland-trunks') as THREE.InstancedMesh;
+      const m = new THREE.Matrix4();
+      const p = new THREE.Vector3();
+      const positions: number[][] = [];
+      for (let i = 0; i < trunks.count; i++) {
+        trunks.getMatrixAt(i, m);
+        p.setFromMatrixPosition(m);
+        positions.push([Number(p.x.toFixed(3)), Number(p.z.toFixed(3))]);
+        // Every visible trunk is solid where it stands.
+        expect(collision.resolveHorizontal({ x: p.x, y: GROUND, z: p.z }, 0.1, 1.7)).toBe(true);
+      }
+      const size = collision.size;
+      scope.dispose();
+      return { positions, size };
+    };
+    const [low, medium, high] = (['low', 'medium', 'high'] as const).map(trunkPositions);
+    expect(low.positions).toHaveLength(176);
+    // A visitor who switches tier after load sees exactly the trees that collide.
+    expect(medium.positions).toEqual(low.positions);
+    expect(high.positions).toEqual(low.positions);
+    expect(medium.size).toBe(low.size);
+    expect(high.size).toBe(low.size);
   });
 });

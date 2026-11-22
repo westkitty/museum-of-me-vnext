@@ -59,7 +59,7 @@ describe('IslandLandscape', () => {
     const firstTrunks = first.getObjectByName('perimeter-woodland-trunks') as THREE.InstancedMesh;
     const secondTrunks = second.getObjectByName('perimeter-woodland-trunks') as THREE.InstancedMesh;
     expect(firstTrunks).toBeTruthy();
-    expect(firstTrunks.count).toBe(68);
+    expect(firstTrunks.count).toBe(176);
     // The forest now has a genuinely varied skyline, not uniform shrubs.
     // Geometry remains instanced, deterministic and grounded.
     const woodlandMatrix = new THREE.Matrix4();

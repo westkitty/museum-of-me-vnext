@@ -57,12 +57,16 @@ test('App quality transitions replace landscape detail without collision or reso
   });
   for (const tiers of result.rounds) {
     for (const [index, tier] of tiers.entries()) {
-      expect(tier.batches['perimeter-woodland-trunks'].count).toBe([68, 112, 176][index]);
+      expect(tier.batches['perimeter-woodland-trunks'].count).toBe(176);
+      // ISLAND-01b: perimeter trees are one quality-independent, collision-backed
+      // set (was 68/112/176 with colliders registered only for the build tier).
       // 893/1463/2103 before uplift2(A) cleared ground for the relocated ancient tree;
       // 888/1457/2093 before ISLAND-01 put every crown on a trunk and cleared landmarks.
-      expect(tier.batches['woodland-forest-belt'].count).toBe([845, 1447, 2067][index]);
+      // 845/1447/2067 before ISLAND-01b clumped trunks, let them stand 7 m from
+      // paths, and gave low tier an extra crown on ~40 % of trunks.
+      expect(tier.batches['woodland-forest-belt'].count).toBe([1239, 1532, 2181][index]);
       // ISLAND-01 trunks are one quality-independent, collision-backed set.
-      expect(tier.batches['woodland-forest-belt-trunks'].count).toBe(845);
+      expect(tier.batches['woodland-forest-belt-trunks'].count).toBe(890);
       expect(tier.batches['island-wildflower-glades'].count).toBe([64, 144, 240][index]);
       expect(tier.wildlife).toEqual([[12, 6, 8], [30, 12, 18], [48, 18, 32]][index]);
       expect(tier.physicalUnchanged && tier.pierUnchanged && tier.shellUnchanged).toBe(true);
