@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 115,
+  "state_revision": 122,
   "last_updated": "2026-11-22",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -1290,3 +1290,22 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - **ADDITIONAL VERIFICATION:** Workshop passed 16 browser cases and authored offline placement proof. The rebuilt standalone passed its offline browser checks and exercised 14/14 installations and 17/17 authored visitors with zero remote requests. The revised reduced-motion stylesheet passed its focused browser check and the rebuilt full gate.
 - **M1 GUARD FAILED:** All three unchanged device measurements ran on Apple M1 Chrome 157 / ANGLE Metal at 1440 × 900, browser DPR 1. Preflight CPU idle was 81.25–86.31%. Seven of 12 budgets passed. Misses were exterior idle p99 31.6 ms, exterior walking p99 50.0 ms, Workshop placement p99 31.4 ms, and Workshop sweep p99 48.3 ms (each limit 20 ms), plus second entry worst frame 51 ms (limit 50 ms). Cold start 1,897 ms and walking 56.8 FPS passed. This single feature run does not attribute the misses or establish a matched regression. The feature changes remain in the local worktree pending a passing device gate.
 - **RELEASE HOLD:** [ISLAND-04 PR #79](https://github.com/westkitty/museum-of-me-vnext/pull/79) remains independent and performance-gated. No pocket world is playable in production. Resolve release dependencies before merge or Pages.
+
+### 2026-11-22 — ISLAND-05 Draft PR #80 and matched M1 A/B comparison (r122)
+
+- **COMMITTED & DRAFT PR OPENED:** Preserved the integrated ISLAND-05 work on `feat/island-05-pocket-world-host` at commit `c0ed9727eab50dbca46946f89cee08e3b2ad2350` (base `main` `96145564f1fda5e8e37c775f53e5b2268790e863`) and opened [Draft PR #80](https://github.com/westkitty/museum-of-me-vnext/pull/80). Pre-commit re-verification on `c0ed9727` passed `npm run typecheck`, `npm run lint`, and `tests/pocket-passport.test.ts` (5/5). Exact-head CI [run 45047263579](https://github.com/westkitty/museum-of-me-vnext/actions/runs/45047263579) on `c0ed9727` passed 7/7 jobs (`gate`, `standalone`, `workshop`, `browser (1/3)`, `browser (2/3)`, `browser (3/3)`, `browser` `SUCCESS`); exact-head CI for this subsequent documentation/evidence head must be read independently after push.
+- **MATCHED APPLE M1 A/B COMPARISON (`A1 -> B1 -> B2 -> A2`):** Executed four sequential interleaved trials on Apple M1 (8 GB, macOS Darwin 27.2.0, Chrome 157, ANGLE Metal, 1440×900, browser DPR 1, CPU idle 73.9–89.4% pre-trial / 57.4–89.4% post-trial, 48–59% memory free, byte-identical scene geometry/texture/program/call/triangle counts across A and B):
+  - `cold-start` (<= 2000 ms): `A1` `2344 ms` (FAIL), `A2` `1307 ms` (PASS) vs `B1` `1450 ms` (PASS), `B2` `1372 ms` (PASS).
+  - `exterior-idle-p99` (<= 20 ms): `A1` `17.8 ms` / `A2` `17.4 ms` (PASS) vs `B1` `17.7 ms` / `B2` `18.7 ms` (PASS).
+  - `exterior-walk-p99` (<= 20 ms): **`A1` `33.4 ms` / `A2` `33.5 ms` (FAIL)** vs **`B1` `33.5 ms` / `B2` `33.5 ms` (FAIL)** — identical predictive-prewarm failure on both builds.
+  - `exterior-walk-fps` (>= 55 fps): `A1` `58.4` / `A2` `58.5` (PASS) vs `B1` `58.4` / `B2` `58.4` (PASS).
+  - `interior-steady-p95` (<= 20 ms): `A1` `16.8` / `A2` `16.8` (PASS) vs `B1` `16.8` / `B2` `17.1` (PASS).
+  - `exterior-after-return-p99` (<= 20 ms): `A1` `17.6` / `A2` `17.3` (PASS) vs `B1` `17.4` / `B2` `18.6` (PASS).
+  - `workshop-2000-p99` (<= 20 ms): `A1` `17.7` / `A2` `17.6` (PASS) vs `B1` `17.7` / `B2` `18.7` (PASS).
+  - `workshop-2000-sweep-p99` (<= 20 ms): `A1` `34.3` (FAIL) / `A2` `17.6` (PASS) vs `B1` `17.7` / `B2` `18.6` (PASS).
+  - `first-entry-worst-frame` (<= 900 ms, target <= 100 ms): `A1` `84` / `A2` `67` (PASS) vs `B1` `134` / `B2` `200` (PASS limit / WARN target).
+  - `second-entry-worst-frame` (<= 50 ms): **`A1` `51` (FAIL)** / `A2` `18` (PASS) vs **`B1` `68` (FAIL)** / `B2` `33` (PASS).
+  - `round-trip-dom-growth` (<= 20 nodes): `0` across all four trials (PASS).
+  - `round-trip-heap-growth` (<= 5 MB): `A1` `0.3` / `A2` `0.4` vs `B1` `0.7` / `B2` `0.4` (PASS).
+- **VERDICT (`SHARED BASELINE DEFECT`):** The matched comparison establishes that the consistent `exterior-walk-p99` failure (`33.4–33.5 ms`) and intermittent `second-entry-worst-frame` failure (`51–68 ms`) are pre-existing baseline defects on `main` (`9614556`), not regressions introduced by ISLAND-05 (`docs/evidence/island-05-m1-comparison-20261122/REPORT.md`). Earlier single-run ISLAND-05 misses on `exterior-idle-p99` (`31.6 ms`), `workshop-2000-p99` (`31.4 ms`), and `workshop-2000-sweep-p99` (`48.3 ms`) did not reproduce in `B1` or `B2`.
+- **STATE & MERGE BLOCKER:** ISLAND-05 host/registry/passport foundation = `IMPLEMENTED` and functionally `VERIFIED` locally (all 11 production worlds `DORMANT`); M1 device acceptance = `BLOCKED` (unchanged M1 budgets continue to govern release readiness — shared failure does not waive the gate); PR #80 remains `DRAFT` and not merge-ready; [ISLAND-04 PR #79](https://github.com/westkitty/museum-of-me-vnext/pull/79) remains separate and unmodified. Human visual/feel acceptance remains `UNKNOWN / UNVERIFIED`.

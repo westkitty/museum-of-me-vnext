@@ -1,0 +1,3002 @@
+{
+  "schema": "museum-of-me/island-05-m1-comparison/v1",
+  "measuredAtUtc": "2026-11-22T17:04:46Z",
+  "completedAtUtc": "2026-11-22T17:19:44Z",
+  "baselineDevice": "Representative baseline: MacBookAir10,1 (Apple M1, 8 GB), Chrome, ANGLE Metal, 1440x900, DPR 1",
+  "design": "A1 -> B1 -> B2 -> A2 interleaved sequential trials on identical hardware and unchanged tests/perf harness",
+  "builds": {
+    "A": {
+      "branch": "main",
+      "commitSha": "96145564f1fda5e8e37c775f53e5b2268790e863"
+    },
+    "B": {
+      "branch": "feat/island-05-pocket-world-host",
+      "commitSha": "c0ed9727eab50dbca46946f89cee08e3b2ad2350"
+    }
+  },
+  "verdict": "SHARED_BASELINE_DEFECT",
+  "releaseGateStatus": "BLOCKED",
+  "environmentComparability": {
+    "hardware": "Apple M1, 8 GB RAM, macOS Darwin 27.2.0 arm64",
+    "browser": "Chrome 157.0.0.0, 1440x900 viewport, browser devicePixelRatio = 1",
+    "gpuRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Unspecified Version)",
+    "inferredQualityAndDpr": "QualitySettings field in device-results.json reports null because window.__museum.quality is undefined; by code inspection of src/render/QualityTiers.ts (cores=8, deviceMemory<=8), detectQualityTier() selects medium (maxPixelRatio=1.5), giving basePixelRatio=1.0, and production steady/walk p95 (16.8-18.6 ms) remained below the AdaptiveResolution 19.67 ms downscale threshold so effective resolutionScale stayed 1.0. Confirmed by byte-identical geometry/texture/program/draw-call/triangle counts across A and B.",
+    "sceneParityVerified": {
+      "exteriorWalk": "geom=2091 tex=152 prog=85 calls=491 tris=171881 (identical A1/B1/B2/A2)",
+      "interiorSteady": "geom=2141 tex=189 prog=86 calls=745 tris=95904 (identical A1/B1/B2/A2)",
+      "exteriorAfterReturn": "geom=2141 tex=187 prog=86 calls=529 tris=190911 (identical A1/B1/B2/A2)"
+    }
+  },
+  "budgetComparison": [
+    {
+      "id": "cold-start",
+      "unit": "ms",
+      "limit": "<= 2000",
+      "target": null,
+      "A1": {
+        "value": 2344,
+        "status": "FAIL"
+      },
+      "A2": {
+        "value": 1307,
+        "status": "PASS"
+      },
+      "A_worst": 2344,
+      "B1": {
+        "value": 1450,
+        "status": "PASS"
+      },
+      "B2": {
+        "value": 1372,
+        "status": "PASS"
+      },
+      "B_worst": 1450
+    },
+    {
+      "id": "exterior-idle-p99",
+      "unit": "ms",
+      "limit": "<= 20",
+      "target": null,
+      "A1": {
+        "value": 17.8,
+        "status": "PASS"
+      },
+      "A2": {
+        "value": 17.4,
+        "status": "PASS"
+      },
+      "A_worst": 17.8,
+      "B1": {
+        "value": 17.7,
+        "status": "PASS"
+      },
+      "B2": {
+        "value": 18.7,
+        "status": "PASS"
+      },
+      "B_worst": 18.7
+    },
+    {
+      "id": "exterior-walk-p99",
+      "unit": "ms",
+      "limit": "<= 20",
+      "target": null,
+      "A1": {
+        "value": 33.4,
+        "status": "FAIL"
+      },
+      "A2": {
+        "value": 33.5,
+        "status": "FAIL"
+      },
+      "A_worst": 33.5,
+      "B1": {
+        "value": 33.5,
+        "status": "FAIL"
+      },
+      "B2": {
+        "value": 33.5,
+        "status": "FAIL"
+      },
+      "B_worst": 33.5
+    },
+    {
+      "id": "exterior-walk-fps",
+      "unit": "fps",
+      "limit": ">= 55",
+      "target": null,
+      "A1": {
+        "value": 58.4,
+        "status": "PASS"
+      },
+      "A2": {
+        "value": 58.5,
+        "status": "PASS"
+      },
+      "A_worst": 58.4,
+      "B1": {
+        "value": 58.4,
+        "status": "PASS"
+      },
+      "B2": {
+        "value": 58.4,
+        "status": "PASS"
+      },
+      "B_worst": 58.4
+    },
+    {
+      "id": "interior-steady-p95",
+      "unit": "ms",
+      "limit": "<= 20",
+      "target": null,
+      "A1": {
+        "value": 16.8,
+        "status": "PASS"
+      },
+      "A2": {
+        "value": 16.8,
+        "status": "PASS"
+      },
+      "A_worst": 16.8,
+      "B1": {
+        "value": 16.8,
+        "status": "PASS"
+      },
+      "B2": {
+        "value": 17.1,
+        "status": "PASS"
+      },
+      "B_worst": 17.1
+    },
+    {
+      "id": "exterior-after-return-p99",
+      "unit": "ms",
+      "limit": "<= 20",
+      "target": null,
+      "A1": {
+        "value": 17.6,
+        "status": "PASS"
+      },
+      "A2": {
+        "value": 17.3,
+        "status": "PASS"
+      },
+      "A_worst": 17.6,
+      "B1": {
+        "value": 17.4,
+        "status": "PASS"
+      },
+      "B2": {
+        "value": 18.6,
+        "status": "PASS"
+      },
+      "B_worst": 18.6
+    },
+    {
+      "id": "workshop-2000-p99",
+      "unit": "ms",
+      "limit": "<= 20",
+      "target": null,
+      "A1": {
+        "value": 17.7,
+        "status": "PASS"
+      },
+      "A2": {
+        "value": 17.6,
+        "status": "PASS"
+      },
+      "A_worst": 17.7,
+      "B1": {
+        "value": 17.7,
+        "status": "PASS"
+      },
+      "B2": {
+        "value": 18.7,
+        "status": "PASS"
+      },
+      "B_worst": 18.7
+    },
+    {
+      "id": "workshop-2000-sweep-p99",
+      "unit": "ms",
+      "limit": "<= 20",
+      "target": null,
+      "A1": {
+        "value": 34.3,
+        "status": "FAIL"
+      },
+      "A2": {
+        "value": 17.6,
+        "status": "PASS"
+      },
+      "A_worst": 34.3,
+      "B1": {
+        "value": 17.7,
+        "status": "PASS"
+      },
+      "B2": {
+        "value": 18.6,
+        "status": "PASS"
+      },
+      "B_worst": 18.6
+    },
+    {
+      "id": "first-entry-worst-frame",
+      "unit": "ms",
+      "limit": "<= 900",
+      "target": "<= 100",
+      "A1": {
+        "value": 84,
+        "status": "PASS"
+      },
+      "A2": {
+        "value": 67,
+        "status": "PASS"
+      },
+      "A_worst": 84,
+      "B1": {
+        "value": 134,
+        "status": "WARN"
+      },
+      "B2": {
+        "value": 200,
+        "status": "WARN"
+      },
+      "B_worst": 200
+    },
+    {
+      "id": "second-entry-worst-frame",
+      "unit": "ms",
+      "limit": "<= 50",
+      "target": null,
+      "A1": {
+        "value": 51,
+        "status": "FAIL"
+      },
+      "A2": {
+        "value": 18,
+        "status": "PASS"
+      },
+      "A_worst": 51,
+      "B1": {
+        "value": 68,
+        "status": "FAIL"
+      },
+      "B2": {
+        "value": 33,
+        "status": "PASS"
+      },
+      "B_worst": 68
+    },
+    {
+      "id": "round-trip-dom-growth",
+      "unit": "nodes",
+      "limit": "<= 20",
+      "target": null,
+      "A1": {
+        "value": 0,
+        "status": "PASS"
+      },
+      "A2": {
+        "value": 0,
+        "status": "PASS"
+      },
+      "A_worst": 0,
+      "B1": {
+        "value": 0,
+        "status": "PASS"
+      },
+      "B2": {
+        "value": 0,
+        "status": "PASS"
+      },
+      "B_worst": 0
+    },
+    {
+      "id": "round-trip-heap-growth",
+      "unit": "MB",
+      "limit": "<= 5",
+      "target": null,
+      "A1": {
+        "value": 0.3,
+        "status": "PASS"
+      },
+      "A2": {
+        "value": 0.4,
+        "status": "PASS"
+      },
+      "A_worst": 0.4,
+      "B1": {
+        "value": 0.7,
+        "status": "PASS"
+      },
+      "B2": {
+        "value": 0.4,
+        "status": "PASS"
+      },
+      "B_worst": 0.7
+    }
+  ],
+  "trials": {
+    "A1": {
+      "label": "A1",
+      "arm": "A_main_baseline",
+      "commitSha": "96145564f1fda5e8e37c775f53e5b2268790e863",
+      "startedAtUtc": "2026-11-22T17:04:46Z",
+      "endedAtUtc": "2026-11-22T17:08:19Z",
+      "gpu": {
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Unspecified Version)",
+        "vendor": "Google Inc. (Apple)",
+        "dpr": 1,
+        "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+      },
+      "reportedQualityField": null,
+      "coldStarts": [
+        {
+          "run": 1,
+          "appRenderingFramesMs": 2344,
+          "domContentLoadedMs": 353,
+          "loadEventMs": 382,
+          "firstContentfulPaintMs": 152,
+          "transferKB": 625,
+          "errors": 0
+        },
+        {
+          "run": 2,
+          "appRenderingFramesMs": 1668,
+          "domContentLoadedMs": 258,
+          "loadEventMs": 265,
+          "firstContentfulPaintMs": 132,
+          "transferKB": 625,
+          "errors": 0
+        },
+        {
+          "run": 3,
+          "appRenderingFramesMs": 1568,
+          "domContentLoadedMs": 250,
+          "loadEventMs": 256,
+          "firstContentfulPaintMs": 120,
+          "transferKB": 625,
+          "errors": 0
+        }
+      ],
+      "phases": {
+        "exteriorIdle": {
+          "frames": {
+            "frames": 598,
+            "fps": 59.9,
+            "p50": 16.7,
+            "p95": 17.6,
+            "p99": 17.8,
+            "max": 17.8,
+            "over33ms": 0,
+            "over50ms": 0
+          },
+          "memory": {
+            "jsHeapUsedMB": 32.4,
+            "jsHeapTotalMB": 61.5,
+            "domNodes": 710,
+            "geometries": 866,
+            "textures": 27,
+            "programs": 69,
+            "calls": 1249,
+            "triangles": 220327
+          },
+          "quality": null
+        },
+        "exteriorWalk": {
+          "frames": {
+            "frames": 583,
+            "fps": 58.4,
+            "p50": 16.7,
+            "p95": 17.6,
+            "p99": 33.4,
+            "max": 50.6,
+            "over33ms": 5,
+            "over50ms": 2
+          },
+          "memory": {
+            "jsHeapUsedMB": 50.6,
+            "jsHeapTotalMB": 109.1,
+            "domNodes": 817,
+            "geometries": 2091,
+            "textures": 152,
+            "programs": 85,
+            "calls": 491,
+            "triangles": 171881
+          }
+        },
+        "interiorAfterEntry": {
+          "prepareInteriorMs": 0,
+          "commitSyncMs": 0,
+          "activeWorld": "interior",
+          "first5s": {
+            "frames": 298,
+            "fps": 59.9,
+            "p50": 16.7,
+            "p95": 16.8,
+            "p99": 17.5,
+            "max": 17.7,
+            "over33ms": 0,
+            "over50ms": 0
+          },
+          "memory": {
+            "jsHeapUsedMB": 51.7,
+            "jsHeapTotalMB": 109.3,
+            "domNodes": 828,
+            "geometries": 2141,
+            "textures": 189,
+            "programs": 86,
+            "calls": 745,
+            "triangles": 95904
+          }
+        },
+        "interiorSteady": {
+          "frames": {
+            "frames": 598,
+            "fps": 59.9,
+            "p50": 16.7,
+            "p95": 16.8,
+            "p99": 17.7,
+            "max": 17.8,
+            "over33ms": 0,
+            "over50ms": 0
+          },
+          "memory": {
+            "jsHeapUsedMB": 51.4,
+            "jsHeapTotalMB": 110.6,
+            "domNodes": 828,
+            "geometries": 2141,
+            "textures": 189,
+            "programs": 86,
+            "calls": 745,
+            "triangles": 95904
+          }
+        },
+        "exteriorAfterReturn": {
+          "activeWorld": "exterior",
+          "first5s": {
+            "frames": 298,
+            "fps": 59.9,
+            "p50": 16.7,
+            "p95": 16.8,
+            "p99": 17.6,
+            "max": 17.7,
+            "over33ms": 0,
+            "over50ms": 0
+          },
+          "memory": {
+            "jsHeapUsedMB": 62.7,
+            "jsHeapTotalMB": 112.3,
+            "domNodes": 833,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          }
+        },
+        "fiveRoundTrips": [
+          {
+            "jsHeapUsedMB": 69.2,
+            "jsHeapTotalMB": 113.6,
+            "domNodes": 847,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          },
+          {
+            "jsHeapUsedMB": 74.3,
+            "jsHeapTotalMB": 113.6,
+            "domNodes": 861,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          },
+          {
+            "jsHeapUsedMB": 55,
+            "jsHeapTotalMB": 114.1,
+            "domNodes": 875,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          },
+          {
+            "jsHeapUsedMB": 62.6,
+            "jsHeapTotalMB": 115.1,
+            "domNodes": 889,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 531,
+            "triangles": 190947
+          },
+          {
+            "jsHeapUsedMB": 70,
+            "jsHeapTotalMB": 115.6,
+            "domNodes": 903,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 531,
+            "triangles": 190947
+          }
+        ],
+        "workshop2000": {
+          "baseline": {
+            "frames": {
+              "frames": 455,
+              "fps": 56.9,
+              "p50": 16.7,
+              "p95": 32.6,
+              "p99": 34.3,
+              "max": 34.4,
+              "over33ms": 11,
+              "over50ms": 0
+            },
+            "memory": {
+              "jsHeapUsedMB": 74.3,
+              "jsHeapTotalMB": 120.1,
+              "domNodes": 3309,
+              "geometries": 2113,
+              "textures": 151,
+              "programs": 88,
+              "calls": 1250,
+              "triangles": 220339
+            }
+          },
+          "load": {
+            "saved": 2000,
+            "records": 2000,
+            "liveAfterLoad": 0,
+            "replaceMs": 19
+          },
+          "after": {
+            "frames": {
+              "frames": 594,
+              "fps": 59.5,
+              "p50": 16.7,
+              "p95": 17.5,
+              "p99": 17.7,
+              "max": 67.7,
+              "over33ms": 1,
+              "over50ms": 1
+            },
+            "memory": {
+              "jsHeapUsedMB": 76.6,
+              "jsHeapTotalMB": 134.4,
+              "domNodes": 3371,
+              "geometries": 2447,
+              "textures": 152,
+              "programs": 88,
+              "calls": 687,
+              "triangles": 184987
+            },
+            "live": 384
+          },
+          "residencySweep": {
+            "frames": {
+              "frames": 691,
+              "fps": 57.7,
+              "p50": 16.7,
+              "p95": 17.7,
+              "p99": 34.3,
+              "max": 67.7,
+              "over33ms": 11,
+              "over50ms": 2
+            },
+            "memory": {
+              "jsHeapUsedMB": 128.7,
+              "jsHeapTotalMB": 173.9,
+              "domNodes": 3548,
+              "geometries": 2665,
+              "textures": 152,
+              "programs": 88,
+              "calls": 509,
+              "triangles": 167579
+            },
+            "live": 384
+          },
+          "afterClearing": {
+            "objects": 0,
+            "memory": {
+              "jsHeapUsedMB": 128.3,
+              "jsHeapTotalMB": 174.9,
+              "domNodes": 3548,
+              "geometries": 2229,
+              "textures": 152,
+              "programs": 88,
+              "calls": 325,
+              "triangles": 158839
+            }
+          },
+          "pageErrors": []
+        }
+      },
+      "transitions": [
+        {
+          "run": 1,
+          "entry": {
+            "prepareMs": 1118,
+            "committed": false,
+            "commitMs": 0,
+            "world": "exterior",
+            "framesSeen": 239,
+            "wallMs": 4406,
+            "worst5": [
+              82,
+              67,
+              67,
+              66,
+              51
+            ],
+            "over50": 5
+          },
+          "exitBack": {
+            "world": "exterior",
+            "worst3": [
+              18,
+              18,
+              18
+            ]
+          },
+          "secondEntry": {
+            "world": "interior",
+            "worst3": [
+              33,
+              33,
+              18
+            ]
+          },
+          "gcAfter0_5_10RoundTrips": [
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.5,
+              "listeners": 146,
+              "docs": 1
+            },
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.8,
+              "listeners": 146,
+              "docs": 1
+            },
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.8,
+              "listeners": 146,
+              "docs": 1
+            }
+          ],
+          "topDomParents": [
+            [
+              "P",
+              71
+            ],
+            [
+              "LI",
+              42
+            ],
+            [
+              "a11y-root",
+              40
+            ],
+            [
+              "BUTTON",
+              35
+            ],
+            [
+              "panel__body",
+              26
+            ],
+            [
+              "panel__head",
+              26
+            ]
+          ],
+          "domGrowth": 0,
+          "heapGrowthMB": 0.3
+        },
+        {
+          "run": 2,
+          "entry": {
+            "prepareMs": 1232,
+            "committed": false,
+            "commitMs": 0,
+            "world": "exterior",
+            "framesSeen": 239,
+            "wallMs": 4514,
+            "worst5": [
+              84,
+              83,
+              82,
+              68,
+              50
+            ],
+            "over50": 5
+          },
+          "exitBack": {
+            "world": "exterior",
+            "worst3": [
+              18,
+              18,
+              18
+            ]
+          },
+          "secondEntry": {
+            "world": "interior",
+            "worst3": [
+              51,
+              33,
+              33
+            ]
+          },
+          "gcAfter0_5_10RoundTrips": [
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.5,
+              "listeners": 146,
+              "docs": 1
+            },
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.8,
+              "listeners": 146,
+              "docs": 1
+            },
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.8,
+              "listeners": 146,
+              "docs": 1
+            }
+          ],
+          "topDomParents": [
+            [
+              "P",
+              71
+            ],
+            [
+              "LI",
+              42
+            ],
+            [
+              "a11y-root",
+              40
+            ],
+            [
+              "BUTTON",
+              35
+            ],
+            [
+              "panel__body",
+              26
+            ],
+            [
+              "panel__head",
+              26
+            ]
+          ],
+          "domGrowth": 0,
+          "heapGrowthMB": 0.3
+        },
+        {
+          "run": 3,
+          "entry": {
+            "prepareMs": 1133,
+            "committed": false,
+            "commitMs": 0,
+            "world": "exterior",
+            "framesSeen": 239,
+            "wallMs": 4379,
+            "worst5": [
+              83,
+              67,
+              67,
+              51,
+              50
+            ],
+            "over50": 4
+          },
+          "exitBack": {
+            "world": "exterior",
+            "worst3": [
+              18,
+              18,
+              18
+            ]
+          },
+          "secondEntry": {
+            "world": "interior",
+            "worst3": [
+              50,
+              50,
+              34
+            ]
+          },
+          "gcAfter0_5_10RoundTrips": [
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.5,
+              "listeners": 146,
+              "docs": 1
+            },
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.7,
+              "listeners": 146,
+              "docs": 1
+            },
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.8,
+              "listeners": 146,
+              "docs": 1
+            }
+          ],
+          "topDomParents": [
+            [
+              "P",
+              71
+            ],
+            [
+              "LI",
+              42
+            ],
+            [
+              "a11y-root",
+              40
+            ],
+            [
+              "BUTTON",
+              35
+            ],
+            [
+              "panel__body",
+              26
+            ],
+            [
+              "panel__head",
+              26
+            ]
+          ],
+          "domGrowth": 0,
+          "heapGrowthMB": 0.3
+        }
+      ],
+      "budgets": [
+        {
+          "id": "cold-start",
+          "path": "coldStartsProduction[*].appRenderingFramesMs",
+          "max": 2000,
+          "unit": "ms",
+          "why": "first rendered frames of the production build",
+          "worst": 2344,
+          "status": "FAIL"
+        },
+        {
+          "id": "exterior-idle-p99",
+          "path": "exteriorIdleAtSpawn.frames.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 17.8,
+          "status": "PASS"
+        },
+        {
+          "id": "exterior-walk-p99",
+          "path": "exteriorWalkingPath1.frames.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 33.4,
+          "status": "FAIL"
+        },
+        {
+          "id": "exterior-walk-fps",
+          "path": "exteriorWalkingPath1.frames.fps",
+          "min": 55,
+          "unit": "fps",
+          "worst": 58.4,
+          "status": "PASS"
+        },
+        {
+          "id": "interior-steady-p95",
+          "path": "interiorSteady.frames.p95",
+          "max": 20,
+          "unit": "ms",
+          "worst": 16.8,
+          "status": "PASS"
+        },
+        {
+          "id": "exterior-after-return-p99",
+          "path": "exteriorAfterReturn.first5s.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 17.6,
+          "status": "PASS"
+        },
+        {
+          "id": "workshop-2000-p99",
+          "path": "workshop2000.after.frames.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 17.7,
+          "status": "PASS"
+        },
+        {
+          "id": "workshop-2000-sweep-p99",
+          "path": "workshop2000.residencySweep.frames.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 34.3,
+          "status": "FAIL"
+        },
+        {
+          "id": "first-entry-worst-frame",
+          "path": "transitions[*].entry.worst5[0]",
+          "max": 900,
+          "target": 100,
+          "unit": "ms",
+          "why": "known first interior entry hitch (0.33-0.84 s on 2026-11-12); the limit guards against regression, the target is the fix goal",
+          "worst": 84,
+          "status": "PASS"
+        },
+        {
+          "id": "second-entry-worst-frame",
+          "path": "transitions[*].secondEntry.worst3[0]",
+          "max": 50,
+          "unit": "ms",
+          "worst": 51,
+          "status": "FAIL"
+        },
+        {
+          "id": "round-trip-dom-growth",
+          "path": "transitions[*].domGrowth",
+          "max": 20,
+          "unit": "nodes",
+          "why": "after GC across 10 round trips",
+          "worst": 0,
+          "status": "PASS"
+        },
+        {
+          "id": "round-trip-heap-growth",
+          "path": "transitions[*].heapGrowthMB",
+          "max": 5,
+          "unit": "MB",
+          "why": "after GC across 10 round trips",
+          "worst": 0.3,
+          "status": "PASS"
+        }
+      ],
+      "environment": {
+        "cpuIdleBeforePct": [
+          73.92,
+          82.66
+        ],
+        "cpuIdleAfterPct": [
+          69.97,
+          76.92
+        ],
+        "memFreeBefore": "48%",
+        "memFreeAfter": "53%",
+        "loadBefore": "3.02 2.96 3.53",
+        "loadAfter": "10.69 7.56 5.46"
+      }
+    },
+    "B1": {
+      "label": "B1",
+      "arm": "B_island_05_candidate",
+      "commitSha": "c0ed9727eab50dbca46946f89cee08e3b2ad2350",
+      "startedAtUtc": "2026-11-22T17:08:54Z",
+      "endedAtUtc": "2026-11-22T17:12:16Z",
+      "gpu": {
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Unspecified Version)",
+        "vendor": "Google Inc. (Apple)",
+        "dpr": 1,
+        "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+      },
+      "reportedQualityField": null,
+      "coldStarts": [
+        {
+          "run": 1,
+          "appRenderingFramesMs": 1450,
+          "domContentLoadedMs": 164,
+          "loadEventMs": 172,
+          "firstContentfulPaintMs": 124,
+          "transferKB": 639,
+          "errors": 0
+        },
+        {
+          "run": 2,
+          "appRenderingFramesMs": 1154,
+          "domContentLoadedMs": 196,
+          "loadEventMs": 204,
+          "firstContentfulPaintMs": 92,
+          "transferKB": 639,
+          "errors": 0
+        },
+        {
+          "run": 3,
+          "appRenderingFramesMs": 1162,
+          "domContentLoadedMs": 265,
+          "loadEventMs": 271,
+          "firstContentfulPaintMs": 124,
+          "transferKB": 639,
+          "errors": 0
+        }
+      ],
+      "phases": {
+        "exteriorIdle": {
+          "frames": {
+            "frames": 598,
+            "fps": 59.9,
+            "p50": 16.7,
+            "p95": 16.8,
+            "p99": 17.7,
+            "max": 17.7,
+            "over33ms": 0,
+            "over50ms": 0
+          },
+          "memory": {
+            "jsHeapUsedMB": 34.1,
+            "jsHeapTotalMB": 62.2,
+            "domNodes": 744,
+            "geometries": 867,
+            "textures": 27,
+            "programs": 69,
+            "calls": 1249,
+            "triangles": 220327
+          },
+          "quality": null
+        },
+        "exteriorWalk": {
+          "frames": {
+            "frames": 583,
+            "fps": 58.4,
+            "p50": 16.7,
+            "p95": 17.7,
+            "p99": 33.5,
+            "max": 50.4,
+            "over33ms": 8,
+            "over50ms": 3
+          },
+          "memory": {
+            "jsHeapUsedMB": 58.3,
+            "jsHeapTotalMB": 110.8,
+            "domNodes": 851,
+            "geometries": 2091,
+            "textures": 152,
+            "programs": 85,
+            "calls": 491,
+            "triangles": 171881
+          }
+        },
+        "interiorAfterEntry": {
+          "prepareInteriorMs": 0,
+          "commitSyncMs": 0,
+          "activeWorld": "interior",
+          "first5s": {
+            "frames": 298,
+            "fps": 59.9,
+            "p50": 16.7,
+            "p95": 16.8,
+            "p99": 17.7,
+            "max": 17.7,
+            "over33ms": 0,
+            "over50ms": 0
+          },
+          "memory": {
+            "jsHeapUsedMB": 59.9,
+            "jsHeapTotalMB": 111.1,
+            "domNodes": 862,
+            "geometries": 2141,
+            "textures": 189,
+            "programs": 86,
+            "calls": 745,
+            "triangles": 95904
+          }
+        },
+        "interiorSteady": {
+          "frames": {
+            "frames": 598,
+            "fps": 59.9,
+            "p50": 16.7,
+            "p95": 16.8,
+            "p99": 17.7,
+            "max": 17.7,
+            "over33ms": 0,
+            "over50ms": 0
+          },
+          "memory": {
+            "jsHeapUsedMB": 60.9,
+            "jsHeapTotalMB": 111.1,
+            "domNodes": 862,
+            "geometries": 2141,
+            "textures": 189,
+            "programs": 86,
+            "calls": 745,
+            "triangles": 95904
+          }
+        },
+        "exteriorAfterReturn": {
+          "activeWorld": "exterior",
+          "first5s": {
+            "frames": 299,
+            "fps": 59.9,
+            "p50": 16.7,
+            "p95": 16.8,
+            "p99": 17.4,
+            "max": 17.6,
+            "over33ms": 0,
+            "over50ms": 0
+          },
+          "memory": {
+            "jsHeapUsedMB": 46.3,
+            "jsHeapTotalMB": 112.1,
+            "domNodes": 867,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          }
+        },
+        "fiveRoundTrips": [
+          {
+            "jsHeapUsedMB": 47,
+            "jsHeapTotalMB": 112.1,
+            "domNodes": 863,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          },
+          {
+            "jsHeapUsedMB": 53.6,
+            "jsHeapTotalMB": 112.1,
+            "domNodes": 877,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          },
+          {
+            "jsHeapUsedMB": 59.5,
+            "jsHeapTotalMB": 112.1,
+            "domNodes": 891,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          },
+          {
+            "jsHeapUsedMB": 45.4,
+            "jsHeapTotalMB": 111.1,
+            "domNodes": 863,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          },
+          {
+            "jsHeapUsedMB": 51.6,
+            "jsHeapTotalMB": 111.1,
+            "domNodes": 877,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 531,
+            "triangles": 190947
+          }
+        ],
+        "workshop2000": {
+          "baseline": {
+            "frames": {
+              "frames": 450,
+              "fps": 56.2,
+              "p50": 16.7,
+              "p95": 33.4,
+              "p99": 33.5,
+              "max": 34.4,
+              "over33ms": 14,
+              "over50ms": 0
+            },
+            "memory": {
+              "jsHeapUsedMB": 61.6,
+              "jsHeapTotalMB": 124.1,
+              "domNodes": 3493,
+              "geometries": 2113,
+              "textures": 151,
+              "programs": 88,
+              "calls": 1250,
+              "triangles": 220339
+            }
+          },
+          "load": {
+            "saved": 2000,
+            "records": 2000,
+            "liveAfterLoad": 0,
+            "replaceMs": 19
+          },
+          "after": {
+            "frames": {
+              "frames": 598,
+              "fps": 59.9,
+              "p50": 16.7,
+              "p95": 16.8,
+              "p99": 17.7,
+              "max": 17.7,
+              "over33ms": 0,
+              "over50ms": 0
+            },
+            "memory": {
+              "jsHeapUsedMB": 87.7,
+              "jsHeapTotalMB": 143.1,
+              "domNodes": 3559,
+              "geometries": 2447,
+              "textures": 152,
+              "programs": 88,
+              "calls": 688,
+              "triangles": 185035
+            },
+            "live": 384
+          },
+          "residencySweep": {
+            "frames": {
+              "frames": 717,
+              "fps": 59.9,
+              "p50": 16.7,
+              "p95": 17.6,
+              "p99": 17.7,
+              "max": 17.8,
+              "over33ms": 0,
+              "over50ms": 0
+            },
+            "memory": {
+              "jsHeapUsedMB": 64.6,
+              "jsHeapTotalMB": 156.4,
+              "domNodes": 2917,
+              "geometries": 2665,
+              "textures": 152,
+              "programs": 88,
+              "calls": 453,
+              "triangles": 164891
+            },
+            "live": 384
+          },
+          "afterClearing": {
+            "objects": 0,
+            "memory": {
+              "jsHeapUsedMB": 63.7,
+              "jsHeapTotalMB": 156.4,
+              "domNodes": 2917,
+              "geometries": 2229,
+              "textures": 152,
+              "programs": 88,
+              "calls": 325,
+              "triangles": 158839
+            }
+          },
+          "pageErrors": []
+        }
+      },
+      "transitions": [
+        {
+          "run": 1,
+          "entry": {
+            "prepareMs": 871,
+            "committed": false,
+            "commitMs": 0,
+            "world": "exterior",
+            "framesSeen": 239,
+            "wallMs": 4168,
+            "worst5": [
+              83,
+              67,
+              50,
+              34,
+              34
+            ],
+            "over50": 3
+          },
+          "exitBack": {
+            "world": "exterior",
+            "worst3": [
+              18,
+              18,
+              18
+            ]
+          },
+          "secondEntry": {
+            "world": "interior",
+            "worst3": [
+              18,
+              18,
+              18
+            ]
+          },
+          "gcAfter0_5_10RoundTrips": [
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.5,
+              "listeners": 155,
+              "docs": 1
+            },
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.9,
+              "listeners": 155,
+              "docs": 1
+            },
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.9,
+              "listeners": 155,
+              "docs": 1
+            }
+          ],
+          "topDomParents": [
+            [
+              "P",
+              71
+            ],
+            [
+              "LI",
+              42
+            ],
+            [
+              "a11y-root",
+              40
+            ],
+            [
+              "BUTTON",
+              35
+            ],
+            [
+              "panel__body",
+              28
+            ],
+            [
+              "panel__head",
+              28
+            ]
+          ],
+          "domGrowth": 0,
+          "heapGrowthMB": 0.4
+        },
+        {
+          "run": 2,
+          "entry": {
+            "prepareMs": 769,
+            "committed": false,
+            "commitMs": 0,
+            "world": "exterior",
+            "framesSeen": 239,
+            "wallMs": 4134,
+            "worst5": [
+              134,
+              50,
+              33,
+              18,
+              18
+            ],
+            "over50": 2
+          },
+          "exitBack": {
+            "world": "exterior",
+            "worst3": [
+              18,
+              18,
+              17
+            ]
+          },
+          "secondEntry": {
+            "world": "interior",
+            "worst3": [
+              34,
+              34,
+              34
+            ]
+          },
+          "gcAfter0_5_10RoundTrips": [
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.2,
+              "listeners": 155,
+              "docs": 1
+            },
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.8,
+              "listeners": 155,
+              "docs": 1
+            },
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.9,
+              "listeners": 155,
+              "docs": 1
+            }
+          ],
+          "topDomParents": [
+            [
+              "P",
+              71
+            ],
+            [
+              "LI",
+              42
+            ],
+            [
+              "a11y-root",
+              40
+            ],
+            [
+              "BUTTON",
+              35
+            ],
+            [
+              "panel__body",
+              28
+            ],
+            [
+              "panel__head",
+              28
+            ]
+          ],
+          "domGrowth": 0,
+          "heapGrowthMB": 0.7
+        },
+        {
+          "run": 3,
+          "entry": {
+            "prepareMs": 998,
+            "committed": false,
+            "commitMs": 0,
+            "world": "exterior",
+            "framesSeen": 239,
+            "wallMs": 4257,
+            "worst5": [
+              84,
+              67,
+              50,
+              35,
+              35
+            ],
+            "over50": 3
+          },
+          "exitBack": {
+            "world": "exterior",
+            "worst3": [
+              18,
+              18,
+              18
+            ]
+          },
+          "secondEntry": {
+            "world": "interior",
+            "worst3": [
+              68,
+              51,
+              35
+            ]
+          },
+          "gcAfter0_5_10RoundTrips": [
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.6,
+              "listeners": 155,
+              "docs": 1
+            },
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.9,
+              "listeners": 155,
+              "docs": 1
+            },
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.9,
+              "listeners": 155,
+              "docs": 1
+            }
+          ],
+          "topDomParents": [
+            [
+              "P",
+              71
+            ],
+            [
+              "LI",
+              42
+            ],
+            [
+              "a11y-root",
+              40
+            ],
+            [
+              "BUTTON",
+              35
+            ],
+            [
+              "panel__body",
+              28
+            ],
+            [
+              "panel__head",
+              28
+            ]
+          ],
+          "domGrowth": 0,
+          "heapGrowthMB": 0.3
+        }
+      ],
+      "budgets": [
+        {
+          "id": "cold-start",
+          "path": "coldStartsProduction[*].appRenderingFramesMs",
+          "max": 2000,
+          "unit": "ms",
+          "why": "first rendered frames of the production build",
+          "worst": 1450,
+          "status": "PASS"
+        },
+        {
+          "id": "exterior-idle-p99",
+          "path": "exteriorIdleAtSpawn.frames.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 17.7,
+          "status": "PASS"
+        },
+        {
+          "id": "exterior-walk-p99",
+          "path": "exteriorWalkingPath1.frames.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 33.5,
+          "status": "FAIL"
+        },
+        {
+          "id": "exterior-walk-fps",
+          "path": "exteriorWalkingPath1.frames.fps",
+          "min": 55,
+          "unit": "fps",
+          "worst": 58.4,
+          "status": "PASS"
+        },
+        {
+          "id": "interior-steady-p95",
+          "path": "interiorSteady.frames.p95",
+          "max": 20,
+          "unit": "ms",
+          "worst": 16.8,
+          "status": "PASS"
+        },
+        {
+          "id": "exterior-after-return-p99",
+          "path": "exteriorAfterReturn.first5s.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 17.4,
+          "status": "PASS"
+        },
+        {
+          "id": "workshop-2000-p99",
+          "path": "workshop2000.after.frames.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 17.7,
+          "status": "PASS"
+        },
+        {
+          "id": "workshop-2000-sweep-p99",
+          "path": "workshop2000.residencySweep.frames.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 17.7,
+          "status": "PASS"
+        },
+        {
+          "id": "first-entry-worst-frame",
+          "path": "transitions[*].entry.worst5[0]",
+          "max": 900,
+          "target": 100,
+          "unit": "ms",
+          "why": "known first interior entry hitch (0.33-0.84 s on 2026-11-12); the limit guards against regression, the target is the fix goal",
+          "worst": 134,
+          "status": "WARN"
+        },
+        {
+          "id": "second-entry-worst-frame",
+          "path": "transitions[*].secondEntry.worst3[0]",
+          "max": 50,
+          "unit": "ms",
+          "worst": 68,
+          "status": "FAIL"
+        },
+        {
+          "id": "round-trip-dom-growth",
+          "path": "transitions[*].domGrowth",
+          "max": 20,
+          "unit": "nodes",
+          "why": "after GC across 10 round trips",
+          "worst": 0,
+          "status": "PASS"
+        },
+        {
+          "id": "round-trip-heap-growth",
+          "path": "transitions[*].heapGrowthMB",
+          "max": 5,
+          "unit": "MB",
+          "why": "after GC across 10 round trips",
+          "worst": 0.7,
+          "status": "PASS"
+        }
+      ],
+      "environment": {
+        "cpuIdleBeforePct": [
+          84.9,
+          87.94
+        ],
+        "cpuIdleAfterPct": [
+          57.36,
+          79.47
+        ],
+        "memFreeBefore": "52%",
+        "memFreeAfter": "54%",
+        "loadBefore": "7.16 7.04 5.36",
+        "loadAfter": "7.92 6.36 5.33"
+      }
+    },
+    "B2": {
+      "label": "B2",
+      "arm": "B_island_05_candidate",
+      "commitSha": "c0ed9727eab50dbca46946f89cee08e3b2ad2350",
+      "startedAtUtc": "2026-11-22T17:12:38Z",
+      "endedAtUtc": "2026-11-22T17:16:02Z",
+      "gpu": {
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Unspecified Version)",
+        "vendor": "Google Inc. (Apple)",
+        "dpr": 1,
+        "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+      },
+      "reportedQualityField": null,
+      "coldStarts": [
+        {
+          "run": 1,
+          "appRenderingFramesMs": 1332,
+          "domContentLoadedMs": 163,
+          "loadEventMs": 175,
+          "firstContentfulPaintMs": 128,
+          "transferKB": 639,
+          "errors": 0
+        },
+        {
+          "run": 2,
+          "appRenderingFramesMs": 1319,
+          "domContentLoadedMs": 199,
+          "loadEventMs": 207,
+          "firstContentfulPaintMs": 84,
+          "transferKB": 639,
+          "errors": 0
+        },
+        {
+          "run": 3,
+          "appRenderingFramesMs": 1372,
+          "domContentLoadedMs": 196,
+          "loadEventMs": 202,
+          "firstContentfulPaintMs": 108,
+          "transferKB": 639,
+          "errors": 0
+        }
+      ],
+      "phases": {
+        "exteriorIdle": {
+          "frames": {
+            "frames": 598,
+            "fps": 59.9,
+            "p50": 16.7,
+            "p95": 17.9,
+            "p99": 18.7,
+            "max": 18.8,
+            "over33ms": 0,
+            "over50ms": 0
+          },
+          "memory": {
+            "jsHeapUsedMB": 35.2,
+            "jsHeapTotalMB": 64.2,
+            "domNodes": 744,
+            "geometries": 867,
+            "textures": 27,
+            "programs": 69,
+            "calls": 1249,
+            "triangles": 220327
+          },
+          "quality": null
+        },
+        "exteriorWalk": {
+          "frames": {
+            "frames": 583,
+            "fps": 58.4,
+            "p50": 16.7,
+            "p95": 18.6,
+            "p99": 33.5,
+            "max": 64.8,
+            "over33ms": 6,
+            "over50ms": 4
+          },
+          "memory": {
+            "jsHeapUsedMB": 45.5,
+            "jsHeapTotalMB": 109.3,
+            "domNodes": 851,
+            "geometries": 2091,
+            "textures": 152,
+            "programs": 85,
+            "calls": 491,
+            "triangles": 171881
+          }
+        },
+        "interiorAfterEntry": {
+          "prepareInteriorMs": 0,
+          "commitSyncMs": 0,
+          "activeWorld": "interior",
+          "first5s": {
+            "frames": 298,
+            "fps": 59.9,
+            "p50": 16.7,
+            "p95": 17.2,
+            "p99": 18.7,
+            "max": 18.8,
+            "over33ms": 0,
+            "over50ms": 0
+          },
+          "memory": {
+            "jsHeapUsedMB": 47.3,
+            "jsHeapTotalMB": 113.1,
+            "domNodes": 862,
+            "geometries": 2141,
+            "textures": 189,
+            "programs": 86,
+            "calls": 745,
+            "triangles": 95904
+          }
+        },
+        "interiorSteady": {
+          "frames": {
+            "frames": 598,
+            "fps": 59.9,
+            "p50": 16.7,
+            "p95": 17.1,
+            "p99": 18.6,
+            "max": 18.7,
+            "over33ms": 0,
+            "over50ms": 0
+          },
+          "memory": {
+            "jsHeapUsedMB": 72.5,
+            "jsHeapTotalMB": 113.6,
+            "domNodes": 862,
+            "geometries": 2141,
+            "textures": 189,
+            "programs": 86,
+            "calls": 745,
+            "triangles": 95904
+          }
+        },
+        "exteriorAfterReturn": {
+          "activeWorld": "exterior",
+          "first5s": {
+            "frames": 298,
+            "fps": 59.9,
+            "p50": 16.7,
+            "p95": 16.8,
+            "p99": 18.6,
+            "max": 18.7,
+            "over33ms": 0,
+            "over50ms": 0
+          },
+          "memory": {
+            "jsHeapUsedMB": 57.9,
+            "jsHeapTotalMB": 115.1,
+            "domNodes": 867,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          }
+        },
+        "fiveRoundTrips": [
+          {
+            "jsHeapUsedMB": 64,
+            "jsHeapTotalMB": 116.3,
+            "domNodes": 881,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          },
+          {
+            "jsHeapUsedMB": 71.1,
+            "jsHeapTotalMB": 117.1,
+            "domNodes": 895,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          },
+          {
+            "jsHeapUsedMB": 76.9,
+            "jsHeapTotalMB": 118.3,
+            "domNodes": 909,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          },
+          {
+            "jsHeapUsedMB": 56.8,
+            "jsHeapTotalMB": 118.6,
+            "domNodes": 923,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          },
+          {
+            "jsHeapUsedMB": 62.4,
+            "jsHeapTotalMB": 120.1,
+            "domNodes": 937,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 531,
+            "triangles": 190947
+          }
+        ],
+        "workshop2000": {
+          "baseline": {
+            "frames": {
+              "frames": 445,
+              "fps": 55.6,
+              "p50": 16.7,
+              "p95": 33.3,
+              "p99": 33.9,
+              "max": 35.4,
+              "over33ms": 12,
+              "over50ms": 0
+            },
+            "memory": {
+              "jsHeapUsedMB": 54.6,
+              "jsHeapTotalMB": 119.4,
+              "domNodes": 3378,
+              "geometries": 2113,
+              "textures": 151,
+              "programs": 88,
+              "calls": 1250,
+              "triangles": 220339
+            }
+          },
+          "load": {
+            "saved": 2000,
+            "records": 2000,
+            "liveAfterLoad": 0,
+            "replaceMs": 17
+          },
+          "after": {
+            "frames": {
+              "frames": 598,
+              "fps": 59.9,
+              "p50": 16.7,
+              "p95": 17.7,
+              "p99": 18.7,
+              "max": 18.7,
+              "over33ms": 0,
+              "over50ms": 0
+            },
+            "memory": {
+              "jsHeapUsedMB": 77.9,
+              "jsHeapTotalMB": 139.1,
+              "domNodes": 3443,
+              "geometries": 2447,
+              "textures": 152,
+              "programs": 88,
+              "calls": 688,
+              "triangles": 185035
+            },
+            "live": 384
+          },
+          "residencySweep": {
+            "frames": {
+              "frames": 715,
+              "fps": 59.6,
+              "p50": 16.7,
+              "p95": 18.5,
+              "p99": 18.6,
+              "max": 35.3,
+              "over33ms": 2,
+              "over50ms": 0
+            },
+            "memory": {
+              "jsHeapUsedMB": 118.1,
+              "jsHeapTotalMB": 181.2,
+              "domNodes": 3623,
+              "geometries": 2665,
+              "textures": 152,
+              "programs": 88,
+              "calls": 465,
+              "triangles": 165467
+            },
+            "live": 384
+          },
+          "afterClearing": {
+            "objects": 0,
+            "memory": {
+              "jsHeapUsedMB": 117.1,
+              "jsHeapTotalMB": 181.2,
+              "domNodes": 3623,
+              "geometries": 2229,
+              "textures": 152,
+              "programs": 88,
+              "calls": 325,
+              "triangles": 158839
+            }
+          },
+          "pageErrors": []
+        }
+      },
+      "transitions": [
+        {
+          "run": 1,
+          "entry": {
+            "prepareMs": 1087,
+            "committed": false,
+            "commitMs": 0,
+            "world": "exterior",
+            "framesSeen": 239,
+            "wallMs": 4239,
+            "worst5": [
+              200,
+              50,
+              49,
+              33,
+              33
+            ],
+            "over50": 1
+          },
+          "exitBack": {
+            "world": "exterior",
+            "worst3": [
+              18,
+              18,
+              18
+            ]
+          },
+          "secondEntry": {
+            "world": "interior",
+            "worst3": [
+              18,
+              18,
+              18
+            ]
+          },
+          "gcAfter0_5_10RoundTrips": [
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.5,
+              "listeners": 155,
+              "docs": 1
+            },
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.9,
+              "listeners": 155,
+              "docs": 1
+            },
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.9,
+              "listeners": 155,
+              "docs": 1
+            }
+          ],
+          "topDomParents": [
+            [
+              "P",
+              71
+            ],
+            [
+              "LI",
+              42
+            ],
+            [
+              "a11y-root",
+              40
+            ],
+            [
+              "BUTTON",
+              35
+            ],
+            [
+              "panel__body",
+              28
+            ],
+            [
+              "panel__head",
+              28
+            ]
+          ],
+          "domGrowth": 0,
+          "heapGrowthMB": 0.4
+        },
+        {
+          "run": 2,
+          "entry": {
+            "prepareMs": 855,
+            "committed": false,
+            "commitMs": 0,
+            "world": "exterior",
+            "framesSeen": 239,
+            "wallMs": 4238,
+            "worst5": [
+              100,
+              83,
+              51,
+              50,
+              33
+            ],
+            "over50": 3
+          },
+          "exitBack": {
+            "world": "exterior",
+            "worst3": [
+              18,
+              18,
+              18
+            ]
+          },
+          "secondEntry": {
+            "world": "interior",
+            "worst3": [
+              33,
+              33,
+              33
+            ]
+          },
+          "gcAfter0_5_10RoundTrips": [
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.5,
+              "listeners": 155,
+              "docs": 1
+            },
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.8,
+              "listeners": 155,
+              "docs": 1
+            },
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.9,
+              "listeners": 155,
+              "docs": 1
+            }
+          ],
+          "topDomParents": [
+            [
+              "P",
+              71
+            ],
+            [
+              "LI",
+              42
+            ],
+            [
+              "a11y-root",
+              40
+            ],
+            [
+              "BUTTON",
+              35
+            ],
+            [
+              "panel__body",
+              28
+            ],
+            [
+              "panel__head",
+              28
+            ]
+          ],
+          "domGrowth": 0,
+          "heapGrowthMB": 0.4
+        },
+        {
+          "run": 3,
+          "entry": {
+            "prepareMs": 900,
+            "committed": false,
+            "commitMs": 0,
+            "world": "exterior",
+            "framesSeen": 239,
+            "wallMs": 4307,
+            "worst5": [
+              83,
+              67,
+              50,
+              50,
+              33
+            ],
+            "over50": 2
+          },
+          "exitBack": {
+            "world": "exterior",
+            "worst3": [
+              18,
+              18,
+              18
+            ]
+          },
+          "secondEntry": {
+            "world": "interior",
+            "worst3": [
+              18,
+              18,
+              18
+            ]
+          },
+          "gcAfter0_5_10RoundTrips": [
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.5,
+              "listeners": 155,
+              "docs": 1
+            },
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.5,
+              "listeners": 155,
+              "docs": 1
+            },
+            {
+              "domNodes": 858,
+              "jsHeapUsedMB": 41.9,
+              "listeners": 155,
+              "docs": 1
+            }
+          ],
+          "topDomParents": [
+            [
+              "P",
+              71
+            ],
+            [
+              "LI",
+              42
+            ],
+            [
+              "a11y-root",
+              40
+            ],
+            [
+              "BUTTON",
+              35
+            ],
+            [
+              "panel__body",
+              28
+            ],
+            [
+              "panel__head",
+              28
+            ]
+          ],
+          "domGrowth": 0,
+          "heapGrowthMB": 0.4
+        }
+      ],
+      "budgets": [
+        {
+          "id": "cold-start",
+          "path": "coldStartsProduction[*].appRenderingFramesMs",
+          "max": 2000,
+          "unit": "ms",
+          "why": "first rendered frames of the production build",
+          "worst": 1372,
+          "status": "PASS"
+        },
+        {
+          "id": "exterior-idle-p99",
+          "path": "exteriorIdleAtSpawn.frames.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 18.7,
+          "status": "PASS"
+        },
+        {
+          "id": "exterior-walk-p99",
+          "path": "exteriorWalkingPath1.frames.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 33.5,
+          "status": "FAIL"
+        },
+        {
+          "id": "exterior-walk-fps",
+          "path": "exteriorWalkingPath1.frames.fps",
+          "min": 55,
+          "unit": "fps",
+          "worst": 58.4,
+          "status": "PASS"
+        },
+        {
+          "id": "interior-steady-p95",
+          "path": "interiorSteady.frames.p95",
+          "max": 20,
+          "unit": "ms",
+          "worst": 17.1,
+          "status": "PASS"
+        },
+        {
+          "id": "exterior-after-return-p99",
+          "path": "exteriorAfterReturn.first5s.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 18.6,
+          "status": "PASS"
+        },
+        {
+          "id": "workshop-2000-p99",
+          "path": "workshop2000.after.frames.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 18.7,
+          "status": "PASS"
+        },
+        {
+          "id": "workshop-2000-sweep-p99",
+          "path": "workshop2000.residencySweep.frames.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 18.6,
+          "status": "PASS"
+        },
+        {
+          "id": "first-entry-worst-frame",
+          "path": "transitions[*].entry.worst5[0]",
+          "max": 900,
+          "target": 100,
+          "unit": "ms",
+          "why": "known first interior entry hitch (0.33-0.84 s on 2026-11-12); the limit guards against regression, the target is the fix goal",
+          "worst": 200,
+          "status": "WARN"
+        },
+        {
+          "id": "second-entry-worst-frame",
+          "path": "transitions[*].secondEntry.worst3[0]",
+          "max": 50,
+          "unit": "ms",
+          "worst": 33,
+          "status": "PASS"
+        },
+        {
+          "id": "round-trip-dom-growth",
+          "path": "transitions[*].domGrowth",
+          "max": 20,
+          "unit": "nodes",
+          "why": "after GC across 10 round trips",
+          "worst": 0,
+          "status": "PASS"
+        },
+        {
+          "id": "round-trip-heap-growth",
+          "path": "transitions[*].heapGrowthMB",
+          "max": 5,
+          "unit": "MB",
+          "why": "after GC across 10 round trips",
+          "worst": 0.4,
+          "status": "PASS"
+        }
+      ],
+      "environment": {
+        "cpuIdleBeforePct": [
+          75.81,
+          81.29
+        ],
+        "cpuIdleAfterPct": [
+          82.63,
+          89.41
+        ],
+        "memFreeBefore": "57%",
+        "memFreeAfter": "56%",
+        "loadBefore": "6.00 6.04 5.25",
+        "loadAfter": "4.01 5.07 5.00"
+      }
+    },
+    "A2": {
+      "label": "A2",
+      "arm": "A_main_baseline",
+      "commitSha": "96145564f1fda5e8e37c775f53e5b2268790e863",
+      "startedAtUtc": "2026-11-22T17:16:23Z",
+      "endedAtUtc": "2026-11-22T17:19:44Z",
+      "gpu": {
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Unspecified Version)",
+        "vendor": "Google Inc. (Apple)",
+        "dpr": 1,
+        "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+      },
+      "reportedQualityField": null,
+      "coldStarts": [
+        {
+          "run": 1,
+          "appRenderingFramesMs": 1307,
+          "domContentLoadedMs": 230,
+          "loadEventMs": 239,
+          "firstContentfulPaintMs": 120,
+          "transferKB": 625,
+          "errors": 0
+        },
+        {
+          "run": 2,
+          "appRenderingFramesMs": 1100,
+          "domContentLoadedMs": 149,
+          "loadEventMs": 154,
+          "firstContentfulPaintMs": 92,
+          "transferKB": 625,
+          "errors": 0
+        },
+        {
+          "run": 3,
+          "appRenderingFramesMs": 1105,
+          "domContentLoadedMs": 215,
+          "loadEventMs": 220,
+          "firstContentfulPaintMs": 128,
+          "transferKB": 625,
+          "errors": 0
+        }
+      ],
+      "phases": {
+        "exteriorIdle": {
+          "frames": {
+            "frames": 597,
+            "fps": 59.8,
+            "p50": 16.7,
+            "p95": 16.8,
+            "p99": 17.4,
+            "max": 33.5,
+            "over33ms": 1,
+            "over50ms": 0
+          },
+          "memory": {
+            "jsHeapUsedMB": 35.4,
+            "jsHeapTotalMB": 60.2,
+            "domNodes": 710,
+            "geometries": 867,
+            "textures": 27,
+            "programs": 69,
+            "calls": 1249,
+            "triangles": 220327
+          },
+          "quality": null
+        },
+        "exteriorWalk": {
+          "frames": {
+            "frames": 584,
+            "fps": 58.5,
+            "p50": 16.7,
+            "p95": 16.8,
+            "p99": 33.5,
+            "max": 66.8,
+            "over33ms": 7,
+            "over50ms": 2
+          },
+          "memory": {
+            "jsHeapUsedMB": 56.3,
+            "jsHeapTotalMB": 105.8,
+            "domNodes": 817,
+            "geometries": 2091,
+            "textures": 152,
+            "programs": 85,
+            "calls": 491,
+            "triangles": 171881
+          }
+        },
+        "interiorAfterEntry": {
+          "prepareInteriorMs": 0,
+          "commitSyncMs": 0,
+          "activeWorld": "interior",
+          "first5s": {
+            "frames": 298,
+            "fps": 59.9,
+            "p50": 16.7,
+            "p95": 16.8,
+            "p99": 17.6,
+            "max": 17.7,
+            "over33ms": 0,
+            "over50ms": 0
+          },
+          "memory": {
+            "jsHeapUsedMB": 57.3,
+            "jsHeapTotalMB": 108.3,
+            "domNodes": 828,
+            "geometries": 2141,
+            "textures": 189,
+            "programs": 86,
+            "calls": 745,
+            "triangles": 95904
+          }
+        },
+        "interiorSteady": {
+          "frames": {
+            "frames": 598,
+            "fps": 59.9,
+            "p50": 16.7,
+            "p95": 16.8,
+            "p99": 17.5,
+            "max": 17.8,
+            "over33ms": 0,
+            "over50ms": 0
+          },
+          "memory": {
+            "jsHeapUsedMB": 56.5,
+            "jsHeapTotalMB": 109.3,
+            "domNodes": 828,
+            "geometries": 2141,
+            "textures": 189,
+            "programs": 86,
+            "calls": 745,
+            "triangles": 95904
+          }
+        },
+        "exteriorAfterReturn": {
+          "activeWorld": "exterior",
+          "first5s": {
+            "frames": 299,
+            "fps": 59.9,
+            "p50": 16.7,
+            "p95": 16.8,
+            "p99": 17.3,
+            "max": 17.7,
+            "over33ms": 0,
+            "over50ms": 0
+          },
+          "memory": {
+            "jsHeapUsedMB": 67.6,
+            "jsHeapTotalMB": 111.3,
+            "domNodes": 833,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          }
+        },
+        "fiveRoundTrips": [
+          {
+            "jsHeapUsedMB": 73.6,
+            "jsHeapTotalMB": 111.6,
+            "domNodes": 847,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          },
+          {
+            "jsHeapUsedMB": 54.5,
+            "jsHeapTotalMB": 112.8,
+            "domNodes": 861,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          },
+          {
+            "jsHeapUsedMB": 59.4,
+            "jsHeapTotalMB": 114.1,
+            "domNodes": 875,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          },
+          {
+            "jsHeapUsedMB": 64.9,
+            "jsHeapTotalMB": 114.1,
+            "domNodes": 889,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 529,
+            "triangles": 190911
+          },
+          {
+            "jsHeapUsedMB": 70.6,
+            "jsHeapTotalMB": 114.8,
+            "domNodes": 903,
+            "geometries": 2141,
+            "textures": 187,
+            "programs": 86,
+            "calls": 531,
+            "triangles": 190947
+          }
+        ],
+        "workshop2000": {
+          "baseline": {
+            "frames": {
+              "frames": 437,
+              "fps": 54.7,
+              "p50": 16.7,
+              "p95": 33.4,
+              "p99": 33.5,
+              "max": 33.7,
+              "over33ms": 11,
+              "over50ms": 0
+            },
+            "memory": {
+              "jsHeapUsedMB": 75.2,
+              "jsHeapTotalMB": 120.9,
+              "domNodes": 3223,
+              "geometries": 2113,
+              "textures": 151,
+              "programs": 88,
+              "calls": 1250,
+              "triangles": 220339
+            }
+          },
+          "load": {
+            "saved": 2000,
+            "records": 2000,
+            "liveAfterLoad": 0,
+            "replaceMs": 38
+          },
+          "after": {
+            "frames": {
+              "frames": 598,
+              "fps": 59.9,
+              "p50": 16.7,
+              "p95": 16.8,
+              "p99": 17.6,
+              "max": 17.8,
+              "over33ms": 0,
+              "over50ms": 0
+            },
+            "memory": {
+              "jsHeapUsedMB": 76.6,
+              "jsHeapTotalMB": 134.6,
+              "domNodes": 3291,
+              "geometries": 2447,
+              "textures": 152,
+              "programs": 88,
+              "calls": 687,
+              "triangles": 184987
+            },
+            "live": 384
+          },
+          "residencySweep": {
+            "frames": {
+              "frames": 718,
+              "fps": 59.9,
+              "p50": 16.7,
+              "p95": 16.9,
+              "p99": 17.6,
+              "max": 17.7,
+              "over33ms": 0,
+              "over50ms": 0
+            },
+            "memory": {
+              "jsHeapUsedMB": 79.3,
+              "jsHeapTotalMB": 142.8,
+              "domNodes": 2963,
+              "geometries": 2665,
+              "textures": 152,
+              "programs": 88,
+              "calls": 453,
+              "triangles": 164891
+            },
+            "live": 384
+          },
+          "afterClearing": {
+            "objects": 0,
+            "memory": {
+              "jsHeapUsedMB": 78.8,
+              "jsHeapTotalMB": 143.3,
+              "domNodes": 2963,
+              "geometries": 2229,
+              "textures": 152,
+              "programs": 88,
+              "calls": 325,
+              "triangles": 158839
+            }
+          },
+          "pageErrors": []
+        }
+      },
+      "transitions": [
+        {
+          "run": 1,
+          "entry": {
+            "prepareMs": 784,
+            "committed": false,
+            "commitMs": 0,
+            "world": "exterior",
+            "framesSeen": 239,
+            "wallMs": 4084,
+            "worst5": [
+              67,
+              67,
+              34,
+              18,
+              18
+            ],
+            "over50": 2
+          },
+          "exitBack": {
+            "world": "exterior",
+            "worst3": [
+              18,
+              17,
+              17
+            ]
+          },
+          "secondEntry": {
+            "world": "interior",
+            "worst3": [
+              18,
+              18,
+              17
+            ]
+          },
+          "gcAfter0_5_10RoundTrips": [
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.4,
+              "listeners": 146,
+              "docs": 1
+            },
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.8,
+              "listeners": 146,
+              "docs": 1
+            },
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.8,
+              "listeners": 146,
+              "docs": 1
+            }
+          ],
+          "topDomParents": [
+            [
+              "P",
+              71
+            ],
+            [
+              "LI",
+              42
+            ],
+            [
+              "a11y-root",
+              40
+            ],
+            [
+              "BUTTON",
+              35
+            ],
+            [
+              "panel__body",
+              26
+            ],
+            [
+              "panel__head",
+              26
+            ]
+          ],
+          "domGrowth": 0,
+          "heapGrowthMB": 0.4
+        },
+        {
+          "run": 2,
+          "entry": {
+            "prepareMs": 838,
+            "committed": false,
+            "commitMs": 0,
+            "world": "exterior",
+            "framesSeen": 239,
+            "wallMs": 4085,
+            "worst5": [
+              66,
+              50,
+              33,
+              33,
+              18
+            ],
+            "over50": 2
+          },
+          "exitBack": {
+            "world": "exterior",
+            "worst3": [
+              18,
+              18,
+              17
+            ]
+          },
+          "secondEntry": {
+            "world": "interior",
+            "worst3": [
+              18,
+              17,
+              17
+            ]
+          },
+          "gcAfter0_5_10RoundTrips": [
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.5,
+              "listeners": 146,
+              "docs": 1
+            },
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.8,
+              "listeners": 146,
+              "docs": 1
+            },
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.8,
+              "listeners": 146,
+              "docs": 1
+            }
+          ],
+          "topDomParents": [
+            [
+              "P",
+              71
+            ],
+            [
+              "LI",
+              42
+            ],
+            [
+              "a11y-root",
+              40
+            ],
+            [
+              "BUTTON",
+              35
+            ],
+            [
+              "panel__body",
+              26
+            ],
+            [
+              "panel__head",
+              26
+            ]
+          ],
+          "domGrowth": 0,
+          "heapGrowthMB": 0.3
+        },
+        {
+          "run": 3,
+          "entry": {
+            "prepareMs": 821,
+            "committed": false,
+            "commitMs": 0,
+            "world": "exterior",
+            "framesSeen": 239,
+            "wallMs": 4065,
+            "worst5": [
+              67,
+              50,
+              33,
+              18,
+              18
+            ],
+            "over50": 1
+          },
+          "exitBack": {
+            "world": "exterior",
+            "worst3": [
+              18,
+              18,
+              17
+            ]
+          },
+          "secondEntry": {
+            "world": "interior",
+            "worst3": [
+              18,
+              18,
+              18
+            ]
+          },
+          "gcAfter0_5_10RoundTrips": [
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.4,
+              "listeners": 146,
+              "docs": 1
+            },
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.8,
+              "listeners": 146,
+              "docs": 1
+            },
+            {
+              "domNodes": 824,
+              "jsHeapUsedMB": 41.8,
+              "listeners": 146,
+              "docs": 1
+            }
+          ],
+          "topDomParents": [
+            [
+              "P",
+              71
+            ],
+            [
+              "LI",
+              42
+            ],
+            [
+              "a11y-root",
+              40
+            ],
+            [
+              "BUTTON",
+              35
+            ],
+            [
+              "panel__body",
+              26
+            ],
+            [
+              "panel__head",
+              26
+            ]
+          ],
+          "domGrowth": 0,
+          "heapGrowthMB": 0.4
+        }
+      ],
+      "budgets": [
+        {
+          "id": "cold-start",
+          "path": "coldStartsProduction[*].appRenderingFramesMs",
+          "max": 2000,
+          "unit": "ms",
+          "why": "first rendered frames of the production build",
+          "worst": 1307,
+          "status": "PASS"
+        },
+        {
+          "id": "exterior-idle-p99",
+          "path": "exteriorIdleAtSpawn.frames.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 17.4,
+          "status": "PASS"
+        },
+        {
+          "id": "exterior-walk-p99",
+          "path": "exteriorWalkingPath1.frames.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 33.5,
+          "status": "FAIL"
+        },
+        {
+          "id": "exterior-walk-fps",
+          "path": "exteriorWalkingPath1.frames.fps",
+          "min": 55,
+          "unit": "fps",
+          "worst": 58.5,
+          "status": "PASS"
+        },
+        {
+          "id": "interior-steady-p95",
+          "path": "interiorSteady.frames.p95",
+          "max": 20,
+          "unit": "ms",
+          "worst": 16.8,
+          "status": "PASS"
+        },
+        {
+          "id": "exterior-after-return-p99",
+          "path": "exteriorAfterReturn.first5s.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 17.3,
+          "status": "PASS"
+        },
+        {
+          "id": "workshop-2000-p99",
+          "path": "workshop2000.after.frames.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 17.6,
+          "status": "PASS"
+        },
+        {
+          "id": "workshop-2000-sweep-p99",
+          "path": "workshop2000.residencySweep.frames.p99",
+          "max": 20,
+          "unit": "ms",
+          "worst": 17.6,
+          "status": "PASS"
+        },
+        {
+          "id": "first-entry-worst-frame",
+          "path": "transitions[*].entry.worst5[0]",
+          "max": 900,
+          "target": 100,
+          "unit": "ms",
+          "why": "known first interior entry hitch (0.33-0.84 s on 2026-11-12); the limit guards against regression, the target is the fix goal",
+          "worst": 67,
+          "status": "PASS"
+        },
+        {
+          "id": "second-entry-worst-frame",
+          "path": "transitions[*].secondEntry.worst3[0]",
+          "max": 50,
+          "unit": "ms",
+          "worst": 18,
+          "status": "PASS"
+        },
+        {
+          "id": "round-trip-dom-growth",
+          "path": "transitions[*].domGrowth",
+          "max": 20,
+          "unit": "nodes",
+          "why": "after GC across 10 round trips",
+          "worst": 0,
+          "status": "PASS"
+        },
+        {
+          "id": "round-trip-heap-growth",
+          "path": "transitions[*].heapGrowthMB",
+          "max": 5,
+          "unit": "MB",
+          "why": "after GC across 10 round trips",
+          "worst": 0.4,
+          "status": "PASS"
+        }
+      ],
+      "environment": {
+        "cpuIdleBeforePct": [
+          77.41,
+          89.44
+        ],
+        "cpuIdleAfterPct": [
+          61.72,
+          85.53
+        ],
+        "memFreeBefore": "58%",
+        "memFreeAfter": "59%",
+        "loadBefore": "3.71 4.91 4.94",
+        "loadAfter": "3.02 4.06 4.57"
+      }
+    }
+  }
+}
