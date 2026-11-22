@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { QUALITY, type QualitySettings, type QualityTier } from './QualityTiers';
 
+/** Active visitor camera far plane (m); safely encloses the 850 m sky dome and distant horizon islands. */
+export const CAMERA_FAR = 1100;
+
 /**
  * Owns the WebGL renderer, the camera, and the scene root.
  * Nothing else constructs a renderer. Resize, DPR capping, and context-loss
@@ -69,7 +72,7 @@ export class RendererHost {
     // are deferred until after the first frame so startup is not blocked by it.
     this.scene.environmentIntensity = 0.42;
 
-    this.camera = new THREE.PerspectiveCamera(65, 1, 0.1, 600);
+    this.camera = new THREE.PerspectiveCamera(65, 1, 0.1, CAMERA_FAR);
     this.camera.name = 'visitor-camera';
 
     canvas.addEventListener('webglcontextlost', this.onContextLost);
