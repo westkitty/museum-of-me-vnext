@@ -18,10 +18,14 @@ function distanceToPath(x: number, z: number): number {
 
 describe('S5 shoreline-belt forest visual coverage', () => {
   // uplift2(A): the relocated ancient tree's 11 m clearing removes ~13 low-tier crowns.
+  // ISLAND-01 (2026-11-21): crowns now stand on collision-backed trunks laid on
+  // one quality-independent grid; landmark clearings/walk-in corridors remove
+  // 43 trunk sites (888 -> 845 on low). Medium/high add overhead crowns on the
+  // same trunks (845/1447/2067, previously 888/1457/2093).
   for (const [tier, min, max] of [
-    ['low', 880, 915], ['medium', 1450, 1490], ['high', 2090, 2140],
+    ['low', 835, 860], ['medium', 1435, 1465], ['high', 2055, 2085],
   ] as const) {
-    it(`fills distinct forest areas on ${tier} without new physical support or forbidden placements`, () => {
+    it(`fills distinct forest areas on ${tier} without new floor support or forbidden placements`, () => {
       const scope = new ResourceScope(`forest-belt-${tier}`);
       const collision = new CollisionWorld();
       const root = new IslandLandscape(scope, collision, tier).build();
@@ -38,7 +42,9 @@ describe('S5 shoreline-belt forest visual coverage', () => {
       expect(belt.count).toBeLessThan(max);
       // Compared with the actual S5 site-masked output, not raw attempts.
       const lastRelease = tier === 'low' ? 438 : tier === 'medium' ? 725 : 1040;
-      expect(belt.count).toBeGreaterThanOrEqual(lastRelease * 2);
+      // The S5c doubling holds outside the ISLAND-01 landmark clearings, which
+      // take at most 5 % of the crowns.
+      expect(belt.count).toBeGreaterThanOrEqual(Math.floor(lastRelease * 2 * 0.95));
       expect(belt.instanceColor).toBeTruthy();
       expect(belt.castShadow).toBe(false);
       expect(belt.receiveShadow).toBe(false);
