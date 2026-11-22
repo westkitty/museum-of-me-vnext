@@ -328,25 +328,47 @@ export class ArrivalGarden {
     this.group.add(island);
 
     // Seal the ground's actual polygon edge as a shallow, faceted rock bank.
-    // All bands share ISLAND_OUTLINE; no new walkable geometry or colliders.
+    // Extrude along outward vertex miters (rather than origin-radial scaling)
+    // so concave peninsula necks seal cleanly without crossing dry land.
+    const edgeOutwardNormal = (index: number): readonly [number, number] => {
+      const n = ISLAND_OUTLINE.length;
+      const [ax, az] = ISLAND_OUTLINE[(index + n) % n];
+      const [bx, bz] = ISLAND_OUTLINE[(index + 1 + n) % n];
+      const dx = bx - ax, dz = bz - az;
+      const len = Math.max(1e-6, Math.hypot(dx, dz));
+      return [dz / len, -dx / len];
+    };
+    const vertexMiters = ISLAND_OUTLINE.map((_, i) => {
+      const nPrev = edgeOutwardNormal(i - 1);
+      const nNext = edgeOutwardNormal(i);
+      const sx = nPrev[0] + nNext[0], sz = nPrev[1] + nNext[1];
+      const len = Math.hypot(sx, sz);
+      if (len < 1e-6) return nNext;
+      const ux = sx / len, uz = sz / len;
+      const scale = 1 / Math.max(0.5, ux * nNext[0] + uz * nNext[1]);
+      return [ux * scale, uz * scale] as const;
+    });
     const cliffPositions: number[] = [];
     const fringePositions: number[] = [];
     const coastIndices: number[] = [];
     for (let i = 0; i < ISLAND_OUTLINE.length; i++) {
+      const next = (i + 1) % ISLAND_OUTLINE.length;
       const [ax, az] = ISLAND_OUTLINE[i];
-      const [bx, bz] = ISLAND_OUTLINE[(i + 1) % ISLAND_OUTLINE.length];
+      const [bx, bz] = ISLAND_OUTLINE[next];
+      const [max, maz] = vertexMiters[i];
+      const [mbx, mbz] = vertexMiters[next];
       const offset = i * 4;
       // Slight outward lean joins ground to water instead of a hard cut edge.
       cliffPositions.push(
         ax, GROUND_Y - 0.49, az, bx, GROUND_Y - 0.49, bz,
-        ax * 1.008, GROUND_Y - 1.55, az * 1.008,
-        bx * 1.008, GROUND_Y - 1.55, bz * 1.008,
+        ax + max * 1.4, GROUND_Y - 1.55, az + maz * 1.4,
+        bx + mbx * 1.4, GROUND_Y - 1.55, bz + mbz * 1.4,
       );
       fringePositions.push(
-        ax * 1.003, GROUND_Y - 0.65, az * 1.003,
-        bx * 1.003, GROUND_Y - 0.65, bz * 1.003,
-        ax * 1.025, GROUND_Y - 0.67, az * 1.025,
-        bx * 1.025, GROUND_Y - 0.67, bz * 1.025,
+        ax + max * 0.45, GROUND_Y - 0.65, az + maz * 0.45,
+        bx + mbx * 0.45, GROUND_Y - 0.65, bz + mbz * 0.45,
+        ax + max * 4.2, GROUND_Y - 0.67, az + maz * 4.2,
+        bx + mbx * 4.2, GROUND_Y - 0.67, bz + mbz * 4.2,
       );
       coastIndices.push(offset, offset + 1, offset + 2, offset + 1, offset + 3, offset + 2);
     }

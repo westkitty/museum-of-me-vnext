@@ -1,0 +1,46 @@
+{
+  "captures": [
+    {
+      "name": "pier-view-lighthouse.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 222203,
+      "sha256": "543b134202a5cd5ec4831367f822f0f039f9e758a3d750e299dc2c30e8c20572"
+    },
+    {
+      "name": "headland-approach.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 193089,
+      "sha256": "468f8c5a59ff522f350a19f46622c56ac9375f02dd0b881c34424ba973d421d2"
+    },
+    {
+      "name": "stair-climb.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 52474,
+      "sha256": "932d2e3d4d6467027731e82c3d5b97f52af691c4e3f40ca97e56ae8a129d4da6"
+    },
+    {
+      "name": "gallery-overlook.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 321704,
+      "sha256": "60aaa49fded3894c9146a84b7e4c4d07dfa147c12cebc70993992b785f324d49"
+    },
+    {
+      "name": "lantern-lens.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 463799,
+      "sha256": "71ba19b4714037038f0334772a42196d322647efbb526fecc6bfedcdd9eb6dce"
+    },
+    {
+      "name": "headland-mobile-portrait.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 71571,
+      "sha256": "cdb2e0b62a52733b76ae59656439cf33c692c4a6f2375ddb01ce71339f40346b"
+    }
+  ]
+}

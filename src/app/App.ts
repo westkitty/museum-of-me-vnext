@@ -33,6 +33,7 @@ import { InputManager, touchLookGain } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
 import { zoneAtXYZ, ZONE_BY_ID, isOnFlightPad, exteriorLocationLabel, EXTERIOR_PLAZA_LABEL, ENTRANCE_PORTAL_Z, type ZoneId } from '../world/layout';
 import { TICKET_KIOSK_ID } from '../world/exterior/TicketKiosk';
+import { LIGHTHOUSE_LENS_ID } from '../world/exterior/ExteriorLighthouse';
 import { isInsideObsidianChamber } from '../world/exterior/ObsidianSphereEntrance';
 import { START_POSITION } from '../world/start';
 import type { StreamingManager } from '../exhibits/StreamingManager';
@@ -205,6 +206,10 @@ export class App implements LoopCallbacks {
     this.exteriorWorld.root.add(kiosk.group);
     this.interaction.register(TICKET_KIOSK_ID, kiosk.control);
     if (this.ticket) this.exteriorWorld.ticketKiosk.markIssued();
+    this.interaction.register(
+      LIGHTHOUSE_LENS_ID,
+      this.exteriorWorld.lighthouse.getLensControl((message) => this.ui.hud.announce(message, 8)),
+    );
 
     this.sky = new Sky(this.scope);
     this.renderer.scene.add(this.sky.mesh);
@@ -245,8 +250,8 @@ export class App implements LoopCallbacks {
 
   recordInteractionVisit(): void {
     const id = this.interaction.currentFocus?.exhibitId;
-    // Cinema seats and boards are places, not exhibits: they stay out of the visit journal.
-    if (!id || isSecretControlId(id) || id === TICKET_KIOSK_ID || id.startsWith('cinema-')) return;
+    // Cinema seats, boards, and the dormant lighthouse lens are not exhibits: keep out of visit journal.
+    if (!id || isSecretControlId(id) || id === TICKET_KIOSK_ID || id === LIGHTHOUSE_LENS_ID || id.startsWith('cinema-')) return;
     this.journal.markVisited(id);
     this.visitThread.recordVisit(id);
   }
