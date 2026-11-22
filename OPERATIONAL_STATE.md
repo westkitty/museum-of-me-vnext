@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 110,
+  "state_revision": 113,
   "last_updated": "2026-11-22",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -1242,3 +1242,27 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - **Counts:** belt trunks `881` (was `890`, quality-independent), belt crowns `1228/1518/2156`, perimeter trunks `176` (unchanged); initial bundle `11.53 MB` of `20 MB` budget.
 - **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS; `tests/lighthouse-peninsula.test.ts` (4/4 PASS); Playwright `lighthouse-peninsula`, `exterior-first`, `island-landscape`, `island-landmark-walk` (all 16 landmarks), `quality-transitions`, `performance-lifecycle` PASS on branch. Evidence: `docs/evidence/island-02a-lighthouse-20261122/`.
 - **NOT VERIFIED:** human visual acceptance, real-device performance (`perf:device`), hosted Pages (deferred to S3 visitor-ready island release). Cinema, interior, exhibits, visitors untouched.
+
+### 2026-11-22 — ISLAND-02B southern wooded ruined observatory (r111)
+
+- **Base:** `main` `a358b66` (PR #73, ISLAND-02A). Branch `feat/island-02b-ruined-observatory`.
+- **IMPLEMENTED:** Placed `OBSERVATORY_CENTER` (`[88, 2.5, 96]`, 128 m from SW sundial `[-34, -0.48, 134]`) with winding `OBSERVATORY_APPROACH_PATH` (`[44.5, 94]`..`[70, 96]`) in `IslandSiteLayout.ts` and `IslandLandscape.ts`; built `ExteriorObservatory.ts` (winding trail + bollards, continuous ramp/stairs `-0.5 -> +2.5` with under-slope prism and detached entrance bollards, mossy knoll setback clear of stairs/floor, cliff-guarded rotunda walls `80..96 × 88..104`, NE octagonal columns + copper dome fragment open to zenith & SW starry sky + bronze ribs/oculus collar, procedural zodiac mosaic floor, constellation lecterns, weathered brass telescope `[92.4, 2.5, 91.6]`, fractured central orrery `observatory-orrery-w09-anchor`, `reducedMotion`-safe, zero `THREE.Light`s); registered dormant `observatory-orrery-w09` excluded from `Journal` (`App.ts`) and added `ruined-observatory` to `ISLAND_LANDMARKS` (17 landmarks).
+- **Counts:** belt trunks `863` (was `881`, quality-independent), belt crowns `1204/1489/2114`, perimeter trunks `176` (unchanged); initial bundle `11.54 MB` of `20 MB` budget.
+- **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS (`125` files, `1,298` tests); `tests/ruined-observatory.test.ts` (4/4 PASS); Playwright (Chrome + SwiftShader software WebGL) `ruined-observatory.e2e.ts`, `island-landscape.e2e.ts`, `island-landmark-walk.e2e.ts` (all 17 landmarks on `low`/`high` + touch), and `quality-transitions.e2e.ts` PASS, with all 5 captures in `docs/evidence/island-02b-observatory-20261122/` visually audited after Subagent D defect fixes.
+- **NOT VERIFIED:** human visual acceptance, real-device performance (`perf:device`), hosted Pages (deferred to S3 visitor-ready island release). Cinema, interior, exhibits, visitors untouched.
+
+### 2026-11-22 — ISLAND-02C Rootbound Hollow beneath Ancient Tree roots (r112)
+
+- **Base:** `main` `f079f17` (PR #74, ISLAND-02B). Branch `feat/island-02c-rootbound-hollow`.
+- **IMPLEMENTED:** Built `ExteriorRootboundHollow.ts` (vaulted mossy root mound, entry saddle ramp `-0.46 -> -0.24 -> -0.38`, arched root portal `[55.2, -88.8]`, opaque peat-slate root chamber `Y = -0.38` clearing the `Y = -0.5` terrain plane without clipping, corner root columns, glowing cyan-jade bioluminescent fungi/mycelium, Heartwood Seed-Stone relic `[64.0, -0.38, -88.6]`, `reducedMotion`-safe, zero `THREE.Light`s); preserved `ANCIENT_TREE_CENTER` (`[57, -0.48, -84]`), Ancient Tree trunk & 5 buttress root colliders, `secret:tree-roots`, and `SECRETS` count (`10`); registered `rootbound-hollow-relic` on `InteractionManager` excluded from `Journal` (`App.ts`); added `rootbound-hollow` inside the existing clearing to `ISLAND_LANDMARKS` (`18` landmarks, zero woodland count change).
+- **Counts:** belt trunks `863`, belt crowns `1204/1489/2114`, perimeter trunks `176` (all unchanged from ISLAND-02B); initial bundle verified by `npm run check:budgets`.
+- **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS on rebased branch; Playwright (Chrome + SwiftShader software WebGL) `rootbound-hollow.e2e.ts`, `secrets.e2e.ts`, and `island-landmark-walk.e2e.ts` PASS (5 captures in `docs/evidence/island-02c-rootbound-20261122/` visually inspected).
+- **NOT VERIFIED:** human visual acceptance, real-device performance (`perf:device`), hosted Pages (deferred to S3 visitor-ready island release). Not an 11th passport stamp; Cinema, interior, exhibits, visitors untouched.
+
+### 2026-11-22 — Island safety: east lagoon fall/rescue loop (r113)
+
+- **Base:** `main` `eb3c266` (PR #76, ISLAND-02C; originally authored on `a358b66`). Branch `fix/lagoon-fall-safety`.
+- **REPRODUCED (browser):** walking into the floorless east lagoon fell through the basin; the safety net (`PlayerController`, y < −60 → `support ?? 0` at the same x/z) restarted the fall every ~2.5 s (13 rescues / 30 s).
+- **FIXED:** `addLagoonEdge` — 12 oriented 1.4 m bank-edge wall colliders along `LAGOON_OUTLINE` (water stays unsupported); safety net now returns the visitor to the last supported spot (no loop possible anywhere).
+- **VERIFIED BY AUTOMATED TEST (local):** `npm run gate` PASS (initial visit 11.53 MB / 20 MB); `tests/lagoon-edge-safety.test.ts`; Playwright `island-lagoon-safety` (4 banks, one-rescue-and-walk-back), `passage-traversal` (57/169), `island-landscape`, `island-landmark-walk`, `quality-transitions`, `performance-lifecycle`, `exterior-first`, `stability` PASS. Evidence `docs/evidence/island-lagoon-safety-20261122/`.
+- **NOT VERIFIED:** human feel of the bank edge; real-device performance. W01 dive entry not built.

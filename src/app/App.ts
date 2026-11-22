@@ -34,6 +34,8 @@ import { PlayerController } from '../player/PlayerController';
 import { zoneAtXYZ, ZONE_BY_ID, isOnFlightPad, exteriorLocationLabel, EXTERIOR_PLAZA_LABEL, ENTRANCE_PORTAL_Z, type ZoneId } from '../world/layout';
 import { TICKET_KIOSK_ID } from '../world/exterior/TicketKiosk';
 import { LIGHTHOUSE_LENS_ID } from '../world/exterior/ExteriorLighthouse';
+import { OBSERVATORY_ORRERY_ID } from '../world/exterior/ExteriorObservatory';
+import { ROOTBOUND_RELIC_ID } from '../world/exterior/ExteriorRootboundHollow';
 import { isOnRooftopFlightPad, ROOF_FLIGHT_PAD_II_LAUNCH_SPEED } from '../world/exterior/rooftopLayout';
 import { isInsideObsidianChamber } from '../world/exterior/ObsidianSphereEntrance';
 import { START_POSITION } from '../world/start';
@@ -211,6 +213,14 @@ export class App implements LoopCallbacks {
       LIGHTHOUSE_LENS_ID,
       this.exteriorWorld.lighthouse.getLensControl((message) => this.ui.hud.announce(message, 8)),
     );
+    this.interaction.register(
+      OBSERVATORY_ORRERY_ID,
+      this.exteriorWorld.observatory.getOrreryControl((message) => this.ui.hud.announce(message, 8)),
+    );
+    this.interaction.register(
+      ROOTBOUND_RELIC_ID,
+      this.exteriorWorld.rootboundHollow.getRelicControl((message) => this.ui.hud.announce(message, 8)),
+    );
     for (const [id, control] of this.exteriorWorld.rooftop.getControls((message) => this.ui.hud.announce(message, 8))) {
       this.interaction.register(id, control);
     }
@@ -254,8 +264,17 @@ export class App implements LoopCallbacks {
 
   recordInteractionVisit(): void {
     const id = this.interaction.currentFocus?.exhibitId;
-    // Cinema seats, boards, dormant lighthouse lens, and rooftop interactables are not exhibits: keep out of visit journal.
-    if (!id || isSecretControlId(id) || id === TICKET_KIOSK_ID || id === LIGHTHOUSE_LENS_ID || id.startsWith('cinema-') || id.startsWith('rooftop-')) return;
+    // Cinema seats, boards, dormant world anchors, the Rootbound relic, and rooftop interactables are not exhibits: keep out of visit journal.
+    if (
+      !id
+      || isSecretControlId(id)
+      || id === TICKET_KIOSK_ID
+      || id === LIGHTHOUSE_LENS_ID
+      || id === OBSERVATORY_ORRERY_ID
+      || id === ROOTBOUND_RELIC_ID
+      || id.startsWith('cinema-')
+      || id.startsWith('rooftop-')
+    ) return;
     this.journal.markVisited(id);
     this.visitThread.recordVisit(id);
   }

@@ -13,7 +13,9 @@ import { TicketKiosk } from './TicketKiosk';
 import { ObsidianSphereEntrance } from './ObsidianSphereEntrance';
 import { ExteriorLighthouse } from './ExteriorLighthouse';
 import { ExteriorRooftop } from './ExteriorRooftop';
-import { addIslandSupport } from './IslandSiteLayout';
+import { ExteriorObservatory } from './ExteriorObservatory';
+import { ExteriorRootboundHollow } from './ExteriorRootboundHollow';
+import { addIslandSupport, addLagoonEdge } from './IslandSiteLayout';
 import { START_POSITION, START_YAW } from '../start';
 import {
   GROUND_Y,
@@ -55,6 +57,10 @@ export class ExteriorWorld {
   readonly sphereEntrance: ObsidianSphereEntrance;
   /** Climbable southeast coastal peninsula and lighthouse (ISLAND-02A). */
   readonly lighthouse: ExteriorLighthouse;
+  /** Southern wooded hill ruined observatory (ISLAND-02B). */
+  readonly observatory: ExteriorObservatory;
+  /** Discoverable vaulted root grotto beneath the Ancient Tree roots (ISLAND-02C). */
+  readonly rootboundHollow: ExteriorRootboundHollow;
   /** Rooftop Cafe, Hot Dog Stand, Glass Greenhouse, Flight Pad II, and West Flank Ascent (ISLAND-03). */
   readonly rooftop: ExteriorRooftop;
 
@@ -67,6 +73,7 @@ export class ExteriorWorld {
     // Bounded support is derived from the closed site outline and leaves the
     // lagoon, ocean and offshore space unsupported.
     addIslandSupport(this.collision);
+    addLagoonEdge(this.collision);
 
     // Raised arrival plaza terrace: floor at GROUND_Y (0) from z = 128 to 158
     this.collision.addFloor(
@@ -135,6 +142,11 @@ export class ExteriorWorld {
     this.lighthouse = new ExteriorLighthouse(this.scope, this.collision);
     this.root.add(this.lighthouse.group);
 
+    this.observatory = new ExteriorObservatory(this.scope, this.collision);
+    this.root.add(this.observatory.group);
+
+    this.rootboundHollow = new ExteriorRootboundHollow(this.scope, this.collision);
+    this.root.add(this.rootboundHollow.group);
     this.rooftop = new ExteriorRooftop(this.scope, this.collision);
     this.root.add(this.rooftop.group);
   }
@@ -305,6 +317,8 @@ export class ExteriorWorld {
     this.ticketKiosk.update(dt);
     this.sphereEntrance.update(dt, eye, reducedMotion);
     this.lighthouse.update(dt, reducedMotion);
+    this.observatory.update(dt, reducedMotion);
+    this.rootboundHollow.update(dt, reducedMotion);
     this.rooftop.update(dt, eye, reducedMotion);
   }
 
