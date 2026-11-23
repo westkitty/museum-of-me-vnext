@@ -13,10 +13,15 @@ import {
   MusicCueSheetValidationError,
   barBeatToSeconds,
   beatOffsetToSeconds,
+  nextBarTimeSeconds,
+  nextBeatTimeSeconds,
+  nextMatchingCue,
+  resolveLoopRegionById,
   secondsToBeatPosition,
   validateMusicCueSheet,
   type MusicCueSheet,
 } from '../src/audio/cueSheet';
+import { analyzeAudioBufferSilence } from '../src/audio/AudioAssetLoader';
 import {
   DEFAULT_PREFERENCES,
   PREFERENCES_KEY,
@@ -36,9 +41,12 @@ import { CollisionWorld } from '../src/world/CollisionWorld';
 import { PocketWorldHost } from '../src/world/pocket/PocketWorldHost';
 import { PocketWorldRegistry } from '../src/world/pocket/PocketWorldRegistry';
 import {
+  TEST_MUSEUM_GALLERY_ASSET_IDS,
   TEST_W01_AUDIO_ASSET_IDS,
-  buildTestW01EncounterCueSheets,
-  buildTestW01FinaleCueSheet,
+  buildTestMuseumCrossfadeCueSheets,
+  buildTestW01CompactCueSheet,
+  buildTestW01ProcessionCueSheet,
+  createInMemorySilentBuffer,
   installTestW01AudioFixture,
 } from './fixtures/music-w01-example';
 
@@ -49,6 +57,7 @@ interface RecordedGainNode {
     value: number;
     setValueAtTime: ReturnType<typeof vi.fn>;
     linearRampToValueAtTime: ReturnType<typeof vi.fn>;
+    setValueCurveAtTime: ReturnType<typeof vi.fn>;
     cancelScheduledValues: ReturnType<typeof vi.fn>;
     exponentialRampToValueAtTime: ReturnType<typeof vi.fn>;
   };
@@ -65,12 +74,13 @@ interface RecordedBufferSourceNode {
   loopEnd: number;
   startedAt: { when?: number; offset?: number; duration?: number } | null;
   stopped: boolean;
+  stoppedAt?: number;
   disconnected: boolean;
   connectedTo: unknown[];
   connect: (target: unknown) => unknown;
   disconnect: () => void;
   start: (when?: number, offset?: number, duration?: number) => void;
-  stop: () => void;
+  stop: (when?: number) => void;
   addEventListener: (type: string, fn: () => void) => void;
   removeEventListener: (type: string, fn: () => void) => void;
   emitEnded: () => void;
@@ -87,7 +97,7 @@ interface MockAudioEnv {
   decodeCalls: number;
 }
 
-function createMockAudioEnv(options: { decodeShouldFail?: boolean } = {}): MockAudioEnv {
+function createMockAudioEnv(options: { decodeShouldFail?: boolean; decodeShouldBeSilent?: boolean } = {}): MockAudioEnv {
   const gains: RecordedGainNode[] = [];
   const sources: RecordedBufferSourceNode[] = [];
   const stateListeners = new Set<() => void>();
@@ -104,6 +114,10 @@ function createMockAudioEnv(options: { decodeShouldFail?: boolean } = {}): MockA
           value: 0,
           setValueAtTime: vi.fn((val: number) => { node.gain.value = val; return node.gain; }),
           linearRampToValueAtTime: vi.fn((val: number) => { node.gain.value = val; return node.gain; }),
+          setValueCurveAtTime: vi.fn((values: Float32Array) => {
+            node.gain.value = values.length > 0 ? values[values.length - 1] : node.gain.value;
+            return node.gain;
+          }),
           cancelScheduledValues: vi.fn(() => node.gain),
           exponentialRampToValueAtTime: vi.fn(() => node.gain),
         },
@@ -171,8 +185,9 @@ function createMockAudioEnv(options: { decodeShouldFail?: boolean } = {}): MockA
         start(when?: number, offset?: number, duration?: number) {
           src.startedAt = { when, offset, duration };
         },
-        stop() {
+        stop(when?: number) {
           src.stopped = true;
+          src.stoppedAt = when;
         },
         addEventListener(type: string, fn: () => void) {
           if (type === 'ended') endedListeners.add(fn);
@@ -191,7 +206,11 @@ function createMockAudioEnv(options: { decodeShouldFail?: boolean } = {}): MockA
       decodeCalls++;
       if (options.decodeShouldFail) throw new Error('Corrupt audio payload');
       const frames = Math.max(22050, buf.byteLength * 256);
-      return ctx.createBuffer(1, frames, 22050);
+      const out = ctx.createBuffer(1, frames, 22050);
+      if (!options.decodeShouldBeSilent) {
+        out.getChannelData(0)[0] = 0.05;
+      }
+      return out;
     },
     async suspend(): Promise<void> {
       ctx.state = 'suspended';
@@ -391,28 +410,34 @@ describe('Museum-Wide Music & Synchronization Foundation', () => {
     audio.setVolumes(1, 0, 0.8);
     await vi.runAllTicks();
 
-    const finaleSheet = buildTestW01FinaleCueSheet();
-    const session = audio.createMusicSession(finaleSheet);
+    const sheet = buildTestW01ProcessionCueSheet();
+    const session = audio.createMusicSession(sheet);
     const started = await session.play();
     expect(started).toBe(true);
     expect(session.timingSource).toBe('audio-clock');
+    expect(session.getActiveLoopRegion()?.id).toBe('exploration-loop');
 
-    expect(env.sources).toHaveLength(4);
+    // Only the three audible stems spawn (silent vocals omitted); all share exact origin 12.5.
+    expect(env.sources).toHaveLength(3);
     for (const src of env.sources) {
       expect(src.startedAt).toEqual({ when: 12.5, offset: 0, duration: undefined });
-      expect(src.loop).toBe(true);
-      expect(src.loopStart).toBe(4.0);
-      expect(src.loopEnd).toBe(8.0);
+      expect(src.loop).toBe(false);
     }
 
-    // Smoothly crossfade from reef group/stems to cathedral stems.
-    session.crossfadeStems(['reef-pulse'], ['cathedral-brass', 'cathedral-choir'], 1.0, 0.85);
+    // Bass begins alone at 1 while drums and other sit ready on the locked timeline at 0.
+    expect(session.getStemGain('bass')).toBeCloseTo(1, 5);
+    expect(session.getStemGain('drums')).toBeCloseTo(0, 5);
+    expect(session.getStemGain('other')).toBeCloseTo(0, 5);
+
+    // Smoothly fade drums and other onto the still-running composition without restarting sources.
+    session.crossfadeTo({ drums: 0.9, other: 0.85 }, 1.0);
     audio.update(0.5);
-    expect(session.getStemGain('reef-pulse')).toBeCloseTo(0.35, 2);
-    expect(session.getStemGain('cathedral-brass')).toBeCloseTo(0.425, 2);
+    expect(session.getStemGain('drums')).toBeCloseTo(0.45, 2);
+    expect(session.getStemGain('other')).toBeCloseTo(0.425, 2);
     audio.update(0.5);
-    expect(session.getStemGain('reef-pulse')).toBeCloseTo(0, 5);
-    expect(session.getStemGain('cathedral-brass')).toBeCloseTo(0.85, 5);
+    expect(session.getStemGain('drums')).toBeCloseTo(0.9, 5);
+    expect(session.getStemGain('other')).toBeCloseTo(0.85, 5);
+    expect(env.sources).toHaveLength(3);
 
     session.dispose();
     cleanupFixture();
@@ -429,17 +454,17 @@ describe('Museum-Wide Music & Synchronization Foundation', () => {
     await vi.runAllTicks();
 
     const fired: string[] = [];
-    const session = audio.createMusicSession(buildTestW01FinaleCueSheet());
+    const session = audio.createMusicSession(buildTestW01CompactCueSheet());
     session.onCue((ev) => fired.push(`${ev.loopCount}:${ev.cue.id}`));
 
     await session.play();
-    expect(fired).toEqual(['0:reef-awakens']);
+    expect(fired).toEqual(['0:bass-alone-start']);
 
-    // Advance AudioContext clock to 2.2s -> fires reef-swell (2.0s).
+    // Advance AudioContext clock to 2.2s -> fires drums-entry-cue (2.0s).
     env.ctx.currentTime = 2.2;
     audio.update(0);
     expect(session.snapshot().positionSeconds).toBeCloseTo(2.2, 5);
-    expect(fired).toEqual(['0:reef-awakens', '0:reef-swell']);
+    expect(fired).toEqual(['0:bass-alone-start', '0:drums-entry-cue']);
 
     // Pause -> clock advances externally to 20s, timeline and cues stay frozen.
     session.pause();
@@ -447,17 +472,17 @@ describe('Museum-Wide Music & Synchronization Foundation', () => {
     env.ctx.currentTime = 20.0;
     audio.update(1.0);
     expect(session.snapshot().positionSeconds).toBeCloseTo(2.2, 5);
-    expect(fired).toEqual(['0:reef-awakens', '0:reef-swell']);
+    expect(fired).toEqual(['0:bass-alone-start', '0:drums-entry-cue']);
 
     // Resume creates fresh single-use sources at exact offset 2.2 without re-firing past cues.
     const countBeforeResume = env.sources.length;
     await session.resume();
-    expect(env.sources.length).toBe(countBeforeResume + 4);
+    expect(env.sources.length).toBe(countBeforeResume + 3);
     for (const src of env.sources.slice(countBeforeResume)) {
       expect(src.startedAt?.when).toBe(20.0);
       expect(src.startedAt?.offset).toBeCloseTo(2.2, 5);
     }
-    expect(fired).toEqual(['0:reef-awakens', '0:reef-swell']);
+    expect(fired).toEqual(['0:bass-alone-start', '0:drums-entry-cue']);
 
     // Lifecycle tab-hide suspend at +1.0s (= 3.2s), resume 50s later -> no jump, no duplicates.
     env.ctx.currentTime = 21.0;
@@ -472,10 +497,10 @@ describe('Museum-Wide Music & Synchronization Foundation', () => {
     audio.resumeFromLifecycle('visible');
     await vi.runAllTicks();
     expect(session.snapshot().positionSeconds).toBeCloseTo(3.2, 5);
-    env.ctx.currentTime = 71.9; // +0.9s -> 4.1s -> fires cathedral-entrance (4.0s) once!
+    env.ctx.currentTime = 71.9; // +0.9s -> 4.1s -> fires other-entry-cue (4.0s) once!
     audio.update(0);
     expect(session.snapshot().positionSeconds).toBeCloseTo(4.1, 5);
-    expect(fired).toEqual(['0:reef-awakens', '0:reef-swell', '0:cathedral-entrance']);
+    expect(fired).toEqual(['0:bass-alone-start', '0:drums-entry-cue', '0:other-entry-cue']);
 
     session.dispose();
     cleanupFixture();
@@ -485,25 +510,25 @@ describe('Museum-Wide Music & Synchronization Foundation', () => {
   it('6. enforces documented seek cue policies ("skip" default vs "fire-crossed")', async () => {
     const audio = new AudioManager();
     const cleanupFixture = installTestW01AudioFixture(audio);
-    const sheet = buildTestW01FinaleCueSheet();
+    const sheet = buildTestW01CompactCueSheet();
 
     // Default 'skip' policy: bypasses cues < target, plays cues >= target.
     const skippedSession = audio.createMusicSession(sheet);
     const skippedFired: string[] = [];
     skippedSession.onCue((e) => skippedFired.push(e.cue.id));
     await skippedSession.play();
-    expect(skippedFired).toEqual(['reef-awakens']);
+    expect(skippedFired).toEqual(['bass-alone-start']);
 
     skippedSession.seek(5.5);
-    expect(skippedFired).toEqual(['reef-awakens']);
-    audio.update(0.6); // 6.1s -> passes cathedral-peak (6.0s)
-    expect(skippedFired).toEqual(['reef-awakens', 'cathedral-peak']);
+    expect(skippedFired).toEqual(['bass-alone-start']);
+    audio.update(0.6); // 6.1s -> passes ensemble-choreo-cue (6.0s)
+    expect(skippedFired).toEqual(['bass-alone-start', 'ensemble-choreo-cue']);
 
     // Seeking backward resets cursor cleanly without backward firing.
-    skippedSession.seek(2.0);
-    expect(skippedFired).toEqual(['reef-awakens', 'cathedral-peak']);
-    audio.update(0.1);
-    expect(skippedFired).toEqual(['reef-awakens', 'cathedral-peak', 'reef-swell']);
+    skippedSession.seek(1.9);
+    expect(skippedFired).toEqual(['bass-alone-start', 'ensemble-choreo-cue']);
+    audio.update(0.2);
+    expect(skippedFired).toEqual(['bass-alone-start', 'ensemble-choreo-cue', 'drums-entry-cue']);
     skippedSession.dispose();
 
     // 'fire-crossed' policy: fires crossed cues chronologically on forward seek.
@@ -512,7 +537,12 @@ describe('Museum-Wide Music & Synchronization Foundation', () => {
     crossedSession.onCue((e) => crossedFired.push(e.cue.id));
     await crossedSession.play();
     crossedSession.seek(6.2);
-    expect(crossedFired).toEqual(['reef-awakens', 'reef-swell', 'cathedral-entrance', 'cathedral-peak']);
+    expect(crossedFired).toEqual([
+      'bass-alone-start',
+      'drums-entry-cue',
+      'other-entry-cue',
+      'ensemble-choreo-cue',
+    ]);
     crossedSession.dispose();
 
     cleanupFixture();
@@ -522,39 +552,37 @@ describe('Museum-Wide Music & Synchronization Foundation', () => {
   it('7. fires exact cues, loop region wraps, and beat-grid conversions accurately', async () => {
     const audio = new AudioManager();
     const cleanupFixture = installTestW01AudioFixture(audio);
-    const finale = buildTestW01FinaleCueSheet();
+    const compact = buildTestW01CompactCueSheet();
 
-    expect(beatOffsetToSeconds(finale.beatGrid!, 4)).toBeCloseTo(2.0, 5);
-    expect(barBeatToSeconds(finale.beatGrid!, 2, 0)).toBeCloseTo(4.0, 5);
-    expect(secondsToBeatPosition(finale.beatGrid!, 5.5)).toEqual({ beat: 11, bar: 2, beatInBar: 3 });
+    expect(beatOffsetToSeconds(compact.beatGrid!, 4)).toBeCloseTo(2.0, 5);
+    expect(barBeatToSeconds(compact.beatGrid!, 2, 0)).toBeCloseTo(4.0, 5);
+    expect(secondsToBeatPosition(compact.beatGrid!, 5.5)).toEqual({ beat: 11, bar: 2, beatInBar: 3 });
 
     const events: Array<{ id: string; loop: number }> = [];
     const perIdEvents: string[] = [];
-    const session = audio.createMusicSession(finale);
+    const session = audio.createMusicSession(compact);
     session.onCue((ev) => events.push({ id: ev.cue.id, loop: ev.loopCount }));
-    const offPeak = session.onCueId('cathedral-peak', (ev) => perIdEvents.push(`${ev.loopCount}:${ev.cue.id}`));
+    const offPeak = session.onCueId('ensemble-choreo-cue', (ev) => perIdEvents.push(`${ev.loopCount}:${ev.cue.id}`));
 
     await session.play();
-    // Step deterministically across 0 -> 12.2s (loop region 4.0..8.0 wraps at 8.0s and 12.0s).
-    for (let i = 0; i < 122; i++) {
+    // Step deterministically 0 -> 18.2s (`main-groove-loop` 2.0..10.0 wraps at 10.0s and 18.0s).
+    for (let i = 0; i < 182; i++) {
       audio.update(0.1);
     }
     expect(session.snapshot().loopCount).toBe(2);
     expect(events).toEqual([
-      { id: 'reef-awakens', loop: 0 },
-      { id: 'reef-swell', loop: 0 },
-      { id: 'cathedral-entrance', loop: 0 },
-      { id: 'cathedral-peak', loop: 0 },
-      { id: 'finale-cycle-end', loop: 0 },
-      { id: 'cathedral-entrance', loop: 1 },
-      { id: 'cathedral-peak', loop: 1 },
-      { id: 'finale-cycle-end', loop: 1 },
-      { id: 'cathedral-entrance', loop: 2 },
+      { id: 'bass-alone-start', loop: 0 },
+      { id: 'drums-entry-cue', loop: 0 },
+      { id: 'other-entry-cue', loop: 0 },
+      { id: 'ensemble-choreo-cue', loop: 0 },
+      { id: 'loop-seam-bar-5', loop: 0 },
+      { id: 'drums-entry-cue', loop: 1 },
+      { id: 'other-entry-cue', loop: 1 },
+      { id: 'ensemble-choreo-cue', loop: 1 },
+      { id: 'loop-seam-bar-5', loop: 1 },
+      { id: 'drums-entry-cue', loop: 2 },
     ]);
-    // Verify wrap fired cathedral-entrance at loop 1 and cathedral-peak at loop 1.
-    expect(events.filter((e) => e.id === 'cathedral-entrance' && e.loop === 1)).toHaveLength(1);
-    expect(events.filter((e) => e.id === 'cathedral-peak' && e.loop === 1)).toHaveLength(1);
-    expect(perIdEvents).toEqual(['0:cathedral-peak', '1:cathedral-peak']);
+    expect(perIdEvents).toEqual(['0:ensemble-choreo-cue', '1:ensemble-choreo-cue']);
 
     offPeak();
     session.dispose();
@@ -570,25 +598,25 @@ describe('Museum-Wide Music & Synchronization Foundation', () => {
     unavailableAudio.start(); // silent no-op
     expect(unavailableAudio.isAudioAvailable).toBe(false);
 
-    const encounters = buildTestW01EncounterCueSheets();
+    const gallery = buildTestMuseumCrossfadeCueSheets();
     const descriptions: string[] = [];
     const ended = vi.fn();
-    const raySession = unavailableAudio.createMusicSession(encounters.ray);
-    raySession.onCueDescription((d) => descriptions.push(d.text));
-    raySession.onEnd(ended);
+    const atriumSession = unavailableAudio.createMusicSession(gallery.atrium);
+    atriumSession.onCueDescription((d) => descriptions.push(d.text));
+    atriumSession.onEnd(ended);
 
-    await raySession.play();
-    expect(raySession.timingSource).toBe('silent-timeline');
+    await atriumSession.play();
+    expect(atriumSession.timingSource).toBe('silent-timeline');
     unavailableAudio.update(1.0);
     unavailableAudio.update(1.0);
-    expect(raySession.state).toBe('ended');
+    expect(atriumSession.state).toBe('ended');
     expect(ended).toHaveBeenCalledTimes(1);
     expect(descriptions).toEqual([
-      'Test cue: ray silhouette glides past.',
-      'Test cue: ray banks upward.',
-      'Test cue: ray encounter fades.',
+      'Test cue: atrium resonance begins.',
+      'Test cue: atrium motif shifts.',
+      'Test cue: atrium phrase ends.',
     ]);
-    raySession.dispose();
+    atriumSession.dispose();
     cleanupA();
     unavailableAudio.dispose();
 
@@ -598,22 +626,25 @@ describe('Museum-Wide Music & Synchronization Foundation', () => {
     const cleanupB = installTestW01AudioFixture(audio);
     audio.start();
 
-    const whaleSession = audio.createMusicSession(encounters.whale);
-    await whaleSession.play();
-    expect(whaleSession.timingSource).toBe('silent-timeline');
+    const hallSession = audio.createMusicSession(gallery.hall);
+    await hallSession.play();
+    expect(hallSession.timingSource).toBe('silent-timeline');
     expect(env.sources).toHaveLength(0);
 
     audio.update(1.5);
-    expect(whaleSession.snapshot().positionSeconds).toBeCloseTo(1.5, 5);
+    expect(hallSession.snapshot().positionSeconds).toBeCloseTo(1.5, 5);
 
     // Now unmute mid-playback and flush async context resume + memory buffer load!
     audio.setVolumes(1, 0, 0.7);
     for (let i = 0; i < 20; i++) await Promise.resolve();
-    expect(whaleSession.timingSource).toBe('audio-clock');
+    expect(hallSession.timingSource).toBe('audio-clock');
     expect(env.sources).toHaveLength(1);
     expect(env.sources[0].startedAt?.offset).toBeCloseTo(1.5, 5);
+    expect(env.sources[0].loop).toBe(true);
+    expect(env.sources[0].loopStart).toBe(0.5);
+    expect(env.sources[0].loopEnd).toBe(3.0);
 
-    whaleSession.dispose();
+    hallSession.dispose();
     cleanupB();
     audio.dispose();
   });
@@ -627,9 +658,9 @@ describe('Museum-Wide Music & Synchronization Foundation', () => {
     audio.setVolumes(1, 0, 1);
     await vi.runAllTicks();
 
-    const encounters = buildTestW01EncounterCueSheets();
-    const a = audio.createMusicSession(encounters.seaTurtle);
-    const b = audio.createMusicSession(encounters.whale);
+    const gallery = buildTestMuseumCrossfadeCueSheets();
+    const a = audio.createMusicSession(gallery.hall);
+    const b = audio.createMusicSession(gallery.atrium);
 
     await a.play();
     a.stop();
@@ -851,7 +882,7 @@ describe('Museum-Wide Music & Synchronization Foundation', () => {
       announce: () => {},
     });
 
-    const finaleSheet = buildTestW01FinaleCueSheet();
+    const compactSheet = buildTestW01CompactCueSheet();
     let createdSessions = 0;
     const abortSignalSpies: Array<{ add: number; remove: number }> = [];
 
@@ -877,7 +908,7 @@ describe('Museum-Wide Music & Synchronization Foundation', () => {
         ctx.scope.trackObject(ctx.root);
         ctx.collision.addFloor(-5, 5, -5, 5, 0);
 
-        const session = ctx.createMusicSession(finaleSheet);
+        const session = ctx.createMusicSession(compactSheet);
         createdSessions++;
         await session.play();
         return { spawnPosition: [0, 0, 0], spawnYaw: 0 };
@@ -902,10 +933,10 @@ describe('Museum-Wide Music & Synchronization Foundation', () => {
     }
 
     expect(createdSessions).toBe(10);
-    // 40 music sources (4 stems x 10 visits) should all be stopped & disconnected while
-    // the restored museum ambience bed remains running until audio.dispose().
-    const musicSources = env.sources.filter((s) => s.loopStart === 4.0);
-    expect(musicSources).toHaveLength(40);
+    // 30 music sources (3 audible stems x 10 visits) should all be stopped & disconnected
+    // while the restored museum ambience bed (duration === 4) stays running until audio.dispose().
+    const musicSources = env.sources.filter((s) => s.buffer && s.buffer.duration > 10);
+    expect(musicSources).toHaveLength(30);
     expect(musicSources.every((s) => s.stopped && s.disconnected)).toBe(true);
     expect(audio.assetLoader.cachedBufferCount).toBe(0);
     expect(audio.assetLoader.activeLeaseCount).toBe(0);
@@ -1121,7 +1152,7 @@ describe('Museum-Wide Music & Synchronization Foundation', () => {
     expect(JSON.parse(v3Import.values[PREFERENCES_KEY]!).musicVolume).toBe(0);
   });
 
-  it('15. keeps all 11 canonical pocket worlds dormant and validates test-only W01 example sheets', () => {
+  it('15. keeps all 11 canonical pocket worlds dormant and validates test-only W01 stem & museum fixtures', () => {
     const registry = new PocketWorldRegistry();
     expect(registry.list()).toHaveLength(11);
     for (const def of registry.list()) {
@@ -1132,16 +1163,252 @@ describe('Museum-Wide Music & Synchronization Foundation', () => {
 
     const audio = new AudioManager();
     const cleanupFixture = installTestW01AudioFixture(audio);
-    const encounters = buildTestW01EncounterCueSheets();
-    const finale = buildTestW01FinaleCueSheet();
+    const procession = buildTestW01ProcessionCueSheet();
+    const compact = buildTestW01CompactCueSheet();
+    const gallery = buildTestMuseumCrossfadeCueSheets();
 
-    expect(Object.keys(TEST_W01_AUDIO_ASSET_IDS)).toHaveLength(7);
-    expect(validateMusicCueSheet(encounters.ray).ok).toBe(true);
-    expect(validateMusicCueSheet(encounters.seaTurtle).ok).toBe(true);
-    expect(validateMusicCueSheet(encounters.whale).ok).toBe(true);
-    expect(validateMusicCueSheet(finale).ok).toBe(true);
+    expect(Object.keys(TEST_W01_AUDIO_ASSET_IDS)).toHaveLength(4);
+    expect(Object.keys(TEST_MUSEUM_GALLERY_ASSET_IDS)).toHaveLength(2);
+    expect(procession.stems.map((s) => s.id)).toEqual(['bass', 'drums', 'other']);
+    expect(validateMusicCueSheet(procession).ok).toBe(true);
+    expect(validateMusicCueSheet(compact).ok).toBe(true);
+    expect(validateMusicCueSheet(gallery.atrium).ok).toBe(true);
+    expect(validateMusicCueSheet(gallery.hall).ok).toBe(true);
 
     cleanupFixture();
+    audio.dispose();
+  });
+
+  it('16. reveals synchronized stems on next-beat / next-bar / next-cue without restarting any source', async () => {
+    // Part A: Audible audio-clock mode
+    const env = installMockAudio();
+    const audio = new AudioManager();
+    const cleanup = installTestW01AudioFixture(audio);
+    audio.start();
+    audio.setVolumes(1, 0, 1);
+    await vi.runAllTicks();
+
+    const compact = buildTestW01CompactCueSheet();
+    const session = audio.createMusicSession(compact);
+    const applied: string[] = [];
+    session.onMixApplied((ev) => applied.push(`${ev.handleId}:${ev.at}@${ev.scheduledSeconds.toFixed(1)}`));
+
+    await session.play();
+    expect(env.sources).toHaveLength(3); // bass, drums, other started together at t=0
+    expect(session.getStemGain('bass')).toBeCloseTo(1, 5);
+    expect(session.getStemGain('drums')).toBeCloseTo(0, 5);
+    expect(session.getStemGain('other')).toBeCloseTo(0, 5);
+
+    // Advance 0.25s -> still before bar 1 (2.0s).
+    env.ctx.currentTime = 0.25;
+    audio.update(0.25);
+
+    // Schedule drums on 'next-bar' (2.0s) and an intermediate gain on other that gets superseded!
+    const drumsHandle = session.scheduleStemGain('drums', 0.9, { at: 'next-bar', fadeSeconds: 0.5 });
+    const staleOtherHandle = session.scheduleStemGain('other', 0.2, { at: 'next-beat', fadeSeconds: 0 });
+    session.cancelScheduledMix(staleOtherHandle);
+    const otherHandle = session.scheduleStemGain('other', 0.85, {
+      at: 'next-cue',
+      cueId: 'other-entry-cue',
+      fadeSeconds: 0.4,
+    });
+    expect(session.snapshot().pendingMixTransitionCount).toBe(2);
+
+    // Step across pause/resume before bar 1: pending schedule stays armed without firing early.
+    env.ctx.currentTime = 1.0;
+    audio.update(0);
+    expect(session.getStemGain('drums')).toBeCloseTo(0, 5);
+    session.pause();
+    env.ctx.currentTime = 15.0;
+    audio.update(2.0);
+    expect(session.getStemGain('drums')).toBeCloseTo(0, 5);
+    await session.resume();
+
+    // Advance +1.0s to bar 1 (2.0s): drums transitions in at bar 1 with zero restarts of existing sources on transport!
+    const sourcesRightAfterResume = env.sources.length;
+    env.ctx.currentTime = 16.0;
+    audio.update(0);
+    expect(applied).toEqual([`${drumsHandle}:next-bar@2.0`]);
+    expect(session.snapshot().pendingMixTransitionCount).toBe(1);
+    expect(env.sources).toHaveLength(sourcesRightAfterResume);
+
+    audio.update(0.5); // advance ramp by 0.5s
+    expect(session.getStemGain('drums')).toBeCloseTo(0.9, 5);
+    expect(session.getStemGain('other')).toBeCloseTo(0, 5);
+
+    // Advance clock to cue time 4.0s (total elapsed since resume = 3.0s -> pos 4.0s).
+    env.ctx.currentTime = 18.0;
+    audio.update(0);
+    expect(applied).toEqual([`${drumsHandle}:next-bar@2.0`, `${otherHandle}:next-cue@4.0`]);
+    expect(session.snapshot().pendingMixTransitionCount).toBe(0);
+    audio.update(0.4);
+    expect(session.getStemGain('other')).toBeCloseTo(0.85, 5);
+    expect(env.sources).toHaveLength(sourcesRightAfterResume);
+
+    session.dispose();
+
+    // Part B: Silent logical timeline mode behaves identically without Web Audio.
+    const silentAudio = new AudioManager();
+    const cleanupSilent = installTestW01AudioFixture(silentAudio);
+    const silentSession = silentAudio.createMusicSession(compact);
+    const silentApplied: string[] = [];
+    silentSession.onMixApplied((ev) => silentApplied.push(ev.at));
+
+    await silentSession.play();
+    expect(silentSession.timingSource).toBe('silent-timeline');
+    silentSession.scheduleMix({ drums: 1, other: 1 }, { at: 'next-beat', fadeSeconds: 0.5 });
+    // Superseded for drums right before beat 1 (0.5s).
+    silentSession.scheduleStemGain('drums', 0.75, { at: 'next-beat', fadeSeconds: 0.5 });
+
+    silentAudio.update(0.5);
+    expect(silentApplied).toEqual(['next-beat', 'next-beat']);
+    silentAudio.update(0.5);
+    expect(silentSession.getStemGain('drums')).toBeCloseTo(0.75, 5);
+    expect(silentSession.getStemGain('other')).toBeCloseTo(1, 5);
+
+    silentSession.dispose();
+    cleanupSilent();
+    silentAudio.dispose();
+    cleanup();
+    audio.dispose();
+  });
+
+  it('17. executes equal-power crossfade loops with zero drift or leaked nodes and releases smoothly to natural outro', async () => {
+    const env = installMockAudio();
+    const audio = new AudioManager();
+    const cleanup = installTestW01AudioFixture(audio);
+    audio.start();
+    audio.setVolumes(1, 0, 1);
+    await vi.runAllTicks();
+
+    const compact = buildTestW01CompactCueSheet(); // main-groove-loop: 2.0..10.0, crossfadeSeconds: 0.08
+    const ended = vi.fn();
+    const session = audio.createMusicSession(compact);
+    session.onEnd(ended);
+
+    await session.play();
+    expect(session.getActiveLoopRegion()?.id).toBe('main-groove-loop');
+    session.crossfadeTo({ drums: 0.8, other: 0.9 }, 0);
+    const initialSources = env.sources.slice();
+    expect(initialSources).toHaveLength(3);
+
+    // Step to t=9.80 (inside lookahead [9.96 - 0.25 = 9.71 .. 9.96] before loop boundary 10.0):
+    // Incoming loop pass spawns phase-aligned at when = 9.96, offset = 2.0 - 0.04 = 1.96!
+    env.ctx.currentTime = 9.80;
+    audio.update(0.016);
+    expect(env.sources).toHaveLength(6);
+    const pass1Sources = env.sources.slice(3);
+    for (const s of pass1Sources) {
+      expect(s.startedAt?.when).toBeCloseTo(9.96, 5);
+      expect(s.startedAt?.offset).toBeCloseTo(1.96, 5);
+    }
+    // Equal-power curve calls recorded on pass gain nodes while stem gains remain untouched.
+    expect(env.gains.some((g) => g.gain.setValueCurveAtTime.mock.calls.length > 0)).toBe(true);
+    expect(session.getStemGain('bass')).toBeCloseTo(1, 5);
+    expect(session.getStemGain('drums')).toBeCloseTo(0.8, 5);
+    expect(session.getStemGain('other')).toBeCloseTo(0.9, 5);
+
+    // Cross boundary (t=10.10 > 10.04 + 0.02 retire margin): loopCount increments to 1,
+    // position wraps to 2.10, and ALL 3 initial pass sources stop & disconnect cleanly!
+    env.ctx.currentTime = 10.10;
+    audio.update(0.016);
+    expect(session.snapshot().loopCount).toBe(1);
+    expect(session.snapshot().positionSeconds).toBeCloseTo(2.10, 5);
+    expect(initialSources.every((s) => s.stopped && s.disconnected)).toBe(true);
+    expect(pass1Sources.every((s) => !s.stopped)).toBe(true);
+
+    // Release looping smoothly (`setActiveLoopRegion(null)`): does NOT restart active sources,
+    // continues straight past 10.0s into the outro cadence bar 5..6, and finishes at 12.0s!
+    session.setActiveLoopRegion(null);
+    expect(session.getActiveLoopRegion()).toBeNull();
+    expect(session.snapshot().activeLoopRegionId).toBeNull();
+    expect(env.sources).toHaveLength(6);
+
+    env.ctx.currentTime = 18.5; // +8.4s -> 10.5s (straight past old loopEnd=10.0!)
+    audio.update(0.016);
+    expect(session.state).toBe('playing');
+    expect(session.snapshot().loopCount).toBe(1);
+    expect(session.snapshot().positionSeconds).toBeCloseTo(10.5, 5);
+
+    env.ctx.currentTime = 20.1; // past 12.0s end marker
+    audio.update(0.016);
+    expect(session.state).toBe('ended');
+    expect(ended).toHaveBeenCalledTimes(1);
+    expect(env.sources.every((s) => s.stopped && s.disconnected)).toBe(true);
+
+    session.dispose();
+    cleanup();
+    audio.dispose();
+  });
+
+  it('18. detects digital silence in stems, skips wasted silent sources, and validates v1 loopRegions & helpers', async () => {
+    const env = installMockAudio();
+    const audio = new AudioManager();
+    const cleanup = installTestW01AudioFixture(audio);
+    audio.start();
+    audio.setVolumes(1, 0, 1);
+    await vi.runAllTicks();
+
+    // Direct silence inspection on silent buffer vs tone buffer
+    const silentBuf = createInMemorySilentBuffer(env.ctx, 1.0);
+    expect(analyzeAudioBufferSilence(silentBuf)).toEqual({
+      isSilent: true,
+      peakAmplitude: 0,
+      durationSeconds: 1.0,
+    });
+
+    // Session carrying an audible stem plus a confirmed-silent stem skips spawning a silent source
+    // without flagging audioDegraded or blocking transport progress.
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const sheetWithSilent: MusicCueSheet = {
+      version: 1,
+      id: 'test-with-silent-layer',
+      durationSeconds: 4,
+      stems: [
+        { id: 'bass', assetId: TEST_W01_AUDIO_ASSET_IDS.bass, defaultGain: 1 },
+        { id: 'vocals', assetId: TEST_W01_AUDIO_ASSET_IDS.silentVocals, defaultGain: 1 },
+      ],
+    };
+    const silentSession = audio.createMusicSession(sheetWithSilent);
+    expect(await silentSession.play()).toBe(true);
+    expect(silentSession.snapshot().audioDegraded).toBe(false);
+    expect(silentSession.snapshot().silentStemIds).toEqual(['vocals']);
+    expect(env.sources).toHaveLength(1);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('vocals'));
+    warnSpy.mockRestore();
+    silentSession.dispose();
+
+    // Validation & pure beat/cue helpers
+    const procession = buildTestW01ProcessionCueSheet();
+    expect(resolveLoopRegionById(procession, 'extended-loop')?.endSeconds).toBeCloseTo(146.114, 3);
+    expect(nextBeatTimeSeconds(procession.beatGrid!, 0)).toBeCloseTo(0.033, 5);
+    expect(nextBarTimeSeconds(procession.beatGrid!, 0.033)).toBeCloseTo(0.033 + 240 / 92, 4);
+    expect(
+      nextMatchingCue(procession, 1.0, { tag: 'stem-entry' })?.cue.id,
+    ).toBe('stage-2-drums-window');
+
+    const badLoopExtensions = validateMusicCueSheet({
+      version: 1,
+      id: 'bad-loops',
+      durationSeconds: 10,
+      defaultLoopRegionId: 'missing-region',
+      loopRegions: [
+        { id: '', startSeconds: 1, endSeconds: 4 },
+        { id: 'dup', startSeconds: 1, endSeconds: 5, crossfadeSeconds: 2.5 },
+        { id: 'dup', startSeconds: 5, endSeconds: 9 },
+      ],
+      stems: [{ id: 'bass', assetId: TEST_W01_AUDIO_ASSET_IDS.bass }],
+      cues: [{ id: 'c', timeSeconds: 0, tags: ['ok', ''] }],
+    });
+    expect(badLoopExtensions.ok).toBe(false);
+    if (!badLoopExtensions.ok) {
+      expect(badLoopExtensions.errors.some((e) => e.includes('crossfadeSeconds'))).toBe(true);
+      expect(badLoopExtensions.errors.some((e) => e.includes('Duplicate loop region id'))).toBe(true);
+      expect(badLoopExtensions.errors.some((e) => e.includes('defaultLoopRegionId'))).toBe(true);
+      expect(badLoopExtensions.errors.some((e) => e.includes('.tags'))).toBe(true);
+    }
+
+    cleanup();
     audio.dispose();
   });
 });

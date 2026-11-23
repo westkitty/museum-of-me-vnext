@@ -392,6 +392,44 @@ export class AudioAssetLoader {
   }
 }
 
+export interface AudioSilenceAnalysis {
+  readonly isSilent: boolean;
+  readonly peakAmplitude: number;
+  readonly durationSeconds: number;
+}
+
+/**
+ * Inspect a decoded `AudioBuffer` to detect pure digital silence across all channels.
+ * Safely treats lightweight mock buffers without `getChannelData` as non-silent so
+ * synthetic harnesses continue working predictably.
+ */
+export function analyzeAudioBufferSilence(
+  buffer: AudioBuffer,
+  threshold = 1e-6,
+): AudioSilenceAnalysis {
+  const durationSeconds = Number.isFinite(buffer.duration) ? buffer.duration : 0;
+  const channels = Number.isFinite(buffer.numberOfChannels) ? buffer.numberOfChannels : 0;
+  if (channels <= 0 || typeof buffer.getChannelData !== 'function') {
+    return { isSilent: false, peakAmplitude: 1, durationSeconds };
+  }
+
+  let peakAmplitude = 0;
+  for (let ch = 0; ch < channels; ch++) {
+    const data = buffer.getChannelData(ch);
+    if (!data || data.length === 0) continue;
+    for (let i = 0; i < data.length; i++) {
+      const abs = Math.abs(data[i]);
+      if (abs > peakAmplitude) {
+        peakAmplitude = abs;
+        if (peakAmplitude > threshold) {
+          return { isSilent: false, peakAmplitude, durationSeconds };
+        }
+      }
+    }
+  }
+  return { isSilent: peakAmplitude <= threshold, peakAmplitude, durationSeconds };
+}
+
 function isAbortLike(error: unknown): boolean {
   return Boolean(
     error

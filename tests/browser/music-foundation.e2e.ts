@@ -122,7 +122,7 @@ test('music and master preferences start muted, respond to keyboard Settings, mi
   expect(errors).toEqual([]);
 });
 
-test('silent logical timeline drives cue descriptions, HUD subtitles, and DomMirror cleanly with reduced motion', async ({ page }) => {
+test('silent logical timeline drives progressive stem cues, loop release, HUD subtitles, and DomMirror cleanly with reduced motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const errors = await bootMuseum(page);
 
@@ -131,39 +131,58 @@ test('silent logical timeline drives cue descriptions, HUD subtitles, and DomMir
     const fixtureUrl = '/tests/fixtures/music-w01-example.ts';
     const mod = await import(/* @vite-ignore */ fixtureUrl) as typeof import('../fixtures/music-w01-example');
     const cleanup = mod.installTestW01AudioFixture(app.audio);
-    const finale = mod.buildTestW01FinaleCueSheet();
+    const compact = mod.buildTestW01CompactCueSheet();
 
-    const session = app.audio.createMusicSession(finale);
+    const session = app.audio.createMusicSession(compact);
     const seenCues: string[] = [];
     session.onCue((e) => seenCues.push(e.cue.id));
 
     await session.play();
     const initialTiming = session.timingSource;
+    const gainsAtStart = {
+      bass: session.getStemGain('bass'),
+      drums: session.getStemGain('drums'),
+      other: session.getStemGain('other'),
+    };
+    session.scheduleStemGain('drums', 1, { at: 'next-bar', fadeSeconds: 0 });
+    session.scheduleStemGain('other', 1, { at: 'next-cue', cueId: 'other-entry-cue', fadeSeconds: 0 });
+
     const mirrorTextAtStart = document.querySelector('#a11y-root .a11y-live')?.textContent ?? '';
     const statusAtStart = document.querySelector('#a11y-root .a11y-music-status')?.textContent ?? '';
 
-    // Advance via single-loop variableUpdate across reef-swell (2.0s) and cathedral-entrance (4.0s).
+    // Advance via single-loop variableUpdate across drums-entry-cue (2.0s) and other-entry-cue (4.0s).
     for (let i = 0; i < 42; i++) {
       app.variableUpdate(0.1);
     }
 
+    const gainsMid = {
+      bass: session.getStemGain('bass'),
+      drums: session.getStemGain('drums'),
+      other: session.getStemGain('other'),
+    };
     const subtitleText = document.querySelector('.hud__subtitle')?.textContent ?? '';
     const subtitleVisible = document.querySelector('.hud__subtitle')?.classList.contains('hud__subtitle--visible') ?? false;
     const mirrorTextMid = document.querySelector('#a11y-root .a11y-live')?.textContent ?? '';
 
-    // Pause, verify update does not advance, then resume and verify no duplicate firing.
+    // Pause, verify update does not advance, then resume and release loop cleanly through natural outro.
     session.pause();
     const pausedPos = session.snapshot().positionSeconds;
     app.variableUpdate(1.0);
     const stillPausedPos = session.snapshot().positionSeconds;
     await session.resume();
-    app.variableUpdate(0.05);
+    session.setActiveLoopRegion(null);
+    for (let i = 0; i < 82; i++) {
+      app.variableUpdate(0.1);
+    }
+    const endedState = session.state;
 
     session.dispose();
     const statusAfterDispose = document.querySelector('#a11y-root .a11y-music-status')?.getAttribute('hidden');
     cleanup();
     return {
       initialTiming,
+      gainsAtStart,
+      gainsMid,
       seenCues,
       mirrorTextAtStart,
       statusAtStart,
@@ -172,19 +191,30 @@ test('silent logical timeline drives cue descriptions, HUD subtitles, and DomMir
       mirrorTextMid,
       pausedPos,
       stillPausedPos,
+      endedState,
       statusAfterDispose,
       activeSessions: app.audio.activeMusicSessionCount,
     };
   });
 
   expect(result.initialTiming).toBe('silent-timeline');
-  expect(result.seenCues).toEqual(['reef-awakens', 'reef-swell', 'cathedral-entrance']);
-  expect(result.mirrorTextAtStart).toContain('reef stems enter together');
-  expect(result.statusAtStart).toContain('Coordinated Multitrack Finale Example');
+  expect(result.gainsAtStart).toEqual({ bass: 1, drums: 0, other: 0 });
+  expect(result.gainsMid).toEqual({ bass: 1, drums: 1, other: 1 });
+  expect(result.seenCues).toEqual([
+    'bass-alone-start',
+    'drums-entry-cue',
+    'other-entry-cue',
+    'ensemble-choreo-cue',
+    'loop-seam-bar-5',
+    'compact-end',
+  ]);
+  expect(result.mirrorTextAtStart).toContain('bass introduces the groove alone');
+  expect(result.statusAtStart).toContain('Compact Single-Composition Stems Fixture');
   expect(result.subtitleVisible).toBe(true);
-  expect(result.subtitleText).toContain('cathedral stems crossfade');
-  expect(result.mirrorTextMid).toContain('cathedral stems crossfade');
+  expect(result.subtitleText).toContain('other instruments complete the composition');
+  expect(result.mirrorTextMid).toContain('other instruments complete the composition');
   expect(result.stillPausedPos).toBeCloseTo(result.pausedPos, 5);
+  expect(result.endedState).toBe('ended');
   expect(result.statusAfterDispose).not.toBeNull();
   expect(result.activeSessions).toBe(0);
   expect(errors).toEqual([]);
@@ -204,8 +234,8 @@ test('pocket-world music sessions clean up across enter/exit cycles, abort durin
     // Ensure all 11 canonical pocket worlds start dormant before test fixture binds W05.
     const dormantBefore = app.pocketRegistry.list().every((w) => w.readiness === 'dormant' && !w.load);
 
-    const encounters = mod.buildTestW01EncounterCueSheets();
-    const finale = mod.buildTestW01FinaleCueSheet();
+    const gallery = mod.buildTestMuseumCrossfadeCueSheets();
+    const compact = mod.buildTestW01CompactCueSheet();
 
     // Raise master + music via Settings applyPreferences path so audio buses & loader engage if running.
     app.ui.applyPreferences({ masterVolume: 0.7, musicVolume: 0.8, ambienceVolume: 0.4 });
@@ -223,10 +253,10 @@ test('pocket-world music sessions clean up across enter/exit cycles, abort durin
         ctx.scope.trackObject(ctx.root);
         ctx.collision.addFloor(-7, 7, -7, 7, 0);
 
-        const introCue = ctx.createMusicSession(encounters.ray);
-        const finaleSession = ctx.createMusicSession(finale);
-        await introCue.play();
-        await app.audio.crossfadeMusic(introCue, finaleSession, 0.4);
+        const introSession = ctx.createMusicSession(gallery.atrium);
+        const stemsSession = ctx.createMusicSession(compact);
+        await introSession.play();
+        await app.audio.crossfadeMusic(introSession, stemsSession, 0.4);
         return { spawnPosition: [0, 0, 0], spawnYaw: 0 };
       },
     });
@@ -253,7 +283,7 @@ test('pocket-world music sessions clean up across enter/exit cycles, abort durin
     app.pocketRegistry.registerWorld('W05', {
       readiness: 'verified',
       load: (ctx, signal) => new Promise((_resolve, reject) => {
-        const s = ctx.createMusicSession(encounters.whale);
+        const s = ctx.createMusicSession(gallery.hall);
         void s.play();
         signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
       }),
@@ -278,7 +308,7 @@ test('pocket-world music sessions clean up across enter/exit cycles, abort durin
         ctx.root.add(floor);
         ctx.scope.trackObject(ctx.root);
         ctx.collision.addFloor(-7, 7, -7, 7, 0);
-        const s = ctx.createMusicSession(finale);
+        const s = ctx.createMusicSession(compact);
         await s.play();
         return { spawnPosition: [0, 0, 0], spawnYaw: 0 };
       },

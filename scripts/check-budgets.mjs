@@ -36,7 +36,7 @@ if (existsSync('dist')) {
   let deferredBytes = 0;
   for (const f of walk('dist', [
     '.js', '.css', '.html', '.wasm', '.glb', '.ktx2', '.png', '.jpg',
-    '.jpeg', '.webp', '.avif', '.ogg', '.mp3', '.mp4',
+    '.jpeg', '.webp', '.avif', '.ogg', '.mp3', '.m4a', '.opus', '.wav', '.mp4',
   ])) {
     if (f.endsWith('.map')) continue;
     const normalized = f.split('\\').join('/');
@@ -71,8 +71,8 @@ for (const f of walk('src', ['.ts'])) {
 // Vite copies imports to hashed `dist/assets` names rather than `public/assets`.
 // Check those runtime GLBs too: they are the governed third-party model path.
 const shipped = [
-  ...walk('public/assets', ['.glb', '.ktx2', '.png', '.jpg', '.ogg', '.mp3']),
-  ...(existsSync('dist/assets') ? walk('dist/assets', ['.glb']) : []),
+  ...walk('public/assets', ['.glb', '.ktx2', '.png', '.jpg', '.ogg', '.mp3', '.m4a', '.opus', '.wav']),
+  ...(existsSync('dist/assets') ? walk('dist/assets', ['.glb', '.ogg', '.mp3', '.m4a', '.opus', '.wav']) : []),
 ];
 let undeclared = 0;
 for (const f of shipped) {

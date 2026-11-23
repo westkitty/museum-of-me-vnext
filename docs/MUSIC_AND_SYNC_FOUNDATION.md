@@ -62,6 +62,13 @@ registerAsset({
   When all owning scopes dispose, decoded buffer references are evicted.
 - Missing or corrupt files degrade safely to the silent logical timeline without
   throwing unhandled rejections or stalling a pocket world.
+- **Digital silence detection:** `analyzeAudioBufferSilence(buffer)` checks decoded
+  channel peaks (`threshold = 1e-6`). Silent stems are never treated as audible
+  layers, skip source allocation cleanly, and emit one diagnostic warning without
+  flagging `audioDegraded`. Source material containing confirmed digital silence
+  (such as `W01`'s `vocals` stem — see
+  [W01_MUSIC_SOURCE_PROVENANCE.md](W01_MUSIC_SOURCE_PROVENANCE.md)) must be excluded
+  before public distribution.
 
 ## 3. Authoring & Validating Cue Sheets
 
@@ -74,8 +81,16 @@ const sheet: MusicCueSheet = {
   id: 'example-multitrack',
   title: 'Example Passage',
   durationSeconds: 16,
-  loop: true,
-  loopRegion: { id: 'main-loop', startSeconds: 4, endSeconds: 16 },
+  defaultLoopRegionId: 'main-loop',
+  loopRegions: [
+    {
+      id: 'main-loop',
+      label: 'Primary groove repeat',
+      startSeconds: 4,
+      endSeconds: 14,
+      crossfadeSeconds: 0.08,
+    },
+  ],
   beatGrid: { bpm: 120, timeSignature: { numerator: 4, denominator: 4 } },
   sections: [
     { id: 'intro', startSeconds: 0, endSeconds: 4, stemIds: ['pad'] },
@@ -86,8 +101,8 @@ const sheet: MusicCueSheet = {
     { id: 'lead', assetId: 'pocket-example.lead', groupId: 'melody', sectionId: 'chorus', defaultGain: 0 },
   ],
   cues: [
-    { id: 'intro-start', timeSeconds: 0, kind: 'cue', sectionId: 'intro', label: 'Warm pad swells in.' },
-    { id: 'chorus-shift', timeSeconds: 4, kind: 'transition', sectionId: 'chorus', label: 'Lead enters.' },
+    { id: 'intro-start', timeSeconds: 0, kind: 'cue', sectionId: 'intro', tags: ['stem-entry'], label: 'Warm pad swells in.' },
+    { id: 'chorus-shift', timeSeconds: 4, kind: 'transition', sectionId: 'chorus', tags: ['stem-entry'], label: 'Lead enters.' },
     { id: 'loop-end', timeSeconds: 16, kind: 'end', sectionId: 'chorus' },
   ],
   endMarkerSeconds: 16,
@@ -98,24 +113,40 @@ const sheet: MusicCueSheet = {
 - unsupported `version` or empty `stems`
 - duplicate stem, section, cue, or loop-region IDs
 - negative or unordered cue timestamps (`cue[i].timeSeconds < cue[i - 1].timeSeconds`)
-- invalid loop ranges (`endSeconds <= startSeconds` or `endSeconds > durationSeconds`)
+- invalid loop ranges (`endSeconds <= startSeconds` or `endSeconds > durationSeconds`), invalid `crossfadeSeconds >= (endSeconds - startSeconds) / 2`, or unknown `defaultLoopRegionId`
 - unregistered or non-`audio` manifest assets, or remote URLs
-- out-of-range cues, unknown `sectionId` / `stemIds`, and invalid beat grids
+- out-of-range cues, unknown `sectionId` / `stemIds`, invalid `tags`, and invalid beat grids
 
-Beat helpers `beatOffsetToSeconds`, `barBeatToSeconds`, and `secondsToBeatPosition`
-derive exact second timestamps from `beatGrid`.
+Beat & quantization helpers `beatOffsetToSeconds`, `barBeatToSeconds`,
+`secondsToBeatPosition`, `nextBeatTimeSeconds`, `nextBarTimeSeconds`,
+`resolveLoopRegionById`, `resolveDefaultLoopRegion`, and `nextMatchingCue` compute
+exact musical boundaries from `beatGrid` and `cues`.
 
-## 4. Synchronized Stems, Crossfades, Pause/Seek & Silent Timelines
+## 4. Synchronized Stems, Quantized Reveal, Loop Regions & Silent Timelines
 
 `MusicSession` (`src/audio/MusicSession.ts`):
 
-- **Exact transport origin:** All stems in a session start from one captured
-  `AudioContext.currentTime` anchor (`source.start(anchorCtxTime, offset)`),
-  sharing `loopStart` / `loopEnd` for sample-locked multitrack loops.
-- **Stem & group mixing:** `setStemGain(id, gain, fadeSec)`, `setGroupGain(id, gain, fadeSec)`,
-  `crossfadeTo(mix, fadeSec)`, `crossfadeStems(from, to, fadeSec, toGain)`, and
-  `audio.crossfadeMusic(fromSession, toSession, fadeSec)` cancel prior automation
-  before scheduling ramps, preventing competing fades on rapid interruptions.
+- **Exact transport origin (one synchronized clock):** All audible stems in a
+  session start once from one captured `AudioContext.currentTime` anchor
+  (`source.start(anchorCtxTime, offset)`). Progressive stem layers start together
+  at `defaultGain: 0` and are revealed in sync via gain automation rather than
+  restarted when discovered.
+- **Quantized stem & group automation:** `scheduleStemGain`, `scheduleGroupGain`,
+  and `scheduleMix` quantize gain transitions to `'immediate' | 'next-beat' |
+  'next-bar' | 'next-cue' | 'time'` cleanly on both `audio-clock` and
+  `silent-timeline` modes without restarting any `AudioBufferSourceNode`. Later
+  schedules supersede overlapping stems/groups, `cancelScheduledMix` aborts
+  pending transitions cleanly, and `onMixApplied` notifies subscribers on apply.
+- **Immediate gain & crossfade helpers:** `setStemGain`, `setGroupGain`,
+  `crossfadeTo`, `crossfadeStems`, and `audio.crossfadeMusic` cancel prior
+  automation before scheduling ramps.
+- **Named crossfade loop regions & loop release:** `loopRegion` / `loopRegions`
+  with `crossfadeSeconds > 0` use dual-pass equal-power overlap (`Math.cos` /
+  `Math.sin`) centered across the loop seam so non-zero reverberation tails and
+  bar downbeats wrap with zero beat-phase drift and zero leaked retiring nodes.
+  `setActiveLoopRegion(id | region | null)` switches regions live or releases
+  looping (`null`) so the running transport flows straight past the old loop
+  boundary into its natural outro (`endMarkerSeconds` → `'ended'`).
 - **Audio clock vs silent timeline:** When `AudioContext` is running and
   `isMusicAudible()` is true, playback advances against `AudioContext.currentTime`
   (`timingSource === 'audio-clock'`). When muted (`masterVolume === 0` or

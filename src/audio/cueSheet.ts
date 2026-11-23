@@ -17,8 +17,10 @@ export interface MusicBeatGrid {
 
 export interface MusicLoopRegion {
   readonly id?: string;
+  readonly label?: string;
   readonly startSeconds: number;
   readonly endSeconds: number;
+  readonly crossfadeSeconds?: number;
 }
 
 export interface MusicNamedCue {
@@ -27,6 +29,7 @@ export interface MusicNamedCue {
   readonly kind?: MusicCueKind;
   readonly sectionId?: string;
   readonly label?: string;
+  readonly tags?: readonly string[];
   readonly data?: Readonly<Record<string, string | number | boolean>>;
 }
 
@@ -59,6 +62,8 @@ export interface MusicCueSheet {
   readonly durationSeconds?: number;
   readonly loop?: boolean;
   readonly loopRegion?: MusicLoopRegion;
+  readonly loopRegions?: readonly MusicLoopRegion[];
+  readonly defaultLoopRegionId?: string;
   readonly beatGrid?: MusicBeatGrid;
   readonly stems: readonly MusicStemDefinition[];
   readonly sections?: readonly MusicSectionDefinition[];
@@ -142,11 +147,13 @@ function validateLoopRegion(
   durationLimit: number | undefined,
   seenRegionIds: Set<string>,
   errors: string[],
-): void {
+  requireId = false,
+): string | null {
   if (!isPlainObject(region)) {
     errors.push(`${label} must be an object`);
-    return;
+    return null;
   }
+  let validId: string | null = null;
   if (region.id !== undefined) {
     if (!isNonEmptyString(region.id)) {
       errors.push(`${label}.id must be a non-empty string`);
@@ -154,14 +161,20 @@ function validateLoopRegion(
       errors.push(`Duplicate loop region id "${region.id}"`);
     } else {
       seenRegionIds.add(region.id);
+      validId = region.id;
     }
+  } else if (requireId) {
+    errors.push(`${label}.id must be a non-empty string`);
+  }
+  if (region.label !== undefined && typeof region.label !== 'string') {
+    errors.push(`${label}.label must be a string when provided`);
   }
   if (!isFiniteNonNegative(region.startSeconds)) {
     errors.push(`${label}.startSeconds must be a finite number >= 0`);
   }
   if (typeof region.endSeconds !== 'number' || !Number.isFinite(region.endSeconds)) {
     errors.push(`${label}.endSeconds must be a finite number`);
-    return;
+    return validId;
   }
   if (isFiniteNonNegative(region.startSeconds) && region.endSeconds <= region.startSeconds) {
     errors.push(`${label} has invalid loop range (${region.startSeconds}..${region.endSeconds})`);
@@ -169,6 +182,20 @@ function validateLoopRegion(
   if (durationLimit !== undefined && region.endSeconds > durationLimit) {
     errors.push(`${label}.endSeconds (${region.endSeconds}) exceeds durationSeconds (${durationLimit})`);
   }
+  if (region.crossfadeSeconds !== undefined) {
+    if (!isFiniteNonNegative(region.crossfadeSeconds)) {
+      errors.push(`${label}.crossfadeSeconds must be a finite number >= 0`);
+    } else if (
+      isFiniteNonNegative(region.startSeconds)
+      && region.endSeconds > region.startSeconds
+      && region.crossfadeSeconds >= (region.endSeconds - region.startSeconds) * 0.5
+    ) {
+      errors.push(
+        `${label}.crossfadeSeconds (${region.crossfadeSeconds}) must be < half of loop duration (${(region.endSeconds - region.startSeconds) * 0.5})`,
+      );
+    }
+  }
+  return validId;
 }
 
 export function validateMusicCueSheet(
@@ -214,8 +241,36 @@ export function validateMusicCueSheet(
   }
 
   const seenRegionIds = new Set<string>();
+  const topLevelRegionIds = new Set<string>();
   if (input.loopRegion !== undefined) {
-    validateLoopRegion(input.loopRegion, 'loopRegion', durationSeconds, seenRegionIds, errors);
+    const id = validateLoopRegion(input.loopRegion, 'loopRegion', durationSeconds, seenRegionIds, errors);
+    if (id) topLevelRegionIds.add(id);
+  }
+  if (input.loopRegions !== undefined) {
+    if (!Array.isArray(input.loopRegions)) {
+      errors.push('Cue sheet "loopRegions" must be an array');
+    } else {
+      for (let i = 0; i < input.loopRegions.length; i++) {
+        const id = validateLoopRegion(
+          input.loopRegions[i],
+          `loopRegions[${i}]`,
+          durationSeconds,
+          seenRegionIds,
+          errors,
+          true,
+        );
+        if (id) topLevelRegionIds.add(id);
+      }
+    }
+  }
+  if (input.defaultLoopRegionId !== undefined) {
+    if (!isNonEmptyString(input.defaultLoopRegionId)) {
+      errors.push('Cue sheet "defaultLoopRegionId" must be a non-empty string when provided');
+    } else if (!topLevelRegionIds.has(input.defaultLoopRegionId)) {
+      errors.push(
+        `Cue sheet "defaultLoopRegionId" ("${input.defaultLoopRegionId}") does not match loopRegion.id or any entry in loopRegions`,
+      );
+    }
   }
 
   if (input.beatGrid !== undefined) {
@@ -435,6 +490,11 @@ export function validateMusicCueSheet(
         if (cue.label !== undefined && typeof cue.label !== 'string') {
           errors.push(`${prefix}.label must be a string when provided`);
         }
+        if (cue.tags !== undefined) {
+          if (!Array.isArray(cue.tags) || cue.tags.some((t) => !isNonEmptyString(t))) {
+            errors.push(`${prefix}.tags must be an array of non-empty strings when provided`);
+          }
+        }
       }
     }
   }
@@ -479,4 +539,114 @@ export function secondsToBeatPosition(beatGrid: MusicBeatGrid, seconds: number):
   const bar = Math.floor(totalBeats / beatsPerBar);
   const beatInBar = totalBeats - bar * beatsPerBar;
   return { beat: totalBeats, bar, beatInBar };
+}
+
+function nextGridStepSeconds(
+  offsetSeconds: number,
+  stepDurationSeconds: number,
+  currentSeconds: number,
+  minLeadSeconds: number,
+): number {
+  const safeNow = Math.max(0, currentSeconds) + Math.max(0, minLeadSeconds);
+  if (safeNow < offsetSeconds - 1e-9) {
+    return offsetSeconds;
+  }
+  const index = Math.floor((safeNow - offsetSeconds) / stepDurationSeconds + 1e-9) + 1;
+  return offsetSeconds + index * stepDurationSeconds;
+}
+
+export function nextBeatTimeSeconds(
+  beatGrid: MusicBeatGrid,
+  currentSeconds: number,
+  minLeadSeconds = 0,
+): number {
+  const offset = beatGrid.offsetSeconds ?? 0;
+  const beatDuration = 60 / beatGrid.bpm;
+  return nextGridStepSeconds(offset, beatDuration, currentSeconds, minLeadSeconds);
+}
+
+export function nextBarTimeSeconds(
+  beatGrid: MusicBeatGrid,
+  currentSeconds: number,
+  minLeadSeconds = 0,
+): number {
+  const offset = beatGrid.offsetSeconds ?? 0;
+  const beatsPerBar = beatGrid.timeSignature?.numerator ?? 4;
+  const barDuration = (60 / beatGrid.bpm) * beatsPerBar;
+  return nextGridStepSeconds(offset, barDuration, currentSeconds, minLeadSeconds);
+}
+
+export function resolveLoopRegionById(
+  sheet: MusicCueSheet,
+  regionId: string,
+): MusicLoopRegion | null {
+  if (sheet.loopRegion?.id === regionId) return sheet.loopRegion;
+  if (sheet.loopRegions) {
+    for (const region of sheet.loopRegions) {
+      if (region.id === regionId) return region;
+    }
+  }
+  return null;
+}
+
+export function resolveDefaultLoopRegion(sheet: MusicCueSheet): MusicLoopRegion | null {
+  if (sheet.defaultLoopRegionId) {
+    return resolveLoopRegionById(sheet, sheet.defaultLoopRegionId);
+  }
+  return sheet.loopRegion ?? null;
+}
+
+export interface NextMatchingCueOptions {
+  readonly kind?: MusicCueKind;
+  readonly cueId?: string;
+  readonly tag?: string;
+  readonly sectionId?: string;
+  readonly activeLoopRegion?: MusicLoopRegion | null;
+  readonly minLeadSeconds?: number;
+}
+
+export interface NextMatchingCueResult {
+  readonly cue: MusicNamedCue;
+  readonly targetSeconds: number;
+  readonly wrapsLoop: boolean;
+}
+
+export function nextMatchingCue(
+  sheet: MusicCueSheet,
+  currentSeconds: number,
+  options: NextMatchingCueOptions = {},
+): NextMatchingCueResult | null {
+  const cues = sheet.cues;
+  if (!cues || cues.length === 0) return null;
+
+  const matches = (cue: MusicNamedCue): boolean => {
+    if (options.cueId !== undefined && cue.id !== options.cueId) return false;
+    if (options.kind !== undefined && (cue.kind ?? 'cue') !== options.kind) return false;
+    if (options.sectionId !== undefined && cue.sectionId !== options.sectionId) return false;
+    if (options.tag !== undefined && !(cue.tags?.includes(options.tag) ?? false)) return false;
+    return true;
+  };
+
+  const threshold = Math.max(0, currentSeconds) + Math.max(0, options.minLeadSeconds ?? 0);
+  const loop = options.activeLoopRegion ?? null;
+
+  for (const cue of cues) {
+    if (!matches(cue)) continue;
+    if (cue.timeSeconds > threshold + 1e-9) {
+      if (!loop || cue.timeSeconds <= loop.endSeconds + 1e-9) {
+        return { cue, targetSeconds: cue.timeSeconds, wrapsLoop: false };
+      }
+    }
+  }
+
+  if (loop) {
+    for (const cue of cues) {
+      if (!matches(cue)) continue;
+      if (cue.timeSeconds >= loop.startSeconds - 1e-9 && cue.timeSeconds <= loop.endSeconds + 1e-9) {
+        return { cue, targetSeconds: cue.timeSeconds, wrapsLoop: true };
+      }
+    }
+  }
+
+  return null;
 }
