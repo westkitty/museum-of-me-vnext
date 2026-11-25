@@ -13,7 +13,10 @@ export default defineConfig({
   timeout: 120_000,
   expect: { timeout: 5_000 },
   reporter: 'list',
-  outputDir: 'test-results',
+  // Playwright empties its outputDir at the start of every run. Never point it
+  // at `test-results/` itself: that folder also holds hand-collected evidence
+  // (walkabout, traversal, ...). tests/playwright-output-safety.test.ts guards this.
+  outputDir: 'test-results/playwright',
   use: {
     baseURL: 'http://127.0.0.1:4173',
     viewport: { width: 1280, height: 720 },

@@ -145,6 +145,8 @@ export class App implements LoopCallbacks {
   private cinematicArrivalEntered = false;
   private cinematicCameraCancelled = false;
   private interiorLoadingPromise: Promise<InteriorWorld> | null = null;
+  /** The interior being built, before it becomes interiorWorld; dispose() stops it. */
+  private buildingInterior: InteriorWorld | null = null;
   readonly interiorLoadTelemetry = {
     requestedAtMs: null as number | null,
     moduleLoadedAtMs: null as number | null,
@@ -339,6 +341,7 @@ export class App implements LoopCallbacks {
   async ensureInteriorLoaded(): Promise<InteriorWorld> {
     if (this.interiorWorld) return this.interiorWorld;
     if (this.interiorLoadingPromise) return this.interiorLoadingPromise;
+    this.assertNotDisposed();
     this.worldDirector.interiorImportStarted = true;
     const telemetry = this.interiorLoadTelemetry;
     telemetry.requestedAtMs = performance.now();
@@ -348,10 +351,13 @@ export class App implements LoopCallbacks {
       let interior: InteriorWorld | null = null;
       try {
         const { InteriorWorld } = await import('../world/InteriorWorld');
+        this.assertNotDisposed();
         telemetry.moduleLoadedAtMs = performance.now();
         telemetry.buildStartedAtMs = performance.now();
         interior = new InteriorWorld(this);
+        this.buildingInterior = interior;
         await interior.buildCooperatively();
+        this.assertNotDisposed();
         telemetry.buildCompletedAtMs = performance.now();
         this.interiorWorld = interior;
         interior.root.visible = this.activeWorld === 'interior';
@@ -368,6 +374,8 @@ export class App implements LoopCallbacks {
         interior?.dispose();
         telemetry.lastFailure = error instanceof Error ? error.message : String(error);
         throw error;
+      } finally {
+        this.buildingInterior = null;
       }
     })();
     this.interiorLoadingPromise = load;
@@ -377,6 +385,10 @@ export class App implements LoopCallbacks {
       if (this.interiorLoadingPromise === load) this.interiorLoadingPromise = null;
       throw error;
     }
+  }
+
+  private assertNotDisposed(): void {
+    if (this.disposed) throw new Error('App disposed during interior preparation');
   }
 
   // ── Backward-compatible property accessors ────────────────────────────────
@@ -956,6 +968,7 @@ export class App implements LoopCallbacks {
     this.assets.dispose();
     this.exteriorWorld.dispose();
     this.interiorWorld?.dispose();
+    this.buildingInterior?.dispose();
     this.sanctuary?.dispose();
     this.wayfinding.dispose();
     this.visitors?.dispose();

@@ -8,6 +8,9 @@ import { installExhibits } from '../exhibits';
 import { StreamingManager } from '../exhibits/StreamingManager';
 import { SourceArtwork } from './SourceArtwork';
 import { SourceVisitors } from './SourceVisitors';
+import { prepareVisitorGeometry } from './VisitorVisuals';
+import { bakedVisitorGeometry } from './VisitorGeometryBake';
+import { SOURCE_VISITORS } from '../content/sourceParity';
 import { SupplementaryCases } from './SupplementaryCases';
 import { SourceInstallations, INSTALLATION_HELD_CODES } from './SourceInstallations';
 import { PersistentEnvironment } from './PersistentEnvironment';
@@ -136,7 +139,29 @@ export class InteriorWorld {
     this.root.add(this.sourceArtwork.group);
     await yieldBudget.checkpoint();
 
-    this.sourceVisitors = this.measureBuildStage('source-visitors', () => new SourceVisitors(
+    // The 78 visitor geometries are a pure function of the authored records.
+    // Prefer the build-time bytes (decoded in about a millisecond); where the
+    // browser cannot decode them natively, compose procedurally in frame-paced
+    // slices. 'source-visitors.kit' is the summed synchronous kit time (not wall
+    // time), '.kit-longest' the longest single slice, '.kit-baked' 1 or 0.
+    let kitTotal = 0;
+    let kitLongest = 0;
+    const decodeStarted = performance.now();
+    const baked = bakedVisitorGeometry();
+    let kit: Record<string, THREE.BufferGeometry>;
+    if (baked) {
+      kit = baked;
+      kitTotal = kitLongest = performance.now() - decodeStarted;
+    } else {
+      kit = await prepareVisitorGeometry(SOURCE_VISITORS, () => yieldBudget.checkpoint(), (ms) => {
+        kitTotal += ms;
+        kitLongest = Math.max(kitLongest, ms);
+      });
+    }
+    this.app.interiorLoadTelemetry.buildStageMs['source-visitors.kit'] = kitTotal;
+    this.app.interiorLoadTelemetry.buildStageMs['source-visitors.kit-longest'] = kitLongest;
+    this.app.interiorLoadTelemetry.buildStageMs['source-visitors.kit-baked'] = baked ? 1 : 0;
+    this.sourceVisitors = this.measureBuildStage('source-visitors', () => SourceVisitors.fromKit(
       this.scope,
       this.built.collision,
       this.app.interaction,
@@ -146,6 +171,7 @@ export class InteriorWorld {
         const message = thought ? `${line} (${thought})` : line;
         this.app.announce(`visitor:${visitor.id}`, `${visitor.title}: ${message}`);
       },
+      kit,
     ));
     this.root.add(this.sourceVisitors.group);
     await yieldBudget.checkpoint();
@@ -187,6 +213,8 @@ export class InteriorWorld {
     for (const [name, duration] of Object.entries(this.persistentEnvironment.buildStageMs)) {
       this.app.interiorLoadTelemetry.buildStageMs[`environment.${name}`] = duration;
     }
+    // Nothing below tracks a resource, so a disposal during the last stage must be caught here.
+    if (this.scope.isDisposed) throw new Error('InteriorWorld disposed during preparation');
     this.root.add(envGroup);
 
     this.app.input.setCodeCapture((code, down, repeat) => {
@@ -329,6 +357,11 @@ export class InteriorWorld {
     this.cinema = null;
     this.streaming?.dispose();
     this.sourceInstallations?.dispose();
+    // The cast (17) and the supplementary cases (15) register interaction proxies
+    // outside the scope; unbind them so a failed or abandoned build cannot leave
+    // dead targets behind for the retry.
+    this.sourceVisitors?.dispose();
+    this.supplementary?.dispose();
     this.scope.dispose();
   }
 }

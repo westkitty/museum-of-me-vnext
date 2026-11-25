@@ -9,7 +9,7 @@ import {
   ACCESSIBLE_POSITIONS, AUDITORIUM, CINEMA_FLOOR_Y, CINEMA_POINTS, CINEMA_SEATS, EXIT_PASSAGE, LOBBY, REAR_PLATFORM,
   SCREEN_FACING_YAW, SEATED_EYE_HEIGHT, TIER_RISE, tierY,
 } from '../src/world/cinemaLayout';
-import { LEVEL_1_Y, STAIRS, stairApproach, stairArcPoint, stairLanding, zoneAtXYZ, type Vec3 } from '../src/world/layout';
+import { LEVEL_1_Y, ROTUNDA_APOTHEM, STAIRS, stairApproach, stairArcPoint, stairLanding, zoneAtXYZ, type Vec3 } from '../src/world/layout';
 
 /**
  * The Museum Cinema (docs/MUSEUM_CINEMA_2026-11-21.md): a real room in the real
@@ -55,6 +55,26 @@ describe('cinema architecture', () => {
     expect(CINEMA_SEATS).toHaveLength(252);
     expect(built.museum.cinema!.seatBlocks.map((b) => b.seats.length)).toEqual([126, 126]);
     expect(built.museum.cinema!.accessibleProxy.name).toBe('cinema-accessible-positions');
+  });
+
+  it('joins the balcony, threshold and lower lobby without overlapping floor faces', () => {
+    const balcony = built.museum.zoneGroups.get('balcony')!;
+    const drum = built.museum.zoneGroups.get('rotunda')!;
+    built.root.updateMatrixWorld(true);
+    const ray = new THREE.Raycaster(undefined, new THREE.Vector3(0, -1, 0), 0, 0.4);
+
+    // Off the carpet, where shallow camera angles exposed the coplanar slabs.
+    for (const x of [ROTUNDA_APOTHEM - 0.1, ROTUNDA_APOTHEM + 0.1, LOBBY.minX - 0.1, LOBBY.minX + 0.1]) {
+      ray.ray.origin.set(x, LEVEL_1_Y + 0.3, 2.12);
+      const isThreshold = x > ROTUNDA_APOTHEM && x < LOBBY.minX;
+      const surfaces = ray.intersectObjects(isThreshold ? [balcony, cinemaGroup, drum] : [balcony, cinemaGroup], true);
+      expect(surfaces.length, `floor at x=${x}`).toBeGreaterThan(0);
+      const top = surfaces[0].point.y;
+      const visible = new Set(surfaces.filter(({ point }) => Math.abs(top - point.y) < 0.002).map(({ object }) => object));
+      expect(visible.size, `roof or floor competing with the finish at x=${x}`).toBe(1);
+      expect(Math.abs(top - LEVEL_1_Y)).toBeLessThan(0.03);
+      expect(built.collision.supportHeight(x, 2.12, LEVEL_1_Y)).toBeCloseTo(top, 3);
+    }
   });
 
   it('every room point reads as the cinema zone, and the balcony approach does not', () => {

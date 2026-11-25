@@ -6,8 +6,8 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 123,
-  "last_updated": "2026-11-22",
+  "state_revision": 127,
+  "last_updated": "2026-11-23",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
 -->
@@ -1330,3 +1330,73 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - **TEST FIXTURES & DOCS UPDATED:** Replaced the prior multi-song test fixture with single-composition 3-stem provisional cue sheets (`tests/fixtures/music-w01-example.ts`) plus generic museum gallery cross-session fixtures; expanded `tests/music-foundation.test.ts` (`18` tests), `tests/browser/music-foundation.e2e.ts` (`3` Chrome tests), and `docs/MUSIC_AND_SYNC_FOUNDATION.md`. All 11 canonical pocket worlds (`W01`–`W10`, `L01`) remain `DORMANT`.
 - **VERIFIED LOCALLY:** `npm run gate` passed cleanly (`typecheck`, `eslint --max-warnings 0`, Vitest `132` files / `1,341` tests including `18` in `tests/music-foundation.test.ts` and `3` in `tests/audio.test.ts`, `test:release-tools`, all `validate:*` checks, `qa`, `build`, `check:budgets` `16.39 MB / 20 MB` with `28` declared / `11` shipped binaries / `0` undeclared, `verify:dist` `258` files / `111.18 MB`). Chrome Playwright: `tests/browser/music-foundation.e2e.ts` + `tests/browser/pocket-world.e2e.ts` passed `6/6`.
 - **NOT VERIFIED / DEFERRED:** Exact-head GitHub CI after push, human audio/visual review, owner licensing metadata and compressed delivery transcode before W01 shipping, `W01` world implementation, and Pages re-deploy.
+
+### 2026-11-23 — Great Museum Walkabout, local candidate (r125)
+
+- **Target:** Independent Codex clone on `feat/museum-autonomous-walkabout-20261123`, from verified GitHub main `ff6d983ebe47c0d4dc7980a9632f89925cb3f0d4`. Work remains local and unstaged. W01, the pocket host and registry, passport, music, and release surfaces received no edits.
+- **Implemented:** Rebuilt all 17 authored visitors with role-specific anatomy, wardrobe and props inside the existing 327-slot body batch. Scoped first-placement separation makes co-located actors independently reachable even under reduced motion. The Sketcher has a grounded seated pose, and the Sanctuary actors follow the ramp support. The Cinema floor seam has matching visible and collision surfaces clear of the coplanar drum cap.
+- **Verified locally:** Chrome passed 64 passages, 190 bidirectional lanes and the 35-bay continuous grand tour. The active loop covered 42 continuous arrival-to-re-entry legs, 70 bay threshold legs, one registered F/Journal interaction per exhibit, and a safe Pad I launch and landing. Standalone Chrome/Metal verified 14 installation paths, all 17 conversations and zero remote requests. The canonical gate passed 1,345 tests and a 16.39 MB initial package against 20 MB. The final Cinema refinement separately passed its focused regression, full passage retry and production build.
+- **Partial:** Three repairs verified. The E20 plinth sightline remains open. The candidate missed six M1 budgets, all of which also failed on the clean baseline in a sequential same-device run. Human artistic acceptance, physical input assessment and sourced-model approval remain open. [Walkabout QA and evidence](docs/evidence/museum-autonomous-walkabout-20261123/FINAL_QA_REPORT.md).
+
+### 2026-11-23 — Great Museum Walkabout, continuation (r126)
+
+- **Implemented:** E20 omits the empty foreground plinth and its collider. The workbench, interaction and frozen DexVault installation stay in their authored locations. The three close-cropped members of the 17-person cast have a corrected crown shell.
+- **Verified locally:** Matched Chrome/Metal captures at the standard standing position, real movement across the former footprint, and successful sort console activation. All 17 cast portraits were reviewed with fresh oblique poses for the seated and Sanctuary figures. Chrome passed 64 passages, 190 bidirectional lanes, all 35 approaches, the continuous grand tour, and the rooftop route. Focused checks passed 111/111, the project gate passed 1,347 tests, and offline Chrome passed both round trips and all installation/cast checks.
+- **Open:** WA-06 is a visible wall-inlay overlap at bay openings, reproduced at E19. The measured standing path remained clear. Human visual approval, physical input/device review and sourced-model approval remain open. The candidate remains local and unstaged. [Continuation QA and change audit](docs/evidence/museum-autonomous-walkabout-20261123/CONTINUATION_QA_REPORT.md).
+- **PARTIAL, M1 gate open:** The final candidate missed seven of twelve hard limits and fresh clean main missed six. Every candidate miss occurred in at least one clean-main trial. The latest exterior return and second-entry differences remain unresolved across the two pairs. The one strict Cinema restart timing miss passed on isolated retry. See the [comparison and follow-up](docs/evidence/museum-autonomous-walkabout-20261123/CONTINUATION_QA_REPORT.md#apple-m1-comparison).
+
+### 2026-11-23 — Great Museum Walkabout closure (r127)
+
+- **E19 resolved:** Full-width inlays fit solid wall spans using source-defined bay apertures. Same-camera Chrome evidence and held E17/E19/E20/E21 walks passed. Geometry coverage checks all 35 openings.
+- **Final functional verification:** 40 focused tests, 1,348 gate tests, seven Chrome cases and three further Cinema restarts passed. Complete passage inventory remains 64/190/35. Chrome/Metal standalone verified both round trips, 14/14 installations, 17/17 visitors and zero remote requests.
+- **BLOCKED for merge:** Three matched Apple M1 pairs confirmed 83.1–98.9 ms of additional synchronous visitor construction. Steady interior, exterior return and warmed-entry pace remain unresolved. Hard budgets and human review are open. The branch remains local and unstaged. [Closure evidence](docs/evidence/museum-autonomous-walkabout-20261123/CONTINUATION_QA_REPORT.md#final-correction-and-performance-adjudication).
+
+### 2026-11-24 — Visitor construction repair (r128)
+
+- **Implemented:** The 17-cast geometry kits are prepared in frame-paced steps inside the existing interior build, then registered synchronously. All 78 composed geometries are byte-identical to the previous candidate. `createVisitorGeometry` and the `SourceVisitors` constructor keep their synchronous contracts.
+- **Measured (headless Chrome, six paired cold runs, loaded machine):** longest synchronous cast slice median 17.5 ms before, 6.8 ms after, 5.2 ms clean main. A fused-transform alternative gave no benefit and was reverted. Total work is unchanged.
+- **Open:** Headed Apple M1 trials did not run (owner asked that the screen-taking browser not be used). The twelve-budget matrix, steady/return/warm-entry pace and human review remain open; verdict PARTIAL, still not merge-ready. An unrelated Playwright suite run cleared the ignored `test-results/walkabout/` receipts. [Repair report](docs/evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#visitor-construction-performance-repair-2026-11-24)
+
+### 2026-11-24 — Performance rescue continuation (r129)
+
+- **Verified locally (software-GL headless Chrome):** the 17 visitors render pixel-identical before and after the paced-construction change; all are interactive and their conversations cycle. Gate (1,356 tests), standalone offline browser and runtime-source QA pass. Output-deletion hazard fixed: Playwright now writes to `test-results/playwright`, guarded by a test.
+- **Boot test `museum.e2e.ts:34`:** the same assertion fails intermittently on clean main (1 of 3), so it is a baseline failure; candidate flakiness under load is unresolved (2 of 3, different boot-stage timeouts).
+- **Open:** paced construction does not reduce total work (about 12.8 ms either way, headless); one 7 to 13 ms constructor slice remains. No Apple M1 measurement; PARTIAL. Raw receipts under `test-results/walkabout/` were lost; see [the manifest](docs/evidence/museum-autonomous-walkabout-20261123/EVIDENCE_LOSS_MANIFEST.md).
+
+### 2026-11-24 — Visitor geometry baked at build time (r130)
+
+- **Implemented:** the 78 visitor geometries are generated by `npm run build:collection` and decoded natively at entry; a byte-parity test guards staleness and browsers without native base64 still compose procedurally. Interrupted-preparation lifecycle fixes and seven tests added.
+- **Measured (headless Chrome, Apple M1 Metal string, heavy unrelated load):** total synchronous construction 33.9 to 24.9 ms median (5 of 6 pairs improve); clean main 11.5. Longest slice (the constructor, about 19 ms) unchanged. 17/17 renders pixel-identical; gate 1,365 tests, standalone and browser suites pass.
+- **Open:** headed M1 harness pairs, twelve budgets, constructor cost, boot-test reliability under load, human review. PARTIAL. [Pass 3 report](docs/evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-3-build-time-visitor-geometry-2026-11-24)
+
+### 2026-11-25 — Constructor profile and interruption safety (r131)
+
+- **Fixed:** `InteriorWorld.dispose()` now disposes the visitors; before, an interior abandoned after the cast was built left 17 stale interaction registrations (a retry would have doubled them). Four application-level interruption cases (before the first step, halfway, at registration, after construction) now pass with a clean re-entry of 17 interactive visitors.
+- **Measured:** constructor about 18 ms, spread across many registrations; the one faster-registration experiment saved about 1.7 ms and was rejected, so no constructor change was adopted. Gate 1,367 tests, standalone and 17 browser tests pass.
+- **Open:** headed M1 pairs and the twelve budgets, human review. PARTIAL. [Pass 4 report](docs/evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-4-constructor-profile-rejected-registration-experiment-application-level-interruption-2026-11-25)
+
+### 2026-11-25 — Independent verification, application-disposal correction (r132)
+
+- **Fixed:** `App.dispose()` during interior preparation now stops the build in flight (before, it completed into the disposed application; also present on clean main), and `InteriorWorld.dispose()` releases the 15 supplementary-case controls. Six new browser cases failed before the correction; all 10 interruption cases pass after it.
+- **Measured (headless Metal, production, equal serving, load 3 to 7):** total synchronous visitor work 10.1 ms versus clean main 6.2; constructor 6.8 versus 6.2; unchanged by this correction. Pass 3's baked figures were inflated by serving that arm from the worktree `dist/`. Constructor profile independently agrees with pass 4; no second experiment was run.
+- **Verified locally:** gate (1,367 tests), standalone/offline, bake determinism. Browser 22 of 25; three load-sensitive 120 s timeouts also reproduce on the pre-correction source, clean-main status unresolved.
+- **Open:** headed M1 pairs and twelve budgets, human review. PARTIAL, not merge-ready. [Pass 5 report](docs/evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-5-independent-verification-application-disposal-correction-benchmark-bias-found-2026-11-25)
+
+### 2026-11-25 — Acceptance closure: browser cases, review matrix (r133)
+
+- **Compared:** the three Pass 5 timeouts on clean main, pre-Pass-5 and current source, three rotated rounds: 27 of 27 passed, plus 3 of 3 from the worktree. No candidate regression demonstrated and no timeout reproduced. Cases 229 and 297: load sensitivity (moderate confidence). Case 505: UNRESOLVED, probably load. No source, test, threshold or timeout changed.
+- **Rerun on current source:** interruption 10 of 10, lifecycle and geometry units 23 of 23. Gate, standalone and other browser results stand from Pass 5 (same source). E19, E20, traversal and pixel parity are carried, not rerun.
+- **Open:** headed M1 pairs, twelve budgets on this revision (all UNVERIFIED), human review. PARTIAL, not merge-ready. [Pass 6 report](docs/evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-6-acceptance-closure-browser-timeout-classification-and-review-matrix-2026-11-25)
+
+### 2026-11-25 — Screen-free M1 comparison and human review package (r134)
+
+- **Measured (headless ANGLE Metal, unmodified harness, 3 alternating pairs):** visitor CPU total main 4.7 ms versus candidate 8.9 ms in the one quiet pair; the original +83 to +99 ms stage did not recur. Pairs 1 and 2 had a loaded candidate arm (load 7.8 and 28). In quiet pair 3 both arms passed all twelve hard limits.
+- **Found:** the baked geometry adds +72 KB gzip (+1.14 MB raw) to the `interior` chunk, which is fetched at startup on both arms; cold start was slower in all three pairs (+351, +125, +353 ms, still under 2,000), unexplained. No fix attempted.
+- **Prepared:** human review page `test-results/perf-verify-pass7/human-review/index.html` (all pending) and new current-revision E19/E20 captures.
+- **Open:** headed acceptance (UNVERIFIED for all twelve), human review. PARTIAL, not merge-ready. [Pass 7 report](docs/evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-7-screen-free-apple-m1-paired-comparison-2026-11-25)
+
+### 2026-11-25 — Owner-authorized commit, push and Pages update (r135)
+
+- **Owner authorization:** the owner asked for the Bible to be updated, the work staged, committed and pushed, and Pages updated, and will do the hardware and visual review personally. Earlier passes describe the candidate as unstaged and not published; that describes their own dates.
+- **Not authorized and not done:** merging into `main`. Headed M1 acceptance, all twelve budgets on this revision, human presentation approval and the cold-start, first-entry and second-entry questions from Pass 7 stay open. Publication is for owner review, not a release claim.
+- **Receipt:** the exact commit and the deployment result are recorded in the canonical Bible, since a commit cannot contain its own hash.

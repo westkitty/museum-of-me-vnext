@@ -36,7 +36,7 @@
     "gate": "npm run build:collection && npm run typecheck && npm run lint && npm test && npm run test:release-tools && npm run validate:mapping && npm run validate:content && npm run validate:privacy && npm run validate:frameloop && npm run validate:hotpaths && npm run validate:assets && npm run validate:exhibits && npm run validate:source-parity && npm run qa && npm run build && npm run check:budgets && npm run verify:dist",
     "validate:frameloop": "node scripts/validate-frameloop.mjs",
     "validate:hotpaths": "node scripts/validate-hotpaths.mjs",
-    "build:collection": "node scripts/build-collection.mjs",
+    "build:collection": "node scripts/build-collection.mjs && vite-node scripts/build-visitor-geometry.ts",
     "validate:exhibits": "node scripts/validate-exhibits.mjs",
     "qa": "node scripts/qa-report-runner.mjs",
     "qa:runtime-source": "node scripts/runtime-source-qa.mjs",

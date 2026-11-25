@@ -193,3 +193,47 @@ Plan: `docs/plans/WORLD_EXPANSION_GROKBOT_MASTER_20261121.md`. Rows are added as
 | W01–W10 and L01 | DORMANT; DEVELOPMENT BATCHES PLANNED | [compatibility batches](plans/POCKET_WORLD_COMPATIBILITY_BATCHES_20261122.md) |
 | Eventual visual upgrades to 17 authored visitors | PLANNED | master plan |
 
+
+## Great Museum Walkabout — local candidate · 2026-11-23
+
+| Scope | Evidence state |
+|---|---|
+| Visual upgrades to 17 authored visitors | IMPLEMENTED locally. Separate in-museum before/after PNGs and 17/17 independent focus and conversation checks. The procedural cast still uses the existing body batch and shadow draw. Human visual and sourced-model approvals remain open. |
+| Visitor overlap, ramp grounding and Cinema threshold | REPAIRED and verified in focused checks and Chrome captures. The Cinema remains on the upper east Rotunda balcony. |
+| Walkaround and exhibits | VERIFIED BY BROWSER for 64 passages, 190 bidirectional lanes and all 35 viewing spots. The active-loop walk completed a ticketed visit and re-entry. All 35 exhibits furnished a supported approach to one tested local control, with F input recorded in the Journal. |
+| E20 workbench sightline | OPEN (P2). The shared foreground plinth partially occludes the workbench from the standard visitor spot. The bay passes traversal and its local control test. |
+| Representative M1 and delivery | PARTIAL. The six candidate budget misses reproduced on the baseline. Candidate remains unstaged and local. [Walkabout QA](evidence/museum-autonomous-walkabout-20261123/FINAL_QA_REPORT.md). |
+
+### Great Museum Walkabout continuation · 2026-11-23
+
+| Item | State | Evidence |
+|---|---|---|
+| E20 workbench and adjacent circulation | IMPLEMENTED · VERIFIED BY FOCUSED TEST AND CHROME/METAL | Matched eye-height frames, held movement across the former plinth and F interaction in the [continuation QA](evidence/museum-autonomous-walkabout-20261123/CONTINUATION_QA_REPORT.md#e20-workbench). |
+| 17 authored visitors; cropped crowns on three | ALL 17 REVIEWED IN CHROME · THREE REPAIRED AND RECHECKED | [Individual cast outcomes](evidence/museum-autonomous-walkabout-20261123/VISITOR_VISUAL_LEDGER.md#continuation-review--2026-11-23). |
+| Final timed and live traversal; project gate; offline | VERIFIED BY AUTOMATED TEST AND CHROME | 64/64 passages, 190/190 lanes, 35/35 approaches, grand tour and rooftop. 111/111 focused, 1,347/1,347 in gate, offline two round trips. |
+| WA-06 inlay across bay openings | OPEN · REPRODUCED IN CHROME | [Defect ledger](evidence/museum-autonomous-walkabout-20261123/DEFECT_LEDGER.md#continuation--2026-11-23). |
+| Human visual, physical input/device, sourced-model approvals | PENDING | [Continuation QA](evidence/museum-autonomous-walkabout-20261123/CONTINUATION_QA_REPORT.md). |
+| Cinema local film and controls | VERIFIED ON ISOLATED RETRY · ONE INITIAL TIMING MISS | Exact restart-time assertion read 0.0018 s on the first run and passed on retry. |
+| Apple M1 device acceptance | PARTIAL · HARD BUDGETS OPEN | Final candidate missed 7/12. All seven misses occurred on clean main across two trials. [Comparison](evidence/museum-autonomous-walkabout-20261123/CONTINUATION_QA_REPORT.md#apple-m1-comparison). |
+
+### Great Museum Walkabout final correction · 2026-11-23
+
+| Item | State | Evidence |
+|---|---|---|
+| WA-06 E19 inlay | RESOLVED IN CHROME AND GEOMETRY REGRESSION | Matched camera, retained solid-wall panel and adjacent held walks in the [closure report](evidence/museum-autonomous-walkabout-20261123/CONTINUATION_QA_REPORT.md#e19-inlay). |
+| Cinema local restart and final functional checks | VERIFIED LOCALLY | Exact-zero paused seek, 3 additional repeats, 64/190/35 traversal, 1,348 gate tests and standalone. |
+| Apple M1 adjudication | BLOCKED FOR MERGE | +83.1–98.9 ms synchronous cast construction in three ticketed pairs. Frame-pacing deltas remain unresolved and absolute failures remain open. [Twelve budgets and attribution](evidence/museum-autonomous-walkabout-20261123/CONTINUATION_QA_REPORT.md#apple-m1-adjudication). |
+| Human presentation and physical acceptance | PENDING | Local captures and measured tests are available for review. |
+| Visitor construction repair | PARTIAL | Cooperative kit preparation; 78/78 geometries byte-identical; headless longest sync slice 17.5 to 6.8 ms. Headed M1 pairs pending. [Repair report](evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#visitor-construction-performance-repair-2026-11-24). |
+| Playwright output safety | VERIFIED LOCALLY | Default outputDir moved to `test-results/playwright`; guard test in gate. Incident and loss inventory in the [manifest](evidence/museum-autonomous-walkabout-20261123/EVIDENCE_LOSS_MANIFEST.md). |
+| Paced visitor construction, render parity | VERIFIED LOCALLY, M1 PENDING | 17/17 headless renders pixel-identical; total CPU unchanged; no Metal measurement. Boot test baseline-flaky. |
+| Visitor geometry baked at build time | PARTIAL | Byte-identical (78/78), 17/17 pixel-identical, total sync construction about 9 ms lower (headless, loaded machine); constructor slice unchanged; headed M1 pairs pending. [Pass 3](evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-3-build-time-visitor-geometry-2026-11-24). |
+| Interrupted visitor preparation | VERIFIED LOCALLY | 7 unit tests plus 4 application-level InteriorWorld interruption cases (real build, real dispose, clean re-entry). One lifecycle defect found and fixed. |
+| Visitor constructor cost | NO DEMONSTRATED IMPROVEMENT | Profiled (about 18 ms, accumulated across many registrations); registration experiment about 1.7 ms, rejected. Headed M1 pairs pending. [Pass 4](evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-4-constructor-profile-rejected-registration-experiment-application-level-interruption-2026-11-25). |
+| Application disposal and abandoned interior builds | VERIFIED LOCALLY | 10 browser cases through the real `App.dispose` and `InteriorWorld` build, red before the correction (6 new); resource counts after abandon and re-entry equal a clean entry. [Pass 5](evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-5-independent-verification-application-disposal-correction-benchmark-bias-found-2026-11-25). |
+| Visitor construction, fair headless comparison | PARTIAL | Total 10.1 ms versus clean main 6.2; pass 3's baked figures carried a serving-location penalty. Headed M1 and twelve budgets pending. Three software-GL timeouts not attributed to the correction; clean-main status unresolved. |
+| Three software-GL browser timeouts | PARTIAL | Two load-sensitive (moderate confidence), one unresolved; 27 of 27 matched runs pass on clean main, pre-Pass-5 and current; no candidate regression demonstrated. [Pass 6](evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-6-acceptance-closure-browser-timeout-classification-and-review-matrix-2026-11-25). |
+| Twelve-budget matrix and human review checklist | PREPARED · NOT EXECUTED | Current revision UNVERIFIED for all twelve; checklist lists surviving and missing captures. Headed M1 run and human review pending. |
+| Headless M1 paired comparison | PARTIAL | Three alternating pairs; visitor CPU 8.9 versus 4.7 ms in the quiet pair; +83–99 ms stage not reproduced; cold start, first and second entry higher on the candidate, unexplained; two candidate arms loaded. [Pass 7](evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-7-screen-free-apple-m1-paired-comparison-2026-11-25). |
+| E19/E20 current-revision captures | CAPTURED, HUMAN REVIEW PENDING | New Metal captures of clean main and candidate show both repairs; historical before/after images remain lost. |
+| Human review package | PREPARED · APPROVAL PENDING | `test-results/perf-verify-pass7/human-review/index.html`, 17 identities; two captures usable for face judgment. |

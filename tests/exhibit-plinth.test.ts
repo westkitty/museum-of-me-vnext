@@ -6,6 +6,9 @@ import { ExhibitHost } from '../src/exhibits/ExhibitHost';
 import { InteractionManager } from '../src/interaction/InteractionManager';
 import { AssetManager } from '../src/assets/AssetManager';
 import { EXHIBITS_BY_ID } from '../src/content/collection.generated';
+import { EYE_HEIGHT } from '../src/player/PlayerController';
+import { PASSAGES } from '../src/world/passages';
+import { buildMuseum, walkSegment } from './helpers/walk';
 import type { ResourceScope } from '../src/assets/ResourceScope';
 
 installExhibits();
@@ -106,6 +109,36 @@ describe('exhibit bay plinth clearance', () => {
       const hits = findPlinthIntersections(host);
       expect(hits, `${id} has plinth intersections`).toHaveLength(0);
       host.dispose();
+    }
+  });
+});
+
+describe('E20 freestanding workbench', () => {
+  it('opens the standard sightline under the workbench and keeps its centre approach walkable', async () => {
+    const built = buildMuseum();
+    const { host, interaction } = await live('E20');
+    try {
+      const mount = built.mounts.get('E20')!;
+      mount.add(host.group);
+      built.root.updateMatrixWorld(true);
+      const spot = PASSAGES.find((passage) => passage.exhibitId === 'E20')!.interaction!;
+      const eye = new THREE.Vector3(spot[0], spot[1] + EYE_HEIGHT, spot[2]);
+
+      // The freestanding bench is 3.6 m behind the mount. Its open underside
+      // is part of the sightline from the normal standing position.
+      const target = mount.localToWorld(new THREE.Vector3(0, 0.35, -3.6));
+      const direction = target.clone().sub(eye);
+      const ray = new THREE.Raycaster(eye, direction.clone().normalize(), 0, direction.length());
+      expect(ray.intersectObject(mount, true).map(({ object }) => object.name)).toEqual([]);
+
+      const centre = mount.position.toArray();
+      expect(walkSegment(built.collision, { from: spot, to: centre, label: 'approach workbench' })).toBeNull();
+      expect(walkSegment(built.collision, { from: centre, to: spot, label: 'return to threshold' })).toBeNull();
+      expect(built.mounts.get('E21')!.getObjectByName('exhibit-curatorial-plinth:E21')).toBeDefined();
+    } finally {
+      host.dispose();
+      interaction.dispose();
+      built.scope.dispose();
     }
   });
 });

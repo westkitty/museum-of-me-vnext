@@ -180,8 +180,10 @@ export function buildCinemaArchitecture(
   });
   group.add(marqueeBulbs);
 
-  // Floor through the drum wall (the balcony ring stops at the wall's centre).
-  kit.slab(ROTUNDA_APOTHEM - 0.2, LOBBY.rampFromX, -halfOpen - 0.1, halfOpen + 0.1, CINEMA_ENTRY_Y, 0.4, mat.lobbyFloor);
+  // Bridge the drum wall between the balcony and lower lobby. The finished
+  // threshold stands 2 cm above the lower drum's cap, with matching support.
+  kit.slab(ROTUNDA_APOTHEM, LOBBY.minX, -halfOpen - 0.1, halfOpen + 0.1, CINEMA_ENTRY_Y + 0.02, 0.4, mat.lobbyFloor)
+    .name = 'cinema-threshold-floor';
 
   // ── Lobby ────────────────────────────────────────────────────────────────
   const lobbyLow = kit.slab(LOBBY.minX, LOBBY.rampFromX, LOBBY.minZ, LOBBY.maxZ, CINEMA_ENTRY_Y, 0.4, mat.lobbyFloor);

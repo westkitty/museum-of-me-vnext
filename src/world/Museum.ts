@@ -15,7 +15,7 @@ import {
   ROTUNDA_APOTHEM, ROTUNDA_WALL, LEVEL_1_Y, BALCONY_INNER_APOTHEM,
   DOME_SPRING_Y, DOME_APEX_Y, GROUND_Y,
   OCTAGON_FACES, faceDirection, rightOf, place, add, stairArcPoint,
-  WINGS, type WingSpec, type OctagonFace, type Vec3, type ZoneId,
+  WINGS, HALL_SIDE_WALL_THICKNESS, type WingSpec, type OctagonFace, type Vec3, type ZoneId,
   SOUTH, VESTIBULE_FROM, VESTIBULE_TO, PLAZA_DEPTH, PLAZA_HALF_WIDTH,
   ATRIUM_FRONT_Z, ATRIUM_HALF_WIDTH, ATRIUM_HEIGHT, ATRIUM_INNER_OPENING_WIDTH, ATRIUM_INNER_OPENING_HEIGHT,
   PORTAL_WIDTH, PORTAL_HEIGHT,
@@ -770,21 +770,21 @@ export class Museum {
           kit.wall(
             place(d, a, sign * w.hallHalfWidth, y),
             place(d, b, sign * w.hallHalfWidth, y),
-            y, w.bayHeight * 0.72, 0.6, p.wall,
+            y, w.bayHeight * 0.72, HALL_SIDE_WALL_THICKNESS, p.wall,
           );
         }
         if (openFrom > cursor) {
           kit.wall(
             place(d, cursor, sign * w.hallHalfWidth, y),
             place(d, openFrom, sign * w.hallHalfWidth, y),
-            y, w.hallHeight, 0.6, p.wall,
+            y, w.hallHeight, HALL_SIDE_WALL_THICKNESS, p.wall,
           );
         }
         // Lintel above the bay opening.
         kit.wall(
           place(d, openFrom, sign * w.hallHalfWidth, y),
           place(d, openTo, sign * w.hallHalfWidth, y),
-          y + w.bayHeight * 0.72, w.hallHeight - w.bayHeight * 0.72, 0.6, p.wall,
+          y + w.bayHeight * 0.72, w.hallHeight - w.bayHeight * 0.72, HALL_SIDE_WALL_THICKNESS, p.wall,
         );
         cursor = openTo;
       }
@@ -792,7 +792,7 @@ export class Museum {
         kit.wall(
           place(d, cursor, sign * w.hallHalfWidth, y),
           place(d, w.hallTo, sign * w.hallHalfWidth, y),
-          y, w.hallHeight, 0.6, p.wall,
+          y, w.hallHeight, HALL_SIDE_WALL_THICKNESS, p.wall,
         );
       }
     }
@@ -870,10 +870,12 @@ export class Museum {
     parent.add(mount);
     this.exhibitMounts.set(exhibitId, mount);
 
-    // Replace the anonymous graybox visually; preserve the authoritative
-    // 2.6 x 0.9 x 2.6 obstacle and every exhibit mount/interaction contract.
-    mount.add(this.plinthKit.build(exhibitId, p));
-    this.collision.addBox([anchor[0], y + 0.45, anchor[2]], [1.3, 0.45, 1.3]);
+    // E20's freestanding workbench sits behind the mount. The empty plinth
+    // masks it from the visitor spot and occupies the centre approach.
+    if (exhibitId !== 'E20') {
+      mount.add(this.plinthKit.build(exhibitId, p));
+      this.collision.addBox([anchor[0], y + 0.45, anchor[2]], [1.3, 0.45, 1.3]);
+    }
   }
 
   private baySlabCeiling(
