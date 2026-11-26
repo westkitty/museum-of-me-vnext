@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { PaletteSet } from './palette';
+import { architecturalStoneFinish } from './SurfaceFinish';
+import { applyArchitecturalFinish } from '../render/ArchitecturalShading';
 import { HALL_SIDE_WALL_THICKNESS, PLACEMENTS, WINGS, faceDirection, place, type WingSpec } from './layout';
 import { alongClearOfBayOpenings } from './bayClearance';
 import { bayOpeningSpan } from './installationPlacement';
@@ -70,6 +72,11 @@ export class WingAtmosphere {
     // smaller ceiling fixtures. They sit against the walls and never intrude
     // across a bay opening. Keep their full width on the nearest solid span.
     const panelWidth = Math.min(6.5, span / 5);
+    const stone = architecturalStoneFinish(this.scope);
+    const inlayMaterial = applyArchitecturalFinish(this.scope.track(new THREE.MeshStandardMaterial({
+      color: new THREE.Color(trimColor).multiplyScalar(0.34), roughness: 0.86, map: stone, roughnessMap: stone,
+    })), wing.id, new THREE.Color(accentColor), 'inlay');
+    const linerGeometry = this.scope.track(new THREE.BoxGeometry(panelWidth, 0.035, 0.05));
     for (const [fraction, side] of [[0.33, -1], [0.72, 1]] as const) {
       const preferred = wing.hallFrom + span * fraction;
       const along = this.inlayCentre(wing, side, preferred, panelWidth / 2);
@@ -78,12 +85,21 @@ export class WingAtmosphere {
       const at = place(d, along, side * (wing.hallHalfWidth - HALL_SIDE_WALL_THICKNESS / 2), wing.floorY);
       const panel = new THREE.Mesh(
         this.scope.track(new THREE.BoxGeometry(panelWidth, 2.4, 0.12)),
-        muted,
+        inlayMaterial,
       );
       panel.name = `wing-wall-inlay:${wing.id}`;
       panel.position.set(at[0], wing.floorY + 3.0, at[2]);
       panel.rotation.y = angle + Math.PI / 2;
       this.group.add(panel);
+      // A fine lit reveal above and below the ribbed panel, in the wing's accent.
+      for (const edge of [-1, 1]) {
+        const liner = new THREE.Mesh(linerGeometry, glow);
+        liner.name = `wing-inlay-liner:${wing.id}`;
+        liner.position.copy(panel.position);
+        liner.position.y += edge * 1.235;
+        liner.rotation.y = panel.rotation.y;
+        this.group.add(liner);
+      }
     }
 
     // Monumental rhythm: tall, shallow bronze ribs and a continuous crown

@@ -2,6 +2,7 @@ import placementManifest from '../data/workshop-placements.json';
 import { mountCinematicArrival } from './ui/CinematicArrival';
 import './ui/cinematic-arrival.css';
 import { App } from './app/App';
+import './ui/reliquary-finish.css';
 import { exhibitFromParameter } from './content/collectionLinks';
 import { MuseumPlacements } from './workshop/MuseumPlacements';
 import { AuthorableSceneRegistry } from './workshop/AuthorableSceneRegistry';

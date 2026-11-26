@@ -67,8 +67,10 @@ export class Lighting {
     this.group.add(moonlight, moonlight.target);
     this.skyKey = moonlight;
 
-    const bounce = new THREE.DirectionalLight(0x4d82a6, 0.46);
-    bounce.position.set(70, 32, -90);
+    const bounce = new THREE.DirectionalLight(0x7fa9cc, 0.62);
+    // The moon stands behind the museum, so sky light bounced off the sea is
+    // what the visitor sees on the south faces they walk towards.
+    bounce.position.set(-38, 34, 118);
     bounce.target.position.set(0, 6, 0);
     this.group.add(bounce, bounce.target);
     this.skyBounce = bounce;
@@ -175,8 +177,8 @@ export class Lighting {
     // The production matrices are frozen; update only the altered key.
     this.skyKey.updateMatrix();
     this.skyKey.updateMatrixWorld(true);
-    this.skyBounce.color.setHex(0x4d82a6).lerp(DAY_BOUNCE, daylight);
-    this.skyBounce.intensity = 0.46 + daylight * 0.24;
+    this.skyBounce.color.setHex(0x7fa9cc).lerp(DAY_BOUNCE, daylight);
+    this.skyBounce.intensity = 0.62 + daylight * 0.24;
   }
 
   setBayLight(exhibitId: string, on: boolean): void {

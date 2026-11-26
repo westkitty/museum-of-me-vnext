@@ -18,7 +18,7 @@
 - **Plaza:** monumental dark entrance against authored night sky, island and Blood Ring; stay visually separate from the interior's white baseline.
 - **Sanctuary:** quiet, material-rich and distinct; never mascotize Dexter or count the Sanctuary as a 36th exhibit.
 
-The existing RoomEnvironment/ACES renderer remains authoritative. `AtmosphereDirector` uses the **existing Fog object** and tone-map exposure for subtle wing-dependent atmospheric transitions. It does not add lights, post-processing, a camera rig, gameplay motion, or a frame loop. Reduced motion must disable visual interpolation.
+The ACES renderer remains authoritative; its image-based light is two purpose-built PMREM rooms (`src/render/MuseumEnvironments.ts`: gallery indoors, night outdoors) at the size RoomEnvironment had. `AtmosphereDirector` uses the **existing Fog object** and tone-map exposure for subtle wing-dependent atmospheric transitions. It does not add lights, post-processing, a camera rig, gameplay motion, or a frame loop. Reduced motion must disable visual interpolation.
 
 ## Surface and detail grammar
 

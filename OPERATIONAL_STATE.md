@@ -1400,3 +1400,11 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - **Owner authorization:** the owner asked for the Bible to be updated, the work staged, committed and pushed, and Pages updated, and will do the hardware and visual review personally. Earlier passes describe the candidate as unstaged and not published; that describes their own dates.
 - **Not authorized and not done:** merging into `main`. Headed M1 acceptance, all twelve budgets on this revision, human presentation approval and the cold-start, first-entry and second-entry questions from Pass 7 stay open. Publication is for owner review, not a release claim.
 - **Receipt:** the exact commit and the deployment result are recorded in the canonical Bible, since a commit cannot contain its own hash.
+
+### 2026-11-25 — Ten-round visual finishing pass (r136)
+
+- **Owner request:** a ten-round visual overhaul of the existing game, then stage, commit, push and update Pages. Done on `feat/visual-finishing-20261125` from `8d77457`, without merging into `main`.
+- **Implemented:** world-space architectural, landscape and obsidian finishes in the existing materials; purpose-built PMREM environments; sky, sea, soft beams, lamp halos and pools; camera feel (off under reduced motion); gallery dust and fireflies; interface finish. No new lights, dependencies or post-processing. [Report](docs/evidence/visual-finishing-20261125/REPORT.md)
+- **Verified locally:** gate PASS (1,373 tests); headless captures of 23 world views, 13 interface states, low tier, phone portrait and landscape, no console errors.
+- **Startup environment changed:** `RendererHost` now bakes the night light room in its constructor (procedural, no add-on), so lit programs compile once with their final environment; the gallery room is baked on first use, and the deferred warm-up stays as the failure fallback. Ground landscape kinds share one program. Arrival programs: 59 (baseline 69); the SwiftShader second compile wave (16 s baseline) is gone. Focused browser suites 22/22 locally on SwiftShader.
+- **Open:** extra GPU cost of about 1.5–4 ms outdoors (headless, noisy); Linux visual-regression baselines need refreshing from CI; headed M1 and human review pending.

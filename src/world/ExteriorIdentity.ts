@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { softenBeam } from '../render/SoftLight';
+import { applyLandscape } from '../render/LandscapeShading';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { GROUND_Y, VESTIBULE_TO, faceDirection, place, type Vec3 } from './layout';
 
@@ -25,14 +27,15 @@ export class ExteriorIdentity {
    */
   constructor(private readonly scope: ResourceScope, private readonly zOffset = 0) {
     this.group.name = 'exterior-museum-identity';
-    this.stone = this.mat(0x121820, 0.82, 0.16);
-    this.warmStone = this.mat(0x0b1016, 0.78, 0.22);
+    this.stone = applyLandscape(this.mat(0x2a323d, 0.8, 0.1), 'paving');
+    this.warmStone = applyLandscape(this.mat(0x1c232c, 0.76, 0.12), 'paving');
     this.azure = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x56b8ed, emissive: 0x17658f, emissiveIntensity: 0.62, roughness: 0.34, metalness: 0.45,
     }));
-    this.beam = this.scope.track(new THREE.MeshBasicMaterial({
+    // Cones are built apex-up and flipped, so the lamp is at uv.y = 1.
+    this.beam = softenBeam(this.scope.track(new THREE.MeshBasicMaterial({
       color: 0x3bafff, transparent: true, opacity: 0.075, depthWrite: false, side: THREE.DoubleSide,
-    }));
+    })), 2.6, 'top');
     this.glass = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x75c9ff,
       roughness: 0.16,
@@ -121,7 +124,7 @@ export class ExteriorIdentity {
       base.name = 'exterior-searchlight-emitter';
       base.position.set(x, 0.28, z + 3.6);
       this.group.add(base);
-      const shaft = new THREE.Mesh(this.scope.track(new THREE.ConeGeometry(4.4, 25, 20, 1, true)), this.beam);
+      const shaft = new THREE.Mesh(this.scope.track(new THREE.ConeGeometry(4.4, 25, 32, 1, true)), this.beam);
       shaft.name = 'exterior-searchlight-beam';
       shaft.position.set(x, 12.8, z + 3.6);
       shaft.rotation.x = Math.PI;

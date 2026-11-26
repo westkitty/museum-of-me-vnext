@@ -3,6 +3,8 @@ import { ResourceScope } from '../assets/ResourceScope';
 import { Museum, type MuseumBuildResult } from './Museum';
 import { DexterSanctuary } from '../exhibits/sanctuary/DexterSanctuary';
 import { AmbientVisitors } from './AmbientVisitors';
+import { GalleryDust } from '../render/AirMotes';
+import { landscapeClock } from '../render/LandscapeShading';
 import { FlightPadAtmosphere } from './FlightPadAtmosphere';
 import { installExhibits } from '../exhibits';
 import { StreamingManager } from '../exhibits/StreamingManager';
@@ -48,11 +50,14 @@ export class InteriorWorld {
   /** The Museum Cinema's runtime (seats, programme, house lights, playback). */
   cinema: CinemaVenue | null = null;
 
+  private readonly dust: GalleryDust;
   private lightingResidencyRevision = -1;
 
   constructor(private readonly app: App) {
     this.scope = new ResourceScope('interior-world');
     this.root.name = 'interior-world';
+    this.dust = new GalleryDust(this.scope);
+    this.root.add(this.dust.points);
     this.root.visible = false;
   }
 
@@ -324,6 +329,8 @@ export class InteriorWorld {
     roomCullingEnabled: boolean,
   ): { deep: boolean; visibleWingIds: ReadonlySet<string> } {
     if (this.runtimeState !== 'active') return { deep: false, visibleWingIds: this.museum.visibleWingIds };
+    if (!this.app.preferences.reducedMotion) landscapeClock.value = (landscapeClock.value + Math.min(dt, 0.1)) % 4096;
+    this.dust.setDetail(this.app.renderer.quality.detailScale);
     this.sourceArtwork.update(eye[0], eye[2], dt);
     // The impossible atrium reveals itself through actual walking distance.
     // The exterior sphere and the interior never share a visible scene root.

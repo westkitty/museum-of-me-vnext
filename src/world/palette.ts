@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import type { ZoneId } from './layout';
 import { architecturalStoneFinish } from './SurfaceFinish';
+import { applyArchitecturalFinish, type FinishZone } from '../render/ArchitecturalShading';
 
 /**
  * Museum-wide colour grammar. The Rotunda and balcony are the bright neutral
@@ -61,22 +62,27 @@ export class PaletteSet {
     if (cached) return cached;
     const hex = HEX[zone] ?? HEX.shell;
     const p: Palette = {
-      floor: this.mat(hex.floor, 0.94, 0, true),
-      wall: this.mat(hex.wall, 0.9, 0, true),
-      trim: this.mat(hex.trim, 0.55, 0.25),
-      ceiling: this.mat(hex.ceiling, 1, 0, true),
-      accent: this.mat(hex.accent, 0.45, 0.35),
+      floor: this.mineral(hex.floor, 0.94, zone, hex.accent),
+      wall: this.mineral(hex.wall, 0.9, zone, hex.accent),
+      trim: this.mat(hex.trim, 0.36, 0.72),
+      ceiling: this.mineral(hex.ceiling, 1, zone, hex.accent),
+      accent: this.mat(hex.accent, 0.4, 0.5),
     };
     this.cache.set(zone, p);
     return p;
   }
 
-  private mat(color: number, roughness: number, metalness = 0, mineral = false): THREE.Material {
-    const finish = mineral ? architecturalStoneFinish(this.scope) : null;
-    return this.scope.track(new THREE.MeshStandardMaterial({
-      color, roughness, metalness, flatShading: false,
-      ...(finish ? { map: finish, roughnessMap: finish } : {}),
+  private mat(color: number, roughness: number, metalness = 0): THREE.Material {
+    return this.scope.track(new THREE.MeshStandardMaterial({ color, roughness, metalness }));
+  }
+
+  /** Stone surfaces share one texture and one world-space architectural shader. */
+  private mineral(color: number, roughness: number, zone: FinishZone, accent: number): THREE.Material {
+    const finish = architecturalStoneFinish(this.scope);
+    const material = this.scope.track(new THREE.MeshStandardMaterial({
+      color, roughness, map: finish, roughnessMap: finish,
     }));
+    return applyArchitecturalFinish(material, zone, new THREE.Color(accent));
   }
 
   /** Glass for the dome and clerestories. */
@@ -85,8 +91,8 @@ export class PaletteSet {
     if (cached) return cached.floor;
     const m = this.scope.track(
       new THREE.MeshStandardMaterial({
-        color: 0xcce9f6,
-        roughness: 0.1,
+        color: 0x3a5a6a,
+        roughness: 0.06,
         metalness: 0,
         transparent: true,
         opacity: 0.34,

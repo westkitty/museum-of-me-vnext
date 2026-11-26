@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import { applyArchitecturalFinish } from '../render/ArchitecturalShading';
+import { architecturalStoneFinish } from './SurfaceFinish';
+import { softenBeam } from '../render/SoftLight';
 import { buildCinemaArchitecture, type CinemaArchitecture } from './Cinema';
 import { CINEMA_FACE, CINEMA_THRESHOLD_HEIGHT, CINEMA_THRESHOLD_WIDTH } from './cinemaLayout';
 import { CINEMA_PROGRAMME, formatDuration } from '../cinema/programme';
@@ -647,14 +650,33 @@ export class Museum {
       const to: Vec3 = [c[0] + r[0] * half, 0, c[2] + r[2] * half];
       kit.orientedFloorCollision(from, to, (ROTUNDA_APOTHEM - BALCONY_INNER_APOTHEM) / 2, LEVEL_1_Y, clearOfStairWell);
 
-      // Balustrade along the atrium edge.
+      // Balustrade along the atrium edge: the same collision line as before,
+      // drawn as a kerb, glass and a brass handrail so the Rotunda below is
+      // visible from the balcony.
       const inner = place(d, BALCONY_INNER_APOTHEM);
       const ih = side(BALCONY_INNER_APOTHEM) / 2;
-      kit.wall(
+      kit.wallCollision(
         [inner[0] - r[0] * ih, 0, inner[2] - r[2] * ih],
         [inner[0] + r[0] * ih, 0, inner[2] + r[2] * ih],
-        LEVEL_1_Y, 1.1, 0.35, p.trim,
+        LEVEL_1_Y, 1.1, 0.35,
       );
+      this.glassBalustrade(kit, inner, r, ih, p);
+    }
+  }
+
+  private glassBalustrade(
+    kit: GeometryKit, at: Vec3, r: Vec3, halfLength: number, p: { readonly trim: THREE.Material },
+  ): void {
+    const yaw = Math.atan2(-r[2], r[0]);
+    kit.prop([at[0], LEVEL_1_Y + 0.07, at[2]], [halfLength, 0.07, 0.175], p.trim, yaw);
+    kit.prop([at[0], LEVEL_1_Y + 1.06, at[2]], [halfLength, 0.04, 0.075], p.trim, yaw);
+    const pane = kit.prop([at[0], LEVEL_1_Y + 0.58, at[2]], [halfLength, 0.44, 0.012], this.pal.glass(), yaw);
+    pane.name = 'balcony-balustrade-glass';
+    pane.receiveShadow = false;
+    const posts = Math.max(3, Math.round(halfLength * 2 / 1.5));
+    for (let i = 0; i <= posts; i++) {
+      const s = -halfLength + (i / posts) * halfLength * 2;
+      kit.prop([at[0] + r[0] * s, LEVEL_1_Y + 0.58, at[2] + r[2] * s], [0.022, 0.45, 0.022], p.trim, yaw);
     }
   }
 
@@ -943,10 +965,16 @@ export class Museum {
     // The atrium's own night-sky palette: deep blue walls, sky-blue stone.
     const std = (color: number, roughness: number, metalness = 0, emissive = 0x000000, emissiveIntensity = 0) =>
       this.scope.track(new THREE.MeshStandardMaterial({ color, roughness, metalness, emissive, emissiveIntensity }));
+    const mineral = architecturalStoneFinish(this.scope);
+    const stone = (material: THREE.MeshStandardMaterial): THREE.MeshStandardMaterial => {
+      material.map = mineral;
+      material.roughnessMap = mineral;
+      return applyArchitecturalFinish(material, 'atrium', new THREE.Color(0x7cc4ef));
+    };
     const a = {
-      floor: std(0x16325a, 0.35, 0.15),
-      wall: std(0x0f2244, 0.8, 0.05, 0x06122a, 0.6),
-      ceiling: std(0x0a1830, 0.9, 0, 0x050c1c, 0.5),
+      floor: stone(std(0x1b3c6b, 0.6, 0.12)),
+      wall: stone(std(0x14305f, 0.82, 0.04, 0x06122a, 0.6)),
+      ceiling: stone(std(0x0c1d3a, 0.95, 0, 0x050c1c, 0.5)),
       trim: std(0x7cc4ef, 0.4, 0.25, 0x1d5f8f, 0.35),
       runner: std(0x5fb4e8, 0.5, 0.1, 0x173f63, 0.3),
     };
@@ -992,14 +1020,23 @@ export class Museum {
 
     // Six tall banners, one per wing in its own accent, hung between the
     // piers: the whole museum is announced before the visitor reaches it.
-    const bannerGeo = this.scope.track(new THREE.BoxGeometry(0.08, 11, 3.2));
+    const bannerGeo = this.scope.track(new THREE.BoxGeometry(0.08, 11, 3.2, 1, 6, 28));
+    // Hung cloth: folds gather at the top rail and open toward the hem.
+    const cloth = bannerGeo.getAttribute('position');
+    for (let i = 0; i < cloth.count; i++) {
+      const hang = 0.5 - cloth.getY(i) / 11;
+      cloth.setX(i, cloth.getX(i) + (0.05 + 0.07 * hang) * Math.sin(cloth.getZ(i) * (7.4 - 1.6 * hang)));
+    }
+    bannerGeo.computeVertexNormals();
     const bannerMats: THREE.Material[] = [];
     WINGS.forEach((wing, index) => {
       const side = index < 3 ? -1 : 1;
       const z = near + 8 + (index % 3) * 6;
       // Own material (the wing's accent is shared with the wing) so the
       // atrium can light it up on entry.
-      const bannerMat = this.scope.track((this.pal.get(wing.id).accent as THREE.Material).clone());
+      const bannerMat = this.scope.track((this.pal.get(wing.id).accent as THREE.MeshStandardMaterial).clone());
+      bannerMat.roughness = 0.92;
+      bannerMat.metalness = 0;
       bannerMats.push(bannerMat);
       const banner = new THREE.Mesh(bannerGeo, bannerMat);
       banner.name = `atrium-banner:${wing.id}`;
@@ -1152,10 +1189,10 @@ export class Museum {
     // Projection beam from the skylight down to the lettering.
     const beam = new THREE.Mesh(
       this.scope.track(new THREE.CylinderGeometry(0.4, 8.5, ATRIUM_HEIGHT - HOLOGRAM_Y - 1.5, 32, 1, true)),
-      this.scope.track(new THREE.MeshBasicMaterial({
+      softenBeam(this.scope.track(new THREE.MeshBasicMaterial({
         color: 0x3fa9ff, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending,
         depthWrite: false, side: THREE.DoubleSide, toneMapped: false,
-      })),
+      })), 1.8, 'top'),
     );
     beam.name = 'atrium-hologram-beam';
     beam.position.y = (ATRIUM_HEIGHT - HOLOGRAM_Y) / 2 - 0.3;

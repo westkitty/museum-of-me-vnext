@@ -19,6 +19,9 @@ import { ExteriorObservatory } from './ExteriorObservatory';
 import { ExteriorRootboundHollow } from './ExteriorRootboundHollow';
 import { ExteriorDistantIslands } from './ExteriorDistantIslands';
 import { addIslandSupport, addLagoonEdge } from './IslandSiteLayout';
+import { landscapeClock } from '../../render/LandscapeShading';
+import { buildFireflies, scatterAround } from '../../render/AirMotes';
+import { buildLampGlow, type Lamp } from '../../render/SoftLight';
 import { START_POSITION, START_YAW } from '../start';
 import {
   GROUND_Y,
@@ -160,6 +163,37 @@ export class ExteriorWorld {
     if (assets) this.rooftop.hotDogMan.setLoader(assets);
     this.islandVisitors = new IslandVisitors(this.scope, this.collision, qualityTier, assets);
     this.root.add(this.islandVisitors.group);
+    const lamps = this.collectLamps();
+    this.root.add(buildLampGlow(this.scope, lamps, 'exterior-lamp-glow'));
+    const pathLamps = lamps.filter((lamp) => lamp.y < 0);
+    const perLamp = qualityTier === 'low' ? 1 : qualityTier === 'medium' ? 2 : 3;
+    this.root.add(buildFireflies(this.scope, scatterAround(pathLamps, perLamp, GROUND_Y)));
+  }
+
+  /** Reads the lamps that already exist; the glow never invents a light source. */
+  private collectLamps(): Lamp[] {
+    const lamps: Lamp[] = [];
+    const matrix = new THREE.Matrix4();
+    const at = new THREE.Vector3();
+    const gather = (name: string, make: (p: THREE.Vector3) => Lamp): void => {
+      this.root.getObjectsByProperty('name', name).forEach((node) => {
+        const batch = node as THREE.InstancedMesh;
+        batch.updateWorldMatrix(true, false);
+        const count = batch.isInstancedMesh ? batch.count : 1;
+        for (let i = 0; i < count; i++) {
+          if (batch.isInstancedMesh) { batch.getMatrixAt(i, matrix); matrix.premultiply(batch.matrixWorld); } else matrix.copy(batch.matrixWorld);
+          lamps.push(make(at.setFromMatrixPosition(matrix)));
+        }
+      });
+    };
+    gather('path-ground-light-instances', (p) => ({
+      x: p.x, y: p.y, z: p.z, size: 1.5, color: 0xffb466, pool: { y: -0.44, radius: 3.4 },
+    }));
+    gather('arrival-ceremonial-obelisk-crown', (p) => ({
+      x: p.x, y: p.y + 0.05, z: p.z, size: 2, color: 0xffb877, pool: { y: 0.085, radius: 4 },
+    }));
+    gather('exterior-searchlight-emitter', (p) => ({ x: p.x, y: p.y + 0.4, z: p.z, size: 2.6, color: 0x58b9ff }));
+    return lamps;
   }
 
   /**
@@ -325,6 +359,7 @@ export class ExteriorWorld {
   }
 
   variableUpdate(dt: number, eye: readonly [number, number, number], _zone: ZoneId, reducedMotion = false): void {
+    if (!reducedMotion) landscapeClock.value = (landscapeClock.value + Math.min(dt, 0.1)) % 4096;
     this.wildlife.update(dt, eye, reducedMotion);
     this.signatureFeatures.update(dt, reducedMotion);
     this.ticketKiosk.update(dt);

@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { landscapeDetail } from './LandscapeShading';
+import { bakeEnvironment, type EnvironmentKind } from './MuseumEnvironments';
 import { QUALITY, type QualitySettings, type QualityTier } from './QualityTiers';
 
 /** Active visitor camera far plane (m); safely encloses the 850 m sky dome and distant horizon islands. */
@@ -21,7 +23,8 @@ export class RendererHost {
   private disposed = false;
   private environmentWarmupStarted = false;
   private environmentWarmupPromise: Promise<void> | null = null;
-  private environmentTarget: THREE.WebGLRenderTarget | null = null;
+  private readonly environmentTargets = new Map<EnvironmentKind, THREE.WebGLRenderTarget>();
+  private environmentKind: EnvironmentKind = 'night';
   readonly warmTelemetry = {
     objects: 0, textures: 0, lastTextureInitCpuMs: 0, lastCompileWallMs: 0,
     /** Whole-world warm-ups: shader variants compiled one at a time, then geometry uploaded in batches. */
@@ -52,6 +55,7 @@ export class RendererHost {
   constructor(canvas: HTMLCanvasElement, tier: QualityTier) {
     this.canvas = canvas;
     this.settings = QUALITY[tier];
+    landscapeDetail.value = tier === 'low' ? 0 : 1;
 
     this.renderer = new THREE.WebGLRenderer({
       canvas,
@@ -68,9 +72,24 @@ export class RendererHost {
     this.scene.name = 'museum';
     this.scene.fog = new THREE.FogExp2(0x08121e, 0.00155);
 
-    // PBR environment quality is preserved, but its addon parse + PMREM bake
-    // are deferred until after the first frame so startup is not blocked by it.
-    this.scene.environmentIntensity = 0.42;
+    this.scene.environmentIntensity = ENVIRONMENT_INTENSITY.night;
+    // The light rooms are small procedural scenes (no add-on to fetch or parse),
+    // so the visitor's room is baked before anything compiles: every lit
+    // program is then built once, with its final environment, instead of once
+    // without it and again in a second wave when a deferred environment lands.
+    // If the bake fails, the deferred warm-up below remains the fallback.
+    try {
+      this.environmentTarget(this.environmentKind);
+      this.environmentReady = true;
+      this.environmentWarmupStarted = true;
+      this.environmentWarmupPromise = Promise.resolve();
+      this.applyEnvironment();
+    } catch (error) {
+      console.error('[RendererHost] environment bake failed; deferring', error);
+      this.environmentReady = false;
+      this.environmentWarmupStarted = false;
+      this.environmentWarmupPromise = null;
+    }
 
     this.camera = new THREE.PerspectiveCamera(65, 1, 0.1, CAMERA_FAR);
     this.camera.name = 'visitor-camera';
@@ -91,6 +110,7 @@ export class RendererHost {
 
   setQuality(tier: QualityTier): void {
     this.settings = QUALITY[tier];
+    landscapeDetail.value = tier === 'low' ? 0 : 1;
     this.resolutionScale = 1;
     this.applyShadowSettings();
     this.resize();
@@ -134,18 +154,11 @@ export class RendererHost {
     this.environmentWarmupStarted = true;
     this.environmentWarmupPromise = (async () => {
       try {
-        const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js');
-        if (this.disposed) return;
-        const room = new RoomEnvironment();
-        const pmrem = new THREE.PMREMGenerator(this.renderer);
-        const target = pmrem.fromScene(room, 0.04);
-        room.dispose();
-        pmrem.dispose();
-        if (this.disposed) {
-          target.dispose();
-          return;
-        }
-        this.environmentTarget = target;
+        // Bake only the room the visitor is in. The other is baked the first
+        // time it is asked for (applyEnvironment); both share one PMREM size,
+        // so that later bake is a texture swap and never a shader recompile.
+        const target = this.environmentTarget(this.environmentKind);
+        if (this.disposed) { this.releaseEnvironments(); return; }
         // Switching scene.environment changes the shader variant of every lit
         // material, so assigning it straight away recompiled the whole visible
         // world inside one frame (~0.75 s on an M1). Compile the new variants in
@@ -153,12 +166,43 @@ export class RendererHost {
         // call, so visible frames keep their existing programs until then.
         await this.precompileWithEnvironment(target.texture);
         if (this.disposed) return;
-        this.scene.environment = target.texture;
+        this.environmentReady = true;
+        this.applyEnvironment();
       } catch (error) {
         console.error('[RendererHost] deferred environment warmup failed', error);
       }
     })();
     return this.environmentWarmupPromise;
+  }
+
+  private environmentReady = false;
+
+  /** Which light room reflections and ambient light come from. Cheap to call every frame. */
+  setEnvironmentKind(kind: EnvironmentKind): void {
+    if (kind === this.environmentKind) return;
+    this.environmentKind = kind;
+    this.applyEnvironment();
+  }
+
+  private environmentTarget(kind: EnvironmentKind): THREE.WebGLRenderTarget {
+    let target = this.environmentTargets.get(kind);
+    if (!target) {
+      target = bakeEnvironment(this.renderer, kind);
+      this.environmentTargets.set(kind, target);
+    }
+    return target;
+  }
+
+  private applyEnvironment(): void {
+    if (!this.environmentReady || this.disposed) return;
+    const target = this.environmentTarget(this.environmentKind);
+    this.scene.environment = target.texture;
+    this.scene.environmentIntensity = ENVIRONMENT_INTENSITY[this.environmentKind];
+  }
+
+  private releaseEnvironments(): void {
+    for (const target of this.environmentTargets.values()) target.dispose();
+    this.environmentTargets.clear();
   }
 
   private async precompileWithEnvironment(environment: THREE.Texture): Promise<void> {
@@ -473,11 +517,12 @@ export class RendererHost {
     this.canvas.removeEventListener('webglcontextlost', this.onContextLost);
     this.canvas.removeEventListener('webglcontextrestored', this.onContextRestored);
     this.scene.environment = null;
-    this.environmentTarget?.dispose();
-    this.environmentTarget = null;
+    this.releaseEnvironments();
     this.renderer.dispose();
   }
 }
+
+const ENVIRONMENT_INTENSITY: Readonly<Record<EnvironmentKind, number>> = { gallery: 0.58, night: 0.72 };
 
 const UPLOAD_BYTES_PER_FRAME = 400_000;
 

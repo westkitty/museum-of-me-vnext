@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { softenBeam } from '../../render/SoftLight';
 import { ResourceScope } from '../../assets/ResourceScope';
 import { createTextTexture, createFallbackTexture, canRenderText } from '../../assets/TextTexture';
 import { SANCTUARY_CENTER, SANCTUARY_FLOOR_Y, SANCTUARY_RADIUS, SANCTUARY_HEIGHT, SANCTUARY_DIR, rightOf, add } from '../../world/layout';
@@ -62,10 +63,10 @@ export class DexterSanctuary {
     // ── light: one shaft from the oculus, and nothing else ──
     const shaft = new THREE.Mesh(
       this.scope.track(new THREE.CylinderGeometry(1.5, 2.6, SANCTUARY_HEIGHT - 0.6, 24, 1, true)),
-      this.scope.track(new THREE.MeshBasicMaterial({
+      softenBeam(this.scope.track(new THREE.MeshBasicMaterial({
         color: 0xf6ecd8, transparent: true, opacity: 0.055,
         side: THREE.DoubleSide, depthWrite: false,
-      })),
+      })), 6.5, 'top'),
     );
     shaft.position.y = (SANCTUARY_HEIGHT - 0.6) / 2 + 0.4;
     this.group.add(shaft);

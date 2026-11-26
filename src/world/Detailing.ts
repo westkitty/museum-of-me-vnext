@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { PaletteSet } from './palette';
 import { architecturalStoneFinish } from './SurfaceFinish';
+import { applyArchitecturalFinish } from '../render/ArchitecturalShading';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { buildWingSign, textMaterial } from '../exhibits/Furniture';
 import { canRenderText, createFallbackTexture } from '../assets/TextTexture';
@@ -481,6 +482,7 @@ export class Detailing {
       color: runnerColor, roughness: 0.72, metalness: 0.12,
       map: finish, roughnessMap: finish,
     }));
+    applyArchitecturalFinish(runnerMat, wing.id, (p.accent as THREE.MeshStandardMaterial).color, 'runner');
     const runner = new THREE.Mesh(
       this.scope.track(new THREE.BoxGeometry(runnerLength, 0.02, runnerWidth)),
       runnerMat,

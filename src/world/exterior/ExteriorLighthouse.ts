@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { softenBeam } from '../../render/SoftLight';
+import { applyLandscape } from '../../render/LandscapeShading';
 import type { ResourceScope } from '../../assets/ResourceScope';
 import type { CollisionWorld } from '../CollisionWorld';
 import type { ExhibitControl } from '../../exhibits/contract';
@@ -55,28 +57,28 @@ export class ExteriorLighthouse {
     const [tx, , tz] = LIGHTHOUSE_PENINSULA_CENTER;
     const s = this.scope;
 
-    const basaltMat = s.track(new THREE.MeshStandardMaterial({
+    const basaltMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0x263138, roughness: 0.94, metalness: 0.04, flatShading: true,
-    }));
-    const slateMat = s.track(new THREE.MeshStandardMaterial({
+    })), 'rock');
+    const slateMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0x38454f, roughness: 0.86, metalness: 0.08,
       emissive: 0x101820, emissiveIntensity: 0.16,
-    }));
-    const stoneMat = s.track(new THREE.MeshStandardMaterial({
+    })), 'paving');
+    const stoneMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0x8f948c, roughness: 0.86, metalness: 0.03,
       emissive: 0x1a222b, emissiveIntensity: 0.24,
-    }));
-    const creamMat = s.track(new THREE.MeshStandardMaterial({
+    })), 'paving');
+    const creamMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0xd9d4c4, roughness: 0.78, metalness: 0.02,
       emissive: 0x1a1e24, emissiveIntensity: 0.18,
-    }));
-    const treadMat = s.track(new THREE.MeshStandardMaterial({
+    })), 'paving');
+    const treadMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0x6f746d, roughness: 0.82, metalness: 0.05,
       emissive: 0x181f27, emissiveIntensity: 0.26,
-    }));
-    const trailMat = s.track(new THREE.MeshStandardMaterial({
+    })), 'paving');
+    const trailMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0x998e77, roughness: 0.92, metalness: 0.02,
-    }));
+    })), 'gravel');
     const brassMat = s.track(new THREE.MeshStandardMaterial({
       color: 0xc9a14e, roughness: 0.34, metalness: 0.82,
       emissive: 0x2b1d08, emissiveIntensity: 0.18,
@@ -115,11 +117,11 @@ export class ExteriorLighthouse {
     }
     const beamMap = s.track(new THREE.DataTexture(beamTexData, 1, 64, THREE.RGBAFormat));
     beamMap.needsUpdate = true;
-    const beamMat = s.track(new THREE.MeshBasicMaterial({
+    const beamMat = softenBeam(s.track(new THREE.MeshBasicMaterial({
       color: 0xffffff, map: beamMap, transparent: true, opacity: 0.22,
       blending: THREE.AdditiveBlending, depthWrite: false,
       side: THREE.DoubleSide, toneMapped: false,
-    }));
+    })), 1.9, 'top');
 
     this.buildApproachTrail(trailMat, slateMat, amberGlowMat);
     this.buildHeadlandAndRamp(tx, tz, basaltMat, slateMat, treadMat, amberGlowMat);

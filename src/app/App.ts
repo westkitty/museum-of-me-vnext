@@ -33,6 +33,7 @@ import { Lighting } from '../render/Lighting';
 import { AtmosphereDirector } from '../render/AtmosphereDirector';
 import { InputManager, touchLookGain } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
+import { CameraFeel } from '../player/CameraFeel';
 import { zoneAtXYZ, ZONE_BY_ID, isOnFlightPad, exteriorLocationLabel, EXTERIOR_PLAZA_LABEL, ENTRANCE_PORTAL_Z, type ZoneId } from '../world/layout';
 import { TICKET_KIOSK_ID } from '../world/exterior/TicketKiosk';
 import { LIGHTHOUSE_LENS_ID } from '../world/exterior/ExteriorLighthouse';
@@ -104,6 +105,7 @@ export class App implements LoopCallbacks {
   readonly atmosphere: AtmosphereDirector;
   readonly input: InputManager;
   readonly player: PlayerController;
+  private readonly cameraFeel = new CameraFeel();
   readonly interaction = new InteractionManager();
   readonly audio = new AudioManager();
   /** Hidden things to find; saved on this device. */
@@ -807,9 +809,19 @@ export class App implements LoopCallbacks {
       this.preferences.invertY,
     );
 
+    // Weight for the museum's own camera only; pocket worlds own theirs.
+    this.cameraFeel.update(dt, {
+      velocity: this.player.velocity,
+      yaw: this.player.yaw,
+      grounded: this.player.grounded,
+      enabled: !this.preferences.reducedMotion && !this.pocketHost.isActive && !this.player.flightMode
+        && !this.player.developerFlightMode && !this.player.isSeated && !this.player.isFrozen && !this.input.uiCaptured,
+    });
     this.ui?.pocketTransition.update(dt);
     this.audio.update(dt);
     if (this.pocketHost.isActive) {
+      // Pocket worlds keep the order they were authored against.
+      this.sky.mesh.renderOrder = -1;
       if (this.pocketHost.usesMuseumSky) this.sky.follow(this.camera);
       this.interaction.update(this.camera, dt);
       this.pocketHost.variableUpdate(dt, this.player.writeEyePosition(this.eyePositionScratch));
@@ -863,6 +875,7 @@ export class App implements LoopCallbacks {
     this.updateTicketCard();
 
     this.lighting.update(eye);
+    this.renderer.setEnvironmentKind(this.isOutside ? 'night' : 'gallery');
 
     this.diagnostics.stats.activeExhibits = this.streaming?.telemetry.active ?? 0;
     this.diagnostics.stats.streamingResident = this.streaming?.telemetry.resident ?? 0;
@@ -888,6 +901,8 @@ export class App implements LoopCallbacks {
     if (targetBeforeUpdate && !this.wayfinding.currentTarget) this.ui.clearGuideOnArrival(targetBeforeUpdate);
     this.arrivalGarden.update(dt, this.preferences.reducedMotion);
     this.sky.follow(this.camera);
+    // Last of the opaque draws: the sky shader runs only where the sky shows.
+    this.sky.mesh.renderOrder = 1;
 
     this.ui?.update(dt);
     this.input.endFrame();
@@ -912,6 +927,7 @@ export class App implements LoopCallbacks {
 
   render(alpha: number): void {
     this.player.applyToCamera(this.camera, alpha);
+    this.cameraFeel.apply(this.camera);
     if (this.cinematicArrivalEnabled && !this.cinematicArrivalEntered
       && !this.cinematicCameraCancelled && !this.preferences.reducedMotion
       && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {

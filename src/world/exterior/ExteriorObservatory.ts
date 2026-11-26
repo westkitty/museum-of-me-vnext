@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { applyLandscape } from '../../render/LandscapeShading';
 import type { ResourceScope } from '../../assets/ResourceScope';
 import type { CollisionWorld } from '../CollisionWorld';
 import type { ExhibitControl } from '../../exhibits/contract';
@@ -49,20 +50,20 @@ export class ExteriorObservatory {
     const [ox, , oz] = OBSERVATORY_CENTER;
     const s = this.scope;
 
-    const stoneMat = s.track(new THREE.MeshStandardMaterial({
+    const stoneMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0x6f7572, roughness: 0.9, metalness: 0.04,
       emissive: 0x161d24, emissiveIntensity: 0.22,
-    }));
-    const darkStoneMat = s.track(new THREE.MeshStandardMaterial({
+    })), 'paving');
+    const darkStoneMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0x3b4449, roughness: 0.92, metalness: 0.06,
       emissive: 0x0f151b, emissiveIntensity: 0.18,
-    }));
-    const mossHillMat = s.track(new THREE.MeshStandardMaterial({
+    })), 'paving');
+    const mossHillMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0x264133, roughness: 0.96, metalness: 0, flatShading: true,
-    }));
-    const trailMat = s.track(new THREE.MeshStandardMaterial({
+    })), 'grass');
+    const trailMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0x8f8772, roughness: 0.92, metalness: 0.02,
-    }));
+    })), 'gravel');
     const bronzeMat = s.track(new THREE.MeshStandardMaterial({
       color: 0x9f7e4b, roughness: 0.4, metalness: 0.78,
       emissive: 0x241907, emissiveIntensity: 0.22,
