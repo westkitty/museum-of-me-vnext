@@ -18,7 +18,7 @@ function atmosphere(color: number, near: number, far: number, exposure: number):
 }
 
 const LOOKS: Record<ZoneId, Atmosphere> = {
-  plaza: atmosphere(0x17304b, 62, 300, 1.16),
+  plaza: atmosphere(0x17304b, 62, 300, 1.04),
   rotunda: atmosphere(0x343743, 95, 315, 1.02),
   balcony: atmosphere(0x343743, 95, 315, 1.02),
   north: atmosphere(0x081f36, 60, 210, 1.02),
@@ -27,7 +27,7 @@ const LOOKS: Record<ZoneId, Atmosphere> = {
   west: atmosphere(0x302339, 65, 215, 1.01),
   media: atmosphere(0x473323, 70, 225, 1.0),
   infra: atmosphere(0x24372a, 65, 215, 1.01),
-  sanctuary: atmosphere(0x211e24, 50, 175, 1.14),
+  sanctuary: atmosphere(0x211e24, 50, 175, 1.04),
   cinema: atmosphere(0x0a0f1d, 80, 260, 1.0),
 };
 

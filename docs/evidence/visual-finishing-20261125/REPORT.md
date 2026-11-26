@@ -45,7 +45,7 @@ Draw calls are within +33 of baseline in every view (largest: far north hall 1,7
 Shader programs: the first build of this pass compiled 109 programs at the arrival (baseline 69), and on software WebGL (SwiftShader, the CI browser) the second compile wave, when the deferred environment arrived, took about 30 s and timed out a screenshot in `island-landscape.e2e.ts`. Two fixes, measured at the arrival under SwiftShader:
 
 - The six ground kinds of the landscape finish share one program and pick their branch from a per-material uniform; foliage keeps its own program, so its edge `discard` never reaches ground surfaces.
-- The night light room is baked in the `RendererHost` constructor (it is a small procedural scene; there is no add-on to fetch any more), so every lit program is compiled once with its final environment rather than once without it and again with it. The gallery room is baked the first time the gallery environment is requested. If the bake throws, the original deferred warm-up still runs.
+- Both light rooms are baked in the `RendererHost` constructor (small procedural scenes; there is no add-on to fetch any more), so every lit program is compiled once with its final environment rather than once without it and again with it, and switching worlds allocates no texture (`impossible-threshold.e2e.ts` holds the texture count across 15 switches). If the bake throws, the original deferred warm-up still runs.
 
 Result: 59 programs at the arrival (baseline 69), no second compile wave (the step that took 16 s on the baseline and 27–32 s on the first build now takes about 1 s).
 
@@ -55,6 +55,7 @@ Result: 59 programs at the arrival (baseline 69), no second compile wave (the st
 - New unit tests: `tests/camera-feel.test.ts`, `tests/visual-finish.test.ts`.
 - One existing contract was honoured rather than changed: architectural glass opacity stays 0.34.
 - Focused browser suites, local headless Chrome on SwiftShader (the project's own launch flags): `museum`, `continuity-uplift`, `pocket-world`, `quality-transitions`, `island-landscape`, `exterior-architecture`, `stability`: 22 of 22 pass. `island-landscape` passes alone (1.3 min); with two workers on a machine at load average 7 it hit its 120 s limit once. `visual-regression` skips off Linux.
+- CI Pages run 45727308278 failed two contracts, both fixed: plaza and Sanctuary exposure had been raised to 1.16 and 1.14, above the art-direction range of 0.98–1.04 (now 1.04); a lazily baked gallery room added one texture on the first interior entry (now baked at startup). `art-direction`, `impossible-threshold`, `island-landscape` and `museum` then passed locally, 18 of 18.
 - Fixed during this run: the panel settle animation started at 98.8 % scale, so a 390 px phone panel measured 385 px mid-animation. It now only slides.
 
 ## Known limits

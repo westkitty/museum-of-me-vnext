@@ -74,12 +74,13 @@ export class RendererHost {
 
     this.scene.environmentIntensity = ENVIRONMENT_INTENSITY.night;
     // The light rooms are small procedural scenes (no add-on to fetch or parse),
-    // so the visitor's room is baked before anything compiles: every lit
-    // program is then built once, with its final environment, instead of once
-    // without it and again in a second wave when a deferred environment lands.
-    // If the bake fails, the deferred warm-up below remains the fallback.
+    // so both are baked before anything compiles: every lit program is then
+    // built once, with its final environment, instead of once without it and
+    // again in a second wave when a deferred environment lands, and a world
+    // change never allocates a texture. If the bake fails, the deferred
+    // warm-up below remains the fallback.
     try {
-      this.environmentTarget(this.environmentKind);
+      for (const kind of ['night', 'gallery'] as const) this.environmentTarget(kind);
       this.environmentReady = true;
       this.environmentWarmupStarted = true;
       this.environmentWarmupPromise = Promise.resolve();
