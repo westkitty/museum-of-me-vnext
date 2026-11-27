@@ -1,0 +1,9 @@
+v5-1 load 7.45 idleO20 4 walkP99 50.1 walkO20 41 int 11 ren 9 other 21
+cand-1 load 11.76 idleO20 0 walkP99 16.8 walkO20 5 int 4 ren 1 other 0
+v5-2 load 8.30 idleO20 0 walkP99 33.3 walkO20 7 int 6 ren 1 other 0
+cand-2 load 6.87 idleO20 1 walkP99 16.8 walkO20 4 int 2 ren 2 other 0
+v5-3 load 5.92 idleO20 0 walkP99 33.3 walkO20 7 int 6 ren 1 other 0
+cand-3 load 5.01 idleO20 10 walkP99 16.8 walkO20 5 int 2 ren 1 other 2
+v5-4 load 5.45 idleO20 24 walkP99 50.1 walkO20 24 int 12 ren 6 other 6
+cand-4 load 6.68 idleO20 4 walkP99 16.8 walkO20 2 int 2 ren 0 other 0
+DONE

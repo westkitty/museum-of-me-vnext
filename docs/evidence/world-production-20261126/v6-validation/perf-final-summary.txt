@@ -1,0 +1,8 @@
+run 1 start 01:26:04 load { 5.29 6.69 6.36 }
+run 1: perf budgets: FAIL (8) 3 pass / 12 budgets; cold-start 2991 ms;exterior-idle-p99 33.4 ms;exterior-walk-p99 50.1 ms;exterior-walk-fps 52.4 fps;exterior-after-return-p99 100 ms;workshop-2000-p99 33.4 ms;workshop-2000-sweep-p99 33.4 ms;second-entry-worst-frame 83 ms
+run 2 start 01:30:24 load { 26.68 19.34 12.08 }
+run 2: perf budgets: FAIL (7) 4 pass / 12 budgets; cold-start 2391 ms;exterior-idle-p99 33.4 ms;exterior-walk-p99 33.4 ms;exterior-after-return-p99 33.4 ms;workshop-2000-p99 33.4 ms;workshop-2000-sweep-p99 50 ms;second-entry-worst-frame 217 ms
+run 3 start 01:35:19 load { 25.77 32.01 20.42 }
+run 3: perf budgets: FAIL (6) 5 pass / 12 budgets; exterior-idle-p99 33.4 ms;exterior-walk-p99 33.3 ms;exterior-after-return-p99 33.3 ms;workshop-2000-p99 50 ms;workshop-2000-sweep-p99 50.1 ms;second-entry-worst-frame 133 ms
+run 4 start 01:41:33 load { 6.98 17.38 17.65 }
+run 4: perf budgets: FAIL (5) 6 pass / 12; exterior-idle-p99 50 ms;exterior-walk-p99 66.6 ms;exterior-walk-fps 50.1 fps;exterior-after-return-p99 33.3 ms;second-entry-worst-frame 150 ms | end load { 5.54 14.12 16.44 }

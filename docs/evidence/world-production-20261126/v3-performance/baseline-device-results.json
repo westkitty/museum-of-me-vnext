@@ -1,0 +1,295 @@
+{
+  "gpu": {
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Unspecified Version)",
+    "vendor": "Google Inc. (Apple)",
+    "dpr": 1,
+    "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36"
+  },
+  "exteriorIdleAtSpawn": {
+    "frames": {
+      "frames": 590,
+      "fps": 59.1,
+      "p50": 16.7,
+      "p95": 18.4,
+      "p99": 33.4,
+      "max": 35.2,
+      "over33ms": 6,
+      "over50ms": 0
+    },
+    "memory": {
+      "jsHeapUsedMB": 31,
+      "jsHeapTotalMB": 59.8,
+      "domNodes": 760,
+      "geometries": 870,
+      "textures": 29,
+      "programs": 59,
+      "calls": 1252,
+      "triangles": 220707
+    },
+    "quality": null
+  },
+  "exteriorWalkingPath1": {
+    "frames": {
+      "frames": 573,
+      "fps": 57.3,
+      "p50": 16.7,
+      "p95": 18.6,
+      "p99": 35.4,
+      "max": 83.6,
+      "over33ms": 9,
+      "over50ms": 5
+    },
+    "memory": {
+      "jsHeapUsedMB": 49,
+      "jsHeapTotalMB": 99.7,
+      "domNodes": 849,
+      "geometries": 1989,
+      "textures": 135,
+      "programs": 78,
+      "calls": 494,
+      "triangles": 172141
+    }
+  },
+  "interiorAfterEntry": {
+    "prepareInteriorMs": 0,
+    "commitSyncMs": 1,
+    "activeWorld": "interior",
+    "first5s": {
+      "frames": 294,
+      "fps": 58.9,
+      "p50": 16.7,
+      "p95": 18.6,
+      "p99": 33.4,
+      "max": 33.4,
+      "over33ms": 2,
+      "over50ms": 0
+    },
+    "memory": {
+      "jsHeapUsedMB": 60.2,
+      "jsHeapTotalMB": 109.4,
+      "domNodes": 861,
+      "geometries": 2155,
+      "textures": 191,
+      "programs": 82,
+      "calls": 765,
+      "triangles": 104858
+    }
+  },
+  "interiorSteady": {
+    "frames": {
+      "frames": 597,
+      "fps": 59.9,
+      "p50": 16.7,
+      "p95": 18.5,
+      "p99": 18.7,
+      "max": 18.7,
+      "over33ms": 0,
+      "over50ms": 0
+    },
+    "memory": {
+      "jsHeapUsedMB": 68.2,
+      "jsHeapTotalMB": 110.4,
+      "domNodes": 861,
+      "geometries": 2155,
+      "textures": 191,
+      "programs": 82,
+      "calls": 765,
+      "triangles": 104858
+    }
+  },
+  "exteriorAfterReturn": {
+    "activeWorld": "exterior",
+    "first5s": {
+      "frames": 298,
+      "fps": 59.7,
+      "p50": 16.7,
+      "p95": 18.6,
+      "p99": 18.7,
+      "max": 34.4,
+      "over33ms": 1,
+      "over50ms": 0
+    },
+    "memory": {
+      "jsHeapUsedMB": 62.6,
+      "jsHeapTotalMB": 112.9,
+      "domNodes": 866,
+      "geometries": 2155,
+      "textures": 189,
+      "programs": 82,
+      "calls": 532,
+      "triangles": 191171
+    }
+  },
+  "fiveRoundTrips": [
+    {
+      "jsHeapUsedMB": 78.3,
+      "jsHeapTotalMB": 114.9,
+      "domNodes": 880,
+      "geometries": 2155,
+      "textures": 189,
+      "programs": 82,
+      "calls": 532,
+      "triangles": 191171
+    },
+    {
+      "jsHeapUsedMB": 69.9,
+      "jsHeapTotalMB": 115.7,
+      "domNodes": 894,
+      "geometries": 2155,
+      "textures": 189,
+      "programs": 82,
+      "calls": 532,
+      "triangles": 191171
+    },
+    {
+      "jsHeapUsedMB": 61.1,
+      "jsHeapTotalMB": 117.4,
+      "domNodes": 908,
+      "geometries": 2155,
+      "textures": 189,
+      "programs": 82,
+      "calls": 532,
+      "triangles": 191171
+    },
+    {
+      "jsHeapUsedMB": 58.4,
+      "jsHeapTotalMB": 117.2,
+      "domNodes": 862,
+      "geometries": 2155,
+      "textures": 189,
+      "programs": 82,
+      "calls": 534,
+      "triangles": 191207
+    },
+    {
+      "jsHeapUsedMB": 50.2,
+      "jsHeapTotalMB": 117.2,
+      "domNodes": 876,
+      "geometries": 2155,
+      "textures": 189,
+      "programs": 82,
+      "calls": 534,
+      "triangles": 191207
+    }
+  ],
+  "coldStartsProduction": [
+    {
+      "run": 1,
+      "appRenderingFramesMs": 1603,
+      "domContentLoadedMs": 243,
+      "loadEventMs": 252,
+      "firstContentfulPaintMs": 200,
+      "transferKB": 740,
+      "errors": 0
+    },
+    {
+      "run": 2,
+      "appRenderingFramesMs": 1211,
+      "domContentLoadedMs": 148,
+      "loadEventMs": 154,
+      "firstContentfulPaintMs": 92,
+      "transferKB": 740,
+      "errors": 0
+    },
+    {
+      "run": 3,
+      "appRenderingFramesMs": 1341,
+      "domContentLoadedMs": 252,
+      "loadEventMs": 261,
+      "firstContentfulPaintMs": 96,
+      "transferKB": 740,
+      "errors": 0
+    }
+  ],
+  "workshop2000": {
+    "mode": "vite dev server (unminified, local Workshop only)",
+    "baseline": {
+      "frames": {
+        "frames": 398,
+        "fps": 49.7,
+        "p50": 16.7,
+        "p95": 33.5,
+        "p99": 34.1,
+        "max": 35.4,
+        "over33ms": 30,
+        "over50ms": 0
+      },
+      "memory": {
+        "jsHeapUsedMB": 60.2,
+        "jsHeapTotalMB": 112.9,
+        "domNodes": 3311,
+        "geometries": 2011,
+        "textures": 134,
+        "programs": 79,
+        "calls": 1253,
+        "triangles": 220719
+      }
+    },
+    "load": {
+      "saved": 2000,
+      "records": 2000,
+      "liveAfterLoad": 0,
+      "replaceMs": 23
+    },
+    "after": {
+      "frames": {
+        "frames": 597,
+        "fps": 59.8,
+        "p50": 16.7,
+        "p95": 18.4,
+        "p99": 18.7,
+        "max": 31.9,
+        "over33ms": 0,
+        "over50ms": 0
+      },
+      "memory": {
+        "jsHeapUsedMB": 82.1,
+        "jsHeapTotalMB": 127.6,
+        "domNodes": 3380,
+        "geometries": 2345,
+        "textures": 135,
+        "programs": 81,
+        "calls": 690,
+        "triangles": 185127
+      },
+      "live": 384
+    },
+    "residencySweep": {
+      "frames": {
+        "frames": 718,
+        "fps": 59.9,
+        "p50": 16.7,
+        "p95": 18.5,
+        "p99": 18.7,
+        "max": 18.7,
+        "over33ms": 0,
+        "over50ms": 0
+      },
+      "memory": {
+        "jsHeapUsedMB": 104.9,
+        "jsHeapTotalMB": 167.9,
+        "domNodes": 3562,
+        "geometries": 2563,
+        "textures": 135,
+        "programs": 81,
+        "calls": 466,
+        "triangles": 165571
+      },
+      "live": 384
+    },
+    "afterClearing": {
+      "objects": 0,
+      "memory": {
+        "jsHeapUsedMB": 105,
+        "jsHeapTotalMB": 167.9,
+        "domNodes": 3562,
+        "geometries": 2127,
+        "textures": 135,
+        "programs": 81,
+        "calls": 328,
+        "triangles": 158979
+      }
+    },
+    "pageErrors": []
+  }
+}
