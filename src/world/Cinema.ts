@@ -1,3 +1,4 @@
+import { runStepsSync, type BuildSteps } from '../util/buildSteps';
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { canRenderText, createFallbackTexture, createTextTexture, type TextTextureOptions } from '../assets/TextTexture';
@@ -94,6 +95,19 @@ export function buildCinemaArchitecture(
   group: THREE.Group,
   programmeLines: readonly string[],
 ): CinemaArchitecture {
+  return runStepsSync(buildCinemaArchitectureSteps(scope, collision, group, programmeLines));
+}
+
+/**
+ * The same construction, split at section boundaries so the cooperative
+ * interior build can hand frames back (see `src/util/buildSteps.ts`).
+ */
+export function* buildCinemaArchitectureSteps(
+  scope: ResourceScope,
+  collision: CollisionWorld,
+  group: THREE.Group,
+  programmeLines: readonly string[],
+): BuildSteps<CinemaArchitecture> {
   const kit = new GeometryKit(scope, collision, group);
   const house = new HouseLights();
   const std = (color: number, roughness = 0.8, metalness = 0, dim = true) => {
@@ -125,7 +139,9 @@ export function buildCinemaArchitecture(
   // Always-on safety lighting: aisle steps, exit route, exit signs.
   const stepGlow = basic(0x9fd4ff);
   const exitRunGlow = basic(0x3fbf7f);
+  yield;
 
+  yield;
   // ── Threshold, balcony side ──────────────────────────────────────────────
   // The drum's east face is opened by Museum.buildRotunda (CINEMA_THRESHOLD_*).
   // Here: a bronze proscenium frame and a lit marquee that read from across
@@ -185,6 +201,7 @@ export function buildCinemaArchitecture(
   kit.slab(ROTUNDA_APOTHEM, LOBBY.minX, -halfOpen - 0.1, halfOpen + 0.1, CINEMA_ENTRY_Y + 0.02, 0.4, mat.lobbyFloor)
     .name = 'cinema-threshold-floor';
 
+  yield;
   // ── Lobby ────────────────────────────────────────────────────────────────
   const lobbyLow = kit.slab(LOBBY.minX, LOBBY.rampFromX, LOBBY.minZ, LOBBY.maxZ, CINEMA_ENTRY_Y, 0.4, mat.lobbyFloor);
   lobbyLow.name = 'cinema-lobby-floor';
@@ -285,6 +302,7 @@ export function buildCinemaArchitecture(
   // drape there stood in the passage's walking width.)
   kit.prop([LOBBY.maxX - 0.05, CINEMA_FLOOR_Y + 1.9, ENTRY_DOOR.minZ - 0.25], [0.05, 1.9, 0.24], mat.velvet);
 
+  yield;
   // ── Front wall (lobby | auditorium), with the entry and exit doors ───────
   const frontX = LOBBY.maxX + WALL_T / 2;
   const frontWall = (z0: number, z1: number, base: number, height: number) =>
@@ -301,6 +319,7 @@ export function buildCinemaArchitecture(
     kit.prop([frontX, CINEMA_FLOOR_Y + door.height + 0.06, (door.minZ + door.maxZ) / 2], [WALL_T / 2 + 0.05, 0.06, (door.maxZ - door.minZ) / 2 + 0.06], mat.trim);
   }
 
+  yield;
   // ── Exit passage behind the screen ───────────────────────────────────────
   kit.slab(EXIT_PASSAGE.minX, EXIT_PASSAGE.maxX, LOBBY.maxZ, EXIT_PASSAGE.maxZ + WALL_T, CINEMA_FLOOR_Y, CINEMA_FLOOR_Y - SLAB_BASE_Y, mat.lobbyFloor);
   const passageTop = CINEMA_FLOOR_Y + 3.8;
@@ -312,6 +331,7 @@ export function buildCinemaArchitecture(
   exitRun.position.set(EXIT_PASSAGE.minX + 0.08, CINEMA_FLOOR_Y + 0.12, (LOBBY.maxZ + EXIT_PASSAGE.maxZ) / 2);
   group.add(exitRun);
 
+  yield;
   // ── Auditorium shell ─────────────────────────────────────────────────────
   const { minX, maxX, minZ, maxZ, ceilingY } = AUDITORIUM;
   const fullHeight = AUD_WALL_TOP - SLAB_BASE_Y;
@@ -405,6 +425,7 @@ export function buildCinemaArchitecture(
     kit.prop([x, ceilingY - 0.5, (minZ + maxZ) / 2], [1.4, 0.08, (maxZ - minZ) / 2 - 1.4], mat.fabric);
   }
 
+  yield;
   // ── Screen ──────────────────────────────────────────────────────────────
   // A bronze-edged frame, a dead-black masked field, a shallow apron in front.
   kit.prop([minX + 0.1, SCREEN.bottomY + SCREEN.height / 2, SCREEN.centerZ], [0.1, SCREEN.height / 2 + 0.28, SCREEN.width / 2 + 0.28], mat.trim);
@@ -449,6 +470,7 @@ export function buildCinemaArchitecture(
   beam.visible = false;
   group.add(beam);
 
+  yield;
   // ── Projection booth behind the rear wall ───────────────────────────────
   const boothTop = BOOTH.floorY + BOOTH.height;
   kit.box([(BOOTH.minX + BOOTH.maxX) / 2, (SLAB_BASE_Y + BOOTH.floorY) / 2, (BOOTH.minZ + BOOTH.maxZ) / 2], [(BOOTH.maxX - BOOTH.minX) / 2, (BOOTH.floorY - SLAB_BASE_Y) / 2, (BOOTH.maxZ - BOOTH.minZ) / 2], mat.booth);
@@ -467,6 +489,7 @@ export function buildCinemaArchitecture(
   boothLamp.position.set(BOOTH.maxX - 0.3, boothTop - 0.2, (BOOTH.minZ + BOOTH.maxZ) / 2);
   group.add(boothLamp);
 
+  yield;
   // ── Exit signs (always lit) ─────────────────────────────────────────────
   const exitMaterials = new Map<string, THREE.MeshBasicMaterial>();
   const exitSign = (position: Vec3, rotationY: number, arrow: string) => {
@@ -486,11 +509,17 @@ export function buildCinemaArchitecture(
     group.add(sign);
   };
   exitSign([minX + 0.04, CINEMA_FLOOR_Y + ENTRY_DOOR.height + 0.45, (ENTRY_DOOR.minZ + ENTRY_DOOR.maxZ) / 2], Math.PI / 2, '');
+  yield;
   exitSign([minX + 0.04, CINEMA_FLOOR_Y + EXIT_DOOR.height + 0.45, (EXIT_DOOR.minZ + EXIT_DOOR.maxZ) / 2], Math.PI / 2, '');
+  yield;
   exitSign([REAR_PLATFORM.minX + 0.6, REAR_PLATFORM.y + 2.6, minZ + 0.05], 0, '');
+  yield;
   exitSign([EXIT_PASSAGE.maxX - 0.05, CINEMA_FLOOR_Y + 2.6, 14], -Math.PI / 2, '');
+  yield;
   exitSign([LOBBY.minX + 0.6, CINEMA_ENTRY_Y + 3.4, LOBBY.maxZ - 0.05], Math.PI, '→ Rotunda');
+  yield;
 
+  yield;
   // ── Seats: three instanced parts, one row collider per block ────────────
   const seatGroup = new THREE.Group();
   seatGroup.name = 'cinema-seats';

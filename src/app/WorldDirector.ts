@@ -291,7 +291,7 @@ export class WorldDirector {
   }
 
   private canStartPocket(): boolean {
-    return !this.isCommitting && (this.phase === 'EXTERIOR_ACTIVE' || this.phase === 'AT_THRESHOLD'
+    return !this.isCommitting && (this.phase === 'EXTERIOR_ACTIVE' || this.phase === 'PREPARING_RENDER_RESOURCES' || this.phase === 'AT_THRESHOLD'
       || this.phase === 'PREPARATION_FAILED' || this.phase === 'INTERIOR_ACTIVE');
   }
 

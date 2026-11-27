@@ -414,11 +414,7 @@ export class UILayer {
   private readonly onTouchInteract = (e: TouchEvent): void => {
     const tap = this.centerTap.end(e.changedTouches);
     if (!tap || this.anyPanelOpen || this.app.input.uiCaptured) return;
-    if (this.app.interaction.activate()) {
-      this.app.recordInteractionVisit();
-      this.app.audio.start();
-      this.app.audio.tick();
-    }
+    this.app.input.triggerInteract();
   };
 
   private readonly onPointerLock = (): void => {

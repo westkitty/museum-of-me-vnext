@@ -63,10 +63,11 @@ for (const { point, composed } of CASES) {
         }
         return originalCheckpoint.call(this);
       };
-      const originalFromKit = SourceVisitors.fromKit;
-      SourceVisitors.fromKit = function (...args: Parameters<typeof originalFromKit>) {
+      // The interior builds its visitors stepwise (BuildSteps, V6); hook the same two boundaries there.
+      const originalFromKit = SourceVisitors.fromKitSteps;
+      SourceVisitors.fromKitSteps = function* (...args: Parameters<typeof originalFromKit>) {
         if (point === 'registration-boundary' && current()) { current()!.dispose(); disposedAt = 'before registration'; }
-        const built = originalFromKit.apply(SourceVisitors, args);
+        const built = yield* originalFromKit.apply(SourceVisitors, args);
         if (point === 'after-construction' && current()) { current()!.dispose(); disposedAt = 'after construction'; }
         return built;
       };
@@ -75,7 +76,7 @@ for (const { point, composed } of CASES) {
       // Restore every patch before the legitimate second entry.
       InteriorWorld.prototype.buildCooperatively = originalBuild;
       EventLoopYieldBudget.prototype.checkpoint = originalCheckpoint;
-      SourceVisitors.fromKit = originalFromKit;
+      SourceVisitors.fromKitSteps = originalFromKit;
       const scope = (current() as unknown as { scope: { size: number; isDisposed: boolean } } | null)?.scope;
       const controls = (app.interaction as unknown as { controls: Map<{ userData?: { kind?: string } }, unknown> }).controls;
       const visitorControls = [...controls.keys()].filter((key) => key.userData?.kind === 'visitor').length;
@@ -212,10 +213,10 @@ for (const when of ['module-load', 'halfway', 'registration-boundary', 'after-co
         if (when === 'halfway' && 'source-artwork' in stages && !('source-visitors.kit' in stages) && ++steps === 9) stop();
         return originalCheckpoint.call(this);
       };
-      const originalFromKit = SourceVisitors.fromKit;
-      SourceVisitors.fromKit = function (...args: Parameters<typeof originalFromKit>) {
+      const originalFromKit = SourceVisitors.fromKitSteps;
+      SourceVisitors.fromKitSteps = function* (...args: Parameters<typeof originalFromKit>) {
         if (when === 'registration-boundary') stop();
-        const built = originalFromKit.apply(SourceVisitors, args);
+        const built = yield* originalFromKit.apply(SourceVisitors, args);
         if (when === 'after-construction') stop();
         return built;
       };

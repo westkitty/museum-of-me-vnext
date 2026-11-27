@@ -4,13 +4,28 @@ import { readFile, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { museumWorkshopSavePlugin } from './scripts/workshop-save-plugin';
 import { museumCinemaProgrammePlugin } from './scripts/cinema-programme-plugin';
+// @ts-expect-error plain ESM build helper without type declarations
+import { pruneUnreferencedBuilderAssets } from './scripts/builder-asset-prune.mjs';
 
 export default defineConfig({
   // GitHub Pages serves this repository below /museum-of-me-vnext/. Normal
   // local/release builds keep the portable relative base unless explicitly set.
   base: process.env.VITE_PUBLIC_BASE || './',
-  assetsInclude: ['**/*.glb'],
+  assetsInclude: ['**/*.glb', '**/*.m4a'],
   plugins: [museumWorkshopSavePlugin(), museumCinemaProgrammePlugin(), {
+    // The production-activation rehearsal must not enter ordinary builds:
+    // even a dead dynamic import makes Rollup load the world modules, which
+    // emits their assets (the W01 stems) into dist. Swap in the empty stand-in.
+    name: 'museum-pocket-rehearsal-gate',
+    enforce: 'pre',
+    async resolveId(source, importer, options) {
+      if (process.env.VITE_POCKET_REHEARSAL === '1' || !source.includes('pocketRehearsal')) return null;
+      const resolved = await this.resolve(source, importer, { ...options, skipSelf: true });
+      return resolved?.id.endsWith('/src/world/pocket/pocketRehearsal.ts')
+        ? resolved.id.replace(/pocketRehearsal\.ts$/, 'pocketRehearsal.off.ts')
+        : null;
+    },
+  }, {
     name: 'museum-private-workshop-assets',
     apply: 'build',
     async buildStart() {
@@ -30,6 +45,17 @@ export default defineConfig({
       const output = resolve(options.dir ?? 'dist');
       await Promise.all(['workshop-models', 'workshop-media'].map((name) =>
         rm(resolve(output, name), { recursive: true, force: true })));
+    },
+  }, {
+    // Public builds carry only the builder-catalog files the authored placement
+    // manifest references (the runtime resolves nothing else; the editor that
+    // browses the whole catalog is development-only). V6 distribution report.
+    name: 'museum-builder-catalog-prune',
+    apply: 'build',
+    async writeBundle(options) {
+      const [manifest, catalog] = await Promise.all(['data/workshop-placements.json', 'src/workshop/builderAssets.json']
+        .map(async (file) => JSON.parse(await readFile(resolve(file), 'utf8')) as unknown));
+      await pruneUnreferencedBuilderAssets(resolve(options.dir ?? 'dist'), manifest, catalog);
     },
   }, {
     name: 'museum-workbench-directory-index',

@@ -1,3 +1,4 @@
+import { runStepsCooperatively } from '../util/buildSteps';
 import * as THREE from 'three';
 import { ResourceScope } from '../assets/ResourceScope';
 import { Museum, type MuseumBuildResult } from './Museum';
@@ -6,6 +7,7 @@ import { AmbientVisitors } from './AmbientVisitors';
 import { GalleryDust } from '../render/AirMotes';
 import { landscapeClock } from '../render/LandscapeShading';
 import { FlightPadAtmosphere } from './FlightPadAtmosphere';
+import { TestLabDoor } from './TestLabDoor';
 import { installExhibits } from '../exhibits';
 import { StreamingManager } from '../exhibits/StreamingManager';
 import { SourceArtwork } from './SourceArtwork';
@@ -41,6 +43,9 @@ export class InteriorWorld {
   sanctuary!: DexterSanctuary;
   visitors!: AmbientVisitors;
   flightPadAtmosphere!: FlightPadAtmosphere;
+  /** W07's museum anchor: the sealed test lab at the back of the Local Systems wing. */
+  testLabDoor!: TestLabDoor;
+  private testLabAnchorOff: (() => void) | null = null;
   streaming!: StreamingManager;
   sourceArtwork!: SourceArtwork;
   sourceVisitors!: SourceVisitors;
@@ -93,7 +98,8 @@ export class InteriorWorld {
       this.cinema.playback.externalConsent = app.ui?.youtubeConsent.given() ?? false;
     }
 
-    this.sanctuary = this.measureBuildStage('sanctuary', () => new DexterSanctuary(this.scope));
+    this.sanctuary = await runStepsCooperatively(DexterSanctuary.createSteps(this.scope), () => yieldBudget.checkpoint(),
+      (ms) => { this.app.interiorLoadTelemetry.buildStageMs.sanctuary = ms; });
     this.root.add(this.sanctuary.group);
     await yieldBudget.checkpoint();
 
@@ -108,12 +114,21 @@ export class InteriorWorld {
     this.root.add(this.flightPadAtmosphere.group);
     await yieldBudget.checkpoint();
 
+    this.testLabDoor = this.measureBuildStage('test-lab-door', () => new TestLabDoor(this.scope));
+    this.root.add(this.testLabDoor.group);
+    this.testLabAnchorOff = this.app.attachTestLabAnchor?.(this.testLabDoor.control) ?? null;
+    await yieldBudget.checkpoint();
+
     this.measureBuildStage('exhibit-registration', () => installExhibits());
     await yieldBudget.checkpoint();
     this.streaming = this.measureBuildStage('streaming-manager', () => new StreamingManager(
       this.built.exhibitMounts,
       {
-        addControl: (id, control) => this.app.interaction.register(id, control),
+        addControl: (id, control) => {
+          const off = this.app.interaction.register(id, control);
+          const anchorOff = this.app.attachExhibitPocketAnchor(id, control);
+          return () => { off(); anchorOff?.(); };
+        },
         announce: (id, message) => this.app.announce(id, message),
         reducedMotion: () => this.app.preferences.reducedMotion,
         detailScale: () => this.app.renderer.quality.detailScale,
@@ -166,7 +181,7 @@ export class InteriorWorld {
     this.app.interiorLoadTelemetry.buildStageMs['source-visitors.kit'] = kitTotal;
     this.app.interiorLoadTelemetry.buildStageMs['source-visitors.kit-longest'] = kitLongest;
     this.app.interiorLoadTelemetry.buildStageMs['source-visitors.kit-baked'] = baked ? 1 : 0;
-    this.sourceVisitors = this.measureBuildStage('source-visitors', () => SourceVisitors.fromKit(
+    this.sourceVisitors = await runStepsCooperatively(SourceVisitors.fromKitSteps(
       this.scope,
       this.built.collision,
       this.app.interaction,
@@ -177,16 +192,18 @@ export class InteriorWorld {
         this.app.announce(`visitor:${visitor.id}`, `${visitor.title}: ${message}`);
       },
       kit,
-    ));
+    ), () => yieldBudget.checkpoint(), (ms) => { this.app.interiorLoadTelemetry.buildStageMs['source-visitors'] = ms; });
     this.root.add(this.sourceVisitors.group);
     await yieldBudget.checkpoint();
 
-    this.supplementary = this.measureBuildStage('supplementary-cases', () => new SupplementaryCases(
-      this.scope,
-      this.app.interaction,
-      this.app.journal,
-      (id, title, summary) => this.app.announce(`supplementary:${id}`, `${title}. ${summary}`),
-    ));
+    const onSupplementaryOpen = (id: string, title: string, summary: string) =>
+      this.app.announce(`supplementary:${id}`, `${title}. ${summary}`);
+    this.supplementary = new SupplementaryCases(this.scope, this.app.interaction, this.app.journal, onSupplementaryOpen, false);
+    await runStepsCooperatively(
+      this.supplementary.populateSteps(this.scope, this.app.interaction, this.app.journal, onSupplementaryOpen),
+      () => yieldBudget.checkpoint(),
+      (ms) => { this.app.interiorLoadTelemetry.buildStageMs['supplementary-cases'] = ms; },
+    );
     this.root.add(this.supplementary.group);
     await yieldBudget.checkpoint();
 
@@ -218,6 +235,8 @@ export class InteriorWorld {
     for (const [name, duration] of Object.entries(this.persistentEnvironment.buildStageMs)) {
       this.app.interiorLoadTelemetry.buildStageMs[`environment.${name}`] = duration;
     }
+    this.app.interiorLoadTelemetry.buildStageMs['yield.grown-slices'] = yieldBudget.growth.grown;
+    this.app.interiorLoadTelemetry.buildStageMs['yield.largest-slice'] = yieldBudget.growth.largestMs;
     // Nothing below tracks a resource, so a disposal during the last stage must be caught here.
     if (this.scope.isDisposed) throw new Error('InteriorWorld disposed during preparation');
     this.root.add(envGroup);
@@ -360,6 +379,8 @@ export class InteriorWorld {
   }
 
   dispose(): void {
+    this.testLabAnchorOff?.();
+    this.testLabAnchorOff = null;
     this.cinema?.dispose();
     this.cinema = null;
     this.streaming?.dispose();

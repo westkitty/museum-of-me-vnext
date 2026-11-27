@@ -251,6 +251,10 @@ export class PocketTransition implements PocketTransitionController {
       this.enterButton.disabled = false;
       this.enterButton.textContent = 'Enter';
       this.promptStatus.textContent = 'Passage did not open. You remain safely in the museum.';
+      // Disabling the button while loading dropped keyboard focus to the page,
+      // which left Esc ("Back (Esc)") and Tab unable to reach the dialog.
+      // Return focus to the retry action.
+      if (!this.promptCard.contains(document.activeElement)) this.enterButton.focus({ preventScroll: true });
     }
   }
 

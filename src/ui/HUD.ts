@@ -15,6 +15,8 @@ export class HUD {
   private readonly reticle: HTMLElement;
   private readonly cue: HTMLElement;
   private readonly cueLabel: HTMLElement;
+  /** The F key cap; touch visitors tap the centre dot instead, so it is hidden in touch mode. */
+  private readonly cueKey: HTMLElement;
   private readonly location: HTMLElement;
   private readonly subtitle: HTMLElement;
   private readonly thresholdPanel: HTMLElement;
@@ -64,7 +66,8 @@ export class HUD {
   ) {
     this.reticle = el('div', { class: 'hud__reticle' });
     this.cueLabel = el('span', {});
-    this.cue = el('div', { class: 'hud__cue' }, el('kbd', { text: 'F' }), this.cueLabel);
+    this.cueKey = el('kbd', { text: 'F' });
+    this.cue = el('div', { class: 'hud__cue' }, this.cueKey, this.cueLabel);
     this.location = el('div', { class: 'hud__location' });
     this.subtitle = el('div', { class: 'hud__subtitle', role: 'status', 'aria-live': 'polite' });
     this.secretCard = el('div', { class: 'hud__secret', role: 'status', 'aria-live': 'polite' });
@@ -282,6 +285,7 @@ export class HUD {
   setTouchMode(on: boolean): void {
     if (this.touchMode === on) return;
     this.touchMode = on;
+    this.cueKey.hidden = on;
     this.setPointerLocked(this.pointerLocked);
     this.renderHints();
   }

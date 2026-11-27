@@ -2,7 +2,8 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-const root = 'dist';
+// The release dist by default; a directory argument checks another build (used by its regression test).
+const root = process.argv[2] ?? 'dist';
 const errors = [];
 
 function filesUnder(dir) {
@@ -20,7 +21,7 @@ if (!existsSync(root)) {
   process.exit(1);
 }
 
-for (const required of ['dist/index.html', 'dist/_headers']) {
+for (const required of [join(root, 'index.html'), join(root, '_headers')]) {
   if (!existsSync(required)) errors.push(`missing ${required}`);
 }
 
@@ -31,7 +32,7 @@ if (suspicious.length) errors.push(`suspicious files in dist: ${suspicious.join(
 const privateImports = rel.filter((name) => /^(?:workshop-models|workshop-media)\//.test(name));
 if (privateImports.length) errors.push('private Workshop imports must not be included in public distribution');
 
-const index = existsSync('dist/index.html') ? readFileSync('dist/index.html', 'utf8') : '';
+const index = existsSync(join(root, 'index.html')) ? readFileSync(join(root, 'index.html'), 'utf8') : '';
 if (!/\.\/assets\/[^"']+-[A-Za-z0-9_-]+\.js/.test(index)) {
   errors.push('index.html does not reference a hashed JavaScript asset');
 }
@@ -39,7 +40,7 @@ if (!/\.\/assets\/[^"']+-[A-Za-z0-9_-]+\.css/.test(index)) {
   errors.push('index.html does not reference a hashed CSS asset');
 }
 
-const headers = existsSync('dist/_headers') ? readFileSync('dist/_headers', 'utf8') : '';
+const headers = existsSync(join(root, '_headers')) ? readFileSync(join(root, '_headers'), 'utf8') : '';
 for (const required of [
   'Cache-Control: public, max-age=31536000, immutable',
   'X-Content-Type-Options: nosniff',
@@ -49,7 +50,21 @@ for (const required of [
   if (!headers.includes(required)) errors.push(`_headers is missing required release rule: ${required}`);
 }
 
+// Pocket worlds are dormant in ordinary builds (src/world/pocket/productionWorlds.ts
+// and the vite.config.ts rehearsal gate). No world chunk, no W01 stem and no
+// rehearsal activation code may reach a published dist, even as an orphan
+// asset nobody imports: a dead dynamic import still makes Rollup emit them.
+const worldFiles = rel.filter((name) => /(^|\/)(create(W\d\d|L01)World|productionWorlds|w01-(bass|drums|other))-[^/]+\.(js|m4a)$/.test(name)
+  || /\.m4a$/i.test(name) && /(^|\/)w\d\d-/i.test(name));
+if (worldFiles.length) errors.push(`pocket-world files leaked into the ordinary build: ${worldFiles.join(', ')}`);
+
 const jsChunks = rel.filter((name) => /^assets\/.+\.js$/.test(name));
+for (const chunk of jsChunks) {
+  const text = readFileSync(join(root, chunk), 'utf8');
+  for (const marker of ['rehearsalPrefix', 'rehearsalObserve']) {
+    if (text.includes(marker)) errors.push(`rehearsal activation code leaked into ${chunk}: ${marker}`);
+  }
+}
 const cssChunks = rel.filter((name) => /^assets\/.+\.css$/.test(name));
 if (jsChunks.length < 2) errors.push(`expected multiple production JavaScript chunks, found ${jsChunks.length}`);
 
@@ -99,3 +114,4 @@ console.log(`  - ${(bytes / 1024 / 1024).toFixed(2)} MB uncompressed build outpu
 console.log(`  - ${jsChunks.length} JavaScript chunks`);
 console.log('  - hashed assets, cache policy, CSP and secret-file denylist verified');
 console.log('  - development-only Workshop, Choreographer and DevTools hook excluded from production');
+console.log('  - no pocket-world chunk, W01 stem or rehearsal activation code in the ordinary build');

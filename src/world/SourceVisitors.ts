@@ -1,3 +1,4 @@
+import { runStepsSync, type BuildSteps } from '../util/buildSteps';
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import type { CollisionWorld } from './CollisionWorld';
@@ -80,6 +81,8 @@ export class SourceVisitors {
     private readonly onSpeak: (visitor: SourceVisitor, line: string, thought?: string) => void,
     /** Kits prepared ahead by prepareVisitorGeometry; this class takes ownership. */
     preparedGeometries?: Record<string, THREE.BufferGeometry>,
+    /** False when the caller drives `populateSteps` itself (the cooperative build). */
+    populate = true,
   ) {
     this.group.name = 'source-visitors';
 
@@ -119,6 +122,15 @@ export class SourceVisitors {
       depthWrite: false,
     }));
 
+    if (populate) runStepsSync(this.populateSteps(interaction));
+  }
+
+  /**
+   * Places and registers the authored visitors, one per step. If the routine
+   * fails or is abandoned part-way (a cancelled preparation), nothing
+   * interactive is left behind.
+   */
+  *populateSteps(interaction: InteractionManager): BuildSteps {
     const routes = SOURCE_VISITORS.map(({ id }) => visitorRouteForVNext(id));
     const usedStarts = new Map<string, number>();
     // A seated actor keeps their original anchor. Walkers sharing an anchor
@@ -127,8 +139,10 @@ export class SourceVisitors {
     for (const [index, data] of SOURCE_VISITORS.entries()) {
       if (data.seated) usedStarts.set(routes[index][0].join(','), 1);
     }
+    let complete = false;
     try {
       for (const [index, data] of SOURCE_VISITORS.entries()) {
+        if (index > 0) yield;
         const route = routes[index];
         const key = route[0].join(',');
         const rank = usedStarts.get(key) ?? 0;
@@ -144,12 +158,14 @@ export class SourceVisitors {
           activate: () => this.speak(data.id),
         }));
       }
-    } catch (error) {
-      // A failed build must leave nothing interactive behind.
-      for (const unbind of this.unbind) unbind();
-      this.unbind.length = 0;
-      this.group.removeFromParent();
-      throw error;
+      complete = true;
+    } finally {
+      if (!complete) {
+        // A failed or cancelled build must leave nothing interactive behind.
+        for (const unbind of this.unbind) unbind();
+        this.unbind.length = 0;
+        this.group.removeFromParent();
+      }
     }
   }
 
@@ -167,6 +183,25 @@ export class SourceVisitors {
   ): SourceVisitors {
     try {
       return new SourceVisitors(scope, collisions, interaction, onSpeak, kit);
+    } catch (error) {
+      for (const geometry of Object.values(kit)) geometry.dispose();
+      throw error;
+    }
+  }
+
+  /** `fromKit`, split per visitor for the cooperative interior build. */
+  static *fromKitSteps(
+    scope: ResourceScope,
+    collisions: CollisionWorld,
+    interaction: InteractionManager,
+    onSpeak: (visitor: SourceVisitor, line: string, thought?: string) => void,
+    kit: Record<string, THREE.BufferGeometry>,
+  ): BuildSteps<SourceVisitors> {
+    try {
+      const visitors = new SourceVisitors(scope, collisions, interaction, onSpeak, kit, false);
+      yield;
+      yield* visitors.populateSteps(interaction);
+      return visitors;
     } catch (error) {
       for (const geometry of Object.values(kit)) geometry.dispose();
       throw error;

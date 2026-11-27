@@ -163,6 +163,18 @@ test('ISLAND-02D: distant Floating Sky Islands & Wild Island silhouette across p
     app.renderer.render();
     tiers.low2 = snap();
 
+    // First access to a higher tier can warm other exterior assets. Compare
+    // complete repeated cycles after those one-time GPU allocations settle.
+    app.setQuality('medium');
+    app.renderer.render();
+    tiers.medium2 = snap();
+    app.setQuality('high');
+    app.renderer.render();
+    tiers.high2 = snap();
+    app.setQuality('low');
+    app.renderer.render();
+    tiers.low3 = snap();
+
     const node0 = app.scene.getObjectByName('sky-island-node-0')!;
     app.exteriorWorld.variableUpdate(1.2, [0, 2, 212], 'plaza', false);
     const driftedY = node0.position.y;
@@ -198,7 +210,9 @@ test('ISLAND-02D: distant Floating Sky Islands & Wild Island silhouette across p
     mistLayers: DISTANT_ISLAND_LOD_COUNTS.high.wildMistLayers,
     collisionMatches: true,
   });
-  expect(lifecycle.tiers.low2).toEqual(lifecycle.tiers.low1);
+  expect(lifecycle.tiers.low2).toEqual(lifecycle.tiers.low3);
+  expect(lifecycle.tiers.medium).toEqual(lifecycle.tiers.medium2);
+  expect(lifecycle.tiers.high).toEqual(lifecycle.tiers.high2);
   expect(lifecycle.driftedY).not.toBe(lifecycle.restY);
   expect(lifecycle.heldRestY).toBe(lifecycle.restY);
 

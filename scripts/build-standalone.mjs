@@ -9,8 +9,10 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const dist = join(root, 'dist-standalone');
-const outDir = join(root, 'release');
+// STANDALONE_DIST / STANDALONE_OUT let a local rehearsal package a separate
+// build into its own folder; the release defaults are unchanged.
+const dist = join(root, process.env.STANDALONE_DIST ?? 'dist-standalone');
+const outDir = join(root, process.env.STANDALONE_OUT ?? 'release');
 const outFile = join(outDir, 'The_Reliquary_of_Iterative_Becoming.html');
 const embeddedSource = join(dist, 'embedded');
 const embeddedOutput = join(outDir, 'embedded');

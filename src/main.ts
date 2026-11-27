@@ -6,6 +6,7 @@ import './ui/reliquary-finish.css';
 import { exhibitFromParameter } from './content/collectionLinks';
 import { MuseumPlacements } from './workshop/MuseumPlacements';
 import { AuthorableSceneRegistry } from './workshop/AuthorableSceneRegistry';
+import { startPocketRehearsal } from './world/pocket/pocketRehearsal';
 
 export function startMuseum(): void {
   const canvas = document.getElementById('museum-canvas') as HTMLCanvasElement | null;
@@ -17,7 +18,10 @@ export function startMuseum(): void {
   }
 
   const bootstrapStarted = performance.now();
-  const app = new App({ canvas, uiRoot, a11yRoot });
+  // Development pocket-world previews (`?preview=w02,w03` or `?preview=all`) run
+  // with an in-memory passport so preview completion never writes real stamps.
+  const previewRequested = import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview');
+  const app = new App({ canvas, uiRoot, a11yRoot, ephemeralPassport: previewRequested });
   const coreBootMs = performance.now() - bootstrapStarted;
   const environmentBootMs = 0;
   const sceneRegistry = new AuthorableSceneRegistry([
@@ -74,6 +78,23 @@ export function startMuseum(): void {
   app.start();
   mountCinematicArrival(app);
   document.getElementById('museum-loading')?.remove();
+
+  if (import.meta.env.DEV && previewRequested) {
+    void import('./world/pocket/devPreviews')
+      .then(({ previewIdsFromSearch, registerDevPreviews }) =>
+        registerDevPreviews(app.pocketRegistry, previewIdsFromSearch(window.location.search)))
+      .catch((error) => console.error('[World Preview] failed to load preview registry', error));
+  }
+
+  // Local production-activation rehearsal only: a build made with
+  // VITE_POCKET_REHEARSAL=1 promotes every world through the production path
+  // (lazy chunks, canonical titles, the real persistent passport). Ordinary
+  // builds resolve the module to an empty stand-in (vite.config.ts), so no
+  // world module or asset enters the published build.
+  if (import.meta.env.VITE_POCKET_REHEARSAL === '1') {
+    startPocketRehearsal(app.pocketRegistry, window.location.search)
+      .catch((error) => console.error('[Pocket rehearsal] activation failed', error));
+  }
 
   if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('edit') === '1') {
     let toggleWorkshop: (() => void) | null = null;

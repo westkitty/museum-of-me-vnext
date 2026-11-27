@@ -1,3 +1,4 @@
+import { runStepsSync, type BuildSteps } from '../util/buildSteps';
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import type { InteractionManager } from '../interaction/InteractionManager';
@@ -31,36 +32,58 @@ export class SupplementaryCases {
     interaction: InteractionManager,
     journal: Journal,
     onOpen: (id: string, title: string, summary: string) => void,
+    /** False when the caller drives `populateSteps` itself (the cooperative build). */
+    populate = true,
   ) {
     this.group.name = 'source-supplementary-cases';
+    if (populate) runStepsSync(this.populateSteps(scope, interaction, journal, onOpen));
+  }
+
+  /** Builds and registers the cases, one per step; a failed or cancelled build leaves none registered. */
+  *populateSteps(
+    scope: ResourceScope,
+    interaction: InteractionManager,
+    journal: Journal,
+    onOpen: (id: string, title: string, summary: string) => void,
+  ): BuildSteps {
     // 'nw' is deliberately excluded: it is the Dexter Sanctuary threshold, not
     // a blind wall, and mounting generic wall cases there read as the
     // Sanctuary being "guarded" by unrelated supplementary content instead of
     // opening as a plain passage. The 15 cases split evenly across the
     // remaining three faces (5 apiece) instead.
     const faces = ['ne', 'se', 'sw'] as const;
-    SOURCE_SUPPLEMENTARY.forEach((spec, index) => {
-      const face = faces[index % faces.length];
-      const dir = faceDirection(face);
-      const slot = Math.floor(index / faces.length);
-      const lateral = (slot - 2) * 2.6;
-      const pos = place(dir, ROTUNDA_APOTHEM - 0.42, lateral, GROUND_Y + 1.7);
-      const caseGroup = this.buildCase(scope, spec.title, spec.stage, spec.summary, spec.accent, pos, dir);
-      caseGroup.name = `supplementary:${spec.id}`;
-      caseGroup.userData = { sourceId: spec.id, vNext: SUPPLEMENTARY_TO_VNEXT[spec.id] };
-      this.group.add(caseGroup);
-      const hit = caseGroup.children.find((c) => c.userData.hit) ?? caseGroup;
-      this.unbind.push(interaction.register(`supplementary:${spec.id}`, {
-        object: hit,
-        label: `Read ${spec.title}`,
-        description: `${spec.stage}. ${spec.summary}`,
-        activate: () => {
-          journal.markSupplementaryRead(spec.id);
-          journal.recordHistory({ kind: 'supplementary', id: spec.id }, spec.title);
-          onOpen(spec.id, spec.title, spec.summary);
-        },
-      }));
-    });
+    let complete = false;
+    try {
+      for (const [index, spec] of SOURCE_SUPPLEMENTARY.entries()) {
+        if (index > 0) yield;
+        const face = faces[index % faces.length];
+        const dir = faceDirection(face);
+        const slot = Math.floor(index / faces.length);
+        const lateral = (slot - 2) * 2.6;
+        const pos = place(dir, ROTUNDA_APOTHEM - 0.42, lateral, GROUND_Y + 1.7);
+        const caseGroup = this.buildCase(scope, spec.title, spec.stage, spec.summary, spec.accent, pos, dir);
+        caseGroup.name = `supplementary:${spec.id}`;
+        caseGroup.userData = { sourceId: spec.id, vNext: SUPPLEMENTARY_TO_VNEXT[spec.id] };
+        this.group.add(caseGroup);
+        const hit = caseGroup.children.find((c) => c.userData.hit) ?? caseGroup;
+        this.unbind.push(interaction.register(`supplementary:${spec.id}`, {
+          object: hit,
+          label: `Read ${spec.title}`,
+          description: `${spec.stage}. ${spec.summary}`,
+          activate: () => {
+            journal.markSupplementaryRead(spec.id);
+            journal.recordHistory({ kind: 'supplementary', id: spec.id }, spec.title);
+            onOpen(spec.id, spec.title, spec.summary);
+          },
+        }));
+      }
+      complete = true;
+    } finally {
+      if (!complete) {
+        for (const unbind of this.unbind) unbind();
+        this.unbind.length = 0;
+      }
+    }
   }
 
   get count(): number {

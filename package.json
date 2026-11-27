@@ -17,7 +17,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:workshop": "node scripts/workshop-authoring-proof.mjs",
-    "test:release-tools": "node --test scripts/hosted-verifier.test.mjs scripts/human-evidence-verifier.test.mjs",
+    "test:release-tools": "node --test scripts/hosted-verifier.test.mjs scripts/human-evidence-verifier.test.mjs scripts/release-dist-worlds.test.mjs",
     "validate:assets": "node scripts/validate-assets.mjs",
     "validate:mapping": "node scripts/validate-mapping.mjs",
     "validate:content": "node scripts/validate-content.mjs",

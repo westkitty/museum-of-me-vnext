@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { landscapeDetail } from './LandscapeShading';
 import { bakeEnvironment, type EnvironmentKind } from './MuseumEnvironments';
 import { QUALITY, type QualitySettings, type QualityTier } from './QualityTiers';
+import { SustainedFrameWait } from '../util/yieldToEventLoop';
 
 /** Active visitor camera far plane (m); safely encloses the 850 m sky dome and distant horizon islands. */
 export const CAMERA_FAR = 1100;
@@ -29,6 +30,8 @@ export class RendererHost {
     objects: 0, textures: 0, lastTextureInitCpuMs: 0, lastCompileWallMs: 0,
     /** Whole-world warm-ups: shader variants compiled one at a time, then geometry uploaded in batches. */
     worldPrograms: 0, worldUploadsPending: 0, worldUploaded: 0, lastWorldWarmMs: 0, lastWorldScanMs: 0, longestUploadMs: 0,
+    /** Warm slices grown past the minimum after sustained slow frames, and the largest. */
+    grownSlices: 0, largestSliceMs: 0,
   };
   /** Shader programs compiled while drawing a visible frame (each one stalls that frame). */
   readonly frameTelemetry = { compilesInFrame: 0, framesWithCompile: 0 };
@@ -453,10 +456,12 @@ export class RendererHost {
 
   /** Resolves after the next frame the single app loop draws (the only frame loop). */
   /**
-   * Warm-up work per frame: 5 ms, growing only when frames are severely slow
-   * (> 40 ms, e.g. software WebGL), so 60 Hz hardware never cascades into missed vsyncs.
+   * Warm-up work per frame: 5 ms, growing only when frames are consistently
+   * slow (> 40 ms, e.g. software WebGL), so one hitch on 60 Hz hardware never
+   * cascades into missed vsyncs (see SustainedFrameWait).
    */
   private warmSliceMs = 5;
+  private readonly warmWaits = new SustainedFrameWait(5, 250);
 
   waitForNextFrame(shouldContinue?: () => boolean): Promise<void> {
     if (shouldContinue && !shouldContinue()) return Promise.resolve();
@@ -486,8 +491,9 @@ export class RendererHost {
   private nextFrame(): Promise<void> {
     const waitStarted = performance.now();
     return new Promise<void>((resolve) => this.frameWaiters.push(resolve)).then(() => {
-      const waited = performance.now() - waitStarted;
-      this.warmSliceMs = waited > 40 ? Math.min(250, Math.max(5, waited * 0.5)) : 5;
+      this.warmSliceMs = this.warmWaits.observe(performance.now() - waitStarted);
+      this.warmTelemetry.grownSlices = this.warmWaits.grownCount;
+      this.warmTelemetry.largestSliceMs = this.warmWaits.largestSliceMs;
     });
   }
 

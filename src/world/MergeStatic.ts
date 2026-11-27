@@ -114,11 +114,15 @@ function* mergeStaticSteps(root: THREE.Object3D, scope: ResourceScope, options: 
   });
 
   let merged = 0;
+  let cloned = 0;
   for (const [material, cells] of byMaterial) {
     for (const entry of cells.values()) {
       if (entry.meshes.length < 2) continue;
 
       for (const mesh of entry.meshes) {
+        // A dense cell is several frames of cloning; the clones are private
+        // until the merge below, so pausing between them exposes nothing.
+        if (++cloned % 32 === 0) yield;
         mesh.updateWorldMatrix(true, false);
         const geometry = mesh.geometry.clone();
         geometry.applyMatrix4(mesh.matrixWorld);
