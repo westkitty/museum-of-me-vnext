@@ -11,6 +11,8 @@ import { ExteriorWildlife } from './ExteriorWildlife';
 import { ExteriorSignatureFeatures } from './ExteriorSignatureFeatures';
 import { ExteriorWaymarkers } from './ExteriorWaymarkers';
 import { TicketKiosk } from './TicketKiosk';
+import { RillDroplet } from './RillDroplet';
+import { WeaselPierGuide } from './WeaselPierGuide';
 import { ObsidianSphereEntrance } from './ObsidianSphereEntrance';
 import { ExteriorLighthouse } from './ExteriorLighthouse';
 import { IslandVisitors } from './IslandVisitors';
@@ -18,7 +20,11 @@ import { ExteriorRooftop } from './ExteriorRooftop';
 import { ExteriorObservatory } from './ExteriorObservatory';
 import { ExteriorRootboundHollow } from './ExteriorRootboundHollow';
 import { ExteriorDistantIslands } from './ExteriorDistantIslands';
-import { addIslandSupport, addLagoonEdge } from './IslandSiteLayout';
+import { addIslandSupport, addLagoonEdge, LAND_SUPPORT_Y } from './IslandSiteLayout';
+import type { ExhibitControl } from '../../exhibits/contract';
+import { landscapeClock } from '../../render/LandscapeShading';
+import { buildFireflies, scatterAround } from '../../render/AirMotes';
+import { buildLampGlow, type Lamp } from '../../render/SoftLight';
 import { START_POSITION, START_YAW } from '../start';
 import {
   GROUND_Y,
@@ -69,6 +75,11 @@ export class ExteriorWorld {
   /** Rooftop Cafe, Hot Dog Stand, Glass Greenhouse, Flight Pad II, and West Flank Ascent (ISLAND-03). */
   readonly rooftop: ExteriorRooftop;
   readonly islandVisitors: IslandVisitors;
+  private readonly lagoonDiveMarker: THREE.Group;
+  private readonly fernPassageMarker: THREE.Group;
+  /** W08's anchor: a raindrop suspended over the reflecting rill. */
+  readonly rillDroplet: RillDroplet;
+  readonly weaselPierGuide: WeaselPierGuide;
 
   readonly spawnPosition: Vec3 = START_POSITION;
   readonly spawnYaw = START_YAW;
@@ -160,6 +171,118 @@ export class ExteriorWorld {
     if (assets) this.rooftop.hotDogMan.setLoader(assets);
     this.islandVisitors = new IslandVisitors(this.scope, this.collision, qualityTier, assets);
     this.root.add(this.islandVisitors.group);
+    this.lagoonDiveMarker = this.buildLagoonDiveMarker();
+    this.root.add(this.lagoonDiveMarker);
+    this.weaselPierGuide = new WeaselPierGuide(this.scope);
+    this.root.add(this.weaselPierGuide.group);
+    const lamps = this.collectLamps();
+    this.root.add(buildLampGlow(this.scope, lamps, 'exterior-lamp-glow'));
+    const pathLamps = lamps.filter((lamp) => lamp.y < 0);
+    const perLamp = qualityTier === 'low' ? 1 : qualityTier === 'medium' ? 2 : 3;
+    this.root.add(buildFireflies(this.scope, scatterAround(pathLamps, perLamp, GROUND_Y)));
+    this.fernPassageMarker = this.buildFernPassageMarker();
+    this.root.add(this.fernPassageMarker);
+    this.rillDroplet = new RillDroplet(this.scope);
+    this.root.add(this.rillDroplet.group);
+  }
+
+  private buildLagoonDiveMarker(): THREE.Group {
+    const group = new THREE.Group();
+    group.name = 'east-lagoon-w01-anchor';
+    group.position.set(56.5, LAND_SUPPORT_Y, 4);
+    const ringMat = this.scope.track(new THREE.MeshStandardMaterial({ color: 0x3b6672, roughness: 0.78, metalness: 0.08 }));
+    const ring = new THREE.Mesh(this.scope.track(new THREE.CylinderGeometry(0.95, 1.1, 0.14, 18)), ringMat);
+    ring.position.y = 0.07;
+    ring.receiveShadow = true;
+    group.add(ring);
+    const pearl = new THREE.Mesh(this.scope.track(new THREE.OctahedronGeometry(0.32, 1)), this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x62f2df, emissive: 0x1ea79c, emissiveIntensity: 0.85, roughness: 0.25, metalness: 0.15,
+    })));
+    pearl.position.y = 1.15;
+    group.add(pearl);
+    const post = new THREE.Mesh(this.scope.track(new THREE.CylinderGeometry(0.08, 0.12, 0.9, 10)), ringMat);
+    post.position.y = 0.45;
+    group.add(post);
+    return group;
+  }
+
+  getLagoonPortalControl(announce: (message: string) => void): ExhibitControl {
+    return {
+      object: this.lagoonDiveMarker,
+      label: 'Inspect East Lagoon Edge',
+      description: 'Sheltered east lagoon bank overlooking the shimmering water.',
+      activate: () => announce('The east lagoon surface shimmers softly. Lagoon Depths (W01) is not open yet.'),
+    };
+  }
+
+  private buildFernPassageMarker(): THREE.Group {
+    const marker = new THREE.Group();
+    marker.name = 'west-fern-w02-anchor';
+    marker.position.set(-134.5, LAND_SUPPORT_Y, -5.1);
+    const stone = this.scope.track(new THREE.MeshStandardMaterial({ color: 0x405b4a, roughness: 0.9 }));
+    const glow = this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0xa6d69a, emissive: 0x3d8b62, emissiveIntensity: 0.4,
+    }));
+    const base = new THREE.Mesh(this.scope.track(new THREE.CylinderGeometry(0.82, 0.96, 0.24, 10)), stone);
+    base.position.y = 0.12;
+    base.receiveShadow = true;
+    const leaf = new THREE.Mesh(this.scope.track(new THREE.ConeGeometry(0.54, 1.5, 6)), glow);
+    leaf.position.y = 1.02;
+    marker.add(base, leaf);
+    return marker;
+  }
+
+  getFernPortalControl(announce: (message: string) => void): ExhibitControl {
+    return {
+      object: this.fernPassageMarker,
+      label: 'Inspect Fern Ravine',
+      description: 'A sheltered western ravine beneath the ancient-looking ferns.',
+      activate: () => announce('The ravine holds an older island in its roots. Prehistoric Fern Island (W02) is not open yet.'),
+    };
+  }
+
+  getRaindropPortalControl(announce: (message: string) => void): ExhibitControl {
+    return {
+      object: this.rillDroplet.control,
+      label: 'Inspect the Suspended Raindrop',
+      description: 'A single raindrop hanging in the air over the reflecting rill.',
+      activate: () => announce('A quiet reflection lingers on the rill. World Inside a Raindrop (W08) is not open yet.'),
+    };
+  }
+
+  getSundialPortalControl(announce: (message: string) => void): ExhibitControl {
+    return {
+      object: this.signatureFeatures.sundialGnomon,
+      label: 'Inspect Bronze Gnomon',
+      description: 'The bronze gnomon at the centre of the astronomical terrace.',
+      activate: () => announce('The bronze gnomon rests still in the moonlight. Clockwork Sundial (W03) is not open yet.'),
+    };
+  }
+
+  /** Reads the lamps that already exist; the glow never invents a light source. */
+  private collectLamps(): Lamp[] {
+    const lamps: Lamp[] = [];
+    const matrix = new THREE.Matrix4();
+    const at = new THREE.Vector3();
+    const gather = (name: string, make: (p: THREE.Vector3) => Lamp): void => {
+      this.root.getObjectsByProperty('name', name).forEach((node) => {
+        const batch = node as THREE.InstancedMesh;
+        batch.updateWorldMatrix(true, false);
+        const count = batch.isInstancedMesh ? batch.count : 1;
+        for (let i = 0; i < count; i++) {
+          if (batch.isInstancedMesh) { batch.getMatrixAt(i, matrix); matrix.premultiply(batch.matrixWorld); } else matrix.copy(batch.matrixWorld);
+          lamps.push(make(at.setFromMatrixPosition(matrix)));
+        }
+      });
+    };
+    gather('path-ground-light-instances', (p) => ({
+      x: p.x, y: p.y, z: p.z, size: 1.5, color: 0xffb466, pool: { y: -0.44, radius: 3.4 },
+    }));
+    gather('arrival-ceremonial-obelisk-crown', (p) => ({
+      x: p.x, y: p.y + 0.05, z: p.z, size: 2, color: 0xffb877, pool: { y: 0.085, radius: 4 },
+    }));
+    gather('exterior-searchlight-emitter', (p) => ({ x: p.x, y: p.y + 0.4, z: p.z, size: 2.6, color: 0x58b9ff }));
+    return lamps;
   }
 
   /**
@@ -325,8 +448,10 @@ export class ExteriorWorld {
   }
 
   variableUpdate(dt: number, eye: readonly [number, number, number], _zone: ZoneId, reducedMotion = false): void {
+    if (!reducedMotion) landscapeClock.value = (landscapeClock.value + Math.min(dt, 0.1)) % 4096;
     this.wildlife.update(dt, eye, reducedMotion);
     this.signatureFeatures.update(dt, reducedMotion);
+    this.rillDroplet.update(dt, reducedMotion);
     this.ticketKiosk.update(dt);
     this.sphereEntrance.update(dt, eye, reducedMotion);
     this.lighthouse.update(dt, reducedMotion);

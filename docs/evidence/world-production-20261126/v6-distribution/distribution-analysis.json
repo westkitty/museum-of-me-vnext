@@ -1,0 +1,656 @@
+{
+ "before": {
+  "dir": "perf-results/v6/dist-cand",
+  "countedByChecker": 18387506,
+  "classes": {
+   "other": {
+    "files": 6,
+    "raw": 1008107,
+    "gz": 398019,
+    "br": 320476
+   },
+   "lazy JS": {
+    "files": 8,
+    "raw": 1738013,
+    "gz": 437928,
+    "br": 354232
+   },
+   "media": {
+    "files": 160,
+    "raw": 12908405,
+    "gz": 12908405,
+    "br": 12908405
+   },
+   "entry JS": {
+    "files": 4,
+    "raw": 2574381,
+    "gz": 490715,
+    "br": 378968
+   },
+   "shell": {
+    "files": 5,
+    "raw": 158600,
+    "gz": 44709,
+    "br": 38694
+   },
+   "deferred iframe": {
+    "files": 65,
+    "raw": 91672296,
+    "gz": 91526657,
+    "br": 91518727
+   }
+  },
+  "largestNonDeferred": [
+   {
+    "file": "assets/interior-BTYIMKTm.js",
+    "cls": "entry JS",
+    "raw": 1843976,
+    "gz": 295423,
+    "br": 216823
+   },
+   {
+    "file": "assets/hotdog-man-BnU5MrvI.glb",
+    "cls": "media",
+    "raw": 1580256,
+    "gz": 1580256,
+    "br": 1580256
+   },
+   {
+    "file": "assets/island-froggy-D0UrgFuI.glb",
+    "cls": "media",
+    "raw": 947232,
+    "gz": 947232,
+    "br": 947232
+   },
+   {
+    "file": "assets/quaternius-women-casual-BqJRUrBo.glb",
+    "cls": "media",
+    "raw": 872120,
+    "gz": 872120,
+    "br": 872120
+   },
+   {
+    "file": "assets/quaternius-men-casual-C-TfZDqX.glb",
+    "cls": "media",
+    "raw": 819184,
+    "gz": 819184,
+    "br": 819184
+   },
+   {
+    "file": "assets/draco_decoder-fzg4nYZr.js",
+    "cls": "lazy JS",
+    "raw": 719410,
+    "gz": 147253,
+    "br": 108048
+   },
+   {
+    "file": "assets/three-BLfeIHuQ.js",
+    "cls": "entry JS",
+    "raw": 716490,
+    "gz": 189610,
+    "br": 157191
+   },
+   {
+    "file": "assets/island-goldfish-bag-person-D0rdzz8A.glb",
+    "cls": "media",
+    "raw": 629600,
+    "gz": 629600,
+    "br": 629600
+   },
+   {
+    "file": "builder-assets/openlife/garden_soil.png",
+    "cls": "media",
+    "raw": 564204,
+    "gz": 564204,
+    "br": 564204
+   },
+   {
+    "file": "builder-assets/openlife/terrain_grass.png",
+    "cls": "media",
+    "raw": 528938,
+    "gz": 528938,
+    "br": 528938
+   },
+   {
+    "file": "builder-assets/openlife/terrain_grass_lush.png",
+    "cls": "media",
+    "raw": 528745,
+    "gz": 528745,
+    "br": 528745
+   },
+   {
+    "file": "builder-assets/openlife/terrain_grass_dry.png",
+    "cls": "media",
+    "raw": 528341,
+    "gz": 528341,
+    "br": 528341
+   },
+   {
+    "file": "assets/basis_transcoder-VXdx5NbI.wasm",
+    "cls": "other",
+    "raw": 527333,
+    "gz": 244553,
+    "br": 203605
+   },
+   {
+    "file": "assets/main-vOg2e6Iu.js",
+    "cls": "lazy JS",
+    "raw": 515847,
+    "gz": 147532,
+    "br": 122878
+   },
+   {
+    "file": "builder-assets/openlife/driveway.png",
+    "cls": "media",
+    "raw": 513982,
+    "gz": 513982,
+    "br": 513982
+   },
+   {
+    "file": "builder-assets/openlife/terrain_road.png",
+    "cls": "media",
+    "raw": 513956,
+    "gz": 513956,
+    "br": 513956
+   },
+   {
+    "file": "builder-assets/openlife/sidewalk.png",
+    "cls": "media",
+    "raw": 473160,
+    "gz": 473160,
+    "br": 473160
+   },
+   {
+    "file": "builder-assets/openlife/lot_edge.png",
+    "cls": "media",
+    "raw": 459185,
+    "gz": 459185,
+    "br": 459185
+   },
+   {
+    "file": "assets/island-cactusboy-DhWDtuqT.glb",
+    "cls": "media",
+    "raw": 412544,
+    "gz": 412544,
+    "br": 412544
+   },
+   {
+    "file": "assets/island-carrot-kid-BTqbj84P.glb",
+    "cls": "media",
+    "raw": 385212,
+    "gz": 385212,
+    "br": 385212
+   },
+   {
+    "file": "assets/island-eyewizard-BYtbvNKz.glb",
+    "cls": "media",
+    "raw": 374976,
+    "gz": 374976,
+    "br": 374976
+   },
+   {
+    "file": "assets/island-robothead-B6CTCXi-.glb",
+    "cls": "media",
+    "raw": 302700,
+    "gz": 302700,
+    "br": 302700
+   },
+   {
+    "file": "assets/draco_decoder-C32yEggz.wasm",
+    "cls": "other",
+    "raw": 285747,
+    "gz": 88100,
+    "br": 66140
+   },
+   {
+    "file": "assets/island-coffee-CCLoEHPj.glb",
+    "cls": "media",
+    "raw": 258604,
+    "gz": 258604,
+    "br": 258604
+   },
+   {
+    "file": "assets/QualityTiers-BmjbOVNv.js",
+    "cls": "lazy JS",
+    "raw": 220995,
+    "gz": 71546,
+    "br": 60147
+   },
+   {
+    "file": "assets/draco_decoder-Z1_iN-Ht.wasm",
+    "cls": "other",
+    "raw": 192420,
+    "gz": 63164,
+    "br": 48729
+   },
+   {
+    "file": "assets/quaternius-posed-sitting-DdvMsSig.glb",
+    "cls": "media",
+    "raw": 164772,
+    "gz": 164772,
+    "br": 164772
+   },
+   {
+    "file": "assets/embedded-08-BV3zKHGc.webp",
+    "cls": "media",
+    "raw": 155814,
+    "gz": 155814,
+    "br": 155814
+   },
+   {
+    "file": "assets/embedded-05-DdSOzHTV.webp",
+    "cls": "media",
+    "raw": 150018,
+    "gz": 150018,
+    "br": 150018
+   },
+   {
+    "file": "assets/embedded-03-D8LjH8OA.webp",
+    "cls": "media",
+    "raw": 116536,
+    "gz": 116536,
+    "br": 116536
+   },
+   {
+    "file": "assets/embedded-07-DOJQ_npF.webp",
+    "cls": "media",
+    "raw": 114714,
+    "gz": 114714,
+    "br": 114714
+   },
+   {
+    "file": "assets/three-asset-loaders-LoZvJ4gz.js",
+    "cls": "lazy JS",
+    "raw": 92337,
+    "gz": 27266,
+    "br": 24104
+   },
+   {
+    "file": "assets/embedded-04-BlPAfxVM.webp",
+    "cls": "media",
+    "raw": 80698,
+    "gz": 80698,
+    "br": 80698
+   },
+   {
+    "file": "workbench/index.html",
+    "cls": "shell",
+    "raw": 72821,
+    "gz": 24040,
+    "br": 20732
+   },
+   {
+    "file": "assets/embedded-02-DslljTUb.webp",
+    "cls": "media",
+    "raw": 68480,
+    "gz": 68480,
+    "br": 68480
+   },
+   {
+    "file": "assets/draco_wasm_wrapper-DxJM36Ib.js",
+    "cls": "lazy JS",
+    "raw": 58763,
+    "gz": 11765,
+    "br": 10115
+   },
+   {
+    "file": "assets/draco_wasm_wrapper-fZCQGLGb.js",
+    "cls": "lazy JS",
+    "raw": 58456,
+    "gz": 11612,
+    "br": 9994
+   },
+   {
+    "file": "assets/basis_transcoder-o4Hde_L7.js",
+    "cls": "lazy JS",
+    "raw": 57529,
+    "gz": 15063,
+    "br": 13699
+   },
+   {
+    "file": "builder-assets/openlife/house_rose.glb",
+    "cls": "media",
+    "raw": 43780,
+    "gz": 43780,
+    "br": 43780
+   },
+   {
+    "file": "builder-assets/openlife/house_blue.glb",
+    "cls": "media",
+    "raw": 43700,
+    "gz": 43700,
+    "br": 43700
+   }
+  ]
+ },
+ "rehearsal": {
+  "dir": "test-results/rehearsal-dist",
+  "countedByChecker": 21708645,
+  "classes": {
+   "other": {
+    "files": 6,
+    "raw": 1008107,
+    "gz": 398019,
+    "br": 320476
+   },
+   "lazy JS": {
+    "files": 10,
+    "raw": 1745085,
+    "gz": 440884,
+    "br": 357031
+   },
+   "world": {
+    "files": 14,
+    "raw": 3314293,
+    "gz": 3188027,
+    "br": 3178677
+   },
+   "media": {
+    "files": 160,
+    "raw": 12908405,
+    "gz": 12908405,
+    "br": 12908405
+   },
+   "entry JS": {
+    "files": 4,
+    "raw": 2574155,
+    "gz": 490897,
+    "br": 379542
+   },
+   "shell": {
+    "files": 5,
+    "raw": 158600,
+    "gz": 44712,
+    "br": 38697
+   },
+   "deferred iframe": {
+    "files": 65,
+    "raw": 91672296,
+    "gz": 91526657,
+    "br": 91518727
+   }
+  },
+  "largestNonDeferred": [
+   {
+    "file": "assets/interior-EnZ0ZGCI.js",
+    "cls": "entry JS",
+    "raw": 1841875,
+    "gz": 294836,
+    "br": 216532
+   },
+   {
+    "file": "assets/hotdog-man-BnU5MrvI.glb",
+    "cls": "media",
+    "raw": 1580256,
+    "gz": 1580256,
+    "br": 1580256
+   },
+   {
+    "file": "assets/w01-other-B6r30788.m4a",
+    "cls": "world",
+    "raw": 1039642,
+    "gz": 1039642,
+    "br": 1039642
+   },
+   {
+    "file": "assets/w01-drums-DVkuy9hO.m4a",
+    "cls": "world",
+    "raw": 1033708,
+    "gz": 1033708,
+    "br": 1033708
+   },
+   {
+    "file": "assets/w01-bass-BaA6VaRV.m4a",
+    "cls": "world",
+    "raw": 1027433,
+    "gz": 1027433,
+    "br": 1027433
+   },
+   {
+    "file": "assets/island-froggy-D0UrgFuI.glb",
+    "cls": "media",
+    "raw": 947232,
+    "gz": 947232,
+    "br": 947232
+   },
+   {
+    "file": "assets/quaternius-women-casual-BqJRUrBo.glb",
+    "cls": "media",
+    "raw": 872120,
+    "gz": 872120,
+    "br": 872120
+   },
+   {
+    "file": "assets/quaternius-men-casual-C-TfZDqX.glb",
+    "cls": "media",
+    "raw": 819184,
+    "gz": 819184,
+    "br": 819184
+   },
+   {
+    "file": "assets/draco_decoder-fzg4nYZr.js",
+    "cls": "lazy JS",
+    "raw": 719410,
+    "gz": 147253,
+    "br": 108048
+   },
+   {
+    "file": "assets/three-BMJIIHgm.js",
+    "cls": "entry JS",
+    "raw": 718393,
+    "gz": 190372,
+    "br": 158037
+   },
+   {
+    "file": "assets/island-goldfish-bag-person-D0rdzz8A.glb",
+    "cls": "media",
+    "raw": 629600,
+    "gz": 629600,
+    "br": 629600
+   },
+   {
+    "file": "builder-assets/openlife/garden_soil.png",
+    "cls": "media",
+    "raw": 564204,
+    "gz": 564204,
+    "br": 564204
+   },
+   {
+    "file": "builder-assets/openlife/terrain_grass.png",
+    "cls": "media",
+    "raw": 528938,
+    "gz": 528938,
+    "br": 528938
+   },
+   {
+    "file": "builder-assets/openlife/terrain_grass_lush.png",
+    "cls": "media",
+    "raw": 528745,
+    "gz": 528745,
+    "br": 528745
+   },
+   {
+    "file": "builder-assets/openlife/terrain_grass_dry.png",
+    "cls": "media",
+    "raw": 528341,
+    "gz": 528341,
+    "br": 528341
+   },
+   {
+    "file": "assets/basis_transcoder-VXdx5NbI.wasm",
+    "cls": "other",
+    "raw": 527333,
+    "gz": 244553,
+    "br": 203605
+   },
+   {
+    "file": "assets/main-LLZfF8YE.js",
+    "cls": "lazy JS",
+    "raw": 516429,
+    "gz": 147776,
+    "br": 123134
+   },
+   {
+    "file": "builder-assets/openlife/driveway.png",
+    "cls": "media",
+    "raw": 513982,
+    "gz": 513982,
+    "br": 513982
+   },
+   {
+    "file": "builder-assets/openlife/terrain_road.png",
+    "cls": "media",
+    "raw": 513956,
+    "gz": 513956,
+    "br": 513956
+   },
+   {
+    "file": "builder-assets/openlife/sidewalk.png",
+    "cls": "media",
+    "raw": 473160,
+    "gz": 473160,
+    "br": 473160
+   },
+   {
+    "file": "builder-assets/openlife/lot_edge.png",
+    "cls": "media",
+    "raw": 459185,
+    "gz": 459185,
+    "br": 459185
+   },
+   {
+    "file": "assets/island-cactusboy-DhWDtuqT.glb",
+    "cls": "media",
+    "raw": 412544,
+    "gz": 412544,
+    "br": 412544
+   },
+   {
+    "file": "assets/island-carrot-kid-BTqbj84P.glb",
+    "cls": "media",
+    "raw": 385212,
+    "gz": 385212,
+    "br": 385212
+   },
+   {
+    "file": "assets/island-eyewizard-BYtbvNKz.glb",
+    "cls": "media",
+    "raw": 374976,
+    "gz": 374976,
+    "br": 374976
+   },
+   {
+    "file": "assets/island-robothead-B6CTCXi-.glb",
+    "cls": "media",
+    "raw": 302700,
+    "gz": 302700,
+    "br": 302700
+   },
+   {
+    "file": "assets/draco_decoder-C32yEggz.wasm",
+    "cls": "other",
+    "raw": 285747,
+    "gz": 88100,
+    "br": 66140
+   },
+   {
+    "file": "assets/island-coffee-CCLoEHPj.glb",
+    "cls": "media",
+    "raw": 258604,
+    "gz": 258604,
+    "br": 258604
+   },
+   {
+    "file": "assets/QualityTiers-B_V9CZFQ.js",
+    "cls": "lazy JS",
+    "raw": 221003,
+    "gz": 71551,
+    "br": 60197
+   },
+   {
+    "file": "assets/draco_decoder-Z1_iN-Ht.wasm",
+    "cls": "other",
+    "raw": 192420,
+    "gz": 63164,
+    "br": 48729
+   },
+   {
+    "file": "assets/quaternius-posed-sitting-DdvMsSig.glb",
+    "cls": "media",
+    "raw": 164772,
+    "gz": 164772,
+    "br": 164772
+   },
+   {
+    "file": "assets/embedded-08-BV3zKHGc.webp",
+    "cls": "media",
+    "raw": 155814,
+    "gz": 155814,
+    "br": 155814
+   },
+   {
+    "file": "assets/embedded-05-DdSOzHTV.webp",
+    "cls": "media",
+    "raw": 150018,
+    "gz": 150018,
+    "br": 150018
+   },
+   {
+    "file": "assets/embedded-03-D8LjH8OA.webp",
+    "cls": "media",
+    "raw": 116536,
+    "gz": 116536,
+    "br": 116536
+   },
+   {
+    "file": "assets/embedded-07-DOJQ_npF.webp",
+    "cls": "media",
+    "raw": 114714,
+    "gz": 114714,
+    "br": 114714
+   },
+   {
+    "file": "assets/three-asset-loaders-B4aJODBV.js",
+    "cls": "lazy JS",
+    "raw": 92337,
+    "gz": 27267,
+    "br": 24159
+   },
+   {
+    "file": "assets/embedded-04-BlPAfxVM.webp",
+    "cls": "media",
+    "raw": 80698,
+    "gz": 80698,
+    "br": 80698
+   },
+   {
+    "file": "workbench/index.html",
+    "cls": "shell",
+    "raw": 72821,
+    "gz": 24040,
+    "br": 20732
+   },
+   {
+    "file": "assets/embedded-02-DslljTUb.webp",
+    "cls": "media",
+    "raw": 68480,
+    "gz": 68480,
+    "br": 68480
+   },
+   {
+    "file": "assets/draco_wasm_wrapper-DxJM36Ib.js",
+    "cls": "lazy JS",
+    "raw": 58763,
+    "gz": 11765,
+    "br": 10115
+   },
+   {
+    "file": "assets/draco_wasm_wrapper-fZCQGLGb.js",
+    "cls": "lazy JS",
+    "raw": 58456,
+    "gz": 11612,
+    "br": 9994
+   }
+  ]
+ }
+}

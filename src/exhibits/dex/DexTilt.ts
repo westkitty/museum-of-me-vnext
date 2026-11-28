@@ -117,6 +117,8 @@ export class DexTilt extends ExhibitBase {
 
     const display = new THREE.Mesh(scope.track(new THREE.PlaneGeometry(1.4, 0.8)), teal);
     display.position.set(0, 1.5, -0.28);
+    // Named so the host can find it (the W04 pocket-world anchor); no behaviour here.
+    display.name = 'dextilt-desktop-display';
     this.desk.add(display);
 
     // The allowlist, printed on the desk. Four commands, and only four.

@@ -1,4 +1,6 @@
+import { runStepsSync, type BuildSteps } from '../../util/buildSteps';
 import * as THREE from 'three';
+import { softenBeam } from '../../render/SoftLight';
 import { ResourceScope } from '../../assets/ResourceScope';
 import { createTextTexture, createFallbackTexture, canRenderText } from '../../assets/TextTexture';
 import { SANCTUARY_CENTER, SANCTUARY_FLOOR_Y, SANCTUARY_RADIUS, SANCTUARY_HEIGHT, SANCTUARY_DIR, rightOf, add } from '../../world/layout';
@@ -29,18 +31,25 @@ export class DexterSanctuary {
   private breathe: THREE.Object3D | null = null;
   private elapsed = 0;
 
-  constructor(scope: ResourceScope) {
+  constructor(scope: ResourceScope, build = true) {
     this.scope = scope;
     this.group.name = 'dexter-sanctuary';
     this.group.position.set(SANCTUARY_CENTER[0], SANCTUARY_FLOOR_Y, SANCTUARY_CENTER[2]);
-    this.build();
+    if (build) runStepsSync(this.buildSteps());
+  }
+
+  /** The construction, split for the cooperative interior build (see `src/util/buildSteps.ts`). */
+  static *createSteps(scope: ResourceScope): BuildSteps<DexterSanctuary> {
+    const sanctuary = new DexterSanctuary(scope, false);
+    yield* sanctuary.buildSteps();
+    return sanctuary;
   }
 
   private mat(color: number, roughness = 0.7, metalness = 0): THREE.MeshStandardMaterial {
     return this.scope.track(new THREE.MeshStandardMaterial({ color, roughness, metalness }));
   }
 
-  private build(): void {
+  private *buildSteps(): BuildSteps {
     // ── the resting platform ──
     const stone = this.mat(0x4a4239, 0.85);
     const platform = new THREE.Mesh(
@@ -57,15 +66,17 @@ export class DexterSanctuary {
     cushion.position.y = 0.5;
     this.group.add(cushion);
 
+    yield;
     this.group.add(this.buildDexter());
+    yield;
 
     // ── light: one shaft from the oculus, and nothing else ──
     const shaft = new THREE.Mesh(
       this.scope.track(new THREE.CylinderGeometry(1.5, 2.6, SANCTUARY_HEIGHT - 0.6, 24, 1, true)),
-      this.scope.track(new THREE.MeshBasicMaterial({
+      softenBeam(this.scope.track(new THREE.MeshBasicMaterial({
         color: 0xf6ecd8, transparent: true, opacity: 0.055,
         side: THREE.DoubleSide, depthWrite: false,
-      })),
+      })), 6.5, 'top'),
     );
     shaft.position.y = (SANCTUARY_HEIGHT - 0.6) / 2 + 0.4;
     this.group.add(shaft);
@@ -120,6 +131,7 @@ export class DexterSanctuary {
       this.group.add(frame);
     });
 
+    yield;
     this.buildScentRoute();
   }
 

@@ -3,6 +3,7 @@ import type { ResourceScope } from '../assets/ResourceScope';
 import { PLACEMENTS, WING_BY_ID, type ExhibitPlacement } from './layout';
 import { resolveExhibitTheme } from './ExhibitTheme';
 import { architecturalStoneFinish } from './SurfaceFinish';
+import { applyArchitecturalFinish } from '../render/ArchitecturalShading';
 import { radialFloorMask } from './RadialFloorMask';
 
 /**
@@ -35,8 +36,9 @@ export class ExhibitColorFields {
   private buildField(placement: ExhibitPlacement): void {
     const wing = WING_BY_ID.get(placement.wing)!;
     const theme = resolveExhibitTheme(placement.exhibitId, placement.wing);
-    const primary = this.material(theme.floor, 0.66, 0.08, 0.74, true);
-    const wall = this.material(theme.wall, 0.78, 0.02, 0.9, true);
+    const accent = new THREE.Color(theme.trim);
+    const primary = applyArchitecturalFinish(this.material(theme.floor, 0.66, 0.08, 0.74, true), placement.wing, accent);
+    const wall = applyArchitecturalFinish(this.material(theme.wall, 0.78, 0.02, 0.9, true), placement.wing, accent);
     const trim = this.material(theme.trim, 0.5, 0.16, 0.88);
 
     const field = new THREE.Group();

@@ -5,7 +5,7 @@ import type { Palette } from './palette';
 
 /**
  * Four layered, softly bevelled gallery profiles share one set of geometries
- * across all 35 bays. The existing Museum collider remains authoritative.
+ * across the bays that use a plinth. Museum owns the corresponding collider.
  * No additional lights, shader passes or independent interaction surfaces.
  */
 export class GalleryPlinthKit {

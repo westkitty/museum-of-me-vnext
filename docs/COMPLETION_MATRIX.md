@@ -191,5 +191,128 @@ Plan: `docs/plans/WORLD_EXPANSION_GROKBOT_MASTER_20261121.md`. Rows are added as
 | Shared interior prewarm, GPU upload, and ambient preload pacing | IMPLEMENTED; MERGED ON MAIN (PR #81, CI 7/7 `SUCCESS`; M1 clean run 12/12 PASS on `8038815`) | [PR #81](https://github.com/westkitty/museum-of-me-vnext/pull/81) |
 | ISLAND-05 shared host, registry, passport, and Music & Sync Foundation | IMPLEMENTED; MERGED WITH `main` (`2bc3441`); PENDING PR #80 CI | [PR #80](https://github.com/westkitty/museum-of-me-vnext/pull/80), `tests/pocket-passport.test.ts`, `tests/music-foundation.test.ts`, `tests/browser/pocket-world.e2e.ts`, `tests/browser/music-foundation.e2e.ts`, [M1 A/B comparison](evidence/island-05-m1-comparison-20261122/REPORT.md), [operational state](../OPERATIONAL_STATE.md) |
 | W01–W10 and L01 | DORMANT; DEVELOPMENT BATCHES PLANNED | [compatibility batches](plans/POCKET_WORLD_COMPATIBILITY_BATCHES_20261122.md) |
+| W02 Prehistoric Fern Island first route slice | LOCAL DEVELOPMENT PREVIEW; production W02 DORMANT; no stamp or completion trigger | [route and next steps](plans/W02_PREHISTORIC_FERN_ROUTE_20261126.md), `tests/w02-prehistoric-fern.test.ts`, `tests/browser/w02-prehistoric-fern.e2e.ts`; full route, visual acceptance, and representative device performance PENDING |
+| W09 Museum Between Seconds | PLAYABLE LOCAL; production W09 DORMANT | `src/world/pocket/w09/`, `tests/w09-museum-between-seconds.test.ts` 2/2, `tests/browser/w09-museum-between-seconds.e2e.ts` 1/1; real-time keyboard route and safe return; touch, lifecycle, device and owner visual acceptance PENDING |
+| L01 Lighthouse at World's End | PLAYABLE LOCAL, UNSTAMPED; production L01 DORMANT | `src/world/pocket/l01/`, `tests/l01-lighthouse.test.ts` 2/2, `tests/browser/l01-lighthouse.e2e.ts` 3/3; bonus completion yields zero stamps; touch, lifecycle, device and owner visual acceptance PENDING |
 | Eventual visual upgrades to 17 authored visitors | PLANNED | master plan |
 
+### Cumulative world-production candidate · 2026-11-26 (local, uncommitted)
+
+The older development rows above record their own dates. Current implementation and review evidence for all eleven worlds is in [the world-production ledger](plans/WORLD_PRODUCTION_LEDGER_20261126.md) and [owner review](plans/WORLD_OWNER_REVIEW_20261126.md).
+
+| Scope | Current state | Remaining acceptance |
+|---|---|---|
+| W01 Great Ocean Procession | RECONCILED LOCAL CANDIDATE from clean Antigravity lane; source unit 3/3 and existing browser 2/2 pass. Browser route is programmatically driven. Original lane preserved. | Real-time visitor route, visual/audio approval, representative-device performance; production dormant. |
+| W02–W08 | PLAYABLE LOCAL development previews with keyboard journeys and completion returns; W08 rainbow visually inspected and fresh-boot single F 3/3. | Consolidated final-candidate browser, touch/device, load failure/lifecycle, owner visual; production dormant. |
+| W09 Museum Between Seconds | PLAYABLE LOCAL; real-time keyboard completion and return passed; its earned stamp opened W10 at the pier in the same browser session. | Touch/device, lifecycle, owner visual; production dormant. |
+| L01 Lighthouse at World's End | PLAYABLE LOCAL, UNSTAMPED; keyboard, optional, Back/repeat and reduced motion passed. | Touch/device, lifecycle, owner visual; production dormant. |
+| W10 Breath of the Weasel | PLAYABLE LOCAL with explicitly TEST-ONLY character rig; keyboard route, earned W09 unlock and independent rooftop entry passed. | Approved Dexter model, touch/device, lifecycle and owner visual; production dormant. |
+
+
+## Great Museum Walkabout — local candidate · 2026-11-23
+
+| Scope | Evidence state |
+|---|---|
+| Visual upgrades to 17 authored visitors | IMPLEMENTED locally. Separate in-museum before/after PNGs and 17/17 independent focus and conversation checks. The procedural cast still uses the existing body batch and shadow draw. Human visual and sourced-model approvals remain open. |
+| Visitor overlap, ramp grounding and Cinema threshold | REPAIRED and verified in focused checks and Chrome captures. The Cinema remains on the upper east Rotunda balcony. |
+| Walkaround and exhibits | VERIFIED BY BROWSER for 64 passages, 190 bidirectional lanes and all 35 viewing spots. The active-loop walk completed a ticketed visit and re-entry. All 35 exhibits furnished a supported approach to one tested local control, with F input recorded in the Journal. |
+| E20 workbench sightline | OPEN (P2). The shared foreground plinth partially occludes the workbench from the standard visitor spot. The bay passes traversal and its local control test. |
+| Representative M1 and delivery | PARTIAL. The six candidate budget misses reproduced on the baseline. Candidate remains unstaged and local. [Walkabout QA](evidence/museum-autonomous-walkabout-20261123/FINAL_QA_REPORT.md). |
+
+### Great Museum Walkabout continuation · 2026-11-23
+
+| Item | State | Evidence |
+|---|---|---|
+| E20 workbench and adjacent circulation | IMPLEMENTED · VERIFIED BY FOCUSED TEST AND CHROME/METAL | Matched eye-height frames, held movement across the former plinth and F interaction in the [continuation QA](evidence/museum-autonomous-walkabout-20261123/CONTINUATION_QA_REPORT.md#e20-workbench). |
+| 17 authored visitors; cropped crowns on three | ALL 17 REVIEWED IN CHROME · THREE REPAIRED AND RECHECKED | [Individual cast outcomes](evidence/museum-autonomous-walkabout-20261123/VISITOR_VISUAL_LEDGER.md#continuation-review--2026-11-23). |
+| Final timed and live traversal; project gate; offline | VERIFIED BY AUTOMATED TEST AND CHROME | 64/64 passages, 190/190 lanes, 35/35 approaches, grand tour and rooftop. 111/111 focused, 1,347/1,347 in gate, offline two round trips. |
+| WA-06 inlay across bay openings | OPEN · REPRODUCED IN CHROME | [Defect ledger](evidence/museum-autonomous-walkabout-20261123/DEFECT_LEDGER.md#continuation--2026-11-23). |
+| Human visual, physical input/device, sourced-model approvals | PENDING | [Continuation QA](evidence/museum-autonomous-walkabout-20261123/CONTINUATION_QA_REPORT.md). |
+| Cinema local film and controls | VERIFIED ON ISOLATED RETRY · ONE INITIAL TIMING MISS | Exact restart-time assertion read 0.0018 s on the first run and passed on retry. |
+| Apple M1 device acceptance | PARTIAL · HARD BUDGETS OPEN | Final candidate missed 7/12. All seven misses occurred on clean main across two trials. [Comparison](evidence/museum-autonomous-walkabout-20261123/CONTINUATION_QA_REPORT.md#apple-m1-comparison). |
+
+### Great Museum Walkabout final correction · 2026-11-23
+
+| Item | State | Evidence |
+|---|---|---|
+| WA-06 E19 inlay | RESOLVED IN CHROME AND GEOMETRY REGRESSION | Matched camera, retained solid-wall panel and adjacent held walks in the [closure report](evidence/museum-autonomous-walkabout-20261123/CONTINUATION_QA_REPORT.md#e19-inlay). |
+| Cinema local restart and final functional checks | VERIFIED LOCALLY | Exact-zero paused seek, 3 additional repeats, 64/190/35 traversal, 1,348 gate tests and standalone. |
+| Apple M1 adjudication | BLOCKED FOR MERGE | +83.1–98.9 ms synchronous cast construction in three ticketed pairs. Frame-pacing deltas remain unresolved and absolute failures remain open. [Twelve budgets and attribution](evidence/museum-autonomous-walkabout-20261123/CONTINUATION_QA_REPORT.md#apple-m1-adjudication). |
+| Human presentation and physical acceptance | PENDING | Local captures and measured tests are available for review. |
+| Visitor construction repair | PARTIAL | Cooperative kit preparation; 78/78 geometries byte-identical; headless longest sync slice 17.5 to 6.8 ms. Headed M1 pairs pending. [Repair report](evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#visitor-construction-performance-repair-2026-11-24). |
+| Playwright output safety | VERIFIED LOCALLY | Default outputDir moved to `test-results/playwright`; guard test in gate. Incident and loss inventory in the [manifest](evidence/museum-autonomous-walkabout-20261123/EVIDENCE_LOSS_MANIFEST.md). |
+| Paced visitor construction, render parity | VERIFIED LOCALLY, M1 PENDING | 17/17 headless renders pixel-identical; total CPU unchanged; no Metal measurement. Boot test baseline-flaky. |
+| Visitor geometry baked at build time | PARTIAL | Byte-identical (78/78), 17/17 pixel-identical, total sync construction about 9 ms lower (headless, loaded machine); constructor slice unchanged; headed M1 pairs pending. [Pass 3](evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-3-build-time-visitor-geometry-2026-11-24). |
+| Interrupted visitor preparation | VERIFIED LOCALLY | 7 unit tests plus 4 application-level InteriorWorld interruption cases (real build, real dispose, clean re-entry). One lifecycle defect found and fixed. |
+| Visitor constructor cost | NO DEMONSTRATED IMPROVEMENT | Profiled (about 18 ms, accumulated across many registrations); registration experiment about 1.7 ms, rejected. Headed M1 pairs pending. [Pass 4](evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-4-constructor-profile-rejected-registration-experiment-application-level-interruption-2026-11-25). |
+| Application disposal and abandoned interior builds | VERIFIED LOCALLY | 10 browser cases through the real `App.dispose` and `InteriorWorld` build, red before the correction (6 new); resource counts after abandon and re-entry equal a clean entry. [Pass 5](evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-5-independent-verification-application-disposal-correction-benchmark-bias-found-2026-11-25). |
+| Visitor construction, fair headless comparison | PARTIAL | Total 10.1 ms versus clean main 6.2; pass 3's baked figures carried a serving-location penalty. Headed M1 and twelve budgets pending. Three software-GL timeouts not attributed to the correction; clean-main status unresolved. |
+| Three software-GL browser timeouts | PARTIAL | Two load-sensitive (moderate confidence), one unresolved; 27 of 27 matched runs pass on clean main, pre-Pass-5 and current; no candidate regression demonstrated. [Pass 6](evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-6-acceptance-closure-browser-timeout-classification-and-review-matrix-2026-11-25). |
+| Twelve-budget matrix and human review checklist | PREPARED · NOT EXECUTED | Current revision UNVERIFIED for all twelve; checklist lists surviving and missing captures. Headed M1 run and human review pending. |
+| Headless M1 paired comparison | PARTIAL | Three alternating pairs; visitor CPU 8.9 versus 4.7 ms in the quiet pair; +83–99 ms stage not reproduced; cold start, first and second entry higher on the candidate, unexplained; two candidate arms loaded. [Pass 7](evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-7-screen-free-apple-m1-paired-comparison-2026-11-25). |
+| E19/E20 current-revision captures | CAPTURED, HUMAN REVIEW PENDING | New Metal captures of clean main and candidate show both repairs; historical before/after images remain lost. |
+| Human review package | PREPARED · APPROVAL PENDING | `test-results/perf-verify-pass7/human-review/index.html`, 17 identities; two captures usable for face judgment. |
+| Ten-round visual finishing pass | VERIFIED LOCALLY · HUMAN REVIEW PENDING | Gate PASS (1,373 tests); headless before/after captures; added GPU cost measured on headless Metal only; visual-regression baselines to refresh from CI. [Report](evidence/visual-finishing-20261125/REPORT.md). |
+
+### Eleven-world cumulative local candidate · 2026-11-26
+
+| Scope | State | Evidence / remaining gate |
+|---|---|---|
+| W01–W09 stamped routes and unstamped L01 | PLAYABLE LOCAL previews; production DORMANT | [Eleven-world owner review](plans/WORLD_OWNER_REVIEW_20261126.md), [execution ledger](plans/WORLD_PRODUCTION_LEDGER_20261126.md); keyboard journeys and completion returns, W01 route programmatically driven. |
+| W10 finale | PLAYABLE LOCAL with TEST-ONLY character rig; production DORMANT | Third-person mechanics and earned W09 unlock checked; production-approved Dexter model and owner art acceptance open. |
+| Final local gate and compatibility | PARTIAL | Gate 149 files / 1,438 tests, production build and distribution pass. Standard browser full run 115 pass / 4 fail / 1 skip; four repaired cases pass focused rerun. Workshop 16/16 plus authored offline readback; ordinary standalone offline and runtime-source checks pass. |
+| Headless Apple M1 performance | FAIL, 1/12 hard budgets | [Raw and checked results](evidence/world-production-20261126/performance/headless-m1-budget-check.txt): exterior walking p99 33.4 ms versus ≤20 ms. Headed representative-device acceptance remains UNVERIFIED. |
+| World host lifecycle and load recovery | VERIFIED LOCALLY IN DIAGNOSTIC SCOPE | Real W02–W10/L01 factories: ten host entry/exit cycles each, 10/10 cases passed after fixing L01's three edge-geometry leaks per visit; W01 prior ten cycles. Injected failed and interrupted loading recovered with a successful retry for all eleven registrations, 11/11. Full real-time repeats remain open. |
+| Production release and external acceptance | NOT COMPLETE | Full physical touch and real-time repeat journeys, owner visual/audio, approved Dexter, performance repair, headed device acceptance, ordered activation, exact-head CI and hosted proof open. No commit, push, merge or deploy. |
+
+### V3 local continuation · 2026-11-26
+
+| Scope | State | Evidence / remaining gate |
+|---|---|---|
+| W01 Great Ocean Procession | CONTINUOUS KEYBOARD JOURNEY VERIFIED LOCALLY, 1/1 | Live application loop and ordinary W/Q/E/PageUp/PageDown/Shift/F inputs exercised three currents, reef actions, cathedral, conductor and museum return. [New chronological captures](evidence/world-production-20261126/w01-real-journey/); physical touch, repeat completion and owner visual/audio approval remain open. Music authorship/ownership was already confirmed in the [provenance record](W01_MUSIC_SOURCE_PROVENANCE.md). |
+| Exterior walk on headless M1 | **FAIL, 1/12 governing hard budgets on candidate** | Fresh full candidate p99 33.3 ms versus ≤20 ms; clean baseline p99 35.4 ms and 3/12 hard limits failed. Matched focused probes both miss frames during prewarm; source-level bottleneck remains unresolved. [Measured report](evidence/world-production-20261126/v3-performance/REPORT.md). Headed device proof remains unverified. |
+| Source and distribution after W01 test | AUTOMATED SOURCE GATE PASS | `npm run gate`: 149/149 files, 1,438/1,438 unit tests, 17.53 MB initial of 20 MB, 256-file release distribution. Browser and physical acceptance are separate. |
+| Unified world browser suite | AUTOMATED VERIFICATION PASSED, 54/54 | Installed Chrome/ANGLE Metal, one cumulative source run including W01 ordinary input, W08 reduced motion, route/optional cases, ten-visit diagnostic lifecycle and eleven-world injected load recovery. Physical touch and owner review remain separate. |
+| Standard museum browser suite | AUTOMATED VERIFICATION PASSED, 119/119 EXECUTED | One deliberate Linux-only visual snapshot skip on macOS; zero failures. The earlier four focused exterior repairs passed inside this unified run. |
+| Workshop and standalone | AUTOMATED VERIFICATION PASSED IN LOCAL SCOPE | Dedicated Workshop 16/16 plus authored offline readback and restored source/export; ordinary standalone static, two offline round trips, 17/17 visitors, 14/14 installations and zero remote requests. |
+
+### V5 local continuation · 2026-11-26
+
+| Area | Status | Evidence |
+|---|---|---|
+| Exterior walk on headless M1 | **FAIL, 1/12** (p99 33.3 ms vs ≤20) | Cause isolated to interior construction during the walk; partial repair retained. [V5 report](evidence/world-production-20261126/v5-performance/REPORT.md) |
+| Ordered production activation | PREPARED, DORMANT; rehearsal PASS | `src/world/pocket/productionWorlds.ts`; [rehearsal log](evidence/world-production-20261126/v5-validation/rehearsal-v5.log) |
+| W01 touch journey | BROWSER-EMULATED PASS 1/1 | [captures](evidence/world-production-20261126/v5-validation/w01-touch-journey/); physical device UNVERIFIED |
+| World / standard / Workshop / standalone browser suites | PASS 55/55 · 119 (1 skip) · 16/16 · PASS | [logs](evidence/world-production-20261126/v5-validation/) |
+| Gate | PASS (150 files / 1,445 tests, 17.53 MB) | [log](evidence/world-production-20261126/v5-validation/gate-final.log) |
+| Owner visual/audio, W10 model, physical touch, headed device | PENDING OWNER | [owner request](plans/WORLD_OWNER_REVIEW_20261126.md#v5-consolidated-owner-request-2026-11-26) |
+
+### V6 local continuation · 2026-11-27
+
+| Area | Status | Evidence |
+|---|---|---|
+| Exterior walk, matched A/B | PASS 5/5 pairs (p99 33–50 → 16.8 ms) | [V6 performance report](evidence/world-production-20261126/v6-performance/REPORT.md) |
+| `perf:device` repeated, exact candidate | **NOT MET.** 12/12 once earlier; 4–6/12 in four final runs under heavy machine contention. A matched control shows no code regression | [summary](evidence/world-production-20261126/v6-validation/perf-final-summary.txt), [control](evidence/world-production-20261126/v6-validation/ab-regress.txt) |
+| Full touch journeys, all eleven worlds | BROWSER-EMULATED PASS 11/11; physical UNVERIFIED | [captures](evidence/world-production-20261126/v6-touch/) |
+| Natural approaches, cross-world sessions | PASS: 7/7 ground entrances; keyboard and touch progression; early exits | [captures](evidence/world-production-20261126/v6-sessions/) |
+| Distribution | Checker 12.58 MB (was 17.54); about 15.7 MB with all worlds; exclusion regression added; rehearsals 5/5 | [distribution report](evidence/world-production-20261126/v6-distribution/REPORT.md) |
+| W10 camera, Dexter seam | Camera boom keeps the character in view; seam, contract and handoff ready; rig still TEST-ONLY | [handoff](plans/W10_DEXTER_MODEL_HANDOFF.md) |
+| Gate · isolation · Workshop · standalone | PASS (153 / 1,458) · PASS · 16/16 · PASS | [logs](evidence/world-production-20261126/v6-validation/) |
+| World / standard browser suites | 74/76 and 115/119 in single invocations; all pass after a route fix, a hook fix and reruns (W01 aim miss unexplained) | [logs](evidence/world-production-20261126/v6-validation/) |
+| Owner decisions | PENDING OWNER | [V6 owner request](plans/WORLD_OWNER_REVIEW_20261126.md#v6-owner-request-2026-11-27) |
+
+
+### V7 local continuation · 2026-11-27
+
+| Area | Status | Evidence |
+|---|---|---|
+| W01 aim miss (V6) | CLOSED: test-walker overshoot, repaired; W01 unchanged; regression test added | [V7 report](evidence/world-production-20261126/v7/REPORT.md) |
+| W09 cascade pinch (V6) | CLOSED: product softlock repaired (blocked intent runs the clock); unit test plus browser keyboard 2/2 and touch 1/1; **owner acceptance of the rule change pending** | [V7 report](evidence/world-production-20261126/v7/REPORT.md) |
+| Authentic entrances | All 11 worlds plus the W10 roof on foot from the pier; interior and roof keyboard 5/5, touch 2/2 (emulated) | [captures](evidence/world-production-20261126/v7/museum-approach/) |
+| Long-session lifecycle | PASS 1/1: two passes, six worlds, resources flat (heap +0.5 MB after GC) | [V7 report](evidence/world-production-20261126/v7/REPORT.md) |
+| Dexter seam | Guarded selection plus asset reader; 7/7 unit tests; identity gate CLOSED; rig TEST-ONLY | [V7 report](evidence/world-production-20261126/v7/REPORT.md) |
+| Physical-device touch | NOT ATTEMPTED; owner procedure written | [procedure](plans/WORLD_DEVICE_ACCEPTANCE_V7_20261127.md) |
+| `perf:device`, governed trials | FAILED: 8/12, 10/12, 9/12 (three admissible starts). Attribution unresolved; see the trials | [trials](evidence/world-production-20261126/v7/performance/TRIALS.md) |
+| Gate · world · rehearsal · isolation | PASS (153 / 1,462) · 83/87 on the first full run. All four failures were diagnosed and pass on rerun: two were the touch test walker on moving supports (W03 gear, W08 pad; fixed), one an unexplained intermittent W09 time-dial aim miss, and one a product defect (Esc during "Opening…" was ignored; fixed, with a new regression test) · 5/5 with Metal; a first run without Metal was invalid (0/5). The failed-load test was re-run on the final tree, 1/1 · PASS | [V7 report](evidence/world-production-20261126/v7/REPORT.md) |
+| Standard · Workshop · standalone | Standard 67/67 executed before an owner-directed stop; Workshop and standalone not re-run (V7 changes neither; V6 PASS) | — |
+| Owner decisions | PENDING OWNER | [V7 owner request](plans/WORLD_OWNER_REVIEW_20261126.md#v7-owner-request-2026-11-27) |

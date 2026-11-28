@@ -7,7 +7,8 @@ import { ExhibitColorFields } from '../src/world/ExhibitColorFields';
 import { ExhibitThresholds } from '../src/world/ExhibitThresholds';
 import { ExteriorIdentity } from '../src/world/ExteriorIdentity';
 import { MonumentalRotunda } from '../src/world/MonumentalRotunda';
-import { PLACEMENTS, ROTUNDA_APOTHEM, SANCTUARY_DIR, WINGS } from '../src/world/layout';
+import { HALL_SIDE_WALL_THICKNESS, PLACEMENTS, ROTUNDA_APOTHEM, SANCTUARY_DIR, WINGS, faceDirection, rightOf } from '../src/world/layout';
+import { bayOpeningSpan } from '../src/world/installationPlacement';
 import { PaletteSet } from '../src/world/palette';
 import { RotundaWayfinding } from '../src/world/RotundaWayfinding';
 import { NIGHT_MOON_DIRECTION, Sky } from '../src/world/Sky';
@@ -175,6 +176,38 @@ describe('museum environment coherence', () => {
     expect(atmosphere.getObjectByName('north-azure-sparkles')).toBeTruthy();
     expect(atmosphere.children.find((node) => node.name === 'north-azure-sparkles')?.children).toHaveLength(42);
     scope.dispose();
+  });
+
+  it('keeps the rendered wall inlays beside the actual E19 and neighboring bay openings', () => {
+    const scope = new ResourceScope('wing-inlay-clearance');
+    try {
+      const atmosphere = new WingAtmosphere(scope).build();
+      atmosphere.updateMatrixWorld(true);
+      const east = PLACEMENTS.find(({ exhibitId }) => exhibitId === 'E19')!;
+      const bays = [east, ...PLACEMENTS.filter(({ exhibitId }) => exhibitId !== 'E19')];
+      for (const bay of bays) {
+        const wing = WINGS.find(({ id }) => id === bay.wing)!;
+        const dir = new THREE.Vector3(...faceDirection(wing.face));
+        const lateral = new THREE.Vector3(...rightOf(faceDirection(wing.face)));
+        const sign = bay.side === 'right' ? 1 : -1;
+        const panels = atmosphere.children.filter((node): node is THREE.Mesh =>
+          node instanceof THREE.Mesh && node.name === `wing-wall-inlay:${wing.id}` && node.position.dot(lateral) * sign > 0);
+        expect(panels).toHaveLength(1);
+        const geometry = panels[0].geometry.getAttribute('position');
+        const vertices = Array.from({ length: geometry.count }, (_, index) =>
+          panels[0].localToWorld(new THREE.Vector3().fromBufferAttribute(geometry, index)));
+        const extents = vertices.map((point) => point.dot(dir));
+        const centre = new THREE.Vector3(...bay.doorway).dot(dir);
+        const opening = bayOpeningSpan(bay.exhibitId);
+        const gap = Math.max(centre + opening.from - Math.max(...extents), Math.min(...extents) - centre - opening.to);
+        expect(gap, bay.exhibitId + ' opening clearance').toBeGreaterThan(0);
+        const wallFace = wing.hallHalfWidth - HALL_SIDE_WALL_THICKNESS / 2;
+        expect(Math.min(...vertices.map((point) => point.dot(lateral) * sign))).toBeLessThan(wallFace);
+        expect(Math.max(...extents) - Math.min(...extents)).toBeCloseTo(Math.min(6.5, (wing.hallTo - wing.hallFrom) / 5));
+      }
+    } finally {
+      scope.dispose();
+    }
   });
 
   it('gives every wing its own authored furnishing vocabulary', () => {

@@ -1,0 +1,25 @@
+
+perf-results/v6/dist-pruned: counted by check-budgets.mjs 12.58 MB (budget 20 MB)
+class            files    raw MB   gzip MB  brotli MB
+deferred iframe     65     87.43     87.29      87.28
+media               28      7.35      7.35       7.35
+entry JS             4      2.46      0.47       0.36
+lazy JS              8      1.66      0.42       0.34
+other                6      0.96      0.38       0.31
+shell                5      0.15      0.04       0.04
+largest files:
+    5.73 MB  deferred iframe embedded/full-weasel/assets/backgrounds/grok_video_2026-02-08-15-25-49.mp4
+    4.79 MB  deferred iframe embedded/full-weasel/assets/backgrounds/grok_video_2026-02-08-15-25-06.mp4
+    4.47 MB  deferred iframe embedded/full-weasel/assets/sprites/ui/Title_Screen.webp
+    4.28 MB  deferred iframe embedded/full-weasel/assets/backgrounds/1770582061308.webp
+    4.28 MB  deferred iframe embedded/full-weasel/assets/backgrounds/1770582089865.webp
+    3.95 MB  deferred iframe embedded/full-weasel/assets/backgrounds/1770582054016.webp
+    3.93 MB  deferred iframe embedded/full-weasel/assets/backgrounds/1770582075405.webp
+    3.86 MB  deferred iframe embedded/full-weasel/assets/backgrounds/1770582074136.webp
+    3.84 MB  deferred iframe embedded/full-weasel/assets/backgrounds/1770582057020.webp
+    3.81 MB  deferred iframe embedded/full-weasel/assets/backgrounds/1770582078902.webp
+    3.47 MB  deferred iframe embedded/full-weasel/assets/sprites/ui/PWA_guide.webp
+    2.85 MB  deferred iframe embedded/full-weasel/assets/music/The Full Weasel (4).mp3
+    2.74 MB  deferred iframe embedded/full-weasel/assets/backgrounds/grok_video_2026-02-08-15-27-23.mp4
+    2.74 MB  deferred iframe embedded/full-weasel/assets/backgrounds/grok_video_2026-02-08-15-27-24.mp4
+    2.72 MB  deferred iframe embedded/full-weasel/assets/music/The Full Weasel.mp3

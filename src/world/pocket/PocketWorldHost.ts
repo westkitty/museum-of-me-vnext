@@ -47,7 +47,7 @@ export interface PocketHostAdapter {
     | 'commitPocket'
     | 'beginExitingPocket'
     | 'finishExitingPocket'
-  >;
+  > & Partial<Pick<WorldDirector, 'phase' | 'prepareInterior'>>;
   readonly scene: THREE.Scene;
   readonly camera: THREE.PerspectiveCamera;
   readonly sky: { readonly mesh: THREE.Object3D; follow(camera: THREE.Camera): void };
@@ -137,6 +137,7 @@ export class PocketWorldHost {
   private activeSession: ActivePocketSession | null = null;
   private pendingLoad: PendingPocketLoad | null = null;
   private promptState: { readonly cancel: () => void } | null = null;
+  private waitingForInteriorPreparation = false;
   private disposed = false;
 
   constructor(private readonly host: PocketHostAdapter) {}
@@ -155,6 +156,11 @@ export class PocketWorldHost {
 
   get activeScope(): ResourceScope | null {
     return this.activeSession?.scope ?? this.pendingLoad?.scope ?? null;
+  }
+
+  /** The active pocket world's root, for camera occlusion queries. */
+  get activeRoot(): THREE.Object3D | null {
+    return this.activeSession?.root ?? null;
   }
 
   get activeCameraMode(): CameraRigMode {
@@ -232,7 +238,22 @@ export class PocketWorldHost {
    */
   async requestEntry(id: PocketWorldId, liveReturnAnchor?: SafeAnchor): Promise<boolean> {
     if (this.disposed || this.host.isContextLost() || this.host.canEnter?.() === false) return false;
-    if (this.activeSession || this.pendingLoad || this.promptState) return false;
+    if (this.activeSession || this.pendingLoad || this.promptState || this.waitingForInteriorPreparation) return false;
+
+    // Interior preparation runs invisibly while the visitor explores outside.
+    // A focused pocket-world press during that phase must remain a single
+    // request; the director cannot open a pocket prompt until preparation ends.
+    if (this.host.worldDirector.phase === 'PREPARING_INTERIOR') {
+      this.waitingForInteriorPreparation = true;
+      this.host.announce('Opening the passage as the galleries finish preparing.', 5);
+      try {
+        await this.host.worldDirector.prepareInterior?.().catch(() => undefined);
+      } finally {
+        this.waitingForInteriorPreparation = false;
+      }
+      if (this.disposed || this.host.isContextLost() || this.host.canEnter?.() === false) return false;
+      if (this.activeSession || this.pendingLoad || this.promptState) return false;
+    }
 
     const check = this.host.registry.canEnter(id, this.host.passport);
     if (!check.ok) {

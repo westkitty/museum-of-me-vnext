@@ -1,5 +1,9 @@
 import * as THREE from 'three';
-import { buildCinemaArchitecture, type CinemaArchitecture } from './Cinema';
+import { applyArchitecturalFinish } from '../render/ArchitecturalShading';
+import { architecturalStoneFinish } from './SurfaceFinish';
+import { softenBeam } from '../render/SoftLight';
+import { buildCinemaArchitecture, buildCinemaArchitectureSteps, type CinemaArchitecture } from './Cinema';
+import { runStepsCooperatively, runStepsSync, type BuildSteps } from '../util/buildSteps';
 import { CINEMA_FACE, CINEMA_THRESHOLD_HEIGHT, CINEMA_THRESHOLD_WIDTH } from './cinemaLayout';
 import { CINEMA_PROGRAMME, formatDuration } from '../cinema/programme';
 import { GeometryKit } from './GeometryKit';
@@ -15,7 +19,7 @@ import {
   ROTUNDA_APOTHEM, ROTUNDA_WALL, LEVEL_1_Y, BALCONY_INNER_APOTHEM,
   DOME_SPRING_Y, DOME_APEX_Y, GROUND_Y,
   OCTAGON_FACES, faceDirection, rightOf, place, add, stairArcPoint,
-  WINGS, type WingSpec, type OctagonFace, type Vec3, type ZoneId,
+  WINGS, HALL_SIDE_WALL_THICKNESS, type WingSpec, type OctagonFace, type Vec3, type ZoneId,
   SOUTH, VESTIBULE_FROM, VESTIBULE_TO, PLAZA_DEPTH, PLAZA_HALF_WIDTH,
   ATRIUM_FRONT_Z, ATRIUM_HALF_WIDTH, ATRIUM_HEIGHT, ATRIUM_INNER_OPENING_WIDTH, ATRIUM_INNER_OPENING_HEIGHT,
   PORTAL_WIDTH, PORTAL_HEIGHT,
@@ -144,23 +148,28 @@ export class Museum {
       this.measureBuildStep(name, build);
       await yieldControl();
     };
+    // A routine split at safe boundaries (BuildSteps) yields inside itself;
+    // its stage time is CPU only, excluding the frames handed back.
+    const stepped = async (name: string, steps: BuildSteps): Promise<void> => {
+      await runStepsCooperatively(steps, yieldControl, (ms) => { this.buildStageMs[name] = ms; });
+      await yieldControl();
+    };
     await step('exterior', () => this.buildExterior());
-    await step('rotunda', () => this.buildRotunda());
+    await stepped('rotunda', this.buildRotundaSteps());
     await step('balcony', () => this.buildBalcony());
     await step('stairs', () => this.buildStairs());
     // One step per wing: building all of them at once overran the slice budget.
     for (const wing of WINGS) await step(`wing:${wing.id}`, () => this.buildWing(wing));
     this.buildStageMs.wings = WINGS.reduce((total, wing) => total + (this.buildStageMs[`wing:${wing.id}`] ?? 0), 0);
-    await step('entrance', () => this.buildEntrance());
+    await stepped('entrance', this.buildEntranceSteps());
     await step('sanctuary', () => this.buildSanctuary());
-    await step('cinema', () => this.buildCinema());
+    await stepped('cinema', this.buildCinemaSteps());
 
     const detailing = new Detailing(this.scope, this.pal);
     const detailZones = ['rotunda', 'balcony', ...WINGS.map((wing) => wing.id), 'entrance-detail', 'sanctuary'];
     for (const zone of detailZones) {
       const name = `detailing:${zone}`;
-      this.measureBuildStep(name, () => detailing.applyZone(zone, this.zoneGroups));
-      await yieldControl();
+      await stepped(name, detailing.applyZoneSteps(zone, this.zoneGroups));
     }
     this.buildStageMs.detailing = detailZones.reduce(
       (total, zone) => total + (this.buildStageMs[`detailing:${zone}`] ?? 0), 0,
@@ -275,10 +284,16 @@ export class Museum {
 
   private buildCinema(): void {
     const group = this.zoneGroup('cinema');
-    this.cinema = buildCinemaArchitecture(
-      this.scope, this.collision, group,
-      CINEMA_PROGRAMME.films.map((film) => `${film.title} · ${film.kind === 'local' ? formatDuration(film.media.durationSeconds) : 'YouTube, online'}`),
-    );
+    this.cinema = buildCinemaArchitecture(this.scope, this.collision, group, this.cinemaProgrammeLines());
+  }
+
+  private *buildCinemaSteps(): BuildSteps {
+    const group = this.zoneGroup('cinema');
+    this.cinema = yield* buildCinemaArchitectureSteps(this.scope, this.collision, group, this.cinemaProgrammeLines());
+  }
+
+  private cinemaProgrammeLines(): string[] {
+    return CINEMA_PROGRAMME.films.map((film) => `${film.title} · ${film.kind === 'local' ? formatDuration(film.media.durationSeconds) : 'YouTube, online'}`);
   }
 
   private zoneGroup(id: string): THREE.Group {
@@ -452,6 +467,10 @@ export class Museum {
   // ── Rotunda ──────────────────────────────────────────────────────────────
 
   private buildRotunda(): void {
+    runStepsSync(this.buildRotundaSteps());
+  }
+
+  private *buildRotundaSteps(): BuildSteps {
     const g = this.zoneGroup('rotunda');
     const p = this.pal.get('rotunda');
     const kit = new GeometryKit(this.scope, this.collision, g);
@@ -487,6 +506,7 @@ export class Museum {
       kit.prop(add(a, [0, LEVEL_1_Y / 2, 0]), [1, LEVEL_1_Y / 2, 1], p.trim);
     }
 
+    yield;
     // Drum above the balcony: solid on the wing faces, glazed clerestory elsewhere.
     const drumTop = DOME_SPRING_Y;
     const mezzFaces = new Set(WINGS.filter((w) => w.level === 1).map((w) => w.face));
@@ -515,6 +535,7 @@ export class Museum {
       if (!mezzFaces.has(face)) continue;
     }
 
+    yield;
     // A true spherical cap with its rim at the drum spring line and its
     // crown at the specified apex. The previous cap used a full sphere's
     // radius plus a Y scale, leaving its rim suspended above the drum.
@@ -530,6 +551,7 @@ export class Museum {
     dome.position.y = sphereCenterY;
     g.add(dome);
 
+    yield;
     // The glass is a ceiling for a flying visitor (the flight contract stops
     // the climb at ceilings). It had no collider, so flight passed through
     // the dome with the camera inside it and out of the museum (2026-11-21
@@ -547,6 +569,7 @@ export class Museum {
       }
     }
 
+    yield;
     // Eight meridian ribs follow the same cap, from one spring-line point
     // over the apex to the opposite point. No second, incompatible dome shape.
     for (let i = 0; i < 8; i++) {
@@ -568,6 +591,7 @@ export class Museum {
       g.add(rib);
     }
 
+    yield;
     // Central orientation plinth, doubling as the flight pad: a low kerb a
     // visitor steps up onto like any other ledge (height stays under the
     // player's 0.55 m step-up, so it needs no stairs of its own). Stepping
@@ -647,14 +671,33 @@ export class Museum {
       const to: Vec3 = [c[0] + r[0] * half, 0, c[2] + r[2] * half];
       kit.orientedFloorCollision(from, to, (ROTUNDA_APOTHEM - BALCONY_INNER_APOTHEM) / 2, LEVEL_1_Y, clearOfStairWell);
 
-      // Balustrade along the atrium edge.
+      // Balustrade along the atrium edge: the same collision line as before,
+      // drawn as a kerb, glass and a brass handrail so the Rotunda below is
+      // visible from the balcony.
       const inner = place(d, BALCONY_INNER_APOTHEM);
       const ih = side(BALCONY_INNER_APOTHEM) / 2;
-      kit.wall(
+      kit.wallCollision(
         [inner[0] - r[0] * ih, 0, inner[2] - r[2] * ih],
         [inner[0] + r[0] * ih, 0, inner[2] + r[2] * ih],
-        LEVEL_1_Y, 1.1, 0.35, p.trim,
+        LEVEL_1_Y, 1.1, 0.35,
       );
+      this.glassBalustrade(kit, inner, r, ih, p);
+    }
+  }
+
+  private glassBalustrade(
+    kit: GeometryKit, at: Vec3, r: Vec3, halfLength: number, p: { readonly trim: THREE.Material },
+  ): void {
+    const yaw = Math.atan2(-r[2], r[0]);
+    kit.prop([at[0], LEVEL_1_Y + 0.07, at[2]], [halfLength, 0.07, 0.175], p.trim, yaw);
+    kit.prop([at[0], LEVEL_1_Y + 1.06, at[2]], [halfLength, 0.04, 0.075], p.trim, yaw);
+    const pane = kit.prop([at[0], LEVEL_1_Y + 0.58, at[2]], [halfLength, 0.44, 0.012], this.pal.glass(), yaw);
+    pane.name = 'balcony-balustrade-glass';
+    pane.receiveShadow = false;
+    const posts = Math.max(3, Math.round(halfLength * 2 / 1.5));
+    for (let i = 0; i <= posts; i++) {
+      const s = -halfLength + (i / posts) * halfLength * 2;
+      kit.prop([at[0] + r[0] * s, LEVEL_1_Y + 0.58, at[2] + r[2] * s], [0.022, 0.45, 0.022], p.trim, yaw);
     }
   }
 
@@ -770,21 +813,21 @@ export class Museum {
           kit.wall(
             place(d, a, sign * w.hallHalfWidth, y),
             place(d, b, sign * w.hallHalfWidth, y),
-            y, w.bayHeight * 0.72, 0.6, p.wall,
+            y, w.bayHeight * 0.72, HALL_SIDE_WALL_THICKNESS, p.wall,
           );
         }
         if (openFrom > cursor) {
           kit.wall(
             place(d, cursor, sign * w.hallHalfWidth, y),
             place(d, openFrom, sign * w.hallHalfWidth, y),
-            y, w.hallHeight, 0.6, p.wall,
+            y, w.hallHeight, HALL_SIDE_WALL_THICKNESS, p.wall,
           );
         }
         // Lintel above the bay opening.
         kit.wall(
           place(d, openFrom, sign * w.hallHalfWidth, y),
           place(d, openTo, sign * w.hallHalfWidth, y),
-          y + w.bayHeight * 0.72, w.hallHeight - w.bayHeight * 0.72, 0.6, p.wall,
+          y + w.bayHeight * 0.72, w.hallHeight - w.bayHeight * 0.72, HALL_SIDE_WALL_THICKNESS, p.wall,
         );
         cursor = openTo;
       }
@@ -792,7 +835,7 @@ export class Museum {
         kit.wall(
           place(d, cursor, sign * w.hallHalfWidth, y),
           place(d, w.hallTo, sign * w.hallHalfWidth, y),
-          y, w.hallHeight, 0.6, p.wall,
+          y, w.hallHeight, HALL_SIDE_WALL_THICKNESS, p.wall,
         );
       }
     }
@@ -870,10 +913,12 @@ export class Museum {
     parent.add(mount);
     this.exhibitMounts.set(exhibitId, mount);
 
-    // Replace the anonymous graybox visually; preserve the authoritative
-    // 2.6 x 0.9 x 2.6 obstacle and every exhibit mount/interaction contract.
-    mount.add(this.plinthKit.build(exhibitId, p));
-    this.collision.addBox([anchor[0], y + 0.45, anchor[2]], [1.3, 0.45, 1.3]);
+    // E20's freestanding workbench sits behind the mount. The empty plinth
+    // masks it from the visitor spot and occupies the centre approach.
+    if (exhibitId !== 'E20') {
+      mount.add(this.plinthKit.build(exhibitId, p));
+      this.collision.addBox([anchor[0], y + 0.45, anchor[2]], [1.3, 0.45, 1.3]);
+    }
   }
 
   private baySlabCeiling(
@@ -907,6 +952,10 @@ export class Museum {
   // ── Entrance ─────────────────────────────────────────────────────────────
 
   private buildEntrance(): void {
+    runStepsSync(this.buildEntranceSteps());
+  }
+
+  private *buildEntranceSteps(): BuildSteps {
     const g = this.zoneGroup('south');
     const p = this.pal.get('south');
     const kit = new GeometryKit(this.scope, this.collision, g);
@@ -922,7 +971,8 @@ export class Museum {
         GROUND_Y, 9, 0.8, p.wall,
       );
     }
-    this.buildAtrium(g, kit);
+    yield;
+    yield* this.buildAtriumSteps(g, kit);
   }
 
   /**
@@ -932,7 +982,7 @@ export class Museum {
    * and taller than the facade around that doorway. Its far end opens wide
    * onto the vestibule and the long view up the south hall to the Rotunda.
    */
-  private buildAtrium(g: THREE.Group, kit: GeometryKit): void {
+  private *buildAtriumSteps(g: THREE.Group, kit: GeometryKit): BuildSteps {
     const p = this.pal.get('plaza');
     const hw = ATRIUM_HALF_WIDTH;
     const near = VESTIBULE_TO;
@@ -941,10 +991,16 @@ export class Museum {
     // The atrium's own night-sky palette: deep blue walls, sky-blue stone.
     const std = (color: number, roughness: number, metalness = 0, emissive = 0x000000, emissiveIntensity = 0) =>
       this.scope.track(new THREE.MeshStandardMaterial({ color, roughness, metalness, emissive, emissiveIntensity }));
+    const mineral = architecturalStoneFinish(this.scope);
+    const stone = (material: THREE.MeshStandardMaterial): THREE.MeshStandardMaterial => {
+      material.map = mineral;
+      material.roughnessMap = mineral;
+      return applyArchitecturalFinish(material, 'atrium', new THREE.Color(0x7cc4ef));
+    };
     const a = {
-      floor: std(0x16325a, 0.35, 0.15),
-      wall: std(0x0f2244, 0.8, 0.05, 0x06122a, 0.6),
-      ceiling: std(0x0a1830, 0.9, 0, 0x050c1c, 0.5),
+      floor: stone(std(0x1b3c6b, 0.6, 0.12)),
+      wall: stone(std(0x14305f, 0.82, 0.04, 0x06122a, 0.6)),
+      ceiling: stone(std(0x0c1d3a, 0.95, 0, 0x050c1c, 0.5)),
       trim: std(0x7cc4ef, 0.4, 0.25, 0x1d5f8f, 0.35),
       runner: std(0x5fb4e8, 0.5, 0.1, 0x173f63, 0.3),
     };
@@ -990,14 +1046,23 @@ export class Museum {
 
     // Six tall banners, one per wing in its own accent, hung between the
     // piers: the whole museum is announced before the visitor reaches it.
-    const bannerGeo = this.scope.track(new THREE.BoxGeometry(0.08, 11, 3.2));
+    const bannerGeo = this.scope.track(new THREE.BoxGeometry(0.08, 11, 3.2, 1, 6, 28));
+    // Hung cloth: folds gather at the top rail and open toward the hem.
+    const cloth = bannerGeo.getAttribute('position');
+    for (let i = 0; i < cloth.count; i++) {
+      const hang = 0.5 - cloth.getY(i) / 11;
+      cloth.setX(i, cloth.getX(i) + (0.05 + 0.07 * hang) * Math.sin(cloth.getZ(i) * (7.4 - 1.6 * hang)));
+    }
+    bannerGeo.computeVertexNormals();
     const bannerMats: THREE.Material[] = [];
     WINGS.forEach((wing, index) => {
       const side = index < 3 ? -1 : 1;
       const z = near + 8 + (index % 3) * 6;
       // Own material (the wing's accent is shared with the wing) so the
       // atrium can light it up on entry.
-      const bannerMat = this.scope.track((this.pal.get(wing.id).accent as THREE.Material).clone());
+      const bannerMat = this.scope.track((this.pal.get(wing.id).accent as THREE.MeshStandardMaterial).clone());
+      bannerMat.roughness = 0.92;
+      bannerMat.metalness = 0;
       bannerMats.push(bannerMat);
       const banner = new THREE.Mesh(bannerGeo, bannerMat);
       banner.name = `atrium-banner:${wing.id}`;
@@ -1020,7 +1085,9 @@ export class Museum {
         roughness: 0.8,
       }));
     const plaque = new THREE.Mesh(this.scope.track(new THREE.PlaneGeometry(2.2, 1.25)), plaqueMat);
+    yield;
     this.buildAtriumHologram(g, mid);
+    yield;
 
     plaque.name = 'atrium-plaque';
     plaque.position.set(4.6, GROUND_Y + 1.75, far - 7);
@@ -1028,7 +1095,9 @@ export class Museum {
     g.add(plaque);
     kit.box([4.6 + 0.12, GROUND_Y + 0.55, far - 7 - 0.05], [0.08, 0.55, 0.08], a.trim);
 
+    yield;
     this.buildAtriumFountains(g, near, far, a.trim);
+    yield;
 
     // The atrium waits in the dark and lights up as the visitor steps in:
     // first the hologram, then the fountains, then the sides, then the floor.
@@ -1150,10 +1219,10 @@ export class Museum {
     // Projection beam from the skylight down to the lettering.
     const beam = new THREE.Mesh(
       this.scope.track(new THREE.CylinderGeometry(0.4, 8.5, ATRIUM_HEIGHT - HOLOGRAM_Y - 1.5, 32, 1, true)),
-      this.scope.track(new THREE.MeshBasicMaterial({
+      softenBeam(this.scope.track(new THREE.MeshBasicMaterial({
         color: 0x3fa9ff, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending,
         depthWrite: false, side: THREE.DoubleSide, toneMapped: false,
-      })),
+      })), 1.8, 'top'),
     );
     beam.name = 'atrium-hologram-beam';
     beam.position.y = (ATRIUM_HEIGHT - HOLOGRAM_Y) / 2 - 0.3;

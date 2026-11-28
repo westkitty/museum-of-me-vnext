@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { applyLandscape } from '../../render/LandscapeShading';
 import type { ResourceScope } from '../../assets/ResourceScope';
 import type { CollisionWorld } from '../CollisionWorld';
 import type { ExhibitControl } from '../../exhibits/contract';
@@ -129,11 +130,11 @@ export class ExteriorRooftop {
   private createMaterials(): RooftopMaterials {
     const s = this.scope;
     return {
-      deckStone: s.track(new THREE.MeshStandardMaterial({ color: 0x262e39, roughness: 0.86, metalness: 0.08 })),
-      pavingTrim: s.track(new THREE.MeshStandardMaterial({ color: 0x736c5e, roughness: 0.82, metalness: 0.06 })),
+      deckStone: applyLandscape(s.track(new THREE.MeshStandardMaterial({ color: 0x262e39, roughness: 0.86, metalness: 0.08 })), 'paving'),
+      pavingTrim: applyLandscape(s.track(new THREE.MeshStandardMaterial({ color: 0x736c5e, roughness: 0.82, metalness: 0.06 })), 'paving'),
       bronze: s.track(new THREE.MeshStandardMaterial({ color: 0x3a2d22, roughness: 0.44, metalness: 0.72 })),
       brass: s.track(new THREE.MeshStandardMaterial({ color: 0xc9a24f, roughness: 0.32, metalness: 0.85 })),
-      wood: s.track(new THREE.MeshStandardMaterial({ color: 0x6b472f, roughness: 0.72, metalness: 0.04 })),
+      wood: applyLandscape(s.track(new THREE.MeshStandardMaterial({ color: 0x6b472f, roughness: 0.72, metalness: 0.04 })), 'bark'),
       conservatoryGlass: s.track(new THREE.MeshStandardMaterial({
         color: 0xaadce6,
         emissive: 0x0c242b,
@@ -154,9 +155,9 @@ export class ExteriorRooftop {
         depthWrite: false,
         side: THREE.DoubleSide,
       })),
-      terracotta: s.track(new THREE.MeshStandardMaterial({ color: 0x7a422d, roughness: 0.88, metalness: 0.02 })),
-      soil: s.track(new THREE.MeshStandardMaterial({ color: 0x251c16, roughness: 0.96, metalness: 0 })),
-      fern: s.track(new THREE.MeshStandardMaterial({ color: 0x2e6b44, roughness: 0.85, metalness: 0.02 })),
+      terracotta: applyLandscape(s.track(new THREE.MeshStandardMaterial({ color: 0x7a422d, roughness: 0.88, metalness: 0.02 })), 'paving'),
+      soil: applyLandscape(s.track(new THREE.MeshStandardMaterial({ color: 0x251c16, roughness: 0.96, metalness: 0 })), 'gravel'),
+      fern: applyLandscape(s.track(new THREE.MeshStandardMaterial({ color: 0x2e6b44, roughness: 0.85, metalness: 0.02 })), 'foliage'),
       awningRed: s.track(new THREE.MeshStandardMaterial({ color: 0x9e2b25, roughness: 0.74, metalness: 0.04 })),
       awningCream: s.track(new THREE.MeshStandardMaterial({ color: 0xe8dcc4, roughness: 0.76, metalness: 0.02 })),
       flowerStem: s.track(new THREE.MeshStandardMaterial({

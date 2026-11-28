@@ -6,7 +6,7 @@ export default defineConfig({
   server: { allowedHosts: true },
   // Keep the offline bundle's asset handling aligned with the primary build:
   // local Quaternius visitor GLBs are runtime assets, never JavaScript.
-  assetsInclude: ['**/*.glb'],
+  assetsInclude: ['**/*.glb', '**/*.m4a'],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

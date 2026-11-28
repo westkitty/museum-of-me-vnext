@@ -179,6 +179,12 @@ export class InputManager {
     return () => set.delete(fn);
   }
 
+  /** Make a center touch tap follow the same interaction listeners as F. */
+  triggerInteract(): void {
+    if (this.uiCaptured) return;
+    for (const fn of this.listeners.get('interact') ?? []) fn();
+  }
+
   /** Called once per frame by the loop, after systems have read input. */
   endFrame(): void {
     this.mouseDeltaX = 0;

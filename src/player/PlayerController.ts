@@ -67,8 +67,10 @@ export class PlayerController {
   flightMode = false;
   private developerFlight = false;
   private readonly developerTakeoff = new THREE.Vector3();
+  private guidedTransport = false;
 
   get developerFlightMode(): boolean { return this.developerFlight; }
+  get isGuidedTransport(): boolean { return this.guidedTransport; }
 
   /** Previous fixed-step position, for render interpolation. */
   private readonly prevPosition = new THREE.Vector3();
@@ -120,6 +122,7 @@ export class PlayerController {
 
   setCollisionWorld(world: CollisionWorld): void {
     this.world = world;
+    this.guidedTransport = false;
   }
 
   /**
@@ -147,6 +150,7 @@ export class PlayerController {
   }
 
   teleport(p: Vec3, yaw = this.yaw): void {
+    this.guidedTransport = false;
     this.water = 0;
     this.waterTarget = 0;
     this.seat = null;
@@ -188,6 +192,48 @@ export class PlayerController {
     this.velocity.set(0, 0, 0);
     this.jumpQueued = false;
     return () => { this.freezeOwners.delete(owner); };
+  }
+
+  /** Suspend walking gravity and collision while a scripted current carries the visitor. */
+  beginGuidedTransport(): () => void {
+    this.guidedTransport = true;
+    this.seat = null;
+    this.flightMode = false;
+    this.developerFlight = false;
+    this.velocity.set(0, 0, 0);
+    this.jumpQueued = false;
+    this.grounded = false;
+    this.eyeLag = 0;
+    this.prevEyeLag = 0;
+    this.prevPosition.copy(this.position);
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      this.endGuidedTransport();
+    };
+  }
+
+  /** Update a guided route without resetting render interpolation. */
+  setGuidedPosition(x: number, y: number, z: number): void {
+    if (!this.guidedTransport || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return;
+    this.position.set(x, y, z);
+  }
+
+  /** Restore normal movement, optionally landing on a support spot. */
+  endGuidedTransport(landPosition?: Vec3): void {
+    this.guidedTransport = false;
+    this.velocity.set(0, 0, 0);
+    this.jumpQueued = false;
+    if (landPosition) {
+      this.position.set(landPosition[0], landPosition[1], landPosition[2]);
+      const support = this.world.supportHeight(landPosition[0], landPosition[2], landPosition[1], 0.1);
+      this.grounded = support !== null && Math.abs(support - landPosition[1]) <= 0.1;
+      if (this.grounded) {
+        if (support !== null) this.position.y = support;
+        this.lastSafe.copy(this.position);
+      }
+    }
   }
 
   /**
@@ -305,7 +351,7 @@ export class PlayerController {
     this.prevYaw.v = this.yaw;
     this.prevPitch.v = this.pitch;
     this.prevEyeLag = this.eyeLag;
-    if (this.isFrozen || this.seat) return;
+    if (this.isFrozen || this.seat || this.guidedTransport) return;
     if (this.flightMode) {
       this.eyeLag = 0;
       this.fixedUpdateFlight(dt);

@@ -6,8 +6,8 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 123,
-  "last_updated": "2026-11-22",
+  "state_revision": 139,
+  "last_updated": "2026-11-27",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
 -->
@@ -1330,3 +1330,152 @@ The owner subsequently authorized staging, committing, pushing the correction ta
 - **TEST FIXTURES & DOCS UPDATED:** Replaced the prior multi-song test fixture with single-composition 3-stem provisional cue sheets (`tests/fixtures/music-w01-example.ts`) plus generic museum gallery cross-session fixtures; expanded `tests/music-foundation.test.ts` (`18` tests), `tests/browser/music-foundation.e2e.ts` (`3` Chrome tests), and `docs/MUSIC_AND_SYNC_FOUNDATION.md`. All 11 canonical pocket worlds (`W01`–`W10`, `L01`) remain `DORMANT`.
 - **VERIFIED LOCALLY:** `npm run gate` passed cleanly (`typecheck`, `eslint --max-warnings 0`, Vitest `132` files / `1,341` tests including `18` in `tests/music-foundation.test.ts` and `3` in `tests/audio.test.ts`, `test:release-tools`, all `validate:*` checks, `qa`, `build`, `check:budgets` `16.39 MB / 20 MB` with `28` declared / `11` shipped binaries / `0` undeclared, `verify:dist` `258` files / `111.18 MB`). Chrome Playwright: `tests/browser/music-foundation.e2e.ts` + `tests/browser/pocket-world.e2e.ts` passed `6/6`.
 - **NOT VERIFIED / DEFERRED:** Exact-head GitHub CI after push, human audio/visual review, owner licensing metadata and compressed delivery transcode before W01 shipping, `W01` world implementation, and Pages re-deploy.
+
+### 2026-11-23 — Great Museum Walkabout, local candidate (r125)
+
+- **Target:** Independent Codex clone on `feat/museum-autonomous-walkabout-20261123`, from verified GitHub main `ff6d983ebe47c0d4dc7980a9632f89925cb3f0d4`. Work remains local and unstaged. W01, the pocket host and registry, passport, music, and release surfaces received no edits.
+- **Implemented:** Rebuilt all 17 authored visitors with role-specific anatomy, wardrobe and props inside the existing 327-slot body batch. Scoped first-placement separation makes co-located actors independently reachable even under reduced motion. The Sketcher has a grounded seated pose, and the Sanctuary actors follow the ramp support. The Cinema floor seam has matching visible and collision surfaces clear of the coplanar drum cap.
+- **Verified locally:** Chrome passed 64 passages, 190 bidirectional lanes and the 35-bay continuous grand tour. The active loop covered 42 continuous arrival-to-re-entry legs, 70 bay threshold legs, one registered F/Journal interaction per exhibit, and a safe Pad I launch and landing. Standalone Chrome/Metal verified 14 installation paths, all 17 conversations and zero remote requests. The canonical gate passed 1,345 tests and a 16.39 MB initial package against 20 MB. The final Cinema refinement separately passed its focused regression, full passage retry and production build.
+- **Partial:** Three repairs verified. The E20 plinth sightline remains open. The candidate missed six M1 budgets, all of which also failed on the clean baseline in a sequential same-device run. Human artistic acceptance, physical input assessment and sourced-model approval remain open. [Walkabout QA and evidence](docs/evidence/museum-autonomous-walkabout-20261123/FINAL_QA_REPORT.md).
+
+### 2026-11-23 — Great Museum Walkabout, continuation (r126)
+
+- **Implemented:** E20 omits the empty foreground plinth and its collider. The workbench, interaction and frozen DexVault installation stay in their authored locations. The three close-cropped members of the 17-person cast have a corrected crown shell.
+- **Verified locally:** Matched Chrome/Metal captures at the standard standing position, real movement across the former footprint, and successful sort console activation. All 17 cast portraits were reviewed with fresh oblique poses for the seated and Sanctuary figures. Chrome passed 64 passages, 190 bidirectional lanes, all 35 approaches, the continuous grand tour, and the rooftop route. Focused checks passed 111/111, the project gate passed 1,347 tests, and offline Chrome passed both round trips and all installation/cast checks.
+- **Open:** WA-06 is a visible wall-inlay overlap at bay openings, reproduced at E19. The measured standing path remained clear. Human visual approval, physical input/device review and sourced-model approval remain open. The candidate remains local and unstaged. [Continuation QA and change audit](docs/evidence/museum-autonomous-walkabout-20261123/CONTINUATION_QA_REPORT.md).
+- **PARTIAL, M1 gate open:** The final candidate missed seven of twelve hard limits and fresh clean main missed six. Every candidate miss occurred in at least one clean-main trial. The latest exterior return and second-entry differences remain unresolved across the two pairs. The one strict Cinema restart timing miss passed on isolated retry. See the [comparison and follow-up](docs/evidence/museum-autonomous-walkabout-20261123/CONTINUATION_QA_REPORT.md#apple-m1-comparison).
+
+### 2026-11-23 — Great Museum Walkabout closure (r127)
+
+- **E19 resolved:** Full-width inlays fit solid wall spans using source-defined bay apertures. Same-camera Chrome evidence and held E17/E19/E20/E21 walks passed. Geometry coverage checks all 35 openings.
+- **Final functional verification:** 40 focused tests, 1,348 gate tests, seven Chrome cases and three further Cinema restarts passed. Complete passage inventory remains 64/190/35. Chrome/Metal standalone verified both round trips, 14/14 installations, 17/17 visitors and zero remote requests.
+- **BLOCKED for merge:** Three matched Apple M1 pairs confirmed 83.1–98.9 ms of additional synchronous visitor construction. Steady interior, exterior return and warmed-entry pace remain unresolved. Hard budgets and human review are open. The branch remains local and unstaged. [Closure evidence](docs/evidence/museum-autonomous-walkabout-20261123/CONTINUATION_QA_REPORT.md#final-correction-and-performance-adjudication).
+
+### 2026-11-24 — Visitor construction repair (r128)
+
+- **Implemented:** The 17-cast geometry kits are prepared in frame-paced steps inside the existing interior build, then registered synchronously. All 78 composed geometries are byte-identical to the previous candidate. `createVisitorGeometry` and the `SourceVisitors` constructor keep their synchronous contracts.
+- **Measured (headless Chrome, six paired cold runs, loaded machine):** longest synchronous cast slice median 17.5 ms before, 6.8 ms after, 5.2 ms clean main. A fused-transform alternative gave no benefit and was reverted. Total work is unchanged.
+- **Open:** Headed Apple M1 trials did not run (owner asked that the screen-taking browser not be used). The twelve-budget matrix, steady/return/warm-entry pace and human review remain open; verdict PARTIAL, still not merge-ready. An unrelated Playwright suite run cleared the ignored `test-results/walkabout/` receipts. [Repair report](docs/evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#visitor-construction-performance-repair-2026-11-24)
+
+### 2026-11-24 — Performance rescue continuation (r129)
+
+- **Verified locally (software-GL headless Chrome):** the 17 visitors render pixel-identical before and after the paced-construction change; all are interactive and their conversations cycle. Gate (1,356 tests), standalone offline browser and runtime-source QA pass. Output-deletion hazard fixed: Playwright now writes to `test-results/playwright`, guarded by a test.
+- **Boot test `museum.e2e.ts:34`:** the same assertion fails intermittently on clean main (1 of 3), so it is a baseline failure; candidate flakiness under load is unresolved (2 of 3, different boot-stage timeouts).
+- **Open:** paced construction does not reduce total work (about 12.8 ms either way, headless); one 7 to 13 ms constructor slice remains. No Apple M1 measurement; PARTIAL. Raw receipts under `test-results/walkabout/` were lost; see [the manifest](docs/evidence/museum-autonomous-walkabout-20261123/EVIDENCE_LOSS_MANIFEST.md).
+
+### 2026-11-24 — Visitor geometry baked at build time (r130)
+
+- **Implemented:** the 78 visitor geometries are generated by `npm run build:collection` and decoded natively at entry; a byte-parity test guards staleness and browsers without native base64 still compose procedurally. Interrupted-preparation lifecycle fixes and seven tests added.
+- **Measured (headless Chrome, Apple M1 Metal string, heavy unrelated load):** total synchronous construction 33.9 to 24.9 ms median (5 of 6 pairs improve); clean main 11.5. Longest slice (the constructor, about 19 ms) unchanged. 17/17 renders pixel-identical; gate 1,365 tests, standalone and browser suites pass.
+- **Open:** headed M1 harness pairs, twelve budgets, constructor cost, boot-test reliability under load, human review. PARTIAL. [Pass 3 report](docs/evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-3-build-time-visitor-geometry-2026-11-24)
+
+### 2026-11-25 — Constructor profile and interruption safety (r131)
+
+- **Fixed:** `InteriorWorld.dispose()` now disposes the visitors; before, an interior abandoned after the cast was built left 17 stale interaction registrations (a retry would have doubled them). Four application-level interruption cases (before the first step, halfway, at registration, after construction) now pass with a clean re-entry of 17 interactive visitors.
+- **Measured:** constructor about 18 ms, spread across many registrations; the one faster-registration experiment saved about 1.7 ms and was rejected, so no constructor change was adopted. Gate 1,367 tests, standalone and 17 browser tests pass.
+- **Open:** headed M1 pairs and the twelve budgets, human review. PARTIAL. [Pass 4 report](docs/evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-4-constructor-profile-rejected-registration-experiment-application-level-interruption-2026-11-25)
+
+### 2026-11-25 — Independent verification, application-disposal correction (r132)
+
+- **Fixed:** `App.dispose()` during interior preparation now stops the build in flight (before, it completed into the disposed application; also present on clean main), and `InteriorWorld.dispose()` releases the 15 supplementary-case controls. Six new browser cases failed before the correction; all 10 interruption cases pass after it.
+- **Measured (headless Metal, production, equal serving, load 3 to 7):** total synchronous visitor work 10.1 ms versus clean main 6.2; constructor 6.8 versus 6.2; unchanged by this correction. Pass 3's baked figures were inflated by serving that arm from the worktree `dist/`. Constructor profile independently agrees with pass 4; no second experiment was run.
+- **Verified locally:** gate (1,367 tests), standalone/offline, bake determinism. Browser 22 of 25; three load-sensitive 120 s timeouts also reproduce on the pre-correction source, clean-main status unresolved.
+- **Open:** headed M1 pairs and twelve budgets, human review. PARTIAL, not merge-ready. [Pass 5 report](docs/evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-5-independent-verification-application-disposal-correction-benchmark-bias-found-2026-11-25)
+
+### 2026-11-25 — Acceptance closure: browser cases, review matrix (r133)
+
+- **Compared:** the three Pass 5 timeouts on clean main, pre-Pass-5 and current source, three rotated rounds: 27 of 27 passed, plus 3 of 3 from the worktree. No candidate regression demonstrated and no timeout reproduced. Cases 229 and 297: load sensitivity (moderate confidence). Case 505: UNRESOLVED, probably load. No source, test, threshold or timeout changed.
+- **Rerun on current source:** interruption 10 of 10, lifecycle and geometry units 23 of 23. Gate, standalone and other browser results stand from Pass 5 (same source). E19, E20, traversal and pixel parity are carried, not rerun.
+- **Open:** headed M1 pairs, twelve budgets on this revision (all UNVERIFIED), human review. PARTIAL, not merge-ready. [Pass 6 report](docs/evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-6-acceptance-closure-browser-timeout-classification-and-review-matrix-2026-11-25)
+
+### 2026-11-25 — Screen-free M1 comparison and human review package (r134)
+
+- **Measured (headless ANGLE Metal, unmodified harness, 3 alternating pairs):** visitor CPU total main 4.7 ms versus candidate 8.9 ms in the one quiet pair; the original +83 to +99 ms stage did not recur. Pairs 1 and 2 had a loaded candidate arm (load 7.8 and 28). In quiet pair 3 both arms passed all twelve hard limits.
+- **Found:** the baked geometry adds +72 KB gzip (+1.14 MB raw) to the `interior` chunk, which is fetched at startup on both arms; cold start was slower in all three pairs (+351, +125, +353 ms, still under 2,000), unexplained. No fix attempted.
+- **Prepared:** human review page `test-results/perf-verify-pass7/human-review/index.html` (all pending) and new current-revision E19/E20 captures.
+- **Open:** headed acceptance (UNVERIFIED for all twelve), human review. PARTIAL, not merge-ready. [Pass 7 report](docs/evidence/museum-autonomous-walkabout-20261123/PERFORMANCE_REPORT.md#pass-7-screen-free-apple-m1-paired-comparison-2026-11-25)
+
+### 2026-11-25 — Owner-authorized commit, push and Pages update (r135)
+
+- **Owner authorization:** the owner asked for the Bible to be updated, the work staged, committed and pushed, and Pages updated, and will do the hardware and visual review personally. Earlier passes describe the candidate as unstaged and not published; that describes their own dates.
+- **Not authorized and not done:** merging into `main`. Headed M1 acceptance, all twelve budgets on this revision, human presentation approval and the cold-start, first-entry and second-entry questions from Pass 7 stay open. Publication is for owner review, not a release claim.
+- **Receipt:** the exact commit and the deployment result are recorded in the canonical Bible, since a commit cannot contain its own hash.
+
+### 2026-11-25 — Ten-round visual finishing pass (r136)
+
+- **Owner request:** a ten-round visual overhaul of the existing game, then stage, commit, push and update Pages. Done on `feat/visual-finishing-20261125` from `8d77457`, without merging into `main`.
+- **Implemented:** world-space architectural, landscape and obsidian finishes in the existing materials; purpose-built PMREM environments; sky, sea, soft beams, lamp halos and pools; camera feel (off under reduced motion); gallery dust and fireflies; interface finish. No new lights, dependencies or post-processing. [Report](docs/evidence/visual-finishing-20261125/REPORT.md)
+- **Verified locally:** gate PASS (1,373 tests); headless captures of 23 world views, 13 interface states, low tier, phone portrait and landscape, no console errors.
+- **Startup environment changed:** `RendererHost` now bakes both light rooms in its constructor (procedural, no add-on), so lit programs compile once with their final environment and world switches allocate no texture; the deferred warm-up stays as the failure fallback. Exterior and Sanctuary exposure stay within the art-direction range (1.04). Ground landscape kinds share one program. Arrival programs: 59 (baseline 69); the SwiftShader second compile wave (16 s baseline) is gone. Focused browser suites 22/22 locally on SwiftShader.
+- **Open:** extra GPU cost of about 1.5–4 ms outdoors (headless, noisy); Linux visual-regression baselines need refreshing from CI; headed M1 and human review pending.
+
+### 2026-11-26 — W02 Prehistoric Fern Island first route slice (r137, separate preview branch)
+
+- **Target:** isolated `feat/w02-prehistoric-fern-preview` worktree from visual-finishing `3b59e96`; the uncommitted W01 integration candidate and production W02 remain untouched. W01 must precede W02 for production promotion.
+- **Implemented locally:** supported Fern Ravine inspection marker; development-only `?preview=w02` registration; source-shaped ancient island shore, unsupported Veiled Gorge, broad root climb and resting shelves, root-seed bridge interaction with dynamic collider and checkpoint, optional fossil inspection, fall reset and museum return. There is no W02 completion trigger or stamp in this slice. [Route and next steps](docs/plans/W02_PREHISTORIC_FERN_ROUTE_20261126.md).
+- **Verified locally:** `npm run gate` PASS (139 files, 1,377 tests; validators, build, budgets, distribution); headless Chrome W02 route PASS (entry, walked climb, bridge crossing, return, no stamp) and headless Fern Ravine approach PASS. Captures are ignored local files under `test-results/w02-preview-20261126/` and are test observations, not human visual acceptance.
+- **Open:** eastern switchback and vista finale, full optional route, touch and reduced-motion traversal, ten-visit lifecycle and load-failure proof, representative-device in-world performance, owner visual acceptance, W01 integration, commit/push/merge/deploy. Status **PARTIAL**; branch remains local and uncommitted.
+# World-production local addendum — 2026-11-26
+
+The cumulative W02–W08 development work was recovered in `feat/world-production-20261126` at `/Users/andrew/museum of me/worktrees/wt-world-production-20261126`, with the original older W02 worktree and W01 lane untouched. A full tracked-and-untracked takeover checkpoint is `refs/checkpoints/world-production-w08-takeover-preserved` (`215ecc6`). The W08 rainbow screenshot was inspected and shows the corrected multicolor arc.
+
+L01 Lighthouse at World's End is a **PLAYABLE LOCAL, UNSTAMPED** development preview at the existing peninsula gallery lens. Its three beam-revealed supported paths, safe waiting areas, checkpoints, beacon restoration, panoramic reveal, optional tide pool and original-lens return are implemented. Focused unit 2/2 and installed-Chrome browser 3/3 pass. Browser proof includes a full keyboard journey, early Back/repeat, reduced motion, zero L01 stamps and persistent passport isolation. Typecheck, lint, production build and release-dist verification pass. Physical touch, failed-load recovery, ten-visit lifecycle, representative-device and owner visual acceptance remain pending; production L01 stays dormant. See the world-production ledger for evidence and next action.
+
+W09 Museum Between Seconds is now a **PLAYABLE LOCAL** development preview on the southern wooded observatory orrery. Its movement-driven local clock, stationary advancement, constellation alignment, supported meteor passage, checkpoints, finale, completion and museum return are implemented. Focused unit 2/2, real-time installed-Chrome keyboard browser journey 1/1, typecheck, lint, build and release-dist verification pass. Actual production JavaScript excludes W09 preview symbols. The exit target height defect discovered in browser play was corrected. Touch, ten-visit lifecycle, failed-load recovery, representative-device and owner visual acceptance remain pending; production W09 stays dormant. Full detail and evidence: `docs/plans/WORLD_PRODUCTION_LEDGER_20261126.md`.
+
+W10 Breath of the Weasel was implemented **last** as a playable local wilderness preview with third-person camera, glider, climb, movable-block shrine, overlook and safe return. Its character is explicitly a **TEST-ONLY rig**, pending a production-approved Dexter model. L01 Lighthouse at World's End is a playable local bonus preview with three sweeping-beam revealed paths and zero stamps. W01 Great Ocean Procession was reconciled from the separate clean `67e44fc` lane into the cumulative candidate, preserving its owner-authored three-stem music and leaving the original branch/worktree untouched. All eleven production registry entries stay dormant.
+
+The W08 fresh-boot first-F defect was traced to a focused entry request rejected while the director was `PREPARING_INTERIOR`; the host now retains that single request until background preparation finishes. Three fresh Chrome boots opened W08 on one F press. A real-time W09 completion earned a stamp and then opened W10 through the pier in the same session; the persistent passport remained unchanged in development preview. The final cumulative `npm run gate` passed 149 files / 1,438 unit tests, release tools, validators, build, budgets (17.53 MB initial of 20 MB), and `verify:dist`. The production JS contains no preview world factory and no W01 music asset. Cumulative browser journeys and representative-device/human acceptance are separate outstanding checks. [Owner review](docs/plans/WORLD_OWNER_REVIEW_20261126.md) and [world ledger](docs/plans/WORLD_PRODUCTION_LEDGER_20261126.md) carry exact local evidence.
+
+Final local integration follow-up: the standard museum browser suite completed 115 pass / 4 fail / 1 skip. All four failed exterior checks passed on a focused rerun after dormant-label restoration, lifting the W08 droplet above the sphere-west walking lane, and checking repeated settled quality cycles. W08 one-press entry passed after the move. The final source `npm run gate` passed again (149 files / 1,438 tests, distribution and 17.53 MB initial bundle). Workshop passed 16/16 and authored offline readback; ordinary standalone passed offline round trips, 14/14 installations, 17/17 visitors, no remote requests. Headless MacBookAir10,1/Apple M1/ANGLE Metal `perf:device` measured 3/3 workloads, but **FAILED** the exterior-walk p99 hard limit (33.4 ms versus ≤20 ms); 11 other hard budgets passed. Headed representative-device acceptance remains unverified. The local [review](docs/plans/WORLD_OWNER_REVIEW_20261126.md) now includes an inspected W01 museum-return capture. All eleven production destinations remain dormant; no commit, push, merge or deploy. Production status **NOT COMPLETE**.
+
+Further local lifecycle verification found and repaired an L01 resource leak: three untracked light-path `EdgesGeometry` instances accumulated per visit. The real-factory ten-visit host sweep then passed all ten new-world cases, with W01's earlier ten host cycles retained. Injected load failure and abort after real factory creation but before host commit recovered with successful retry across all eleven preview registrations (11/11). These are diagnostic host cycles; they do not prove ten complete real-time journeys or physical touch. Typecheck, lint and the final gate pass after the fix (149 files / 1,438 tests; 17.53 MB initial bundle; `verify:dist` 256 files). Production status remains **NOT COMPLETE**.
+
+V3 local continuation: the cumulative source matched the prior lifecycle checkpoint before edits; `refs/checkpoints/world-production-v3-takeover-preserved` (`75342736a7d3f97f7d3986ab062d61ab698dd653`) preserved that starting tree. A new W01 live-loop keyboard browser journey passed 1/1, traversing the three currents, reef controls, cathedral passage and conductor finale with F interactions and in-memory-only completion. The prior W01 scripted journey remains diagnostic. Fresh gate passed 149 files / 1,438 tests, 17.53 MB initial bundle and 256-file release distribution. Unified world browser 54/54; standard museum browser 119 passed, zero failed, one intentional Linux-only snapshot skip; dedicated Workshop 16/16 with authored offline readback; ordinary standalone offline and runtime-source checks passed. Fresh full three-workload headless M1 device budget **FAILED 1/12** on the candidate, exterior-walk p99 33.3 ms versus ≤20 ms; clean baseline failed 3/12 including walk p99 35.4 ms. Focused probes on both trees show prewarm frame misses without a confirmed safe code-level bottleneck. [Evidence](docs/evidence/world-production-20261126/v3-performance/REPORT.md), [review](docs/plans/WORLD_OWNER_REVIEW_20261126.md), and [ledger](docs/plans/WORLD_PRODUCTION_LEDGER_20261126.md). Physical touch, headed device, approved W10 Dexter model, owner visual/audio and production activation remain outstanding. No commit, push, merge or deploy. Status **NOT COMPLETE FOR PRODUCTION**.
+
+The final V3 local snapshot ref is `refs/checkpoints/world-production-v3-local-qualified-performance-held`; this preserves the cumulative tracked and untracked candidate plus evidence without moving the branch. Resolve its object ID in the cumulative worktree. The original W01 and older W02 worktrees remain protected.
+
+V5 local continuation (2026-11-26): the exterior-walk failure is isolated to main-thread interior construction overlapping the first ~1.4 s of the governing walk. A retained slice-growth repair cut construction misses 11.4→8.4 in matched trials, but p99 still fails (33.3 ms vs ≤20 ms, 1/12 hard budgets). Ordered production activation is prepared and dormant; an eleven-world rehearsal build proved lazy, isolated loading. A W01 full browser-emulated touch journey passed. Worlds 55/55, standard browser 119/0/1 skip, Workshop 16/16, standalone pass; final gate PASS (150 files / 1,445 tests, 17.53 MB of 20 MB). Owner decisions are in [the owner review](docs/plans/WORLD_OWNER_REVIEW_20261126.md#v5-consolidated-owner-request-2026-11-26). Checkpoint `refs/checkpoints/world-production-v5-final-local`. No commit, push, merge or deploy. Status **NOT COMPLETE FOR PRODUCTION**.
+
+V6 local continuation (2026-11-27):
+
+- **Construction performance.** Interior construction now yields inside each former long step (`BuildSteps`). In matched trials the exterior-walk p99 went from 33–50 ms to 16.8 ms in 5/5 pairs. `perf:device` passed 12/12 once. The final repeats on the exact candidate failed (4–6/12) under heavy machine contention, and a matched control of the earlier passing build failed equally. Repeated-trial acceptance is NOT MET.
+- **Touch and sessions.**
+  - Browser-emulated full touch journeys pass for all eleven worlds.
+  - Seven ground entrances are reached on foot.
+  - Keyboard and touch cross-world progression and early-exit sessions pass, with resources flat and the persistent passport untouched.
+- **Distribution.**
+  - Unreferenced builder-catalog files are pruned from public builds: checker 17.54 → 12.58 MB, rule unchanged.
+  - `verify:dist` rejects world chunks, stems and rehearsal code.
+  - Rehearsals 5/5, including the activated offline package.
+- **Fixes and finishing.** Fixed: Esc in the entry dialog after a failed download. Finishing: the W10 camera boom.
+- **Dexter readiness.** The seam, contract and handoff are ready; the rig is still `TEST_ONLY_NOT_APPROVED_DEXTER`.
+- **Qualification on the exact candidate.**
+  - Gate PASS (153 / 1,458).
+  - Isolation PASS.
+  - Workshop 16/16.
+  - Standalone PASS.
+  - Rehearsal 5/5.
+  - World suite 74/76 and standard 115/119 in single runs, all passing after fixes and reruns.
+- **Owner decisions.** See [the owner review](docs/plans/WORLD_OWNER_REVIEW_20261126.md#v6-owner-request-2026-11-27).
+- **State.** Checkpoint `refs/checkpoints/world-production-v6-final-local`. Committed and pushed to `origin/feat/world-production-20261126` at the owner's request; no merge or deploy. Status **NOT COMPLETE FOR PRODUCTION**.
+
+V7 local continuation (2026-11-27, state revision 139):
+
+- **Defects closed.**
+  - The V6 W01 aim miss was a test-walker overshoot. It is repaired in the walker helpers; W01 is unchanged.
+  - The V6 W09 cascade pinch was a product softlock. It is repaired: blocked movement intent now runs the W09 clock at walking pace, while stillness and frozen states still stop it. Owner acceptance of this rule change is pending.
+- **Every entrance on foot.** The interior (W04, W07) and rooftop (W05, W06, W10 roof) entrances are now reached from the pier through the front door and passages, or the West Flank Ascent. Keyboard 5/5, touch 2/2 (emulated).
+- **Long session.** Two passes over six worlds, with completions, early exits and failed and interrupted loads, return flat resources.
+- **Dexter seam.** The seam now guards selection: owner approval, provenance and the contract are all required. The rig is still TEST-ONLY.
+- **Defect found in final qualification, and fixed.** Esc while a world showed "Opening…" was ignored once focus had left the disabled Enter button, so the world opened anyway. Focus now waits on Back (`src/ui/PocketTransition.ts`). Regression test: `tests/browser/worlds-entry-cancel.e2e.ts`.
+- **Qualification on the final candidate `refs/checkpoints/world-production-v7-final-candidate`.**
+  - Gate PASS on the final tree (153 / 1,462; 12.58 MB).
+  - World suite 83/87 on the first full run. All four failures were diagnosed and pass on rerun: two were the touch test walker on moving supports (W03 gear, W08 pad; fixed), one an unexplained intermittent W09 time-dial aim miss, and one a product defect (Esc during "Opening…" was ignored; fixed, with a new regression test).
+  - Rehearsal 5/5 with Metal; a first run without Metal was invalid (0/5). The failed-load test was re-run on the final tree, 1/1.
+  - Isolation PASS.
+  - Standard 67/67 executed before an owner-directed stop.
+  - Workshop and standalone not re-run.
+- **Performance.** FAILED, attribution unresolved. The final candidate ran three admissible-start trials on a frozen tree: 8/12, 10/12 and 9/12. The misses were p99s at 33 ms (two 60 Hz frames) and second-entry worst frames of 83 and 233 ms. Peak host load during those trials was 15–35, against 5 during baseline-1, which passed 12/12 on effectively the same measured code. A matched A/B on a quiet machine is the owner's call. See [TRIALS](docs/evidence/world-production-20261126/v7/performance/TRIALS.md).
+- **Not done.** Physical-device touch NOT ATTEMPTED; owner procedure in `docs/plans/WORLD_DEVICE_ACCEPTANCE_V7_20261127.md`.
+- **State.** Committed and pushed to `origin/feat/world-production-20261126` (PR #83) at the owner's request on 2026-11-27. There was no merge or deploy, and the 61 protected evidence images and the local V6 handoff stay uncommitted. Status **NOT COMPLETE FOR PRODUCTION**.

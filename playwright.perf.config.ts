@@ -15,7 +15,9 @@ export default defineConfig({
   outputDir: 'test-results/perf',
   use: {
     channel: 'chrome',
-    headless: false,
+    // Screen-free diagnostics are useful on the same hardware, but remain
+    // distinct from the headed representative-device acceptance run.
+    headless: process.env.MUSEUM_PERF_HEADLESS === '1',
     viewport: { width: 1440, height: 900 },
     launchOptions: { args: ['--ignore-gpu-blocklist', '--enable-gpu-rasterization', '--disable-background-timer-throttling',
       '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'] },

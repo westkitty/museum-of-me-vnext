@@ -1,0 +1,11 @@
+before-1 load 16.84 idleO20 33 walkP99 49.9 walkO20 13 int 9 ren 3 other 1
+exp1-1 load 13.46 idleO20 8 walkP99 50.0 walkO20 19 int 9 ren 7 other 3
+before-2 load 10.84 idleO20 8 walkP99 50.0 walkO20 20 int 13 ren 6 other 1
+exp1-2 load 8.96 idleO20 1 walkP99 33.4 walkO20 10 int 8 ren 2 other 0
+before-3 load 6.79 idleO20 0 walkP99 33.4 walkO20 10 int 9 ren 1 other 0
+exp1-3 load 7.25 idleO20 29 walkP99 50.0 walkO20 17 int 10 ren 3 other 4
+before-4 load 9.73 idleO20 10 walkP99 50.1 walkO20 24 int 14 ren 6 other 4
+exp1-4 load 8.58 idleO20 0 walkP99 33.3 walkO20 8 int 7 ren 1 other 0
+before-5 load 11.83 idleO20 35 walkP99 50.0 walkO20 17 int 12 ren 4 other 1
+exp1-5 load 10.67 idleO20 15 walkP99 49.9 walkO20 10 int 8 ren 1 other 1
+DONE

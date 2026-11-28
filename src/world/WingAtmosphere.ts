@@ -1,8 +1,11 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { PaletteSet } from './palette';
-import { WINGS, faceDirection, place, type WingSpec } from './layout';
+import { architecturalStoneFinish } from './SurfaceFinish';
+import { applyArchitecturalFinish } from '../render/ArchitecturalShading';
+import { HALL_SIDE_WALL_THICKNESS, PLACEMENTS, WINGS, faceDirection, place, type WingSpec } from './layout';
 import { alongClearOfBayOpenings } from './bayClearance';
+import { bayOpeningSpan } from './installationPlacement';
 
 /**
  * Decorative, non-light-source atmosphere for the themed wings.
@@ -67,18 +70,36 @@ export class WingAtmosphere {
 
     // Two broad wall inlays per wing create slower colour beats between the
     // smaller ceiling fixtures. They sit against the walls and never intrude
-    // into the walkable centreline.
+    // across a bay opening. Keep their full width on the nearest solid span.
+    const panelWidth = Math.min(6.5, span / 5);
+    const stone = architecturalStoneFinish(this.scope);
+    const inlayMaterial = applyArchitecturalFinish(this.scope.track(new THREE.MeshStandardMaterial({
+      color: new THREE.Color(trimColor).multiplyScalar(0.34), roughness: 0.86, map: stone, roughnessMap: stone,
+    })), wing.id, new THREE.Color(accentColor), 'inlay');
+    const linerGeometry = this.scope.track(new THREE.BoxGeometry(panelWidth, 0.035, 0.05));
     for (const [fraction, side] of [[0.33, -1], [0.72, 1]] as const) {
-      const along = wing.hallFrom + span * fraction;
-      const at = place(d, along, side * (wing.hallHalfWidth - 0.12), wing.floorY);
+      const preferred = wing.hallFrom + span * fraction;
+      const along = this.inlayCentre(wing, side, preferred, panelWidth / 2);
+      if (along === undefined) continue;
+      // Seat the back of the panel inside the wall, with its face exposed.
+      const at = place(d, along, side * (wing.hallHalfWidth - HALL_SIDE_WALL_THICKNESS / 2), wing.floorY);
       const panel = new THREE.Mesh(
-        this.scope.track(new THREE.BoxGeometry(Math.min(6.5, span / 5), 2.4, 0.12)),
-        muted,
+        this.scope.track(new THREE.BoxGeometry(panelWidth, 2.4, 0.12)),
+        inlayMaterial,
       );
       panel.name = `wing-wall-inlay:${wing.id}`;
       panel.position.set(at[0], wing.floorY + 3.0, at[2]);
       panel.rotation.y = angle + Math.PI / 2;
       this.group.add(panel);
+      // A fine lit reveal above and below the ribbed panel, in the wing's accent.
+      for (const edge of [-1, 1]) {
+        const liner = new THREE.Mesh(linerGeometry, glow);
+        liner.name = `wing-inlay-liner:${wing.id}`;
+        liner.position.copy(panel.position);
+        liner.position.y += edge * 1.235;
+        liner.rotation.y = panel.rotation.y;
+        this.group.add(liner);
+      }
     }
 
     // Monumental rhythm: tall, shallow bronze ribs and a continuous crown
@@ -114,6 +135,32 @@ export class WingAtmosphere {
     }
 
     if (wing.id === 'north') this.buildNorthSparkles(wing, glow);
+  }
+
+  private inlayCentre(wing: WingSpec, side: -1 | 1, preferred: number, halfWidth: number): number | undefined {
+    const wallSide = side === -1 ? 'left' : 'right';
+    const openings = PLACEMENTS.filter((bay) => bay.wing === wing.id && bay.side === wallSide)
+      .map((bay) => {
+        const centre = wing.hallFrom + wing.bayLead + bay.slot * wing.bayPitch;
+        const span = bayOpeningSpan(bay.exhibitId);
+        return { from: centre + span.from, to: centre + span.to };
+      })
+      .sort((a, b) => a.from - b.from);
+    const inset = halfWidth + 0.15;
+    let cursor = wing.hallFrom;
+    let nearest: number | undefined;
+    for (const opening of [...openings, { from: wing.hallTo, to: wing.hallTo }]) {
+      const min = cursor + inset;
+      const max = opening.from - inset;
+      if (min <= max) {
+        const candidate = THREE.MathUtils.clamp(preferred, min, max);
+        if (nearest === undefined || Math.abs(candidate - preferred) < Math.abs(nearest - preferred)) {
+          nearest = candidate;
+        }
+      }
+      cursor = opening.to;
+    }
+    return nearest;
   }
 
   /** Static, emissive Starsilk dust: visual atmosphere without another light or frame-loop system. */

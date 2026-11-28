@@ -1,0 +1,231 @@
+/* ── The Reliquary's final finish ──────────────────────────────────────────
+   Loaded last. Presentation only: nothing here changes what a control does,
+   its name, its size below 44 px on touch, or the order it is read in.
+   High contrast, reduced transparency, forced colours and both reduced-motion
+   paths stay authoritative: every rule that could weaken them is scoped. */
+
+:root {
+  --ease-settle: cubic-bezier(.2, .8, .2, 1);
+  --gilt: rgba(226, 190, 130, .5);
+  --gilt-strong: rgba(240, 208, 152, .82);
+}
+
+/* A lens, not a filter: one static composited layer behind the HUD text. */
+html:not([data-contrast='high']):not([data-transparency='reduced']) .hud::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 78% 82% at 50% 48%, transparent 62%, rgba(2, 4, 10, .34) 100%);
+}
+
+/* ── HUD ──────────────────────────────────────────────────────────────── */
+.hud__reticle { transition: transform 180ms var(--ease-settle), background-color 160ms ease, box-shadow 200ms ease; }
+.hud__reticle::before { transition: border-color 160ms ease, transform 260ms var(--ease-settle), inset 260ms var(--ease-settle); opacity: .72; }
+.hud__reticle--active { box-shadow: 0 0 0 1px rgba(0, 0, 0, .7), 0 0 16px rgba(240, 208, 152, .75); }
+.hud__reticle--active::before { opacity: 1; animation: reliquary-acquire 420ms var(--ease-settle); }
+@keyframes reliquary-acquire {
+  from { transform: scale(1.5) rotate(0.001deg); opacity: 0; }
+  to { transform: scale(.8); opacity: 1; }
+}
+
+.hud__cue {
+  border-radius: 999px;
+  padding: .5rem 1.1rem .5rem .7rem;
+  letter-spacing: .01em;
+}
+.hud__cue--visible { border-left: 1px solid var(--gilt-strong); }
+.hud__cue kbd {
+  border-color: var(--gilt);
+  border-radius: 5px;
+  background: rgba(240, 208, 152, .12);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .5);
+}
+/* Touch visitors tap the centre dot: the F key cap is hidden (HUD.setTouchMode). */
+.hud__cue kbd[hidden] { display: none; }
+
+.hud__location { padding: .5rem 2.4rem .5rem 1rem; transition: border-left-color 600ms ease; }
+.hud__location span { font-size: .7rem; letter-spacing: .18em; }
+.hud__location strong { margin-top: .1rem; text-wrap: balance; }
+.hud__hints { border-radius: 6px; padding: .4rem .75rem; font-size: .73rem; letter-spacing: .01em; }
+html:not([data-contrast='high']):not([data-transparency='reduced']) .hud__hints {
+  background: linear-gradient(270deg, rgba(6, 12, 20, .74), rgba(6, 12, 20, .4));
+}
+.hud__resume-look, .hud__visitor-menu { border-radius: 6px; transition: border-color 160ms ease, background-color 160ms ease, transform 160ms var(--ease-settle); }
+.hud__visitor-menu { border-color: var(--gilt-strong); }
+.hud__resume-look:hover, .hud__visitor-menu:hover { transform: translateY(-1px); }
+.hud__resume-look:active, .hud__visitor-menu:active { transform: translateY(0); }
+.hud__subtitle { border-radius: 8px; text-wrap: pretty; }
+.hud__threshold, .hud__secret { border-radius: 10px; }
+.hud__ticket { border-radius: 8px; }
+
+/* ── Welcome ──────────────────────────────────────────────────────────── */
+.cinematic-arrival__content { position: relative; }
+html:not([data-contrast='high']) .cinematic-arrival {
+  background:
+    radial-gradient(ellipse 62% 64% at 50% 92%, rgba(2, 4, 12, .9), rgba(2, 4, 12, .5) 52%, transparent 78%),
+    linear-gradient(180deg, transparent 46%, rgba(3, 5, 13, .5) 74%, rgba(2, 3, 9, .88));
+}
+.cinematic-arrival__eyebrow { margin: 0; color: #f0d3b2; text-shadow: 0 1px 8px #000; }
+.cinematic-arrival h1 { margin: .45rem 0 .7rem; font-size: clamp(1.1rem, min(2.2vw, 3.2vh), 1.7rem); font-style: italic; color: #f1e4d3; }
+.cinematic-arrival h1 em {
+  font-size: clamp(2.5rem, min(6.6vw, 10vh), 5.6rem);
+  line-height: 1;
+  letter-spacing: -.02em;
+  color: #f8ead2;
+  text-shadow: 0 2px 2px rgba(0, 0, 0, .5), 0 6px 40px rgba(0, 0, 0, .9), 0 0 60px rgba(233, 190, 130, .22);
+}
+.cinematic-arrival h1::after {
+  content: '';
+  display: block;
+  width: min(20rem, 56vw);
+  height: 1px;
+  margin: .95rem auto 0;
+  background: linear-gradient(90deg, transparent, var(--gilt-strong), transparent);
+}
+.cinematic-arrival__description { margin-bottom: .8rem; max-width: 46rem; text-wrap: balance; text-shadow: 0 1px 10px #000; }
+.cinematic-arrival__invitation { margin-bottom: .7rem; }
+.cinematic-arrival__orientation { max-width: 44rem; margin-bottom: 1rem; font-size: .8rem; text-wrap: balance; }
+.cinematic-arrival__actions a {
+  padding: .75rem 1.5rem;
+  border: 1px solid var(--gilt);
+  border-radius: 999px;
+  background: rgba(8, 11, 18, .72);
+  text-decoration: none;
+  font: 600 .78rem/1.4 var(--font-ui);
+  letter-spacing: .08em;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms var(--ease-settle);
+}
+.cinematic-arrival__actions a:hover { border-color: var(--gilt-strong); background: rgba(58, 38, 26, .9); transform: translateY(-1px); }
+.cinematic-arrival__eyebrow,
+.cinematic-arrival h1,
+.cinematic-arrival__description,
+.cinematic-arrival__invitation,
+.cinematic-arrival__orientation,
+.cinematic-arrival__actions { animation: reliquary-arrival-reveal 900ms var(--ease-settle) both; }
+.cinematic-arrival h1 { animation-delay: 120ms; }
+.cinematic-arrival__description { animation-delay: 260ms; }
+.cinematic-arrival__invitation { animation-delay: 380ms; }
+.cinematic-arrival__orientation { animation-delay: 480ms; }
+.cinematic-arrival__actions { animation-delay: 560ms; }
+@media (max-height: 520px) {
+  html:not([data-contrast='high']) .cinematic-arrival { background: linear-gradient(180deg, rgba(2, 4, 12, .1), rgba(2, 4, 12, .62) 34%, rgba(2, 3, 9, .9)); }
+  .cinematic-arrival h1 em { display: block; font-size: clamp(1.9rem, 12vh, 3rem); }
+  .cinematic-arrival h1::after { margin-top: .5rem; }
+  .cinematic-arrival__description { margin-bottom: .4rem; font-size: .88rem; }
+}
+
+/* The corner text would only ghost through the welcome's lower scrim. */
+body:has(> .cinematic-arrival:not(.cinematic-arrival--leaving)) :is(.hud__hints, .hud__location) { visibility: hidden; }
+
+/* ── Panels ───────────────────────────────────────────────────────────── */
+.panel:not([hidden]) { animation: reliquary-veil 200ms ease-out; }
+.panel:not([hidden]) > .panel__body { animation: reliquary-panel 320ms var(--ease-settle); }
+@keyframes reliquary-veil { from { opacity: 0; } to { opacity: 1; } }
+@keyframes reliquary-panel { from { transform: translateY(14px); } to { transform: none; } }
+html:not([data-contrast='high']):not([data-transparency='reduced']) .panel {
+  background: radial-gradient(ellipse at 50% 42%, rgba(8, 11, 18, .7), rgba(3, 4, 8, .88));
+  backdrop-filter: blur(5px) saturate(.85);
+}
+html:not([data-contrast='high']):not([data-transparency='reduced']) .panel__body {
+  border-radius: 12px;
+  background: linear-gradient(180deg, #161b24 0, #10151d 18rem, #0d1118 100%);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(226, 190, 130, .38) transparent;
+}
+/* The heading bar spans the dialog, so scrolled text never shows beside it. */
+html:not([data-contrast='high']):not([data-transparency='reduced']) .panel .panel__head {
+  margin-left: -2.4rem;
+  margin-right: -2.4rem;
+  padding-left: 2.4rem;
+  padding-right: 2.4rem;
+  background: #161b24;
+  border-bottom-color: rgba(226, 190, 130, .28);
+  box-shadow: 0 14px 22px -18px rgba(0, 0, 0, .9);
+}
+@media (max-width: 720px) {
+  html:not([data-contrast='high']):not([data-transparency='reduced']) .panel .panel__head { margin: 0 -1rem 1rem; padding: 1rem; }
+  html:not([data-contrast='high']):not([data-transparency='reduced']) .panel__body { border-radius: 14px 14px 0 0; }
+}
+@media (max-height: 500px) {
+  html:not([data-contrast='high']):not([data-transparency='reduced']) .panel .panel__head { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
+}
+/* The dialog itself takes focus when it opens. The ring is kept, drawn inside
+   the frame; controls within keep the full two-pixel ring. */
+.panel__body:focus-visible { outline: 2px solid color-mix(in srgb, var(--focus) 62%, transparent); outline-offset: -2px; }
+html[data-contrast='high'] .panel__body:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.panel__head .panel__sub { display: block; font-size: .72rem; letter-spacing: .2em; margin-bottom: .2rem; }
+.panel__head h2 { font-size: 1.75rem; line-height: 1.15; }
+.panel__close { border-radius: 999px; padding: .4rem .95rem; white-space: nowrap; flex: 0 0 auto; }
+.panel h3 { padding-bottom: .35rem; border-bottom: 1px solid rgba(226, 190, 130, .16); }
+.panel__card h3, .thread-preset h3 { border-bottom: 0; padding-bottom: 0; }
+.exhibit-reading h2, .panel__content > h2, .panel__content section > h2 { font: 500 1.3rem/1.25 var(--font-body); color: var(--gold-bright); margin: 1.7rem 0 .55rem; }
+.exhibit-reading p, .exhibit-reading__story p { max-width: 70ch; }
+
+.panel__card, .thread-preset, .thread-stop { border-radius: 8px; }
+.panel button:not([class]), .map__level button { border-radius: 7px; transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, transform 160ms var(--ease-settle); }
+.panel button:not([class]):not(:disabled):hover { transform: translateY(-1px); }
+.panel button:not([class]):not(:disabled):active { transform: none; }
+.panel .command-result { border-radius: 8px; transition: background-color 120ms ease, border-color 120ms ease; }
+.panel .command-result:hover { border-color: var(--gilt); background: rgba(240, 208, 152, .07); }
+.panel input:not([type='range']):not([type='checkbox']):not([type='radio']):not([type='file']),
+.panel select,
+.panel textarea { border-radius: 7px; }
+.map__plan { border-radius: 10px; }
+
+.visitor-menu__actions { gap: .55rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); }
+.visitor-menu__actions button {
+  position: relative;
+  padding: .85rem 2.6rem .85rem 1.1rem;
+  text-align: left;
+  font: 500 1rem/1.3 var(--font-body);
+  border-radius: 8px;
+}
+.visitor-menu__actions button::after {
+  content: '';
+  position: absolute;
+  right: 1.2rem;
+  top: 50%;
+  width: .42rem;
+  height: .42rem;
+  border: solid var(--gilt-strong);
+  border-width: 1px 1px 0 0;
+  transform: translateY(-50%) rotate(45deg);
+  transition: right 200ms var(--ease-settle);
+}
+.visitor-menu__actions button:hover::after { right: .95rem; }
+
+/* Settings: a check label and its explanation are two lines, not one run-on. */
+.field--check label { display: inline-block; }
+.field--check small { display: block; margin-top: .15rem; }
+.field { padding-bottom: .2rem; }
+.panel .field input[type='range'] { appearance: none; -webkit-appearance: none; background: transparent; cursor: pointer; }
+.panel .field input[type='range']::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: linear-gradient(90deg, rgba(226, 190, 130, .75), rgba(226, 190, 130, .22)); }
+.panel .field input[type='range']::-moz-range-track { height: 4px; border-radius: 4px; background: rgba(226, 190, 130, .4); }
+.panel .field input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7px; border-radius: 50%; border: 2px solid #12161e; background: var(--gold-bright); box-shadow: 0 0 0 1px var(--gilt-strong), 0 2px 8px rgba(0, 0, 0, .6); }
+.panel .field input[type='range']::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #12161e; background: var(--gold-bright); }
+@media (pointer: coarse) {
+  .panel .field input[type='range']::-webkit-slider-thumb { width: 26px; height: 26px; margin-top: -11px; }
+}
+
+/* Study Lab and Curator rows: controls breathe instead of touching. */
+#panel-study .panel__content input + button,
+#panel-study .panel__content label + input { margin-left: .5rem; }
+#panel-study .panel__content input, #panel-study .panel__content input + button { margin-block: .25rem; }
+@media (max-width: 640px) {
+  #panel-study .panel__content input + button,
+  #panel-study .panel__content label + input { margin-left: 0; }
+}
+
+@media (forced-colors: active) {
+  .hud::before, .cinematic-arrival h1::after, .visitor-menu__actions button::after { display: none; }
+  .panel .field input[type='range'] { appearance: auto; -webkit-appearance: auto; }
+  .panel__body:focus-visible { outline-color: Highlight; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cinematic-arrival *, .panel, .panel > .panel__body { animation: none !important; }
+  .hud__resume-look:hover, .hud__visitor-menu:hover, .panel button:not([class]):hover, .cinematic-arrival__actions a:hover { transform: none !important; }
+}
+html[data-motion='reduced'] .cinematic-arrival *,
+html[data-motion='reduced'] .panel,
+html[data-motion='reduced'] .panel > .panel__body { animation: none !important; }

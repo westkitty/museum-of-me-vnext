@@ -3,6 +3,9 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
   testMatch: '**/*.e2e.ts',
+  // Real-time pocket-world routes have their own Metal-capable runner and
+  // longer per-journey timeout in playwright.worlds.config.ts.
+  testIgnore: ['**/browser/w??-*.e2e.ts', '**/browser/l01-*.e2e.ts', '**/browser/worlds-*.e2e.ts'],
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
@@ -13,7 +16,10 @@ export default defineConfig({
   timeout: 120_000,
   expect: { timeout: 5_000 },
   reporter: 'list',
-  outputDir: 'test-results',
+  // Playwright empties its outputDir at the start of every run. Never point it
+  // at `test-results/` itself: that folder also holds hand-collected evidence
+  // (walkabout, traversal, ...). tests/playwright-output-safety.test.ts guards this.
+  outputDir: 'test-results/playwright',
   use: {
     baseURL: 'http://127.0.0.1:4173',
     viewport: { width: 1280, height: 720 },
@@ -32,7 +38,9 @@ export default defineConfig({
           ...(process.env.MUSEUM_BROWSER_EXECUTABLE
             ? { executablePath: process.env.MUSEUM_BROWSER_EXECUTABLE }
             : {}),
-          args: ['--use-gl=angle', '--use-angle=swiftshader-webgl', '--enable-webgl'],
+          args: process.env.MUSEUM_WORLDS_GL === 'metal'
+            ? ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist']
+            : ['--use-gl=angle', '--use-angle=swiftshader-webgl', '--enable-webgl'],
         },
       },
     },

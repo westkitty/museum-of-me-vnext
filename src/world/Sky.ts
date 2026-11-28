@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
+import { landscapeClock } from '../render/LandscapeShading';
 
 /** Moon direction is shared by sky, water and the real exterior key light. */
 export const NIGHT_MOON_DIRECTION = new THREE.Vector3(-0.43, 0.71, -0.56).normalize();
@@ -56,6 +57,7 @@ export class Sky {
           sunDirection: { value: new THREE.Vector3(0, 1, 0) },
           daylight: { value: 0 },
           twilight: { value: 0 },
+          time: landscapeClock,
         },
         vertexShader: /* glsl */ `
           varying vec3 vRay;
@@ -76,6 +78,7 @@ export class Sky {
           uniform vec3 sunDirection;
           uniform float daylight;
           uniform float twilight;
+          uniform float time;
           varying vec3 vRay;
 
           float hash(vec2 p) {
@@ -86,17 +89,36 @@ export class Sky {
           vec2 skyUv(vec3 ray) {
             return vec2(atan(ray.z, ray.x) * 0.159154943 + 0.5, asin(clamp(ray.y, -1.0, 1.0)) * 0.318309886 + 0.5);
           }
-          float starLayer(vec2 sky, float density, float threshold, float depth, vec2 seed) {
+          float skyNoise(vec3 p) {
+            vec3 i = floor(p);
+            vec3 f = fract(p);
+            f = f * f * (3.0 - 2.0 * f);
+            vec2 s = vec2(37.0, 17.0) * i.z;
+            float a = mix(mix(hash(i.xy + s), hash(i.xy + s + vec2(1.0, 0.0)), f.x),
+                          mix(hash(i.xy + s + vec2(0.0, 1.0)), hash(i.xy + s + vec2(1.0, 1.0)), f.x), f.y);
+            s += vec2(37.0, 17.0);
+            float b = mix(mix(hash(i.xy + s), hash(i.xy + s + vec2(1.0, 0.0)), f.x),
+                          mix(hash(i.xy + s + vec2(0.0, 1.0)), hash(i.xy + s + vec2(1.0, 1.0)), f.x), f.y);
+            return mix(a, b, f.z);
+          }
+          // Round, colour-temperature stars: cells are corrected for the
+          // sky's own aspect so points never smear into ellipses.
+          vec3 starLayer(vec2 sky, float density, float threshold, float depth, vec2 seed, float size) {
             vec2 uv = fract(sky + parallax * depth);
-            vec2 gridSize = vec2(density, density * 0.66);
+            vec2 gridSize = vec2(density, floor(density * 0.5));
             vec2 cell = floor(uv * gridSize);
-            cell.x = mod(cell.x, gridSize.x);
             vec2 local = fract(uv * gridSize) - 0.5;
             float chance = hash(cell + seed);
+            if (chance < threshold) return vec3(0.0);
             vec2 pointOffset = vec2(hash(cell + seed + 13.7), hash(cell + seed + 41.3)) - 0.5;
-            float radius = mix(0.025, 0.085, hash(cell + seed + 77.1));
-            float point = 1.0 - smoothstep(radius, radius * 1.7, length(local - pointOffset * 0.72));
-            return point * step(threshold, chance);
+            vec2 d = (local - pointOffset * 0.6) * vec2(max(0.08, cos((uv.y - 0.5) * 3.14159265)), 1.0);
+            float magnitude = hash(cell + seed + 77.1);
+            float radius = size * mix(0.5, 1.5, magnitude * magnitude);
+            float r = length(d) / radius;
+            float point = exp(-r * r * 1.6) + 0.16 * exp(-r * 0.9) * magnitude;
+            float twinkle = 0.82 + 0.18 * sin(time * mix(1.1, 3.4, magnitude) + chance * 900.0);
+            vec3 tint = mix(vec3(0.66, 0.79, 1.0), vec3(1.0, 0.83, 0.64), hash(cell + seed + 5.3));
+            return tint * point * mix(0.35, 1.0, magnitude) * twinkle;
           }
           void main() {
             vec3 ray = normalize(vRay);
@@ -104,18 +126,20 @@ export class Sky {
             vec2 sky = skyUv(ray);
             vec3 colour = h > offset
               ? mix(horizon, top, clamp((h - offset) * 1.55, 0.0, 1.0))
-              : mix(horizon, ground, clamp((offset - h) * 2.6, 0.0, 1.0));
+              : mix(horizon, ground, smoothstep(0.16, 0.8, offset - h) * 0.6);
 
             // Independent density, offset, scale, and parallax values make
             // distant dust, mid-field stars, and near points read as depth.
-            float distant = starLayer(sky, 118.0, 0.918, 0.010, vec2(7.1, 19.4));
-            float middle = starLayer(sky, 176.0, 0.962, 0.026, vec2(31.6, 4.8));
-            float near = starLayer(sky, 62.0, 0.948, 0.065, vec2(53.2, 72.9));
+            vec3 distant = starLayer(sky, 230.0, 0.80, 0.010, vec2(7.1, 19.4), 0.085);
+            vec3 middle = starLayer(sky, 120.0, 0.90, 0.026, vec2(31.6, 4.8), 0.06);
+            vec3 near = starLayer(sky, 58.0, 0.945, 0.065, vec2(53.2, 72.9), 0.042);
             float visibleSky = smoothstep(-0.035, 0.16, h);
             float bandCenter = 0.59 + sin(sky.x * 6.283 + 0.7) * 0.055;
             float galacticBand = exp(-pow((sky.y - bandCenter) * 9.0, 2.0));
-            float dustKnots = 0.5 + 0.5 * sin(sky.x * 73.0 + sin(sky.y * 41.0) * 2.4);
-            float darkLane = 0.6 + 0.4 * sin(sky.x * 112.0 + sin(sky.y * 57.0) * 2.0);
+            float broadDust = skyNoise(ray * 5.0);
+            float fineDust = skyNoise(ray * 13.0 + 4.0);
+            float dustKnots = smoothstep(0.25, 0.8, 0.62 * broadDust + 0.38 * fineDust);
+            float darkLane = 1.0 - 0.75 * smoothstep(0.45, 0.72, skyNoise(ray * 8.0 + 21.0));
             float starCloud = galacticBand * (0.45 + dustKnots * 0.55) * darkLane;
 
             // Drakken Blood Ring: an enormous vitrified biospheric scar,
@@ -157,7 +181,7 @@ export class Sky {
             // exterior key light. It replaces the removed orbital geometry
             // without spending another draw call or creating a second sky pass.
             float moonDot = max(dot(ray, normalize(moonDirection)), 0.0);
-            float moonDisk = smoothstep(0.99955, 0.99986, moonDot);
+            float moonDisk = smoothstep(0.99925, 0.99935, moonDot);
             float moonHalo = pow(moonDot, 96.0) * visibleSky;
             float horizonHaze = exp(-abs(h - offset) * 8.0);
 
@@ -165,11 +189,9 @@ export class Sky {
             // the orbital structure; this is still one GPU sky draw call.
             colour += vec3(0.10, 0.20, 0.41) * starCloud * 0.45 * visibleSky;
             colour += vec3(0.13, 0.11, 0.22) * galacticBand * (0.055 + dustKnots * 0.035) * visibleSky;
-            colour += vec3(0.62, 0.68, 0.76) * distant * 0.28 * visibleSky;
-            colour += vec3(0.96, 0.88, 0.72) * middle * 0.68 * visibleSky;
-            colour += vec3(1.0, 0.79, 0.63) * near * 0.90 * visibleSky;
+            colour += (distant * (0.34 + 0.5 * galacticBand) + middle * 0.8 + near * 1.15) * visibleSky;
             colour += vec3(0.035, 0.085, 0.13) * horizonHaze * 0.42;
-            colour += vec3(0.30, 0.48, 0.72) * moonHalo * 0.26;
+            colour += vec3(0.30, 0.48, 0.72) * (moonHalo * 0.3 + pow(moonDot, 14.0) * 0.07 * visibleSky);
             // Blend only sky light; the vitrified Blood Ring stays present.
             vec3 dayColour = h > offset
               ? mix(vec3(0.62, 0.80, 0.96), vec3(0.13, 0.42, 0.80),
@@ -196,9 +218,16 @@ export class Sky {
               * bloodRingVisibility * (glassSeam * 0.3 + glassVein * 0.6);
             colour += vec3(0.46, 0.042, 0.035) * floatingGlass
               * bloodRingVisibility * 0.72;
-            colour = mix(colour, vec3(0.86, 0.92, 1.0), moonDisk * 0.94 * (1.0 - daylight));
+            float maria = moonDisk > 0.0 ? skyNoise(ray * 95.0) * 0.6 + skyNoise(ray * 210.0) * 0.4 : 0.5;
+            colour = mix(colour, vec3(0.86, 0.92, 1.0) * (0.72 + 0.34 * maria), moonDisk * 0.96 * (1.0 - daylight));
             colour = mix(colour, vec3(1.0, 0.95, 0.84), sunDisk * daylight);
 
+            // Sea haze in display values: hides the edge of the fogged ocean
+            // from the roofs and pads, and lifts a soft band at the shore.
+            float seaHaze = 1.0 - smoothstep(-0.015, 0.085, h - offset);
+            colour = mix(colour, vec3(0.072, 0.135, 0.208), seaHaze * 0.9 * (1.0 - daylight));
+            // Ordered dither: the night gradient is too dark for eight bits alone.
+            colour += (hash(gl_FragCoord.xy * 0.713) - 0.5) / 255.0;
             gl_FragColor = vec4(colour, 1.0);
           }
         `,

@@ -1,0 +1,7 @@
+split2-1 load 6.17 idleP99 33.4 idleO20 15 walkP99 66.7 walkO20 38
+cand-1 load 8.76 idleP99 16.8 idleO20 2 walkP99 16.8 walkO20 3
+split2-2 load 7.20 idleP99 50.0 idleO20 64 walkP99 50.0 walkO20 38
+cand-2 load 11.02 idleP99 33.4 idleO20 82 walkP99 66.6 walkO20 22
+split2-3 load 14.67 idleP99 50.1 idleO20 72 walkP99 50.0 walkO20 19
+cand-3 load 20.55 idleP99 33.3 idleO20 9 walkP99 16.8 walkO20 5
+DONE

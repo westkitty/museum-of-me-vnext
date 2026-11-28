@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { applyLandscape } from '../../render/LandscapeShading';
 import { ResourceScope } from '../../assets/ResourceScope';
 import { CollisionWorld } from '../CollisionWorld';
 import type { QualityTier } from '../../render/QualityTiers';
@@ -70,7 +71,7 @@ export class IslandLandscape {
   }
 
   private buildPaths(): void {
-    const pathMat = this.scope.track(new THREE.MeshStandardMaterial({ color: 0xb6a27a, roughness: 0.92, metalness: 0.02 }));
+    const pathMat = applyLandscape(this.scope.track(new THREE.MeshStandardMaterial({ color: 0xb6a27a, roughness: 0.92, metalness: 0.02 })), 'gravel');
     const lightMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0xffbf78, toneMapped: false }));
     const markers: { x: number; z: number; id: string }[] = [];
     PATH_CENTERLINES.forEach((points, pathIndex) => {
@@ -154,7 +155,7 @@ export class IslandLandscape {
 
   private buildSpireGarden(): void {
     const center = SPIRE_GARDEN_CENTER;
-    const earth = this.scope.track(new THREE.MeshStandardMaterial({ color: 0x8a7650, roughness: 0.96 }));
+    const earth = applyLandscape(this.scope.track(new THREE.MeshStandardMaterial({ color: 0x8a7650, roughness: 0.96 })), 'gravel');
     const gold = this.scope.track(new THREE.MeshStandardMaterial({ color: 0xc7a34b, roughness: 0.42, metalness: 0.65, emissive: 0x2b1805, emissiveIntensity: 0.18 }));
     const ringMat = this.scope.track(new THREE.MeshBasicMaterial({ color: 0xffca73, toneMapped: false }));
     const court = new THREE.Mesh(this.scope.track(new THREE.CircleGeometry(SPIRE_GARDEN_RADIUS, 48)), earth);
@@ -186,7 +187,7 @@ export class IslandLandscape {
     this.root.add(plinth);
     this.collision.addBox([center[0], 0.1, center[2]], [3.25, 0.35, 3.25]);
     const topiaryGeo = this.scope.track(new THREE.IcosahedronGeometry(1.55, 1));
-    const topiaryMat = this.scope.track(new THREE.MeshStandardMaterial({ color: 0x1b3a31, roughness: 0.96 }));
+    const topiaryMat = applyLandscape(this.scope.track(new THREE.MeshStandardMaterial({ color: 0x1b3a31, roughness: 0.96 })), 'foliage');
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2;
       const x = center[0] + Math.cos(a) * 17.5;
@@ -202,8 +203,8 @@ export class IslandLandscape {
   }
 
   private buildPier(): void {
-    const stone = this.scope.track(new THREE.MeshStandardMaterial({ color: 0x414b52, roughness: 0.84 }));
-    const trim = this.scope.track(new THREE.MeshStandardMaterial({ color: 0x7b6d58, roughness: 0.74 }));
+    const stone = applyLandscape(this.scope.track(new THREE.MeshStandardMaterial({ color: 0x414b52, roughness: 0.84 })), 'paving');
+    const trim = applyLandscape(this.scope.track(new THREE.MeshStandardMaterial({ color: 0x7b6d58, roughness: 0.74 })), 'paving');
     const points = PIER_CENTERLINE;
     const curve = new THREE.CatmullRomCurve3(points.map(([x, z]) => new THREE.Vector3(x, -0.49, z)), false, 'centripetal');
     const samples = curve.getPoints(24);
@@ -231,9 +232,9 @@ export class IslandLandscape {
     this.root.add(terminal);
     // Ten weathered support pylons extend through the water. Their tops
     // touch the thin pier deck; all are beneath the walkable surface.
-    const pierPileMaterial = this.scope.track(new THREE.MeshStandardMaterial({
+    const pierPileMaterial = applyLandscape(this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x293940, roughness: 0.95, metalness: 0.03,
-    }));
+    })), 'rock');
     const pierPileGeo = this.scope.track(new THREE.CylinderGeometry(0.62, 0.76, 3.6, 8));
     const pierPiles = new THREE.InstancedMesh(pierPileGeo, pierPileMaterial, 10);
     pierPiles.name = 'pier-foundation-pylons';
@@ -355,10 +356,10 @@ export class IslandLandscape {
     // Twice the shoreline rock detail, still a single non-colliding draw.
     const target = this.quality === 'low' ? 96 : this.quality === 'medium' ? 192 : 288;
     const geometry = this.detailScope.track(new THREE.IcosahedronGeometry(1, 0));
-    const material = this.detailScope.track(new THREE.MeshStandardMaterial({
+    const material = applyLandscape(this.detailScope.track(new THREE.MeshStandardMaterial({
       color: 0x33494c, roughness: 0.98, metalness: 0,
       flatShading: true,
-    }));
+    })), 'rock');
     const rocks = new THREE.InstancedMesh(geometry, material, target);
     rocks.name = 'shoreline-rock-scatter';
     rocks.userData.visualRole = 'coastal-outcrops';
@@ -431,13 +432,13 @@ export class IslandLandscape {
     const trunkGeo = this.detailScope.track(new THREE.CylinderGeometry(0.22, 0.46, 5.4, 7));
     const crownGeo = this.detailScope.track(new THREE.IcosahedronGeometry(3.2, this.quality === 'low' ? 0 : 1));
     // Warm dark bark; per-instance colour varies each trunk (ISLAND-01b).
-    const trunkMat = this.detailScope.track(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 }));
+    const trunkMat = applyLandscape(this.detailScope.track(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 })), 'bark');
     const barkTones = [0x4a3426, 0x553b2a, 0x3f2c20, 0x5c4330, 0x4d3a2c, 0x46301f];
     const barkTint = new THREE.Color();
     const crownMaterials = [
-      this.detailScope.track(new THREE.MeshStandardMaterial({ color: 0x15302d, roughness: 0.98 })),
-      this.detailScope.track(new THREE.MeshStandardMaterial({ color: 0x1d3934, roughness: 0.98 })),
-      this.detailScope.track(new THREE.MeshStandardMaterial({ color: 0x23423a, roughness: 0.98 })),
+      applyLandscape(this.detailScope.track(new THREE.MeshStandardMaterial({ color: 0x15302d, roughness: 0.98 })), 'foliage'),
+      applyLandscape(this.detailScope.track(new THREE.MeshStandardMaterial({ color: 0x1d3934, roughness: 0.98 })), 'foliage'),
+      applyLandscape(this.detailScope.track(new THREE.MeshStandardMaterial({ color: 0x23423a, roughness: 0.98 })), 'foliage'),
     ];
     const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, count);
     trunks.name = 'perimeter-woodland-trunks';
@@ -445,9 +446,9 @@ export class IslandLandscape {
     trunks.castShadow = true;
     // A second asymmetric canopy mass creates a layered forest silhouette
     // rather than a field of identical green polyhedra. One extra draw only.
-    const lobeMaterial = this.detailScope.track(new THREE.MeshStandardMaterial({
+    const lobeMaterial = applyLandscape(this.detailScope.track(new THREE.MeshStandardMaterial({
       color: 0x294b40, roughness: 0.98,
-    }));
+    })), 'foliage');
     const canopyLobes = new THREE.InstancedMesh(crownGeo, lobeMaterial, count);
     canopyLobes.name = 'woodland-secondary-canopy';
     canopyLobes.userData.visualRole = 'forest-layered-silhouette';
@@ -544,9 +545,9 @@ export class IslandLandscape {
     // Double per-tree groundcover without adding tree colliders or passes.
     const shrubsPerTree = this.quality === 'low' ? 2 : this.quality === 'medium' ? 5 : 12;
     const shrubGeo = this.detailScope.track(new THREE.IcosahedronGeometry(1, 0));
-    const shrubMat = this.detailScope.track(new THREE.MeshStandardMaterial({
+    const shrubMat = applyLandscape(this.detailScope.track(new THREE.MeshStandardMaterial({
       color: 0x2b5447, roughness: 1,
-    }));
+    })), 'foliage');
     const understory = new THREE.InstancedMesh(shrubGeo, shrubMat, count * shrubsPerTree);
     understory.name = 'woodland-understory';
     understory.userData.visualRole = 'landscape-understory';
@@ -599,9 +600,9 @@ export class IslandLandscape {
     // One instanced low-poly mesh keeps the draw count constant across tiers.
     const infillPerTree = this.quality === 'low' ? 1 : this.quality === 'medium' ? 2 : 4;
     const infillGeometry = this.detailScope.track(new THREE.IcosahedronGeometry(2.7, 0));
-    const infillMaterial = this.detailScope.track(new THREE.MeshStandardMaterial({
+    const infillMaterial = applyLandscape(this.detailScope.track(new THREE.MeshStandardMaterial({
       color: 0xffffff, roughness: 1, metalness: 0,
-    }));
+    })), 'foliage');
     const infill = new THREE.InstancedMesh(infillGeometry, infillMaterial, placed * infillPerTree);
     infill.name = 'woodland-canopy-infill';
     infill.userData.visualRole = 'dense-layered-woodland-canopy';
@@ -671,9 +672,9 @@ export class IslandLandscape {
     // Low tier uses 20 triangles/crown rather than 80, reducing the forest
     // geometry burden without changing canopy counts, clearing or material.
     const beltGeometry = this.detailScope.track(new THREE.IcosahedronGeometry(4.1, this.quality === 'high' ? 1 : 0));
-    const beltMaterial = this.detailScope.track(new THREE.MeshStandardMaterial({
+    const beltMaterial = applyLandscape(this.detailScope.track(new THREE.MeshStandardMaterial({
       color: 0xffffff, roughness: 0.98, metalness: 0,
-    }));
+    })), 'foliage');
     const belt = new THREE.InstancedMesh(beltGeometry, beltMaterial, columns * rows * (1 + extraCrowns));
     belt.name = 'woodland-forest-belt'; // keep inspector/CI scene identity
     belt.userData.visualRole = 'island-masked-woodland-distribution';

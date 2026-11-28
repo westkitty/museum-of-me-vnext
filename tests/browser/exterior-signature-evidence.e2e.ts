@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
+import { historicalEvidenceFolder } from './helpers/historical-evidence';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 
-const evidenceFolder = 'docs/evidence/exterior-omni-v2';
+const evidenceFolder = historicalEvidenceFolder('docs/evidence/exterior-omni-v2');
 
 // 30 authored camera views covering canonical, 12 signature features, and required furnishings
 const cameraViews: readonly [string, [number, number, number], [number, number, number]][] = [

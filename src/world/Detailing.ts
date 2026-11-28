@@ -1,7 +1,9 @@
+import { runStepsSync, type BuildSteps } from '../util/buildSteps';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { PaletteSet } from './palette';
 import { architecturalStoneFinish } from './SurfaceFinish';
+import { applyArchitecturalFinish } from '../render/ArchitecturalShading';
 import type { ResourceScope } from '../assets/ResourceScope';
 import { buildWingSign, textMaterial } from '../exhibits/Furniture';
 import { canRenderText, createFallbackTexture } from '../assets/TextTexture';
@@ -111,15 +113,20 @@ export class Detailing {
 
   /** Apply one architectural region so lazy preparation can yield between regions. */
   applyZone(id: string, parents: ReadonlyMap<string, THREE.Group>): void {
+    runStepsSync(this.applyZoneSteps(id, parents));
+  }
+
+  /** The same region, split at safe boundaries for the cooperative build (see `src/util/buildSteps.ts`). */
+  *applyZoneSteps(id: string, parents: ReadonlyMap<string, THREE.Group>): BuildSteps {
     const parent = parents.get(id);
     if (!parent) return;
-    if (id === 'rotunda') { this.detailRotunda(parent); this.stairSigns(parent, 0); }
-    else if (id === 'balcony') { this.detailBalcony(parent); this.stairSigns(parent, 1); }
+    if (id === 'rotunda') { this.detailRotunda(parent); yield; this.stairSigns(parent, 0); }
+    else if (id === 'balcony') { this.detailBalcony(parent); yield; this.stairSigns(parent, 1); }
     else if (id === 'entrance-detail') this.detailEntrance(parent);
     else if (id === 'sanctuary') this.detailSanctuaryApproach(parent);
     else {
       const wing = WINGS.find((candidate) => candidate.id === id);
-      if (wing) this.detailWing(wing, parent);
+      if (wing) yield* this.detailWing(wing, parent);
     }
   }
 
@@ -363,7 +370,7 @@ export class Detailing {
     }
   }
 
-  private detailWing(wing: WingSpec, parent: THREE.Group): void {
+  private *detailWing(wing: WingSpec, parent: THREE.Group): BuildSteps {
     const p = this.pal.get(wing.id);
     const dir = faceDirection(wing.face);
     const r = rightOf(dir);
@@ -466,6 +473,7 @@ export class Detailing {
       }
     }
 
+    yield;
     // An oversized full-bright accent strip made the entire hall read like a
     // fluorescent conveyor belt, overwhelming the exhibits. A darker honed
     // mineral runner gives the visitor a path without flattening the palette.
@@ -481,6 +489,7 @@ export class Detailing {
       color: runnerColor, roughness: 0.72, metalness: 0.12,
       map: finish, roughnessMap: finish,
     }));
+    applyArchitecturalFinish(runnerMat, wing.id, (p.accent as THREE.MeshStandardMaterial).color, 'runner');
     const runner = new THREE.Mesh(
       this.scope.track(new THREE.BoxGeometry(runnerLength, 0.02, runnerWidth)),
       runnerMat,
@@ -508,6 +517,7 @@ export class Detailing {
       parent.add(rail);
     }
 
+    yield;
     // One way-back cue per hall side, shared by every bay on that side: the
     // copy only depends on the side, so the bays share one small texture.
     // Wide and short, with large type: it is read from the visitor spot deep
@@ -529,10 +539,12 @@ export class Detailing {
       wayBack.set(side, material);
     }
 
+    yield;
     // Threshold framing and a title over every bay opening, so an exhibit can
     // be identified from the hall without walking into it.
     for (const placement of PLACEMENTS) {
       if (placement.wing !== wing.id) continue;
+      yield; // one doorway (text sign, blades, cue, jambs, bench) per step
       const record = EXHIBITS_BY_ID.get(placement.exhibitId)!;
       const sign = buildWingSign(this.scope, EXHIBIT_DOORWAY_LINES[record.id], `${record.title} · ${record.id}`);
       sign.name = `exhibit-doorway:${record.id}`;

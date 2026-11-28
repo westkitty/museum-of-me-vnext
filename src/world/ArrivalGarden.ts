@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
 import type { CollisionWorld } from './CollisionWorld';
+import { applyLandscape } from '../render/LandscapeShading';
 import { NIGHT_MOON_DIRECTION } from './Sky';
 import {
   GROUND_Y, PLAZA_DEPTH, VESTIBULE_TO,
@@ -37,20 +38,20 @@ export class ArrivalGarden {
     private readonly collision: CollisionWorld,
   ) {
     this.group.name = 'arrival-garden';
-    this.stone = this.mat(0x6d7880, 0.92);
-    this.lawn = this.mat(0x183a37, 1);
-    this.leaf = this.mat(0x183b3e, 0.94);
-    this.leafLight = this.mat(0x296461, 0.96);
-    this.bark = this.mat(0x263035, 1);
+    this.stone = applyLandscape(this.mat(0x6d7880, 0.92), 'paving');
+    this.lawn = applyLandscape(this.mat(0x183a37, 1), 'grass');
+    this.leaf = applyLandscape(this.mat(0x183b3e, 0.94), 'foliage');
+    this.leafLight = applyLandscape(this.mat(0x296461, 0.96), 'foliage');
+    this.bark = applyLandscape(this.mat(0x3a3a38, 1), 'bark');
     this.flower = this.mat(0x3b9fc7, 0.72, 0.12);
     this.metal = this.mat(0x1c2b35, 0.5, 0.3);
     this.poolWater = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x24799b, roughness: 0.18, metalness: 0.28, transparent: true, opacity: 0.68,
     }));
     // Modest material separation preserves night without losing the land.
-    this.island = this.mat(0x24453f, 0.96);
+    this.island = applyLandscape(this.mat(0x24453f, 0.96), 'grass');
     // Stone/vegetation contrast is distinct from the new broken water foam.
-    this.shoreline = this.mat(0x315761, 0.94);
+    this.shoreline = applyLandscape(this.mat(0x315761, 0.94), 'rock');
     this.waterTime = { value: 0 };
     const waterUniforms = {
       ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
@@ -121,8 +122,21 @@ export class ArrivalGarden {
         varying float vWaveHeight;
         #include <fog_pars_fragment>
 
+        /** Slope of three crossing ripple trains; short waves fade with distance. */
+        vec2 rippleSlope(vec2 p, float fade) {
+          vec2 w = p + 1.3 * vec2(sin(p.y * 0.21 + time * 0.31), sin(p.x * 0.17 - time * 0.27));
+          vec2 s = vec2(0.82, 0.57) * cos(dot(w, vec2(0.82, 0.57)) * 1.13 - time * 1.9) * 0.085;
+          s += vec2(-0.46, 0.89) * cos(dot(w, vec2(-0.46, 0.89)) * 1.91 - time * 2.6) * 0.062;
+          s += vec2(0.97, -0.24) * cos(dot(w, vec2(0.97, -0.24)) * 3.37 - time * 3.7) * 0.05 * fade;
+          s += vec2(-0.71, -0.70) * cos(dot(w, vec2(-0.71, -0.70)) * 5.9 - time * 5.1) * 0.036 * fade * fade;
+          return s;
+        }
+
         void main() {
-          vec3 normal = normalize(vWorldNormal);
+          float eyeDistance = length(cameraPosition - vWorldPosition);
+          float rippleFade = 1.0 - smoothstep(12.0, 70.0, eyeDistance);
+          vec2 ripple = rippleSlope(vLocalWater, rippleFade) * (1.0 - 0.65 * smoothstep(60.0, 300.0, eyeDistance));
+          vec3 normal = normalize(vWorldNormal + vec3(-ripple.x, 0.0, ripple.y));
           vec3 viewDir = normalize(cameraPosition - vWorldPosition);
           vec3 moonDir = normalize(moonDirection);
 
@@ -143,12 +157,18 @@ export class ArrivalGarden {
           vec3 foamColour = vec3(0.27, 0.60, 0.71);
 
           vec3 colour = mix(deep, skyReflection, 0.19 + fresnel * 0.65);
+          // The sky it actually mirrors: bright at the horizon, deep overhead.
+          vec3 mirrored = reflect(-viewDir, normal);
+          vec3 skyTint = mix(vec3(0.095, 0.205, 0.315), vec3(0.018, 0.04, 0.09), clamp(mirrored.y * 1.6, 0.0, 1.0));
+          colour = mix(colour, skyTint, 0.25 + 0.6 * fresnel);
+          float glitter = pow(max(dot(mirrored, moonDir), 0.0), 260.0);
+          colour += vec3(0.8, 0.9, 1.0) * glitter * 1.6;
           colour += vec3(0.39, 0.63, 0.82) * broadSpecular * 0.070;
           colour += vec3(0.78, 0.90, 1.0) * moonSpecular * (0.24 + fresnel * 0.52);
           colour = mix(colour, foamColour, crest * 0.065);
 
           // Fade into atmospheric distance instead of exposing a hard disk edge.
-          float outerFade = 1.0 - smoothstep(304.0, 329.0, radius);
+          float outerFade = 1.0 - smoothstep(236.0, 329.0, radius);
           gl_FragColor = vec4(colour, (0.90 + fresnel * 0.075) * outerFade);
           #include <fog_fragment>
         }
@@ -379,10 +399,10 @@ export class ArrivalGarden {
       geometry.computeVertexNormals();
       return geometry;
     };
-    const bankMat = this.scope.track(new THREE.MeshStandardMaterial({
+    const bankMat = applyLandscape(this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x36535a, roughness: 0.98, metalness: 0, flatShading: true,
       side: THREE.DoubleSide,
-    }));
+    })), 'rock');
     const cliff = new THREE.Mesh(bankGeometry(cliffPositions), bankMat);
     cliff.name = 'night-island-coastal-skirt';
     cliff.userData.visualRole = 'coast-edge-seal';

@@ -1391,7 +1391,7 @@
       "routePoints": 4,
       "approach": {
         "radius": 1.8,
-        "angle": 90
+        "angle": 0
       },
       "focusLabel": "Speak with Myth Systems Researcher",
       "lines": [
@@ -1442,7 +1442,7 @@
       "routePoints": 4,
       "approach": {
         "radius": 1.8,
-        "angle": 0
+        "angle": 45
       },
       "focusLabel": "Speak with Local-first Engineer",
       "lines": [
@@ -1488,7 +1488,7 @@
       "routePoints": 4,
       "approach": {
         "radius": 1.8,
-        "angle": 90
+        "angle": 0
       },
       "focusLabel": "Speak with Forensic Analyst",
       "lines": [
@@ -1532,7 +1532,7 @@
       "routePoints": 4,
       "approach": {
         "radius": 1.8,
-        "angle": 90
+        "angle": 45
       },
       "focusLabel": "Speak with Memory Architect",
       "lines": [
@@ -1576,7 +1576,7 @@
       "routePoints": 5,
       "approach": {
         "radius": 1.8,
-        "angle": 135
+        "angle": 0
       },
       "focusLabel": "Speak with Accessibility Visitor",
       "lines": [
@@ -1713,7 +1713,7 @@
       "routePoints": 4,
       "approach": {
         "radius": 1.8,
-        "angle": 0
+        "angle": 45
       },
       "focusLabel": "Speak with Installation Conservator",
       "lines": [

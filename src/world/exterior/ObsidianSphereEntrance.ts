@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { applyLandscape } from '../../render/LandscapeShading';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { ResourceScope } from '../../assets/ResourceScope';
 import type { CollisionWorld } from '../CollisionWorld';
@@ -117,17 +118,17 @@ export class ObsidianSphereEntrance {
 
   /** Build once. No runtime asset requests, side effects or extra frame loop. */
   build(): THREE.Group {
-    const obsidian = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x0b101b, metalness: 0.67, roughness: 0.36,
-      side: THREE.DoubleSide, flatShading: true,
-    }));
-    const innerObsidian = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x070b12, metalness: 0.44, roughness: 0.56,
-      side: THREE.DoubleSide, flatShading: true,
-    }));
-    const darkStone = this.scope.track(new THREE.MeshStandardMaterial({
-      color: 0x080d16, metalness: 0.28, roughness: 0.8,
-    }));
+    const obsidian = applyLandscape(this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x2a3340, metalness: 0.82, roughness: 0.24,
+      side: THREE.DoubleSide,
+    })), 'obsidian');
+    const innerObsidian = applyLandscape(this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x2a3340, metalness: 0.82, roughness: 0.26,
+      side: THREE.DoubleSide,
+    })), 'obsidian');
+    const darkStone = applyLandscape(this.scope.track(new THREE.MeshStandardMaterial({
+      color: 0x121a26, metalness: 0.3, roughness: 0.6,
+    })), 'paving');
     const trim = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x21364b, metalness: 0.88, roughness: 0.27,
     }));

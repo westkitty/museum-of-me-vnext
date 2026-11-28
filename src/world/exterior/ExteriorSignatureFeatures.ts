@@ -47,6 +47,8 @@ export class ExteriorSignatureFeatures {
   private readonly tidepoolWaterMat: THREE.MeshStandardMaterial;
   private readonly amberGlowMat: THREE.MeshBasicMaterial;
   private readonly verdigrisMat: THREE.MeshStandardMaterial;
+  /** The astronomical terrace's bronze gnomon plinth: the W03 entry anchor. */
+  private gnomonPlinth: THREE.Object3D | null = null;
 
   // Kinetic & dynamic references
   private windGroveVanes: THREE.Object3D[] = [];
@@ -826,6 +828,12 @@ export class ExteriorSignatureFeatures {
   /* -------------------------------------------------------------------------- */
   /* 11. TERRACE OF ASTRONOMICAL / SEASONAL MARKERS                              */
   /* -------------------------------------------------------------------------- */
+  /** The existing gnomon plinth (unchanged geometry), used as the W03 anchor. */
+  get sundialGnomon(): THREE.Object3D {
+    if (!this.gnomonPlinth) throw new Error('Astronomical terrace not built');
+    return this.gnomonPlinth;
+  }
+
   private buildAstronomicalSeasonalTerrace(): void {
     const group = new THREE.Group();
     group.name = 'astronomical-seasonal-terrace';
@@ -845,7 +853,9 @@ export class ExteriorSignatureFeatures {
     const gnomonPlinth = new THREE.Mesh(gnomonPlinthGeo, this.bronzeMat);
     gnomonPlinth.position.set(center[0], center[1] + 0.5, center[2]);
     gnomonPlinth.castShadow = true;
+    gnomonPlinth.name = 'astronomical-gnomon-w03-anchor';
     group.add(gnomonPlinth);
+    this.gnomonPlinth = gnomonPlinth;
     this.collision.addBox([center[0], center[1] + 0.5, center[2]], [1.0, 0.4, 1.0]);
 
     // Angled gnomon pointer

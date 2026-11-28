@@ -1,0 +1,12 @@
+gate exit=1 seconds=17 load=12.57 11.96 9.71
+dormant-dist-scan exit=0 seconds=1 load=12.57 11.96 9.71
+world-suite exit=0 seconds=1476 load=6.45 6.17 6.11
+standard-e2e exit=0 seconds=682 load=7.78 8.36 7.63
+workshop exit=0 seconds=911 load=6.85 6.77 6.98
+standalone exit=0 seconds=177 load=6.29 6.44 6.79
+perf-device exit=1 seconds=213 load=4.46 5.58 6.35
+DONE
+gate-rerun exit=1 seconds=96
+rehearsal-final exit=1
+gate-final exit=0 seconds=137
+rehearsal-final(installed chrome) exit=0

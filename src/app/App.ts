@@ -33,12 +33,14 @@ import { Lighting } from '../render/Lighting';
 import { AtmosphereDirector } from '../render/AtmosphereDirector';
 import { InputManager, touchLookGain } from '../player/Input';
 import { PlayerController } from '../player/PlayerController';
+import { CameraFeel } from '../player/CameraFeel';
 import { zoneAtXYZ, ZONE_BY_ID, isOnFlightPad, exteriorLocationLabel, EXTERIOR_PLAZA_LABEL, ENTRANCE_PORTAL_Z, type ZoneId } from '../world/layout';
 import { TICKET_KIOSK_ID } from '../world/exterior/TicketKiosk';
 import { LIGHTHOUSE_LENS_ID } from '../world/exterior/ExteriorLighthouse';
 import { OBSERVATORY_ORRERY_ID } from '../world/exterior/ExteriorObservatory';
+import { WEASEL_PIER_GUIDE_ID } from '../world/exterior/WeaselPierGuide';
 import { ROOTBOUND_RELIC_ID } from '../world/exterior/ExteriorRootboundHollow';
-import { GREENHOUSE_FLOWER_ID, ROOF_FLIGHT_PAD_II_TELEPORT_ID, isOnRooftopFlightPad, ROOF_FLIGHT_PAD_II_LAUNCH_SPEED } from '../world/exterior/rooftopLayout';
+import { GREENHOUSE_FLOWER_ID, ROOF_FLIGHT_PAD_II_TELEPORT_ID, ROOF_FLIGHT_PAD_II_TELEPORT_CENTER, isOnRooftopFlightPad, ROOF_FLIGHT_PAD_II_LAUNCH_SPEED } from '../world/exterior/rooftopLayout';
 import { isInsideObsidianChamber } from '../world/exterior/ObsidianSphereEntrance';
 import { START_POSITION } from '../world/start';
 import type { StreamingManager } from '../exhibits/StreamingManager';
@@ -61,6 +63,7 @@ import { SecretsLog } from '../state/Secrets';
 import { SecretSpots, isSecretControlId, type SecretFind } from '../world/SecretSpots';
 import { Passport } from '../state/Passport';
 import { PocketWorldHost } from '../world/pocket/PocketWorldHost';
+import { ThirdPersonBoom } from '../world/pocket/thirdPersonBoom';
 import { PocketWorldRegistry } from '../world/pocket/PocketWorldRegistry';
 import { isPocketPortalControlId, type HostWorldId } from '../world/pocket/types';
 import { WorldDirector, type WorldId } from './WorldDirector';
@@ -70,6 +73,11 @@ export interface AppOptions {
   canvas: HTMLCanvasElement;
   uiRoot: HTMLElement;
   a11yRoot: HTMLElement;
+  /**
+   * Development pocket-world previews only: keep the passport in memory so a
+   * preview completion exercises the real host path without persisting a stamp.
+   */
+  ephemeralPassport?: boolean;
 }
 
 /**
@@ -93,7 +101,7 @@ export class App implements LoopCallbacks {
   readonly exteriorWorld: ExteriorWorld;
   interiorWorld: InteriorWorld | null = null;
   readonly worldDirector: WorldDirector;
-  readonly passport = new Passport();
+  readonly passport: Passport;
   readonly pocketRegistry = new PocketWorldRegistry();
   readonly pocketHost: PocketWorldHost;
   /** Frames over 50 ms, with the world and phase they happened in (local only). */
@@ -104,8 +112,10 @@ export class App implements LoopCallbacks {
   readonly atmosphere: AtmosphereDirector;
   readonly input: InputManager;
   readonly player: PlayerController;
+  private readonly cameraFeel = new CameraFeel();
   readonly interaction = new InteractionManager();
   readonly audio = new AudioManager();
+  private readonly thirdPersonBoom = new ThirdPersonBoom();
   /** Hidden things to find; saved on this device. */
   readonly secretsLog = new SecretsLog();
   readonly secrets = new SecretSpots(SECRETS, this.secretsLog, (find) => this.presentSecret(find));
@@ -145,6 +155,8 @@ export class App implements LoopCallbacks {
   private cinematicArrivalEntered = false;
   private cinematicCameraCancelled = false;
   private interiorLoadingPromise: Promise<InteriorWorld> | null = null;
+  /** The interior being built, before it becomes interiorWorld; dispose() stops it. */
+  private buildingInterior: InteriorWorld | null = null;
   readonly interiorLoadTelemetry = {
     requestedAtMs: null as number | null,
     moduleLoadedAtMs: null as number | null,
@@ -170,6 +182,7 @@ export class App implements LoopCallbacks {
   }
 
   constructor(opts: AppOptions) {
+    this.passport = new Passport(opts.ephemeralPassport ? null : undefined);
     this.uiRoot = opts.uiRoot;
     this.a11yRoot = opts.a11yRoot;
     const query = new URLSearchParams(window.location.search);
@@ -290,24 +303,132 @@ export class App implements LoopCallbacks {
     });
   }
 
+  private w04AnchorObject: THREE.Object3D | null = null;
+
+  /**
+   * Interior exhibits stream in and out, so their pocket anchors register with
+   * the exhibit's own controls and release with them. E19 DexTilt's desktop
+   * display (not one of its controls) becomes the W04 anchor; the exhibit's
+   * phone and manual controls are untouched.
+   */
+  attachExhibitPocketAnchor(exhibitId: string, control: import('../exhibits/contract').ExhibitControl): (() => void) | null {
+    if (exhibitId !== 'E19') return null;
+    const display = control.object.parent?.getObjectByName('dextilt-desktop-display') ?? null;
+    if (!display || this.w04AnchorObject === display) return null;
+    this.w04AnchorObject = display;
+    const announce = (message: string) => this.ui.hud.announce(message, 8);
+    const off = this.interaction.register('pocket-portal:w04', this.pocketHost.createAnchorControl('W04', display, {
+      dormantLabel: 'Watch the Desktop Rhythm',
+      dormantDescription: 'The desktop the phone drives, answering each gesture.',
+      dormantActivate: () => announce('The E19 display holds a steady rhythm. Digital Beat World (W04) is not open yet.'),
+      activeLabel: 'Enter Digital Beat World Preview',
+      activeDescription: 'Step into the rhythm behind the desktop and build a route from beats.',
+      liveReturnAnchor: () => this.pocketHost.captureHostAnchor(),
+    }));
+    return () => {
+      off();
+      if (this.w04AnchorObject === display) this.w04AnchorObject = null;
+    };
+  }
+
+  /**
+   * W07's anchor is the interior test-lab door at the back of the Local
+   * Systems wing; it registers with the interior that built it and releases
+   * with it.
+   */
+  attachTestLabAnchor(object: THREE.Object3D): () => void {
+    return this.interaction.register('pocket-portal:w07', this.pocketHost.createAnchorControl('W07', object, {
+      dormantLabel: 'Inspect the Test Lab Door',
+      dormantDescription: 'A sealed testing lab behind calibration glass, still under construction at the back of the Local Systems wing.',
+      activeLabel: 'Enter Portal Slingshot Trials Preview',
+      activeDescription: 'Press the lab button and step into the portal trials.',
+      liveReturnAnchor: () => this.pocketHost.captureHostAnchor(),
+    }));
+  }
+
   private registerPocketAnchors(): void {
     const announce = (message: string) => this.ui.hud.announce(message, 8);
-    const register = (id: string, world: 'L01' | 'W09' | 'W05', control: import('../exhibits/contract').ExhibitControl) => {
-      this.interaction.register(id, this.pocketHost.createAnchorControl(world, control.object, {
-        dormantLabel: control.label, dormantDescription: control.description,
-        dormantActivate: control.activate,
-      }));
-    };
-    register(LIGHTHOUSE_LENS_ID, 'L01', this.exteriorWorld.lighthouse.getLensControl(announce));
-    register(OBSERVATORY_ORRERY_ID, 'W09', this.exteriorWorld.observatory.getOrreryControl(announce));
+    this.interaction.register(WEASEL_PIER_GUIDE_ID, {
+      object: this.exteriorWorld.weaselPierGuide.target,
+      label: 'Ask the wind guide about the wild island',
+      activate: () => {
+        if (this.pocketRegistry.isPlayable('W10', this.passport)) void this.pocketHost.requestEntry('W10', this.pocketHost.captureHostAnchor());
+      },
+    });
+    // A second, independent rooftop destination retains W06 at its console.
+    const wildernessSignal = new THREE.Mesh(
+      this.exteriorWorld.scope.track(new THREE.IcosahedronGeometry(0.55, 1)),
+      this.exteriorWorld.scope.track(new THREE.MeshStandardMaterial({ color: 0x5c9a67, emissive: 0x234c2b, emissiveIntensity: 0.6 })),
+    );
+    wildernessSignal.name = 'flight-pad-ii-wilderness-destination';
+    wildernessSignal.position.set(ROOF_FLIGHT_PAD_II_TELEPORT_CENTER[0] + 1.8, ROOF_FLIGHT_PAD_II_TELEPORT_CENTER[1] + 1.3, ROOF_FLIGHT_PAD_II_TELEPORT_CENTER[2]);
+    this.exteriorWorld.root.add(wildernessSignal);
+    this.interaction.register('pocket-portal:w10-roof', this.pocketHost.createAnchorControl('W10', wildernessSignal, {
+      dormantLabel: 'Inspect Wilderness Destination',
+      activeLabel: 'Enter Breath of the Weasel Preview',
+      liveReturnAnchor: () => this.pocketHost.captureHostAnchor(),
+    }));
+    this.interaction.register(LIGHTHOUSE_LENS_ID, this.pocketHost.createAnchorControl('L01', this.exteriorWorld.lighthouse.getLensControl(announce).object, {
+      dormantLabel: 'Inspect Lighthouse Lens (L01 dormant)',
+      dormantActivate: () => announce('The Lighthouse at World\'s End (L01) is not open yet.'),
+      activeLabel: 'Enter Lighthouse at World\'s End Preview',
+      liveReturnAnchor: () => this.pocketHost.captureHostAnchor(),
+    }));
+    this.interaction.register(OBSERVATORY_ORRERY_ID, this.pocketHost.createAnchorControl('W09', this.exteriorWorld.observatory.getOrreryControl(announce).object, {
+      dormantLabel: 'Inspect Broken Orrery (W09 dormant)',
+      dormantActivate: () => announce('The Museum Between Seconds (W09) is not open yet.'),
+      activeLabel: 'Enter The Museum Between Seconds Preview',
+      liveReturnAnchor: () => this.pocketHost.captureHostAnchor(),
+    }));
+    const fernControl = this.exteriorWorld.getFernPortalControl(announce);
+    this.interaction.register('pocket-portal:w02', this.pocketHost.createAnchorControl('W02', fernControl.object, {
+      dormantLabel: fernControl.label,
+      dormantDescription: fernControl.description,
+      dormantActivate: fernControl.activate,
+      activeLabel: 'Enter Prehistoric Fern Island Preview',
+      activeDescription: 'Explore the ancient island and its root crossing.',
+      liveReturnAnchor: () => this.pocketHost.captureHostAnchor(),
+    }));
+    const gnomonControl = this.exteriorWorld.getSundialPortalControl(announce);
+    this.interaction.register('pocket-portal:w03', this.pocketHost.createAnchorControl('W03', gnomonControl.object, {
+      dormantLabel: gnomonControl.label,
+      dormantDescription: gnomonControl.description,
+      dormantActivate: gnomonControl.activate,
+      activeLabel: 'Enter Clockwork Sundial Preview',
+      activeDescription: 'Cross the turning machine beneath the sundial and free the captive sunrise.',
+      liveReturnAnchor: () => this.pocketHost.captureHostAnchor(),
+    }));
+    const raindropControl = this.exteriorWorld.getRaindropPortalControl(announce);
+    this.interaction.register('pocket-portal:w08', this.pocketHost.createAnchorControl('W08', raindropControl.object, {
+      dormantLabel: raindropControl.label,
+      dormantDescription: raindropControl.description,
+      dormantActivate: raindropControl.activate,
+      activeLabel: 'Enter World Inside a Raindrop Preview',
+      activeDescription: 'Step through the surface of the suspended raindrop.',
+      liveReturnAnchor: () => this.pocketHost.captureHostAnchor(),
+    }));
+    const lagoonControl = this.exteriorWorld.getLagoonPortalControl(announce);
+    this.interaction.register('pocket-portal:w01', this.pocketHost.createAnchorControl('W01', lagoonControl.object, {
+      dormantLabel: lagoonControl.label,
+      dormantDescription: lagoonControl.description,
+      dormantActivate: lagoonControl.activate,
+      activeLabel: 'Dive into Lagoon Depths',
+      activeDescription: 'Enter W01: The Great Ocean Procession',
+      liveReturnAnchor: () => this.pocketHost.captureHostAnchor(),
+    }));
     for (const [id, control] of this.exteriorWorld.rooftop.getControls(announce)) {
-      if (id === GREENHOUSE_FLOWER_ID) register(id, 'W05', control);
+      if (id === GREENHOUSE_FLOWER_ID) this.interaction.register(id, this.pocketHost.createAnchorControl('W05', control.object, {
+        dormantLabel: control.label, dormantDescription: control.description, dormantActivate: control.activate,
+        activeLabel: 'Enter Impossible Greenhouse Preview',
+        activeDescription: 'Step through the conservatory flower into a glasshouse far larger inside.',
+        liveReturnAnchor: () => this.pocketHost.captureHostAnchor(),
+      }));
       else if (id === ROOF_FLIGHT_PAD_II_TELEPORT_ID) this.interaction.register(id, {
         ...control,
-        label: () => this.pocketRegistry.isPlayable('W10', this.passport) ? 'Enter Breath of the Weasel' : 'Inspect Flight Pad II Console',
+        label: () => this.pocketRegistry.isPlayable('W06', this.passport) ? 'Enter Skyborne Gardens Preview' : 'Inspect Flight Pad II Console',
         activate: () => {
-          if (this.pocketRegistry.isPlayable('W10', this.passport)) void this.pocketHost.requestEntry('W10');
-          else if (this.pocketRegistry.isPlayable('W06', this.passport)) void this.pocketHost.requestEntry('W06');
+          // W06 returns to the console it was entered from, on the rooftop.
+          if (this.pocketRegistry.isPlayable('W06', this.passport)) void this.pocketHost.requestEntry('W06', this.pocketHost.captureHostAnchor());
           else control.activate();
         },
       });
@@ -339,6 +460,7 @@ export class App implements LoopCallbacks {
   async ensureInteriorLoaded(): Promise<InteriorWorld> {
     if (this.interiorWorld) return this.interiorWorld;
     if (this.interiorLoadingPromise) return this.interiorLoadingPromise;
+    this.assertNotDisposed();
     this.worldDirector.interiorImportStarted = true;
     const telemetry = this.interiorLoadTelemetry;
     telemetry.requestedAtMs = performance.now();
@@ -348,10 +470,13 @@ export class App implements LoopCallbacks {
       let interior: InteriorWorld | null = null;
       try {
         const { InteriorWorld } = await import('../world/InteriorWorld');
+        this.assertNotDisposed();
         telemetry.moduleLoadedAtMs = performance.now();
         telemetry.buildStartedAtMs = performance.now();
         interior = new InteriorWorld(this);
+        this.buildingInterior = interior;
         await interior.buildCooperatively();
+        this.assertNotDisposed();
         telemetry.buildCompletedAtMs = performance.now();
         this.interiorWorld = interior;
         interior.root.visible = this.activeWorld === 'interior';
@@ -368,6 +493,8 @@ export class App implements LoopCallbacks {
         interior?.dispose();
         telemetry.lastFailure = error instanceof Error ? error.message : String(error);
         throw error;
+      } finally {
+        this.buildingInterior = null;
       }
     })();
     this.interiorLoadingPromise = load;
@@ -377,6 +504,10 @@ export class App implements LoopCallbacks {
       if (this.interiorLoadingPromise === load) this.interiorLoadingPromise = null;
       throw error;
     }
+  }
+
+  private assertNotDisposed(): void {
+    if (this.disposed) throw new Error('App disposed during interior preparation');
   }
 
   // ── Backward-compatible property accessors ────────────────────────────────
@@ -739,6 +870,7 @@ export class App implements LoopCallbacks {
   fixedUpdate(dt: number): void {
     if (
       !this.player.flightMode
+      && !this.player.isGuidedTransport
       && !this.player.isFrozen
       && !this.player.isSeated
       && !this.input.uiCaptured
@@ -795,9 +927,19 @@ export class App implements LoopCallbacks {
       this.preferences.invertY,
     );
 
+    // Weight for the museum's own camera only; pocket worlds own theirs.
+    this.cameraFeel.update(dt, {
+      velocity: this.player.velocity,
+      yaw: this.player.yaw,
+      grounded: this.player.grounded,
+      enabled: !this.preferences.reducedMotion && !this.pocketHost.isActive && !this.player.flightMode
+        && !this.player.developerFlightMode && !this.player.isSeated && !this.player.isFrozen && !this.input.uiCaptured,
+    });
     this.ui?.pocketTransition.update(dt);
     this.audio.update(dt);
     if (this.pocketHost.isActive) {
+      // Pocket worlds keep the order they were authored against.
+      this.sky.mesh.renderOrder = -1;
       if (this.pocketHost.usesMuseumSky) this.sky.follow(this.camera);
       this.interaction.update(this.camera, dt);
       this.pocketHost.variableUpdate(dt, this.player.writeEyePosition(this.eyePositionScratch));
@@ -846,11 +988,13 @@ export class App implements LoopCallbacks {
       }
     }
     if (this.activeWorld === 'exterior') {
+      this.exteriorWorld.weaselPierGuide.group.visible = this.pocketRegistry.isPlayable('W10', this.passport);
       this.exteriorWorld.variableUpdate(dt, eye, zone, this.preferences.reducedMotion);
     }
     this.updateTicketCard();
 
     this.lighting.update(eye);
+    this.renderer.setEnvironmentKind(this.isOutside ? 'night' : 'gallery');
 
     this.diagnostics.stats.activeExhibits = this.streaming?.telemetry.active ?? 0;
     this.diagnostics.stats.streamingResident = this.streaming?.telemetry.resident ?? 0;
@@ -876,6 +1020,8 @@ export class App implements LoopCallbacks {
     if (targetBeforeUpdate && !this.wayfinding.currentTarget) this.ui.clearGuideOnArrival(targetBeforeUpdate);
     this.arrivalGarden.update(dt, this.preferences.reducedMotion);
     this.sky.follow(this.camera);
+    // Last of the opaque draws: the sky shader runs only where the sky shows.
+    this.sky.mesh.renderOrder = 1;
 
     this.ui?.update(dt);
     this.input.endFrame();
@@ -900,6 +1046,18 @@ export class App implements LoopCallbacks {
 
   render(alpha: number): void {
     this.player.applyToCamera(this.camera, alpha);
+    this.cameraFeel.apply(this.camera);
+    if (this.pocketHost.activeCameraMode === 'third-person-dexter') {
+      // The third-person adapter is active only during W10. The museum's
+      // first-person transform is reapplied from PlayerController on return.
+      // The boom keeps the camera in front of cliffs and walls (V6 finishing).
+      const yaw = this.player.yaw;
+      const target = this.player.position;
+      this.thirdPersonBoom.place(this.camera, target, yaw, this.pocketHost.activeRoot, this.loop.frameTimeMs / 1000);
+      this.camera.lookAt(target.x - Math.sin(yaw) * 10, target.y + 1.5 + Math.sin(this.player.pitch) * 5, target.z - Math.cos(yaw) * 10);
+    } else {
+      this.thirdPersonBoom.reset();
+    }
     if (this.cinematicArrivalEnabled && !this.cinematicArrivalEntered
       && !this.cinematicCameraCancelled && !this.preferences.reducedMotion
       && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
@@ -956,6 +1114,7 @@ export class App implements LoopCallbacks {
     this.assets.dispose();
     this.exteriorWorld.dispose();
     this.interiorWorld?.dispose();
+    this.buildingInterior?.dispose();
     this.sanctuary?.dispose();
     this.wayfinding.dispose();
     this.visitors?.dispose();

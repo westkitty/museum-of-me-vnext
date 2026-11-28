@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { historicalEvidenceFolder } from './helpers/historical-evidence';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -9,7 +10,7 @@ import {
   ROOTBOUND_RELIC_POSITION,
 } from '../../src/world/exterior/ExteriorRootboundHollow';
 
-const evidenceFolder = 'docs/evidence/island-02c-rootbound-20261122';
+const evidenceFolder = historicalEvidenceFolder('docs/evidence/island-02c-rootbound-20261122');
 
 test('ISLAND-02C: Rootbound Hollow traversal from western approach, vaulted chamber, and relic discovery', async ({ page }) => {
   test.setTimeout(240_000);

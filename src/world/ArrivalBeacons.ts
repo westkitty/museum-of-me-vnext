@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import type { ResourceScope } from '../assets/ResourceScope';
+import { softenBeam } from '../render/SoftLight';
+import { applyLandscape } from '../render/LandscapeShading';
 import { VESTIBULE_TO } from './layout';
 
 /**
@@ -12,26 +14,26 @@ export class ArrivalBeacons {
 
   constructor(scope: ResourceScope) {
     this.group.name = 'arrival-monumental-beacons';
-    const bronze = scope.track(new THREE.MeshStandardMaterial({
-      color: 0x211b1a, metalness: 0.72, roughness: 0.35,
-    }));
+    const bronze = applyLandscape(scope.track(new THREE.MeshStandardMaterial({
+      color: 0x4a4441, metalness: 0.2, roughness: 0.6,
+    })), 'paving');
     const amber = scope.track(new THREE.MeshBasicMaterial({
       color: 0xffbb76, toneMapped: false,
     }));
-    const beam = scope.track(new THREE.MeshBasicMaterial({
+    const beam = softenBeam(scope.track(new THREE.MeshBasicMaterial({
       color: 0xffca92, transparent: true, opacity: 0.045,
       depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
       fog: false,
-    }));
+    })), 4.2);
     const baseGeometry = scope.track(new THREE.CylinderGeometry(1.25, 1.65, 3.6, 8));
     const crownGeometry = scope.track(new THREE.CylinderGeometry(0.48, 0.58, 0.18, 12));
-    const beamGeometry = scope.track(new THREE.CylinderGeometry(1.35, 0.42, 32, 12, 1, true));
+    const beamGeometry = scope.track(new THREE.CylinderGeometry(1.9, 0.42, 32, 24, 1, true));
     // Visual-review correction: give the visitor a clear axial view of the
     // museum facade and dome. Flanking stones remain outside the raised
     // terrace; no full-width beam crosses the entrance sightline.
-    const gatewayStone = scope.track(new THREE.MeshStandardMaterial({
-      color: 0x10151d, roughness: 0.86, metalness: 0.14,
-    }));
+    const gatewayStone = applyLandscape(scope.track(new THREE.MeshStandardMaterial({
+      color: 0x262d38, roughness: 0.82, metalness: 0.1,
+    })), 'paving');
     const inlay = scope.track(new THREE.MeshBasicMaterial({
       color: 0xd68a52, toneMapped: false,
     }));

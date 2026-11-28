@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { applyLandscape } from '../../render/LandscapeShading';
 import { ResourceScope } from '../../assets/ResourceScope';
 import { CollisionWorld } from '../CollisionWorld';
 import { ENTRANCE_PORTAL_Z, PLAZA_HALF_WIDTH, VESTIBULE_TO, type Vec3 } from '../layout';
@@ -18,10 +19,10 @@ export class ExteriorMuseumShell {
     const roof = material(0x0c1017, 0.72, 0.28);
     const rib = material(0x18202c, 0.55, 0.35);
     const spine = material(0x161e2b, 0.78, 0.2);
-    const trim = material(0x222a3a, 0.62, 0.3);
-    const wall = material(0x171b27, 0.82, 0.12);
+    const trim = applyLandscape(material(0x2b3546, 0.62, 0.2), 'paving');
+    const wall = applyLandscape(material(0x202838, 0.8, 0.1), 'paving');
     const gold = material(0xd4af37, 0.35, 0.8);
-    const stone = material(0x232b35, 0.9, 0.05);
+    const stone = applyLandscape(material(0x343f4d, 0.86, 0.04), 'paving');
     const glass = this.scope.track(new THREE.MeshStandardMaterial({
       color: 0x1d7888, emissive: 0x0d4a55, emissiveIntensity: 0.65,
       roughness: 0.22, metalness: 0.12, transparent: true, opacity: 0.88, depthWrite: false,
@@ -271,7 +272,7 @@ export class ExteriorMuseumShell {
       box(`terrace-balustrade-${side}`, [0.55, 0.8, 30], [side * 20, 0.4, VESTIBULE_TO + 15], trim);
       const px = side * 14;
       box(`topiary-planter-court-${side}`, [5, 0.65, 5], [px, 0.3, 143], trim);
-      const shrub = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(3.8, 2.2, 3.8)), material(0x14281a, 0.96, 0));
+      const shrub = new THREE.Mesh(this.scope.track(new THREE.BoxGeometry(3.8, 2.2, 3.8)), applyLandscape(material(0x234a33, 0.96, 0), 'foliage'));
       shrub.name = `sculpted-boxwood-${side}`;
       shrub.position.set(px, 1.72, 143);
       g.add(shrub);

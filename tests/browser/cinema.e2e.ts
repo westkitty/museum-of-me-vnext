@@ -193,10 +193,24 @@ test('a visitor walks into the cinema, sits, watches a real film on the screen, 
   await expect.poll(playbackState).toBe('playing');
   await page.keyboard.press('Space');
   await expect.poll(playbackState).toBe('paused');
+  const forward = page.getByRole('button', { name: 'Forward 5 seconds (.)' });
+  const mediaPosition = () => page.evaluate(() => {
+    const playback = window.__museum!.interiorWorld!.cinema!.playback;
+    const video = playback.element!;
+    return { time: video.currentTime, seeking: video.seeking, paused: video.paused, state: playback.state };
+  });
+  // Start from a completed, nonzero seek so the assertion depends on R.
+  await forward.click();
+  await expect.poll(async () => {
+    const media = await mediaPosition();
+    return media.time > 4.9 && !media.seeking && media.paused;
+  }).toBe(true);
+  await forward.blur();
   await page.keyboard.press('KeyR');
-  expect(await page.evaluate(() => window.__museum!.interiorWorld!.cinema!.playback.element!.currentTime)).toBe(0);
-  await page.getByRole('button', { name: 'Forward 5 seconds (.)' }).click();
-  expect(await page.evaluate(() => window.__museum!.interiorWorld!.cinema!.playback.element!.currentTime)).toBeCloseTo(5, 1);
+  // The media seek completes asynchronously even while playback is paused.
+  await expect.poll(mediaPosition).toEqual({ time: 0, seeking: false, paused: true, state: 'paused' });
+  await forward.click();
+  await expect.poll(async () => (await mediaPosition()).time).toBeCloseTo(5, 1);
   await page.getByRole('button', { name: 'Play (Space)' }).click();
   await expect.poll(() => page.evaluate(() => window.__museum!.interiorWorld!.cinema!.playback.state), { timeout: 15_000 }).toMatch(/playing|ended/);
   await expect(page.getByRole('button', { name: 'Captions (V)' })).toBeDisabled(); // this film has no captions, and says so

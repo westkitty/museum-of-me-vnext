@@ -1,9 +1,10 @@
 # W01 Music Source Provenance & Acoustic Analysis (ISLAND-05 Addendum)
 
-**Supplied source archive name:** `"Bouncier Tropical Calypso Groove_tracks.zip"`  
+**Supplied source archive name:** `"Bouncier Tropical Calypso Groove_tracks.zip"` (`SHA-256: 157f23ec5353a0906fdfaf393b65b7b899197bea089dc0e643555135ba950b72`)
+**Owner confirmation (2026-11-23):** Owner confirmed authorship and ownership (`source: 'original-museum'`, `creator: 'Andrew (Museum of Me owner)'`, `license: 'Original owner-authored music; owned by the project.'`, `attribution: null`).
 **Retained untouched originals location:** `.asset-sources/music/bouncier-tropical-calypso-groove/` (gitignored; excluded from `public/`, `dist/`, and `dist-standalone/`)  
 **Composition structure:** **One synchronized musical composition** separated into stems (NOT separate independent tracks plus a separate finale).  
-**Runtime deployment status:** **Not shipped yet.** All eleven canonical pocket worlds (`W01`–`W10`, `L01`) remain `DORMANT`, and no compressed `.m4a`/`.ogg` stems are distributed in `src/assets/` or `public/` yet.
+**Runtime deployment status:** **Governed 3-stem runtime assets bundled in `src/assets/audio/` (`w01-bass.m4a`, `w01-drums.m4a`, `w01-other.m4a`; 48 kHz stereo AAC-LC, 48 kbps, ~1.0 MB each).** `vocals.m4a` remains excluded. `W01` remains preview-gated (`?preview=w01` in DEV; `readiness: 'dormant'` in `PocketWorldRegistry.ts`) pending owner visual approval and M1 performance verification.
 
 ---
 
@@ -58,11 +59,13 @@ Because `bass`, `drums`, and `other` share one locked sample timeline (`166.698 
 
 ---
 
-## 4. Mandatory Pre-Distribution Asset Governance Gates
+## 4. Governed Runtime Stems & Pre-Activation Gates
 
-Before shipping compressed runtime stems or activating `W01`:
-
-1. **Creator & Licensing Sign-off:** Owner must confirm the exact `creator`, `license`, `attribution`, and `source` strings for `src/assets/manifest.ts` and `docs/ASSET_POLICY.md`.
-2. **Derived Runtime Transcode (3 Stems Only):** Compress *only* `bass`, `drums`, and `other` into web-delivery stereo files (`>= 48 kHz` / deterministic encoder), leaving the untouched originals in `.asset-sources/`. Record both `sourceHash` (above) and `processedHash` in `src/assets/manifest.ts`. Exclude `vocals.m4a` completely.
-3. **Transfer & Initial-Visit Budget Compliance:** Notice the raw `.m4a` stems total `~20.86 MB` (`6.94 + 7.12 + 7.82 MB`). Shipping `>= 20 MB` in the eager initial bundle would violate the `20 MB` initial-visit ceiling (`scripts/check-budgets.mjs`). Runtime stems for `W01` must either target an appropriately sized compressed bitrate *and/or* remain excluded from the initial rotunda transfer until `W01` entry (verified via `npm run check:budgets` and `npm run verify:dist`), while maintaining full `file://` standalone compatibility.
-4. **Pocket-World Activation:** Do not flip `W01` from `dormant` to `verified` until the W01 world geometry, creatures, accessibility captions, and final cue timings are complete and tested.
+1. **Creator & Licensing Sign-off (RESOLVED 2026-11-23):** Owner confirmed authorship and ownership (`source: 'original-museum'`, `creator: 'Andrew (Museum of Me owner)'`, `license: 'Original owner-authored music; owned by the project.'`, `attribution: null`).
+2. **Derived Runtime Transcode (3 Stems Only — COMPLETED):**
+   - `src/assets/audio/w01-bass.m4a`: `1,032 KB` (`processedHash`: `aa871189bd018422e74ae1d4745103ec9397469495554cf031153561d1105196`)
+   - `src/assets/audio/w01-drums.m4a`: `1,032 KB` (`processedHash`: `ef77d1962adc355818501f0bd1a6a3b213595d2399302aed21bda58e99de286d`)
+   - `src/assets/audio/w01-other.m4a`: `1,032 KB` (`processedHash`: `3a125859139f33d5c6dcdd013376f3e8547d457618714fe8388343ed2df9992b`)
+   - Untouched originals remain in `.asset-sources/`. `vocals.m4a` is excluded completely.
+3. **Transfer & Initial-Visit Budget Compliance:** The 3 derived stems total `~3.0 MB` (`48 kHz` stereo AAC-LC, `48 kbps`), keeping the full production `dist/` bundle under the `20 MB` initial-visit ceiling (`npm run check:budgets` & `npm run verify:dist`) with full `file://` standalone compatibility.
+4. **Pocket-World Activation:** `W01` remains `dormant` in `PocketWorldRegistry.ts` (preview-gated via `?preview=w01` in DEV) until owner visual approval and Apple M1 `perf:device` verification are complete.

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { applyLandscape } from '../../render/LandscapeShading';
 import type { ResourceScope } from '../../assets/ResourceScope';
 import type { CollisionWorld } from '../CollisionWorld';
 import type { ExhibitControl } from '../../exhibits/contract';
@@ -72,33 +73,33 @@ export class ExteriorRootboundHollow {
   private build(): void {
     const s = this.scope;
 
-    const loamMat = s.track(new THREE.MeshStandardMaterial({
+    const loamMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0x1a2220, roughness: 0.96, metalness: 0.02, flatShading: true,
       emissive: 0x071210, emissiveIntensity: 0.28,
-    }));
-    const mossMoundMat = s.track(new THREE.MeshStandardMaterial({
+    })), 'rock');
+    const mossMoundMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0x2a4c39, roughness: 0.94, metalness: 0.01, flatShading: true,
       emissive: 0x05110b, emissiveIntensity: 0.14,
-    }));
-    const darkMossMat = s.track(new THREE.MeshStandardMaterial({
+    })), 'grass');
+    const darkMossMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0x1f3a2c, roughness: 0.95, flatShading: true,
       emissive: 0x040d09, emissiveIntensity: 0.12,
-    }));
-    const rootBarkMat = s.track(new THREE.MeshStandardMaterial({
+    })), 'grass');
+    const rootBarkMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0x3b281e, roughness: 0.94, metalness: 0.02,
       emissive: 0x0e0a07, emissiveIntensity: 0.16,
-    }));
-    const slateMat = s.track(new THREE.MeshStandardMaterial({
+    })), 'bark');
+    const slateMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0x323d42, roughness: 0.88, metalness: 0.06,
       emissive: 0x0b161a, emissiveIntensity: 0.22,
-    }));
+    })), 'paving');
     const bronzeMat = s.track(new THREE.MeshStandardMaterial({
       color: 0x9b7a52, roughness: 0.38, metalness: 0.72,
       emissive: 0x1c1409, emissiveIntensity: 0.2,
     }));
-    const fernMat = s.track(new THREE.MeshStandardMaterial({
+    const fernMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0x1f5c41, roughness: 0.86, side: THREE.DoubleSide,
-    }));
+    })), 'foliage');
     const amberGlowMat = s.track(new THREE.MeshBasicMaterial({
       color: 0xffc074, toneMapped: false,
     }));
@@ -539,10 +540,10 @@ export class ExteriorRootboundHollow {
 
     // Visible domed earthen ceiling vault strictly above Y = 2.34 (open inside!)
     const vaultGeo = s.track(new THREE.SphereGeometry(3.85, 14, 7, 0, Math.PI * 2, 0, Math.PI * 0.48));
-    const vaultMat = s.track(new THREE.MeshStandardMaterial({
+    const vaultMat = applyLandscape(s.track(new THREE.MeshStandardMaterial({
       color: 0x161f1d, roughness: 0.95, flatShading: true, side: THREE.DoubleSide,
       emissive: 0x05100e, emissiveIntensity: 0.28,
-    }));
+    })), 'rock');
     const vaultDome = new THREE.Mesh(vaultGeo, vaultMat);
     vaultDome.name = 'rootbound-chamber-vault-dome';
     vaultDome.position.set(chamberMidX, 2.34, CHAMBER_MID_Z);

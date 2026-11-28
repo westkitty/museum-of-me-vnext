@@ -110,6 +110,7 @@ const BAY_LEAD = 9;
 const BAY_DEPTH = 16;
 const BAY_HALF_ALONG = 8;
 const BAY_OPENING = 9;
+export const HALL_SIDE_WALL_THICKNESS = 0.6;
 
 export const WINGS: readonly WingSpec[] = [
   {
