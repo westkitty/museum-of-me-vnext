@@ -53,6 +53,30 @@ describe('W09 Museum Between Seconds', () => {
     w.instance.dispose?.(); w.scope.dispose();
   });
 
+  it('keeps the sky moving while the visitor pushes against something, and never while frozen (V7 softlock fix)', () => {
+    const w = makeWorld();
+    // Face the left rail of the arrival terrace (x = -10) and push into it.
+    w.player.teleport([-9.4, 0, 25], Math.PI / 2);
+    w.step(30);
+    expect(w.snapshot().localTime).toBe(0);
+    w.keys.add('forward');
+    w.step(60);
+    const pinnedX = w.player.position.x;
+    w.step(60);
+    expect(Math.abs(w.player.position.x - pinnedX)).toBeLessThan(0.002); // blocked: no displacement
+    const pushed = w.snapshot().localTime;
+    expect(pushed).toBeGreaterThan(0.8 * 3.4 * 1.5); // about walking pace over two seconds of pushing
+    // A frozen visitor (a dialog, a transition) does not move the sky even with a key held.
+    w.player.setFrozen(true);
+    w.step(60);
+    expect(w.snapshot().localTime).toBe(pushed);
+    w.player.setFrozen(false);
+    w.keys.clear();
+    w.step(60);
+    expect(w.snapshot().localTime).toBe(pushed);
+    w.instance.dispose?.(); w.scope.dispose();
+  });
+
   it('supports stationary advancement, latches both constellations, traverses finale and completes once', () => {
     const w = makeWorld(true);
     expect(w.collision.snapshot().some((c) => c.id === 'floor:w09-orrery-bridge')).toBe(false);

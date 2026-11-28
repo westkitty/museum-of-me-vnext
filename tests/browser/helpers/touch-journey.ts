@@ -1,5 +1,5 @@
 import { expect, type CDPSession, type Page } from '@playwright/test';
-import { focusedId, pose, type Pose, type WalkOptions } from './world-journey';
+import { focusedId, pose, settle, travelAhead, type Pose, type WalkOptions } from './world-journey';
 
 /**
  * Real-time, touch-driven visitor helpers for pocket-world journeys.
@@ -18,6 +18,8 @@ interface Point { x: number; y: number; id: number }
 export const AIM_NUDGES: readonly (readonly [number, number])[] = [[0, 0], [0, -0.03], [0, 0.03], [-0.03, 0], [0.03, 0]];
 
 const STICK_RADIUS = 70; // Input.ts onTouchMove
+/** Below this distance the touch walker closes in with short pushes. */
+const TOUCH_CLOSE_IN = 1.5;
 const STICK_ID = 1;
 const LOOK_ID = 2;
 const TAP_ID = 3;
@@ -141,18 +143,62 @@ export class TouchVisitor {
     await this.page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
   }
 
-  /** Walk in real time to (x, z): the stick pushes forward, right-half drags steer. Full stick runs. */
+  /**
+   * Walk in real time to (x, z): the stick pushes forward, right-half drags
+   * steer. Touch has no run (the stick tops out at walking speed). As with the
+   * keyboard walker, the finger lifts before arrival (allowing for reaction
+   * time and the slide), the last metres are short timed pushes, and arrival
+   * is checked once the visitor has stopped, where they actually stand.
+   *
+   * On a moving support (W03's crown gear, W08's drift pad) the visitor keeps
+   * drifting with no input held, so stop-and-check never converges: each
+   * settle loses more than a short push gains. When the walker sees that drift
+   * it pushes continuously instead and checks arrival while walking (as the V6
+   * walker did; a touch walk stops within ~0.1 m of release).
+   */
   async walkTo(x: number, z: number, opts: WalkOptions = {}): Promise<Pose> {
     const tolerance = opts.tolerance ?? 0.9;
     const deadline = Date.now() + (opts.timeoutMs ?? 90_000);
+    let lastPoll = Date.now();
+    let carried = false;
     try {
       while (Date.now() < deadline) {
-        const p = await pose(this.page);
-        const dx = x - p.x; const dz = z - p.z; const dist = Math.hypot(dx, dz);
-        if (dist <= tolerance) return p;
+        let p = await pose(this.page);
+        const now = Date.now();
+        const pushing = this.active.has(STICK_ID);
+        const ahead = pushing ? travelAhead(p.speed, Math.min(1, (now - lastPoll) / 1000)) : 0;
+        lastPoll = now;
+        let dist = Math.hypot(x - p.x, z - p.z);
+        if (carried) {
+          if (dist <= tolerance) { await this.release(); return pose(this.page); }
+        } else if (dist - ahead <= Math.max(tolerance, TOUCH_CLOSE_IN) || dist <= tolerance) {
+          await this.release();
+          p = await settle(this.page);
+          dist = Math.hypot(x - p.x, z - p.z);
+          if (dist <= tolerance) return p;
+          // Standing still with no input: does the ground carry the visitor?
+          await this.page.waitForTimeout(150);
+          const q = await pose(this.page);
+          carried = Math.hypot(q.x - p.x, q.z - p.z) > 0.08;
+          p = q; dist = Math.hypot(x - p.x, z - p.z);
+          lastPoll = Date.now();
+        }
+        const dx = x - p.x; const dz = z - p.z;
         const diff = wrap(Math.atan2(-dx, -dz) - p.yaw);
-        if (Math.abs(diff) > 0.35) { await this.release(); await this.turnTo(Math.atan2(-dx, -dz), 0.08); continue; }
+        // On a moving support, stopping to turn hands ground back to the carrier
+        // (W03's gear carried the visitor ~1 m per 1.3 s turn): steer while
+        // walking instead, and stop to turn only when facing well away.
+        if (Math.abs(diff) > (carried ? 1.2 : 0.35)) { await this.release(); await this.turnTo(Math.atan2(-dx, -dz), 0.08); lastPoll = Date.now(); continue; }
         if (Math.abs(diff) > 0.06) await this.look(diff / this.yawPerPx * 0.8, 0);
+        if (!carried && !this.active.has(STICK_ID) && dist <= TOUCH_CLOSE_IN) {
+          // A short push. Any stick deflection walks at full walking speed
+          // (PlayerController normalizes the intent), so the push is timed.
+          await this.stick(0.45);
+          await this.page.waitForTimeout(Math.round(Math.min(0.8, Math.max(0.06, (dist - 0.1) / 3.4 + 0.05)) * 1000));
+          await this.release();
+          lastPoll = Date.now();
+          continue;
+        }
         await this.stick(opts.run && dist > 6 ? 1 : dist > 3 ? 0.75 : 0.45);
         await this.page.waitForTimeout(dist > 4 ? 140 : 60);
       }
@@ -164,6 +210,8 @@ export class TouchVisitor {
   }
 
   async aimAt(target: readonly [number, number, number], expectedId: string): Promise<void> {
+    await this.release();
+    await settle(this.page);
     for (let attempt = 0; attempt < 8; attempt++) {
       const p = await pose(this.page);
       const dx = target[0] - p.x; const dz = target[2] - p.z;

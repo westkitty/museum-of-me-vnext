@@ -237,6 +237,13 @@ export class PocketTransition implements PocketTransitionController {
     this.enterButton.disabled = true;
     this.enterButton.textContent = 'Opening…';
     this.promptStatus.textContent = 'Preparing passage…';
+    // Disabling the focused Enter button drops focus to the page (Chrome does
+    // it at its next focus fix-up), out of reach of the dialog's Esc handler:
+    // a visitor pressing Esc while the passage opened was ignored and the
+    // world opened anyway. Back stays available while loading, so keep focus
+    // there and Esc ("Back (Esc)") and Tab keep working.
+    const active = document.activeElement;
+    if (active === this.enterButton || !this.promptCard.contains(active)) this.backButton.focus({ preventScroll: true });
 
     // Restore base FOV before host snapshots camera state for the pocket world.
     this.restoreCameraFov();
@@ -251,10 +258,10 @@ export class PocketTransition implements PocketTransitionController {
       this.enterButton.disabled = false;
       this.enterButton.textContent = 'Enter';
       this.promptStatus.textContent = 'Passage did not open. You remain safely in the museum.';
-      // Disabling the button while loading dropped keyboard focus to the page,
-      // which left Esc ("Back (Esc)") and Tab unable to reach the dialog.
-      // Return focus to the retry action.
-      if (!this.promptCard.contains(document.activeElement)) this.enterButton.focus({ preventScroll: true });
+      // Focus waited on Back while loading (see above). Return it to the retry
+      // action, unless the visitor has moved it elsewhere in the dialog.
+      const waiting = document.activeElement;
+      if (waiting === this.backButton || !this.promptCard.contains(waiting)) this.enterButton.focus({ preventScroll: true });
     }
   }
 

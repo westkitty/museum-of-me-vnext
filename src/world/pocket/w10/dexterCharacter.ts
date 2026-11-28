@@ -102,6 +102,64 @@ export function validateDexterAsset(d: DexterAssetDescription): string[] {
 }
 
 /**
+ * Read a loaded candidate (a glTF scene and its clips) into the description the
+ * contract checks. It only reads. Facing cannot be inferred reliably from a
+ * bounding box (a tail can reach further than a nose), so the loader states it
+ * from the file's own metadata or the artist's sheet.
+ */
+export function describeDexterAsset(
+  root: THREE.Object3D, clips: readonly THREE.AnimationClip[], bytes: number, facesNegativeZ: boolean,
+): DexterAssetDescription {
+  root.updateWorldMatrix(true, true);
+  let triangles = 0, maxTextureSize = 0;
+  const bones = new Set<THREE.Object3D>();
+  root.traverse((o) => {
+    if ((o as THREE.Bone).isBone) bones.add(o);
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const g = mesh.geometry;
+    triangles += Math.floor((g.index ? g.index.count : g.attributes.position.count) / 3);
+    for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+      for (const value of Object.values(m)) {
+        const texture = value as THREE.Texture | null;
+        const image = texture?.isTexture ? texture.image as { width?: number; height?: number } | undefined : undefined;
+        if (image) maxTextureSize = Math.max(maxTextureSize, image.width ?? 0, image.height ?? 0);
+      }
+    }
+  });
+  const box = new THREE.Box3().setFromObject(root);
+  const size = box.getSize(new THREE.Vector3());
+  return {
+    bytes, triangles, bones: bones.size, maxTextureSize, clips: clips.map((c) => c.name),
+    size: [size.x, size.y, size.z], minY: box.min.y, facesNegativeZ,
+  };
+}
+
+/** An owner-supplied character offered to W10, with the approval record that must accompany it. */
+export interface DexterCandidate {
+  readonly character: DexterCharacter;
+  readonly description: DexterAssetDescription;
+  /** The owner's approval of this exact file. Absent means not approved. */
+  readonly approval?: { readonly status: 'OWNER_APPROVED_DEXTER'; readonly provenance: string };
+}
+
+/**
+ * The only way W10 obtains its character. A candidate is used only when it
+ * carries the owner's approval with provenance, reports itself approved, and
+ * meets the technical contract. Anything else is disposed and the labelled
+ * test-only rig is used instead, with the reasons.
+ */
+export function selectDexterCharacter(scope: ResourceScope, candidate?: DexterCandidate): { character: DexterCharacter; rejected: string[] } {
+  if (!candidate) return { character: createTestOnlyDexterRig(scope), rejected: [] };
+  const rejected = validateDexterAsset(candidate.description);
+  if (candidate.approval?.status !== 'OWNER_APPROVED_DEXTER' || !candidate.approval.provenance.trim()) rejected.unshift('no owner approval with provenance');
+  if (candidate.character.status !== 'OWNER_APPROVED_DEXTER') rejected.unshift(`character reports ${candidate.character.status}`);
+  if (rejected.length === 0) return { character: candidate.character, rejected };
+  candidate.character.dispose();
+  return { character: createTestOnlyDexterRig(scope), rejected };
+}
+
+/**
  * Temporary quadruped for silhouette and camera checks only. It is NOT Dexter
  * and must never be presented as Dexter.
  */

@@ -301,3 +301,18 @@ The older development rows above record their own dates. Current implementation 
 | World / standard browser suites | 74/76 and 115/119 in single invocations; all pass after a route fix, a hook fix and reruns (W01 aim miss unexplained) | [logs](evidence/world-production-20261126/v6-validation/) |
 | Owner decisions | PENDING OWNER | [V6 owner request](plans/WORLD_OWNER_REVIEW_20261126.md#v6-owner-request-2026-11-27) |
 
+
+### V7 local continuation · 2026-11-27
+
+| Area | Status | Evidence |
+|---|---|---|
+| W01 aim miss (V6) | CLOSED: test-walker overshoot, repaired; W01 unchanged; regression test added | [V7 report](evidence/world-production-20261126/v7/REPORT.md) |
+| W09 cascade pinch (V6) | CLOSED: product softlock repaired (blocked intent runs the clock); unit test plus browser keyboard 2/2 and touch 1/1; **owner acceptance of the rule change pending** | [V7 report](evidence/world-production-20261126/v7/REPORT.md) |
+| Authentic entrances | All 11 worlds plus the W10 roof on foot from the pier; interior and roof keyboard 5/5, touch 2/2 (emulated) | [captures](evidence/world-production-20261126/v7/museum-approach/) |
+| Long-session lifecycle | PASS 1/1: two passes, six worlds, resources flat (heap +0.5 MB after GC) | [V7 report](evidence/world-production-20261126/v7/REPORT.md) |
+| Dexter seam | Guarded selection plus asset reader; 7/7 unit tests; identity gate CLOSED; rig TEST-ONLY | [V7 report](evidence/world-production-20261126/v7/REPORT.md) |
+| Physical-device touch | NOT ATTEMPTED; owner procedure written | [procedure](plans/WORLD_DEVICE_ACCEPTANCE_V7_20261127.md) |
+| `perf:device`, governed trials | FAILED: 8/12, 10/12, 9/12 (three admissible starts). Attribution unresolved; see the trials | [trials](evidence/world-production-20261126/v7/performance/TRIALS.md) |
+| Gate · world · rehearsal · isolation | PASS (153 / 1,462) · 83/87 on the first full run. All four failures were diagnosed and pass on rerun: two were the touch test walker on moving supports (W03 gear, W08 pad; fixed), one an unexplained intermittent W09 time-dial aim miss, and one a product defect (Esc during "Opening…" was ignored; fixed, with a new regression test) · 5/5 with Metal; a first run without Metal was invalid (0/5). The failed-load test was re-run on the final tree, 1/1 · PASS | [V7 report](evidence/world-production-20261126/v7/REPORT.md) |
+| Standard · Workshop · standalone | Standard 67/67 executed before an owner-directed stop; Workshop and standalone not re-run (V7 changes neither; V6 PASS) | — |
+| Owner decisions | PENDING OWNER | [V7 owner request](plans/WORLD_OWNER_REVIEW_20261126.md#v7-owner-request-2026-11-27) |

@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
+import { historicalEvidenceFolder } from './helpers/historical-evidence';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { LIGHTHOUSE_PENINSULA_CENTER } from '../../src/world/exterior/IslandSiteLayout';
 import { LIGHTHOUSE_LENS_ID } from '../../src/world/exterior/ExteriorLighthouse';
 
-const evidenceFolder = 'docs/evidence/island-02a-lighthouse-20261122';
+const evidenceFolder = historicalEvidenceFolder('docs/evidence/island-02a-lighthouse-20261122');
 const [TX, , TZ] = LIGHTHOUSE_PENINSULA_CENTER;
 
 test('ISLAND-02A: lighthouse peninsula approach, climb, gallery, and dormant L01 Fresnel lens', async ({ page }) => {

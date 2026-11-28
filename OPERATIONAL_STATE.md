@@ -6,7 +6,7 @@
   "project_name": "Museum of Me — The Reliquary of Iterative Becoming vNext",
   "project_root": "/Users/andrew/museum of me/museum-of-me-vnext",
   "schema_version": 1,
-  "state_revision": 138,
+  "state_revision": 139,
   "last_updated": "2026-11-27",
   "linked_parent_state": "Museum_of_Me_vNext_Workspace/.../03_build_plan/OPERATIONAL_STATE_build_plan.md"
 }
@@ -1459,3 +1459,23 @@ V6 local continuation (2026-11-27):
   - World suite 74/76 and standard 115/119 in single runs, all passing after fixes and reruns.
 - **Owner decisions.** See [the owner review](docs/plans/WORLD_OWNER_REVIEW_20261126.md#v6-owner-request-2026-11-27).
 - **State.** Checkpoint `refs/checkpoints/world-production-v6-final-local`. Committed and pushed to `origin/feat/world-production-20261126` at the owner's request; no merge or deploy. Status **NOT COMPLETE FOR PRODUCTION**.
+
+V7 local continuation (2026-11-27, state revision 139):
+
+- **Defects closed.**
+  - The V6 W01 aim miss was a test-walker overshoot. It is repaired in the walker helpers; W01 is unchanged.
+  - The V6 W09 cascade pinch was a product softlock. It is repaired: blocked movement intent now runs the W09 clock at walking pace, while stillness and frozen states still stop it. Owner acceptance of this rule change is pending.
+- **Every entrance on foot.** The interior (W04, W07) and rooftop (W05, W06, W10 roof) entrances are now reached from the pier through the front door and passages, or the West Flank Ascent. Keyboard 5/5, touch 2/2 (emulated).
+- **Long session.** Two passes over six worlds, with completions, early exits and failed and interrupted loads, return flat resources.
+- **Dexter seam.** The seam now guards selection: owner approval, provenance and the contract are all required. The rig is still TEST-ONLY.
+- **Defect found in final qualification, and fixed.** Esc while a world showed "Opening…" was ignored once focus had left the disabled Enter button, so the world opened anyway. Focus now waits on Back (`src/ui/PocketTransition.ts`). Regression test: `tests/browser/worlds-entry-cancel.e2e.ts`.
+- **Qualification on the final candidate `refs/checkpoints/world-production-v7-final-candidate`.**
+  - Gate PASS on the final tree (153 / 1,462; 12.58 MB).
+  - World suite 83/87 on the first full run. All four failures were diagnosed and pass on rerun: two were the touch test walker on moving supports (W03 gear, W08 pad; fixed), one an unexplained intermittent W09 time-dial aim miss, and one a product defect (Esc during "Opening…" was ignored; fixed, with a new regression test).
+  - Rehearsal 5/5 with Metal; a first run without Metal was invalid (0/5). The failed-load test was re-run on the final tree, 1/1.
+  - Isolation PASS.
+  - Standard 67/67 executed before an owner-directed stop.
+  - Workshop and standalone not re-run.
+- **Performance.** FAILED, attribution unresolved. The final candidate ran three admissible-start trials on a frozen tree: 8/12, 10/12 and 9/12. The misses were p99s at 33 ms (two 60 Hz frames) and second-entry worst frames of 83 and 233 ms. Peak host load during those trials was 15–35, against 5 during baseline-1, which passed 12/12 on effectively the same measured code. A matched A/B on a quiet machine is the owner's call. See [TRIALS](docs/evidence/world-production-20261126/v7/performance/TRIALS.md).
+- **Not done.** Physical-device touch NOT ATTEMPTED; owner procedure in `docs/plans/WORLD_DEVICE_ACCEPTANCE_V7_20261127.md`.
+- **State.** Committed and pushed to `origin/feat/world-production-20261126` (PR #83) at the owner's request on 2026-11-27. There was no merge or deploy, and the 61 protected evidence images and the local V6 handoff stay uncommitted. Status **NOT COMPLETE FOR PRODUCTION**.

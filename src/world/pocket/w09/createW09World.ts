@@ -17,6 +17,8 @@ export interface W09PreviewHandle extends PocketPreviewHandle { getSnapshot(): W
 const SPAWN = [0, 0, 25] as const;
 const dialPositions = [[-4, 0, -6], [4, 0, -6]] as const;
 const targets = [3, 8] as const;
+/** Clock pace (m/s of walking) while the visitor pushes but cannot move: PlayerController WALK_SPEED. */
+const BLOCKED_PACE = 3.4;
 const phaseDistance = (t: number, target: number) => Math.abs(((t - target + 6) % 12 + 12) % 12 - 6);
 
 /** W09: the celestial apparatus moves only when the visitor intends to move. */
@@ -180,7 +182,12 @@ export function createW09WorldFactory(onReady?: (handle: W09PreviewHandle) => vo
         const p = player.position;
         const moved = Math.hypot(p.x - lastX, p.z - lastZ);
         const intentional = ctx.input.isDown('forward') || ctx.input.isDown('back') || ctx.input.isDown('left') || ctx.input.isDown('right') || Math.abs(ctx.input.touchMoveX) + Math.abs(ctx.input.touchMoveY) > 0.12;
-        if (intentional && moved > 0.002) advance(Math.min(moved, dt * 12) * 0.8);
+        // Intent drives the sky. A visitor pushing against something (a meteor
+        // stone pinning them to the rail) still means to move, so the clock
+        // runs at walking pace; otherwise the stone, which only moves with the
+        // clock, could hold them forever (V6 stall at the first stone). A
+        // visitor who stops still freezes the sky.
+        if (intentional && !player.isFrozen) advance(Math.min(moved > 0.002 ? moved : BLOCKED_PACE * dt, dt * 12) * 0.8);
         lastX = p.x; lastZ = p.z;
         if (!orreryBridge && localTime >= 5) {
           orreryBridge = true; unlockBridge('w09-orrery-bridge', firstBridge, 5, 14);

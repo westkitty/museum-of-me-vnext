@@ -326,3 +326,41 @@ W09 and L01 local previews exist and their keyboard journeys complete. W10 was i
     - [summary](../evidence/world-production-20261126/v6-validation/perf-final-summary.txt), [control](../evidence/world-production-20261126/v6-validation/ab-regress.txt).
   - Logs: [v6-validation](../evidence/world-production-20261126/v6-validation/).
 - Checkpoint: `refs/checkpoints/world-production-v6-final-local`. At the owner's request (2026-11-27), the branch was committed and pushed to `origin/feat/world-production-20261126`. No merge, no deployment, no production activation. Production remains **NOT COMPLETE**.
+
+### V7 continuation — W01 and W09 defects closed, every entrance on foot, long session, Dexter seam guard, governed performance trials
+
+Report: [v7/REPORT.md](../evidence/world-production-20261126/v7/REPORT.md). Candidate `refs/checkpoints/world-production-v7-final-candidate` (local snapshot on `bf171e5`). All touch results are browser emulation.
+
+- **B. W01 aim miss: CLOSED.**
+  - The cause was the keyboard test walker. It released Shift+W only after a slow poll found it inside the tolerance at full run, then slid about 2.3 m further.
+  - Reproduced by starving the runner (legacy walker: overshoot and timeout at 150 ms delay).
+  - Fixed in `tests/browser/helpers/world-journey.ts` and `touch-journey.ts` (predict stop, release early, settle, recheck, timed close-in presses).
+  - W01 product unchanged. New regression test `w01-arrival-overshoot.e2e.ts`.
+- **C. W09 cascade pinch: CLOSED. A product softlock, repaired.**
+  - The clock only advanced on actual displacement, so a visitor pinned by a stone that moves only with the clock was held forever.
+  - Now a held movement intent runs the clock at walking pace while blocked. Standing still and frozen states still freeze it.
+  - `createW09World.ts` changed; unit test 3/3; browser pinch test keyboard 2/2 and touch 1/1.
+  - The V6 `crossCascade` step-back retry was removed.
+  - **Owner note:** W09's rule becomes "time moves when you try to move".
+- **D. Authentic entrances: 11/11 worlds plus the W10 roof.**
+  - Interior: through the front door and the authored passages (W04 E19 bay; W07 via the south-east grand stair, balcony and infra wing).
+  - Roof: the West Flank Ascent (W05, W06, W10 roof).
+  - `worlds-museum-approach.e2e.ts`: keyboard 5/5, touch 2/2.
+- **E. Controls and accessibility:** automated checks unchanged and passing. Physical-device procedure written ([WORLD_DEVICE_ACCEPTANCE_V7_20261127.md](WORLD_DEVICE_ACCEPTANCE_V7_20261127.md)); physical devices NOT ATTEMPTED.
+- **G. Dexter seam:**
+  - `selectDexterCharacter` is now the only route to W10's character. It rejects and disposes anything without owner approval and provenance, without self-reported approval, or failing the contract.
+  - `describeDexterAsset` reads a loaded scene into the contract description.
+  - Unit tests 7/7. The rig is still `TEST_ONLY_NOT_APPROVED_DEXTER`; no model was made.
+- **H. Long session:**
+  - `worlds-long-session.e2e.ts`, 1/1 in 4.3 min: two passes over W01, W02, W03, W09, W10 and L01, with three completions, nine early exits, a failed and an interrupted load through the dialog.
+  - Same-spot resources flat: geometries 992 → 992, textures 30 → 30, programs 61 → 61, DOM 473 → 473; heap after GC 39.6 → 40.1 MB.
+- **J. Failure recovery:** the network-level failure and interruption through the real dialog remain covered by the rehearsal suite (below), plus the long session.
+  - **Defect found in final qualification, and fixed:** Esc during "Opening…" was ignored once focus had left the disabled Enter button. Focus now waits on Back (`src/ui/PocketTransition.ts`). New regression test `tests/browser/worlds-entry-cancel.e2e.ts`: passes with the fix, fails on the old code.
+- **A. Performance:** see [v7/performance/TRIALS.md](../evidence/world-production-20261126/v7/performance/TRIALS.md). FAILED, attribution unresolved. The final candidate ran three admissible-start trials on a frozen tree: 8/12, 10/12 and 9/12. The misses were p99s at 33 ms (two 60 Hz frames) and second-entry worst frames of 83 and 233 ms. Peak host load during those trials was 15–35, against 5 during baseline-1, which passed 12/12 on effectively the same measured code. A matched A/B on a quiet machine is the owner's call.
+- **Final qualification** (trimmed by owner decision at 16:30: the standard suite was stopped, and Workshop and standalone were not re-run because V7 changes neither):
+  - Gate PASS on the final tree: 153 files / 1,462 tests; initial bundle 12.58 MB of 20 MB; release dist PASS.
+  - Standard suite: 67 passed, 0 failed when stopped (partial).
+  - World suite: 83/87 on the first full run. All four failures were diagnosed and pass on rerun: two were the touch test walker on moving supports (W03 gear, W08 pad; fixed), one an unexplained intermittent W09 time-dial aim miss, and one a product defect (Esc during "Opening…" was ignored; fixed, with a new regression test).
+  - Rehearsal: 5/5 with Metal; a first run without Metal was invalid (0/5). The failed-load test was re-run on the final tree, 1/1.
+  - Isolation scan: PASS.
+  - The 61 protected historical images were checked byte-identical after every stage.

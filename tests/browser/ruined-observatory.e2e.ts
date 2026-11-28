@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
+import { historicalEvidenceFolder } from './helpers/historical-evidence';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { OBSERVATORY_CENTER } from '../../src/world/exterior/IslandSiteLayout';
 import { OBSERVATORY_FLOOR_Y, OBSERVATORY_ORRERY_ID } from '../../src/world/exterior/ExteriorObservatory';
 
-const evidenceFolder = 'docs/evidence/island-02b-observatory-20261122';
+const evidenceFolder = historicalEvidenceFolder('docs/evidence/island-02b-observatory-20261122');
 const [OX, , OZ] = OBSERVATORY_CENTER;
 
 test('ISLAND-02B: southern ruined observatory approach, climb, celestial rotunda, and dormant W09 orrery', async ({ page }) => {

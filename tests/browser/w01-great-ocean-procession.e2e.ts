@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
+import { historicalEvidenceFolder } from './helpers/historical-evidence';
 import { mkdirSync } from 'node:fs';
 
-const EVIDENCE_DIR = 'docs/evidence/w01-great-ocean-procession-20261123';
+const EVIDENCE_DIR = historicalEvidenceFolder('docs/evidence/w01-great-ocean-procession-20261123');
 
 async function bootPreview(page: Page, withQa = true): Promise<void> {
   await page.goto(withQa ? '/?qa=1&preview=w01' : '/?preview=w01', { waitUntil: 'commit' });

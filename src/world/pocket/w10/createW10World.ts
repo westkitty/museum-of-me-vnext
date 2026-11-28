@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { PocketWorldContext, PocketWorldFactory, PocketWorldInstance } from '../types';
 import { addLightRig, addPlatform, gradientSkyDome, seededRandom, type PocketPreviewHandle } from '../kit/worldKit';
-import { chooseDexterPose, createTestOnlyDexterRig, type DexterRigStatus } from './dexterCharacter';
+import { chooseDexterPose, selectDexterCharacter, type DexterRigStatus } from './dexterCharacter';
 
 export interface W10Snapshot {
   readonly hasGlider: boolean;
@@ -155,9 +155,10 @@ export function createW10WorldFactory(onReady?: (handle: W10PreviewHandle) => vo
     const exit = new THREE.Mesh(scope.track(new THREE.IcosahedronGeometry(0.8, 1)), gold);
     exit.position.set(0, 4.4, -103); root.add(exit);
 
-    // The character goes through the Dexter seam. Only the labelled test-only rig exists:
-    // no approved Dexter model, and no stand-in animal (docs/plans/W10_DEXTER_MODEL_HANDOFF.md).
-    const character = createTestOnlyDexterRig(scope);
+    // The character goes through the Dexter seam. No candidate is offered: there is no
+    // approved Dexter model, and no stand-in animal (docs/plans/W10_DEXTER_MODEL_HANDOFF.md),
+    // so the seam returns the labelled test-only rig.
+    const { character } = selectDexterCharacter(scope);
     root.add(character.object);
 
     let hasGlider = false, climbing = false, updraft = false, shrineOpen = false, optionalFound = false;

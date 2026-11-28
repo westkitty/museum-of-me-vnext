@@ -2,7 +2,7 @@ import { expect, type Page } from '@playwright/test';
 import type { L01Snapshot } from '../../../src/world/pocket/l01/createL01World';
 import type { W09Snapshot } from '../../../src/world/pocket/w09/createW09World';
 import type { W10Snapshot } from '../../../src/world/pocket/w10/createW10World';
-import { pose, snapshot } from './world-journey';
+import { snapshot } from './world-journey';
 import type { Visitor } from './visitor';
 
 /**
@@ -17,28 +17,8 @@ const shooter = (page: Page, dir: Shots) => async (name: string) => {
 };
 const backInMuseum = (page: Page) => expect.poll(() => page.evaluate(() => window.__museum!.activeWorld), { timeout: 30_000 }).toBe('exterior');
 
-/**
- * Cross W09's meteor cascade as a visitor does. The stones move only while the
- * visitor moves, so one at rest beside the rail can pin a visitor who keeps
- * pushing forward (no movement, so no time, so the stone never moves). When
- * the walk stalls, step back toward the centre of the walkway (time advances
- * and the stone swings away) and try again.
- */
-async function crossCascade(page: Page, v: Visitor, x: number, z: number, tolerance: number): Promise<void> {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      await v.walkTo(x, z, { tolerance, timeoutMs: attempt < 3 ? 20_000 : 90_000 });
-      return;
-    } catch (error) {
-      if (attempt >= 3) throw error;
-      const p = await pose(page);
-      console.log(JSON.stringify({ w09CascadeStepBack: { at: [+p.x.toFixed(2), +p.z.toFixed(2)], toward: [x, z], attempt } }));
-      await v.walkTo(p.x * 0.4, p.z + 2.5, { tolerance: 0.8, timeoutMs: 20_000 });
-    }
-  }
-}
-
-export async function w09Route(page: Page, v: Visitor, dir: Shots): Promise<void> {
+/** W09 from arrival to the cascade threshold (z = -25): movement clock, orrery bridge, both constellations. */
+export async function w09ToCascade(page: Page, v: Visitor, dir: Shots): Promise<void> {
   const snap = () => snapshot<W09Snapshot>(page, 'W09');
   const shot = shooter(page, dir);
   await page.waitForTimeout(600);
@@ -62,11 +42,26 @@ export async function w09Route(page: Page, v: Visitor, dir: Shots): Promise<void
   await expect.poll(async () => (await snap()).meteorBridge).toBe(true);
   await shot('04-transformation-constellations');
   await v.walkTo(0, -25, { tolerance: 0.7 });
-  await crossCascade(page, v, -2.4, -39, 0.8);
-  await crossCascade(page, v, 2.4, -46, 0.8);
+}
+
+/** W09 from the cascade threshold through the three meteor stones to the final observatory. */
+export async function w09Cascade(page: Page, v: Visitor, dir: Shots): Promise<void> {
+  const shot = shooter(page, dir);
+  // V7: no step-back retries. The V6 touch stall was a real softlock (a stone
+  // that only moves with the visitor's movement could pin a visitor who was
+  // pushing against it); W09 now advances its clock with blocked intent, and
+  // a recurrence must fail here rather than be walked around.
+  await v.walkTo(-2.4, -39, { tolerance: 0.8 });
+  await v.walkTo(2.4, -46, { tolerance: 0.8 });
   await shot('05a-meteor-cascade');
-  await crossCascade(page, v, -2.4, -54, 0.8);
-  await crossCascade(page, v, 0, -67, 0.7);
+  await v.walkTo(-2.4, -54, { tolerance: 0.8 });
+  await v.walkTo(0, -67, { tolerance: 0.7 });
+}
+
+/** W09 finale: wait for the alignment, touch the exit star, return to the museum with the stamp. */
+export async function w09Finale(page: Page, v: Visitor, dir: Shots): Promise<void> {
+  const snap = () => snapshot<W09Snapshot>(page, 'W09');
+  const shot = shooter(page, dir);
   await expect.poll(async () => (await snap()).finaleProgress, { timeout: 15_000 }).toBe(1);
   await v.turnTo(0);
   await v.pitchTo(0.25);
@@ -77,6 +72,12 @@ export async function w09Route(page: Page, v: Visitor, dir: Shots): Promise<void
   await backInMuseum(page);
   await shot('06-return');
   expect(await page.evaluate(() => window.__museum!.passport.hasStamp('W09'))).toBe(true);
+}
+
+export async function w09Route(page: Page, v: Visitor, dir: Shots): Promise<void> {
+  await w09ToCascade(page, v, dir);
+  await w09Cascade(page, v, dir);
+  await w09Finale(page, v, dir);
 }
 
 export async function w10Route(page: Page, v: Visitor, dir: Shots): Promise<void> {

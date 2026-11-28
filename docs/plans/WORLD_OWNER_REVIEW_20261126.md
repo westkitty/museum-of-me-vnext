@@ -169,3 +169,36 @@ Decisions for you:
    - The exterior walk now meets its 20 ms p99 in matched trials (16.8 ms in 5/5 pairs). One full `perf:device` run passed 12/12.
    - The final repeats on the exact candidate failed (4–6/12) while the machine was heavily loaded by other processes. The earlier passing build failed the same way in a matched control, so this is not attributed to code.
    - Please allow a repeat on a quiet machine, or on the headed representative device, before performance sign-off. Headed and physical-device performance remain unmeasured.
+
+## V7 owner request (2026-11-27)
+
+Candidate: `refs/checkpoints/world-production-v7-final-candidate` (local snapshot; its code and the V7 documentation were committed and pushed to PR #83 at the owner's request on 2026-11-27). Approval state for every world: **PENDING OWNER**. No world is owner-accepted or device-accepted. Touch results are browser emulation. Full report: [V7 report](../evidence/world-production-20261126/v7/REPORT.md).
+
+What changed for you to review:
+
+- **Every entrance is now reached on foot from the pier**, including the interior and rooftop ones:
+  - W04 through the front door to the E19 bay;
+  - W07 up the grand stair to the infra-wing lab door;
+  - W05, W06 and the W10 roof up the West Flank Ascent.
+  [Captures](../evidence/world-production-20261126/v7/museum-approach/).
+- **W09, behaviour change for your acceptance.** A visitor pushing against something (a rail, a meteor stone) now moves the sky at walking pace. Before, they could be pinned by a stone that only moves with the sky, which is the V6 stall. Standing still still freezes time. This answers V6 decision 5 by repair rather than a hint or a wider gap. It is reversible in one line if you prefer the old rule.
+- **W01.** The V6 "unexplained 5.8 m displacement" was the test walker, not your world. W01 is unchanged.
+- **W10 Dexter.** The seam now refuses any character that lacks your recorded approval and provenance or fails the technical contract, and falls back to the labelled test rig. Nothing was made or approved.
+- **Long sessions.** Two passes over six worlds, with completions, early exits and failed and interrupted loads, leave no residue.
+
+Decisions for you:
+
+1. **Accept or revert the W09 rule change** above.
+2. **Physical-device acceptance.** About 30–40 minutes on one phone or tablet: [procedure](WORLD_DEVICE_ACCEPTANCE_V7_20261127.md). It is the only way to clear "physical touch: UNVERIFIED".
+3. **Performance sign-off.** Performance is **FAILED, attribution unresolved.**
+   - The final candidate scored 8/12, 10/12 and 9/12 over three admissible-start trials.
+   - The misses are dropped-frame p99s (33 ms) and second-entry spikes.
+   - The host load during those trials (15–35) was far above that during the passing baseline-1 (12/12, load 5), on effectively the same measured code.
+   - **Decide:** run a matched, interleaved A/B on a quiet machine (about 45 minutes, nothing else open), or accept performance as not signed off for V7. Thresholds stay as they are either way.
+4. **Still open from V6:**
+   - per-world visual and audio acceptance;
+   - an approved Dexter model ([handoff](W10_DEXTER_MODEL_HANDOFF.md));
+   - budget definition A or B;
+   - whether the `interior` chunk becomes lazy;
+   - merging PR #83 (squash).
+5. **Publication.** Approved on 2026-11-27. V7 was committed and pushed to PR #83, with no merge or deploy. The Bible entry still needs its own approval.

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { historicalEvidenceFolder } from './helpers/historical-evidence';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -12,7 +13,7 @@ import { LIGHTHOUSE_PENINSULA_CENTER } from '../../src/world/exterior/IslandSite
 import { CAMERA_FAR } from '../../src/render/RendererHost';
 import { SKY_DOME_RADIUS } from '../../src/world/Sky';
 
-const evidenceFolder = 'docs/evidence/island-02d-distant-islands-20261122';
+const evidenceFolder = historicalEvidenceFolder('docs/evidence/island-02d-distant-islands-20261122');
 const [LTX, , LTZ] = LIGHTHOUSE_PENINSULA_CENTER;
 
 test('ISLAND-02D: distant Floating Sky Islands & Wild Island silhouette across pier, coastal, lighthouse, and rooftop views', async ({ page }) => {
